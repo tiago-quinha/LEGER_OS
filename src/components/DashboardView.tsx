@@ -158,6 +158,49 @@ export function DashboardView({ expenses, categories, budgets, balances, cycles,
     }
   }).filter(c => c.value > 0 || c.limit > 0).sort((a, b) => b.value - a.value)
 
+  const systemLogs = useMemo(() => {
+    const logs = []
+    
+    // Core boot lines
+    logs.push({ type: "success", text: "SYSTEM_BOOT // CORE_READY_V4" })
+    logs.push({ type: "info", text: `BUFFER_SYNC: 100% // CYCLE_ID: ${currentCycle.id}` })
+    
+    // Velocity Alert
+    if (velocity > 1.1) {
+      logs.push({ type: "warning", text: `[CRITICAL_VELOCITY] Spend velocity ratio is ${velocity.toFixed(2)}x (exceeds threshold 1.0x).` })
+    } else {
+      logs.push({ type: "info", text: `[VELOCITY_OPTIMAL] Spend velocity index is ${velocity.toFixed(2)}x.` })
+    }
+
+    // Budget Limits
+    spendingByCategory.forEach(cat => {
+      if (cat.limit > 0) {
+        const spent = cat.value
+        const ratio = spent / cat.limit
+        if (ratio >= 1.0) {
+          logs.push({ type: "error", text: `[BUDGET_OVERRUN] Limit exceeded for node '${cat.name.toUpperCase()}'. Spent: €${spent.toFixed(2)} / €${cat.limit.toFixed(2)}.` })
+        } else if (ratio >= 0.8) {
+          logs.push({ type: "warning", text: `[BUDGET_WARNING] Node '${cat.name.toUpperCase()}' is ${(ratio * 100).toFixed(0)}% depleted. Spent: €${spent.toFixed(2)} / €${cat.limit.toFixed(2)}.` })
+        }
+      }
+    })
+
+    // Large transactions alert
+    const largeExpenses = expenses.filter(e => parseFloat(e.amount.toString()) < -150)
+    largeExpenses.forEach(tx => {
+      logs.push({ type: "warning", text: `[INTENSITY_DETECTION] Large outflow of €${Math.abs(parseFloat(tx.amount.toString())).toFixed(2)} at merchant '${tx.merchant.toUpperCase()}'.` })
+    })
+
+    // End-of-cycle projection warning
+    if (cycleEndBalance < 0) {
+      logs.push({ type: "error", text: `[PROJECTION_DEFICIT] Final cycle projection estimates deficit: €${cycleEndBalance.toFixed(2)}.` })
+    } else if (cycleEndBalance < injectedStartBalance * 0.1) {
+      logs.push({ type: "warning", text: `[LIQUIDITY_ALERT] End-cycle projection drops below 10% start balance. Final estimate: €${cycleEndBalance.toFixed(2)}.` })
+    }
+
+    return logs
+  }, [currentCycle, velocity, spendingByCategory, expenses, cycleEndBalance, injectedStartBalance])
+
   const activeBudgets = spendingByCategory.filter(c => c.limit > 0)
 
   return (
@@ -373,6 +416,30 @@ export function DashboardView({ expenses, categories, budgets, balances, cycles,
               </div>
             </div>
           )}
+        </div>
+      </section>
+
+      {/* Mainframe System Logs Telemetry Feed */}
+      <section className="space-y-4">
+        <div className="flex items-center gap-2 border-b border-foreground/10 pb-2">
+           <span className="technical-label">Threat Telemetry Feed // Logs_V4</span>
+        </div>
+        <div className="border border-border ledger-border bg-card p-4 md:p-6 font-mono text-[9px] md:text-[10px] space-y-2 h-44 overflow-y-auto scrollbar-hide">
+           {systemLogs.map((log, idx) => (
+              <div key={idx} className="flex gap-4 hover:bg-secondary/20 py-0.5 px-1 items-start">
+                 <span className="text-muted-foreground opacity-30 select-none">{`[NODE_LOG_${idx.toString().padStart(3, '0')}]`}</span>
+                 <span className={cn(
+                    "font-bold shrink-0 uppercase tracking-tighter w-8",
+                    log.type === "error" ? "text-destructive" :
+                    log.type === "warning" ? "text-amber-500" :
+                    log.type === "success" ? "text-emerald-500" :
+                    "text-foreground/60"
+                 )}>
+                    {log.type === "error" ? "CRIT" : log.type === "warning" ? "WARN" : log.type === "success" ? "BOOT" : "INFO"}
+                 </span>
+                 <span className="text-foreground/80 leading-relaxed uppercase">{log.text}</span>
+              </div>
+           ))}
         </div>
       </section>
 

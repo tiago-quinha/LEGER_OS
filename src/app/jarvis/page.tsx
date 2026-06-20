@@ -90,6 +90,8 @@ export default async function LegerPage() {
         velocity,
         categories: catSpending
       }}
+      expenses={expenses}
+      categories={categories}
     />
   )
 }

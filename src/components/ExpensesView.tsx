@@ -28,6 +28,7 @@ import { Sparkles, Plus, Trash2, Search, Upload, FileText, Check, Loader2, Landm
 import { cn } from "@/lib/utils"
 import { AuditTracePanel } from "@/components/AuditTracePanel"
 import { useSystem } from "@/lib/SystemContext"
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogDescription } from "@/components/ui/dialog"
 
 import { MagneticButton } from "@/components/unlumen-ui/magnetic-button"
 import { GlowingBadge } from "@/components/unlumen-ui/glowing-badge"
@@ -71,6 +72,15 @@ export function ExpensesView({ initialExpenses, categories, initialRules }: Expe
   // New Rule State
   const [newRuleKeyword, setNewRuleKeyword] = useState("")
   const [newRuleCategoryId, setNewRuleCategoryId] = useState("")
+
+  // Manual Ingestion State
+  const [isAddOpen, setIsAddOpen] = useState(false)
+  const [manualAmount, setManualAmount] = useState("")
+  const [manualMerchant, setManualMerchant] = useState("")
+  const [manualCategoryId, setManualCategoryId] = useState("")
+  const [manualDate, setManualDate] = useState(new Date().toISOString().split('T')[0])
+  const [isIncome, setIsIncome] = useState(false)
+  const [isSavingManual, setIsSavingManual] = useState(false)
 
   // Ingestion Node State
   const [extractText, setExtractText] = useState("")
@@ -503,6 +513,51 @@ export function ExpensesView({ initialExpenses, categories, initialRules }: Expe
     refreshData()
   }
 
+  const handleAddManualExpense = async (e: React.FormEvent) => {
+    e.preventDefault()
+    if (!manualAmount || !manualMerchant || isSavingManual) {
+      toast.error("Merchant and Amount are required.")
+      return
+    }
+
+    setIsSavingManual(true)
+    try {
+      const amtVal = parseFloat(manualAmount)
+      const formattedAmount = isIncome ? Math.abs(amtVal) : -Math.abs(amtVal)
+      
+      const { data, error } = await supabase
+        .from("tracker_expense")
+        .insert({
+          amount: formattedAmount.toString(),
+          merchant: manualMerchant.toUpperCase(),
+          date: manualDate,
+          source: "Manual UI Ingest",
+          raw_text: `Manual Entry: ${manualMerchant.toUpperCase()} [${manualDate}]`,
+          category_id: manualCategoryId ? parseInt(manualCategoryId) : null
+        })
+        .select()
+
+      if (error) throw error
+
+      if (data && data[0]) {
+        setExpenses(prev => [data[0] as Expense, ...prev])
+        toast.success("Transaction committed successfully.")
+        setIsAddOpen(false)
+        setManualAmount("")
+        setManualMerchant("")
+        setManualCategoryId("")
+        setManualDate(new Date().toISOString().split('T')[0])
+        setIsIncome(false)
+        refreshData()
+      }
+    } catch (err: any) {
+      console.error(err)
+      toast.error(`Manual insert failure: ${err.message}`)
+    } finally {
+      setIsSavingManual(false)
+    }
+  }
+
   return (
     <>
       <div className="mx-auto max-w-5xl p-4 md:p-8 space-y-6 w-full">
@@ -511,21 +566,117 @@ export function ExpensesView({ initialExpenses, categories, initialRules }: Expe
             <h1 className="text-3xl font-bold tracking-tight">Expenses</h1>
             <p className="text-muted-foreground">Manage your spending and automation rules.</p>
           </div>
-          <MagneticButton 
-            onClick={smartCategorize} 
-            disabled={isCategorizing}
-            className="bg-gradient-to-r from-indigo-600 to-violet-600 hover:from-indigo-700 hover:to-violet-700 text-white border-0 shadow-md font-semibold px-4 py-2 flex items-center justify-center rounded-lg"
-            strength={0.3}
-          >
-            {isCategorizing ? (
-              "Categorizing..."
-            ) : (
-              <>
-                <Sparkles className="mr-2 h-4 w-4" />
-                Smart Categorize
-              </>
-            )}
-          </MagneticButton>
+          <div className="flex items-center gap-3">
+             <Dialog open={isAddOpen} onOpenChange={setIsAddOpen}>
+                <DialogTrigger asChild>
+                   <Button variant="outline" className="rounded-none px-6 font-mono text-[10px] uppercase tracking-widest h-10 border-border ledger-border bg-card hover:bg-secondary">
+                      <Plus className="mr-2 h-4 w-4" /> Add Entry
+                   </Button>
+                </DialogTrigger>
+                <DialogContent className="bg-card border border-border rounded-none p-6 font-mono text-xs max-w-sm">
+                   <DialogHeader className="border-b border-border pb-4">
+                      <DialogTitle className="text-xs uppercase tracking-widest font-mono flex items-center gap-2">
+                         <Landmark className="h-4 w-4" /> Node_Ingestion_v1.0
+                      </DialogTitle>
+                      <DialogDescription className="text-[9px] uppercase font-mono tracking-wider opacity-60 text-muted-foreground">
+                         Manual transaction ledger registration
+                      </DialogDescription>
+                   </DialogHeader>
+                   
+                   <form onSubmit={handleAddManualExpense} className="space-y-4 pt-4">
+                      <div className="space-y-1.5">
+                         <Label htmlFor="manualMerchant" className="technical-label">Merchant / Payee</Label>
+                         <Input 
+                            id="manualMerchant" 
+                            type="text" 
+                            required
+                            placeholder="e.g. LIDL" 
+                            value={manualMerchant}
+                            onChange={(e) => setManualMerchant(e.target.value)}
+                            className="rounded-none h-9 text-xs uppercase"
+                         />
+                      </div>
+                      
+                      <div className="grid grid-cols-2 gap-4">
+                         <div className="space-y-1.5">
+                            <Label htmlFor="manualAmount" className="technical-label">Amount (€)</Label>
+                            <Input 
+                               id="manualAmount" 
+                               type="number" 
+                               step="0.01"
+                               required
+                               placeholder="15.50" 
+                               value={manualAmount}
+                               onChange={(e) => setManualAmount(e.target.value)}
+                               className="rounded-none h-9 text-xs"
+                            />
+                         </div>
+                         <div className="space-y-1.5">
+                            <Label htmlFor="manualDate" className="technical-label">Value Date</Label>
+                            <Input 
+                               id="manualDate" 
+                               type="date" 
+                               required
+                               value={manualDate}
+                               onChange={(e) => setManualDate(e.target.value)}
+                               className="rounded-none h-9 text-xs"
+                            />
+                         </div>
+                      </div>
+
+                      <div className="space-y-1.5">
+                         <Label htmlFor="manualCategory" className="technical-label">Target Category</Label>
+                         <select
+                            id="manualCategory"
+                            value={manualCategoryId}
+                            onChange={(e) => setManualCategoryId(e.target.value)}
+                            className="w-full h-9 px-2 border border-border bg-secondary/15 rounded-none text-xs uppercase text-foreground outline-none"
+                         >
+                            <option value="">Unclassified</option>
+                            {categories.map((cat) => (
+                               <option key={cat.id} value={cat.id}>{cat.name}</option>
+                            ))}
+                         </select>
+                      </div>
+
+                      <div className="flex items-center gap-2 py-2">
+                         <input 
+                            id="isIncome" 
+                            type="checkbox" 
+                            checked={isIncome}
+                            onChange={(e) => setIsIncome(e.target.checked)}
+                            className="w-3.5 h-3.5 accent-foreground rounded-none border border-border"
+                         />
+                         <Label htmlFor="isIncome" className="technical-label cursor-pointer uppercase select-none text-[8px]">Flag as Inflow / Income</Label>
+                      </div>
+
+                      <Button 
+                         type="submit" 
+                         disabled={isSavingManual}
+                         className="w-full rounded-none h-10 font-mono text-[9px] uppercase tracking-widest font-bold bg-foreground text-background hover:bg-foreground/80 mt-2"
+                      >
+                         {isSavingManual ? "COMMITTING..." : "EXECUTE INGEST"}
+                      </Button>
+                   </form>
+                </DialogContent>
+             </Dialog>
+
+             <MagneticButton 
+               onClick={smartCategorize} 
+               disabled={isCategorizing}
+               className="bg-foreground text-background hover:bg-foreground/80 border border-transparent font-mono text-[10px] uppercase tracking-widest px-4 py-2 flex items-center justify-center rounded-none h-10 ledger-border"
+               strength={0.2}
+             >
+               {isCategorizing ? (
+                 "Categorizing..."
+               ) : (
+                 <>
+                   <Sparkles className="mr-2 h-4 w-4" />
+                   Smart Categorize
+                 </>
+               )}
+             </MagneticButton>
+          </div>
         </div>
 
         <Tabs defaultValue="history" className="space-y-4">
