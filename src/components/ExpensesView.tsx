@@ -568,11 +568,13 @@ export function ExpensesView({ initialExpenses, categories, initialRules }: Expe
           </div>
           <div className="flex items-center gap-3">
              <Dialog open={isAddOpen} onOpenChange={setIsAddOpen}>
-                <DialogTrigger asChild>
-                   <Button variant="outline" className="rounded-none px-6 font-mono text-[10px] uppercase tracking-widest h-10 border-border ledger-border bg-card hover:bg-secondary">
-                      <Plus className="mr-2 h-4 w-4" /> Add Entry
-                   </Button>
-                </DialogTrigger>
+                <DialogTrigger
+                   render={
+                      <Button variant="outline" className="rounded-none px-6 font-mono text-[10px] uppercase tracking-widest h-10 border-border ledger-border bg-card hover:bg-secondary">
+                         <Plus className="mr-2 h-4 w-4" /> Add Entry
+                      </Button>
+                   }
+                />
                 <DialogContent className="bg-card border border-border rounded-none p-6 font-mono text-xs max-w-sm">
                    <DialogHeader className="border-b border-border pb-4">
                       <DialogTitle className="text-xs uppercase tracking-widest font-mono flex items-center gap-2">
