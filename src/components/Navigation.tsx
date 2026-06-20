@@ -71,16 +71,16 @@ export function Navigation() {
             <MagneticButton 
               onClick={() => setPrivacyMode(!isPrivacyMode)}
               className={cn(
-                "w-full flex items-center justify-between px-3 py-2 border border-transparent ledger-border transition-all duration-300",
-                isPrivacyMode ? "bg-foreground text-background" : "bg-card border border-border hover:bg-secondary"
+                "w-full flex items-center justify-between px-3 py-2 border ledger-border transition-all duration-300",
+                isPrivacyMode ? "bg-foreground/5 border-foreground/20 text-foreground" : "bg-card border-border hover:bg-secondary"
               )}
               strength={0.2}
             >
               <div className="flex items-center gap-2">
-                {isPrivacyMode ? <Shield className="h-3 w-3" /> : <ShieldOff className="h-3 w-3 opacity-50" />}
+                {isPrivacyMode ? <Shield className="h-3 w-3 text-emerald-500" /> : <ShieldOff className="h-3 w-3 opacity-50" />}
                 <span className="text-[9px] font-mono font-bold uppercase tracking-wider">Privacy Mode</span>
               </div>
-              <div className={cn("w-1.5 h-1.5 rounded-none", isPrivacyMode ? "bg-background animate-pulse" : "bg-muted")} />
+              <div className={cn("w-1.5 h-1.5 rounded-none transition-all duration-500", isPrivacyMode ? "bg-emerald-500 shadow-[0_0_8px_#10b981] animate-pulse" : "bg-muted")} />
             </MagneticButton>
 
             {/* Theme Toggle */}

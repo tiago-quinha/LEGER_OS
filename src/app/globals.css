@@ -23,30 +23,6 @@
   --radius: 0px; /* Cybermatic default is sharp corner */
 }
 
-/* Cyber dark mode by default if system prefers dark */
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #09090b;
-    --foreground: #fafafa;
-    --card: #0c0c0e;
-    --card-foreground: #fafafa;
-    --popover: #09090b;
-    --popover-foreground: #fafafa;
-    --primary: #fafafa;
-    --primary-foreground: #09090b;
-    --secondary: #18181b;
-    --secondary-foreground: #fafafa;
-    --muted: #18181b;
-    --muted-foreground: #a1a1aa;
-    --accent: #18181b;
-    --accent-foreground: #fafafa;
-    --destructive: #7f1d1d;
-    --destructive-foreground: #fafafa;
-    --border: #222226;
-    --input: #222226;
-    --ring: #d4d4d8;
-  }
-}
 
 /* Also support selector class dark */
 .dark {
