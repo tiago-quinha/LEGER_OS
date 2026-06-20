@@ -37,7 +37,7 @@ export function JarvisIntelligence({ cycleData }: JarvisIntelligenceProps) {
   }, [cycleData.currentBalance]) // Re-run when data changes significantly
 
   return (
-    <div className="w-full border border-border ledger-border bg-white overflow-hidden flex flex-col md:flex-row">
+    <div className="w-full border border-border ledger-border bg-card overflow-hidden flex flex-col md:flex-row">
       {/* Sidebar Accent */}
       <div className="w-full md:w-1 bg-foreground hidden md:block" />
       

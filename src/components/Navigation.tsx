@@ -64,7 +64,7 @@ export function Navigation() {
               onClick={() => setPrivacyMode(!isPrivacyMode)}
               className={cn(
                 "w-full flex items-center justify-between px-3 py-2 border border-transparent ledger-border transition-all duration-300",
-                isPrivacyMode ? "bg-foreground text-background" : "bg-white hover:bg-secondary"
+                isPrivacyMode ? "bg-foreground text-background" : "bg-card border border-border hover:bg-secondary"
               )}
               strength={0.2}
             >

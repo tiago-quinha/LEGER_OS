@@ -60,7 +60,7 @@ export function IntelligenceHub({ isOpen, onClose, cycleData }: IntelligenceHubP
             initial={{ scale: 0.95, opacity: 0, y: 20 }}
             animate={{ scale: 1, opacity: 1, y: 0 }}
             exit={{ scale: 0.95, opacity: 0, y: 20 }}
-            className="fixed left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 w-full max-w-2xl bg-white border border-border ledger-border z-[70] shadow-2xl overflow-hidden"
+            className="fixed left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 w-full max-w-2xl bg-card border border-border ledger-border z-[70] shadow-2xl overflow-hidden"
           >
             <div className="flex flex-col h-full">
               {/* Terminal Header */}

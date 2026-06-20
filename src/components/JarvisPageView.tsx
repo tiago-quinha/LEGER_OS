@@ -151,7 +151,7 @@ export function LegerPageView({ cycleData }: JarvisPageViewProps) {
 
         {/* Right Column: Leger Feed */}
         <div className="lg:col-span-2 space-y-8">
-           <div className="min-h-[400px] border border-border ledger-border bg-white relative p-12 flex flex-col justify-between overflow-hidden text-left shadow-xl">
+           <div className="min-h-[400px] border border-border ledger-border bg-card relative p-12 flex flex-col justify-between overflow-hidden text-left shadow-xl">
               <div className="absolute top-6 left-6 technical-label opacity-10 uppercase tracking-[0.4em]">Leger_Output_v1.0</div>
               
               {isLoading ? (

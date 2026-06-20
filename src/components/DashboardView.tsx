@@ -193,7 +193,7 @@ export function DashboardView({ expenses, categories, budgets, balances, cycles,
              </div>
           </div>
 
-          <div className="flex border border-border ledger-border bg-white overflow-hidden">
+          <div className="flex border border-border ledger-border bg-card overflow-hidden">
             <MagneticButton variant="ghost" size="icon" onClick={() => navigateCycle('prev')} disabled={currentIndex >= cycles.length - 1} className="h-10 w-10 md:h-12 md:w-12 border-r border-border rounded-none hover:bg-secondary flex items-center justify-center" strength={0.35}>
               <ChevronLeft className="h-4 w-4 md:h-5 md:w-5" />
             </MagneticButton>
@@ -208,7 +208,7 @@ export function DashboardView({ expenses, categories, budgets, balances, cycles,
       <section className="space-y-6">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-6">
           <div className="flex items-center gap-3 md:gap-4 overflow-x-auto pb-2 sm:pb-0 scrollbar-hide">
-            <div className="flex items-center border border-border ledger-border bg-white overflow-hidden shrink-0">
+            <div className="flex items-center border border-border ledger-border bg-card overflow-hidden shrink-0">
               <button 
                 onClick={() => setActiveTab('liquidity')}
                 className={cn(
@@ -229,7 +229,7 @@ export function DashboardView({ expenses, categories, budgets, balances, cycles,
               </button>
             </div>
 
-            <div className="flex items-center border border-border ledger-border bg-white overflow-hidden shrink-0">
+            <div className="flex items-center border border-border ledger-border bg-card overflow-hidden shrink-0">
               <button 
                 onClick={() => setViewMode('graph')}
                 className={cn(
@@ -269,7 +269,7 @@ export function DashboardView({ expenses, categories, budgets, balances, cycles,
           </div>
         </div>
         
-        <div className="min-h-[300px] md:min-h-[400px] h-fit w-full border border-border ledger-border p-4 md:p-10 bg-white/40 relative overflow-hidden flex flex-col justify-center">
+        <div className="min-h-[300px] md:min-h-[400px] h-fit w-full border border-border ledger-border p-4 md:p-10 bg-card/40 relative overflow-hidden flex flex-col justify-center">
           <div className="absolute top-4 left-4 technical-label opacity-10 uppercase tracking-widest font-mono text-[8px] md:text-[9px]">TS_QUANT_V4 // {viewMode === 'graph' ? 'REALTIME_PLOTTING' : 'TEMPORAL_AUDIT'}</div>
           
           {viewMode === 'graph' ? (
@@ -284,7 +284,7 @@ export function DashboardView({ expenses, categories, budgets, balances, cycles,
                       if (active && payload && payload.length) {
                         const data = payload[0].payload
                         return (
-                          <div className="bg-white border border-foreground p-2 md:p-3 font-mono text-[9px] md:text-[10px] space-y-1.5 md:space-y-2 shadow-sm z-50">
+                          <div className="bg-card border border-border p-2 md:p-3 font-mono text-[9px] md:text-[10px] space-y-1.5 md:space-y-2 shadow-sm z-50">
                             <p className="font-bold border-b border-border pb-1 uppercase">{label}</p>
                             <div className="space-y-1">
                               <p className="flex justify-between gap-6 md:gap-8 uppercase"><span>Position:</span> <span>€{(data.actualBalance ?? data.projectionBalance)?.toFixed(2)}</span></p>
@@ -295,16 +295,16 @@ export function DashboardView({ expenses, categories, budgets, balances, cycles,
                       }
                       return null
                     }}
-                    cursor={{ stroke: '#09090B', strokeWidth: 1 }}
+                    cursor={{ stroke: 'var(--border)', strokeWidth: 1 }}
                   />
-                  <Area type="stepAfter" dataKey={activeTab === 'liquidity' ? "actualBalance" : "actualSpend"} stroke="#09090B" strokeWidth={2} fill="#09090B05" name="Active" isAnimationActive={false} />
-                  <Area type="monotone" dataKey={activeTab === 'liquidity' ? "projectionBalance" : "projectionSpend"} stroke="#09090B88" strokeWidth={1.5} strokeDasharray="5 5" fill="transparent" name="Projection" isAnimationActive={false} />
+                  <Area type="stepAfter" dataKey={activeTab === 'liquidity' ? "actualBalance" : "actualSpend"} stroke="var(--foreground)" strokeWidth={2} fill="var(--foreground)" fillOpacity={0.03} name="Active" isAnimationActive={false} />
+                  <Area type="monotone" dataKey={activeTab === 'liquidity' ? "projectionBalance" : "projectionSpend"} stroke="var(--foreground)" strokeOpacity={0.5} strokeWidth={1.5} strokeDasharray="5 5" fill="transparent" name="Projection" isAnimationActive={false} />
                 </AreaChart>
               </ResponsiveContainer>
             </div>
           ) : (
             <div className="overflow-x-auto mt-6">
-              <div className="min-w-[600px] grid grid-cols-7 border-t border-l border-border ledger-border bg-white/20">
+              <div className="min-w-[600px] grid grid-cols-7 border-t border-l border-border ledger-border bg-card/20">
                 {['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'].map(day => (
                   <div key={day} className="p-2 border-r border-b border-border technical-label text-center bg-secondary/20 font-bold text-[9px]">{day}</div>
                 ))}
@@ -332,7 +332,7 @@ export function DashboardView({ expenses, categories, budgets, balances, cycles,
                   cells.push(
                       <div key={i} className={cn(
                           "border-r border-b border-border h-20 md:h-24 p-2 relative group hover:bg-secondary/30 transition-all duration-500", 
-                          date.toDateString() === today.toDateString() ? "bg-foreground/5 shadow-inner" : "bg-white/40",
+                          date.toDateString() === today.toDateString() ? "bg-foreground/5 shadow-inner" : "bg-card/40",
                           netDay > 0 && "bg-emerald-500/[0.03] shadow-[inset_0_0_20px_rgba(16,185,129,0.05)]",
                           netDay < 0 && "bg-destructive/[0.03] shadow-[inset_0_0_20px_rgba(239,68,68,0.05)]"
                       )}>
@@ -377,7 +377,7 @@ export function DashboardView({ expenses, categories, budgets, balances, cycles,
       </section>
 
       {/* 3. Primary Metrics */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-0 border border-border ledger-border divide-y sm:divide-y-0 sm:divide-x md:divide-x divide-border bg-white overflow-hidden">
+      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-0 border border-border ledger-border divide-y sm:divide-y-0 sm:divide-x md:divide-x divide-border bg-card overflow-hidden">
         {[
           { 
             label: "01 / LIQUIDITY POSITION", 
@@ -406,7 +406,7 @@ export function DashboardView({ expenses, categories, budgets, balances, cycles,
           <Tilt 
             key={idx} 
             rotationFactor={8}
-            className={cn("p-6 md:p-8 space-y-3 md:space-y-4 bg-white/10 dark:bg-card/40 hover:bg-secondary/35 transition-all duration-300 relative group overflow-hidden flex flex-col justify-between", idx === 2 && "sm:col-span-2 md:col-span-1")}
+            className={cn("p-6 md:p-8 space-y-3 md:space-y-4 bg-card/40 hover:bg-secondary/35 transition-all duration-300 relative group overflow-hidden flex flex-col justify-between", idx === 2 && "sm:col-span-2 md:col-span-1")}
           >
             <div className="flex items-center justify-between z-10">
               <FloatingTooltipTrigger content={metric.tooltip} description={metric.tooltipDesc}>
@@ -435,7 +435,7 @@ export function DashboardView({ expenses, categories, budgets, balances, cycles,
                 </div>
               ) : <div className="h-4" />}
             </div>
-            <ClippedCircle circleClassName="bg-white/15 dark:bg-zinc-800/30" circleSize={400} />
+            <ClippedCircle circleClassName="bg-foreground/5" circleSize={400} />
           </Tilt>
         ))}
       </div>

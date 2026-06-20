@@ -132,7 +132,7 @@ export function AnalyticsView({ expenses, categories, paychecks: initialPaycheck
       </header>
 
       {/* 2. Key Metrics */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-0 border border-border ledger-border divide-y sm:divide-y-0 sm:divide-x border-x-0 sm:border-x divide-border bg-white overflow-hidden">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-0 border border-border ledger-border divide-y sm:divide-y-0 sm:divide-x border-x-0 sm:border-x divide-border bg-card overflow-hidden">
         {[
           { label: "CURRENT_BURN", value: currentCycle.spending, sub: `STARTED ${currentCycle.dateLabel}`, icon: Activity },
           { label: "PREVIOUS_BURN", value: previousCycle?.spending || 0, sub: previousCycle ? `STARTED ${previousCycle.dateLabel}` : "INITIAL_DATA", icon: History },
@@ -168,7 +168,7 @@ export function AnalyticsView({ expenses, categories, paychecks: initialPaycheck
             </div>
         </div>
 
-        <div className="min-h-[300px] md:min-h-[450px] h-fit w-full border border-border ledger-border p-4 md:p-10 bg-white relative overflow-hidden flex flex-col justify-center">
+        <div className="min-h-[300px] md:min-h-[450px] h-fit w-full border border-border ledger-border p-4 md:p-10 bg-card relative overflow-hidden flex flex-col justify-center">
           <div className="absolute top-4 left-4 technical-label opacity-10 uppercase tracking-widest font-mono text-[8px] md:text-[9px]">TS_QUANT_V4 // TREND_ARCHIVE</div>
           
           <div className="h-[280px] md:h-[350px] w-full mt-4 md:mt-0">
@@ -182,7 +182,7 @@ export function AnalyticsView({ expenses, categories, paychecks: initialPaycheck
                       if (active && payload && payload.length) {
                         const data = payload[0].payload
                         return (
-                          <div className="bg-white border border-foreground p-3 font-mono text-[9px] md:text-[10px] space-y-2 shadow-sm z-50">
+                          <div className="bg-card border border-border p-3 font-mono text-[9px] md:text-[10px] space-y-2 shadow-sm z-50">
                             <p className="font-bold border-b border-border pb-1 uppercase">{label} Cycle</p>
                             <div className="space-y-1">
                               <p className="flex justify-between gap-8 uppercase"><span>Total Burn:</span> <span>€{data.spending.toFixed(2)}</span></p>
@@ -206,15 +206,15 @@ export function AnalyticsView({ expenses, categories, paychecks: initialPaycheck
                   <Area 
                     type="monotone" 
                     dataKey="spending" 
-                    stroke="#09090B" 
+                    stroke="var(--foreground)" 
                     strokeWidth={2} 
                     fill="url(#colorSpend)" 
                     isAnimationActive={true} 
                   />
                   <defs>
                     <linearGradient id="colorSpend" x1="0" y1="0" x2="0" y2="1">
-                      <stop offset="5%" stopColor="#09090B" stopOpacity={0.05}/>
-                      <stop offset="95%" stopColor="#09090B" stopOpacity={0}/>
+                      <stop offset="5%" stopColor="var(--foreground)" stopOpacity={0.05}/>
+                      <stop offset="95%" stopColor="var(--foreground)" stopOpacity={0}/>
                     </linearGradient>
                   </defs>
                 </AreaChart>

@@ -529,7 +529,7 @@ export function ExpensesView({ initialExpenses, categories, initialRules }: Expe
         </div>
 
         <Tabs defaultValue="history" className="space-y-4">
-          <TabsList className="bg-white/40 border border-border p-1">
+          <TabsList className="bg-card/40 border border-border p-1">
             <TabsTrigger value="history" className="rounded-none px-6 py-2 uppercase tracking-widest font-mono text-[10px]">Transaction History</TabsTrigger>
             <TabsTrigger value="rules" className="rounded-none px-6 py-2 uppercase tracking-widest font-mono text-[10px]">Merchant Rules</TabsTrigger>
             <TabsTrigger value="ingest" className="rounded-none px-6 py-2 uppercase tracking-widest font-mono text-[10px]">Ingestion Node</TabsTrigger>
@@ -733,7 +733,7 @@ export function ExpensesView({ initialExpenses, categories, initialRules }: Expe
                     <textarea
                       id="extractText"
                       rows={12}
-                      className="w-full p-4 border border-border ledger-border font-mono text-[10px] bg-secondary/5 focus:bg-white focus:outline-none transition-all resize-none"
+                      className="w-full p-4 border border-border ledger-border font-mono text-[10px] bg-secondary/5 focus:bg-card focus:outline-none transition-all resize-none"
                       placeholder="Paste your Santander transaction extract lines here..."
                       value={extractText}
                       onChange={(e) => setExtractText(e.target.value)}

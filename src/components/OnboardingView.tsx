@@ -30,7 +30,7 @@ export function OnboardingView() {
 
       {/* Action Matrix */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-8 w-full">
-        <div className="p-10 border border-border ledger-border bg-white space-y-6 hover:bg-secondary/20 transition-colors group cursor-pointer" onClick={() => router.push('/expenses')}>
+        <div className="p-10 border border-border ledger-border bg-card space-y-6 hover:bg-secondary/20 transition-colors group cursor-pointer" onClick={() => router.push('/expenses')}>
           <div className="flex items-center gap-3">
              <div className="p-2 bg-foreground text-background ledger-border">
                 <Upload className="h-4 w-4" />
@@ -46,7 +46,7 @@ export function OnboardingView() {
           </div>
         </div>
 
-        <div className="p-10 border border-border ledger-border bg-white space-y-6 hover:bg-secondary/20 transition-colors group cursor-not-allowed opacity-50">
+        <div className="p-10 border border-border ledger-border bg-card space-y-6 hover:bg-secondary/20 transition-colors group cursor-not-allowed opacity-50">
           <div className="flex items-center gap-3">
              <div className="p-2 bg-secondary ledger-border">
                 <Sparkles className="h-4 w-4 text-muted-foreground" />

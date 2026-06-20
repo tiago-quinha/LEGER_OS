@@ -56,7 +56,7 @@ export default function LoginPage() {
           </div>
         </div>
 
-        <Card className="rounded-none border-border ledger-border bg-white shadow-2xl">
+        <Card className="rounded-none border-border ledger-border bg-card shadow-2xl">
           <CardHeader className="border-b border-border pb-6">
             <div className="flex items-center gap-2 technical-label">
               <Terminal className="h-3.5 w-3.5" />
