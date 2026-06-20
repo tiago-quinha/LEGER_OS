@@ -1,8 +1,10 @@
 "use client"
 
+import React, { useState, useEffect } from "react"
 import Link from "next/link"
 import { usePathname } from "next/navigation"
-import { Home, List, PieChart, BarChart3, Landmark, Shield, ShieldOff, Cpu, Activity, Database, Brain, LogOut, User } from "lucide-react"
+import { Home, List, PieChart, BarChart3, Landmark, Shield, ShieldOff, Cpu, Activity, Database, Brain, LogOut, User, Sun, Moon } from "lucide-react"
+import { useTheme } from "next-themes"
 import { cn } from "@/lib/utils"
 import { useSystem } from "@/lib/SystemContext"
 import { motion } from "framer-motion"
@@ -22,6 +24,12 @@ const navigation = [
 export function Navigation() {
   const pathname = usePathname()
   const { isPrivacyMode, setPrivacyMode, systemLatency, nodeStatus, profile, signOut, user } = useSystem()
+  const [mounted, setMounted] = useState(false)
+  const { theme, setTheme } = useTheme()
+
+  useEffect(() => {
+    setMounted(true)
+  }, [])
 
   const isPublicPage = pathname === '/login' || pathname === '/signup'
   if (isPublicPage) return null
@@ -73,6 +81,27 @@ export function Navigation() {
                 <span className="text-[9px] font-mono font-bold uppercase tracking-wider">Privacy Mode</span>
               </div>
               <div className={cn("w-1.5 h-1.5 rounded-none", isPrivacyMode ? "bg-background animate-pulse" : "bg-muted")} />
+            </MagneticButton>
+
+            {/* Theme Toggle */}
+            <MagneticButton 
+              onClick={() => setTheme(theme === "dark" ? "light" : "dark")}
+              className="w-full flex items-center justify-between px-3 py-2 border border-border bg-card ledger-border transition-all duration-300 hover:bg-secondary text-foreground"
+              strength={0.2}
+            >
+              <div className="flex items-center gap-2">
+                {!mounted ? (
+                  <div className="h-3 w-3 animate-pulse bg-muted rounded-none" />
+                ) : theme === "dark" ? (
+                  <Moon className="h-3 w-3" />
+                ) : (
+                  <Sun className="h-3 w-3" />
+                )}
+                <span className="text-[9px] font-mono font-bold uppercase tracking-wider">
+                  {!mounted ? "Theme Load" : theme === "dark" ? "Dark Mode" : "Light Mode"}
+                </span>
+              </div>
+              <span className="text-[8px] font-mono opacity-40 uppercase">Toggle</span>
             </MagneticButton>
           </div>
 
@@ -171,6 +200,23 @@ export function Navigation() {
             )
           })}
           
+          {/* Mobile Theme Toggle */}
+          <button 
+            onClick={() => setTheme(theme === "dark" ? "light" : "dark")}
+            className="flex flex-col items-center justify-center grow h-full text-muted-foreground hover:text-foreground transition-all min-w-0 px-1"
+          >
+            {!mounted ? (
+              <div className="h-4 w-4 animate-pulse bg-muted rounded-none" />
+            ) : theme === "dark" ? (
+              <Moon className="h-4 w-4 shrink-0" />
+            ) : (
+              <Sun className="h-4 w-4 shrink-0" />
+            )}
+            <span className="text-[7px] mt-1 font-bold uppercase tracking-tighter truncate w-full text-center">
+              {!mounted ? "Theme" : theme === "dark" ? "Dark" : "Light"}
+            </span>
+          </button>
+
           {profile && (
              <button 
                onClick={signOut}

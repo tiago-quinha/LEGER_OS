@@ -5,6 +5,8 @@ import { SystemProvider } from "@/lib/SystemContext";
 import { SystemGuard } from "@/components/SystemGuard";
 import { AppLayout } from "@/components/AppLayout";
 
+import { ThemeProvider } from "@/components/theme-provider";
+
 const geistSans = Geist({
   variable: "--font-geist-sans",
   subsets: ["latin"],
@@ -29,13 +31,21 @@ export default function RootLayout({
     <html
       lang="en"
       className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
+      suppressHydrationWarning
     >
       <body className="min-h-full flex bg-background text-foreground font-sans">
-        <SystemProvider>
-          <SystemGuard>
-            <AppLayout>{children}</AppLayout>
-          </SystemGuard>
-        </SystemProvider>
+        <ThemeProvider
+          attribute="class"
+          defaultTheme="system"
+          enableSystem
+          disableTransitionOnChange
+        >
+          <SystemProvider>
+            <SystemGuard>
+              <AppLayout>{children}</AppLayout>
+            </SystemGuard>
+          </SystemProvider>
+        </ThemeProvider>
       </body>
     </html>
   );
