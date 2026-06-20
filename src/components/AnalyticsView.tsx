@@ -174,7 +174,7 @@ export function AnalyticsView({ expenses, categories, paychecks: initialPaycheck
           <div className="h-[280px] md:h-[350px] w-full mt-4 md:mt-0">
               <ResponsiveContainer width="100%" height="100%">
                 <AreaChart data={trendData} margin={{ top: 10, right: 10, left: -25, bottom: 0 }}>
-                  <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#F0F0F0" />
+                  <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="var(--border)" />
                   <XAxis dataKey="dateLabel" axisLine={false} tickLine={false} style={{ fontSize: '9px', fontFamily: 'var(--font-geist-mono)', fill: '#86868B' }} dy={10} />
                   <YAxis axisLine={false} tickLine={false} style={{ fontSize: '9px', fontFamily: 'var(--font-geist-mono)', fill: '#86868B' }} tickFormatter={(val) => `€${Math.round(val)}`} />
                   <Tooltip 
