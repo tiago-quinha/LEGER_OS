@@ -32,6 +32,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, Dialog
 
 import { MagneticButton } from "@/components/unlumen-ui/magnetic-button"
 import { GlowingBadge } from "@/components/unlumen-ui/glowing-badge"
+import { PrivacyValue } from "@/components/ui/privacy-value"
 
 interface Category {
   id: number
@@ -67,7 +68,7 @@ export function ExpensesView({ initialExpenses, categories, initialRules }: Expe
   const [rules, setRules] = useState<Rule[]>(initialRules)
   const [isCategorizing, setIsCategorizing] = useState(false)
   
-  const { setAuditPanelOpen, setActiveTransactionId, refreshData } = useSystem()
+  const { setAuditPanelOpen, setActiveTransactionId, refreshData, profile } = useSystem()
 
   // New Rule State
   const [newRuleKeyword, setNewRuleKeyword] = useState("")
@@ -181,10 +182,14 @@ export function ExpensesView({ initialExpenses, categories, initialRules }: Expe
           detectedMonth = month
           detectedYear = txYear
 
+          const userPaycheckKw = profile?.paycheck_keyword || "SALARY"
           const isIncome = amountVal > 0 && (
-            merchant.includes("ORDENADO") || 
-            merchant.includes("TRF.IMED. DE") || 
-            merchant.includes("REWARDS SANTANDER")
+            (userPaycheckKw !== "MONTHLY" && merchant.toLowerCase().includes(userPaycheckKw.toLowerCase())) ||
+            merchant.toUpperCase().includes("SALARY") || 
+            merchant.toUpperCase().includes("PAYROLL") || 
+            merchant.toUpperCase().includes("DIRECT DEPOSIT") ||
+            merchant.toUpperCase().includes("PAYCHECK") ||
+            merchant.toUpperCase().includes("REWARDS")
           )
 
           const categoryId = matchCategory(merchant, rules, categories)
@@ -566,12 +571,12 @@ export function ExpensesView({ initialExpenses, categories, initialRules }: Expe
             <h1 className="text-3xl font-bold tracking-tight">Expenses</h1>
             <p className="text-muted-foreground">Manage your spending and automation rules.</p>
           </div>
-          <div className="flex items-center gap-3">
+          <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 w-full sm:w-auto">
              <Dialog open={isAddOpen} onOpenChange={setIsAddOpen}>
-                 <DialogTrigger className="rounded-none px-6 font-mono text-[10px] uppercase tracking-widest h-10 border border-border ledger-border bg-card hover:bg-secondary inline-flex items-center justify-center cursor-pointer select-none transition-all whitespace-nowrap outline-none">
+                 <DialogTrigger className="rounded-none px-6 font-mono text-[10px] uppercase tracking-widest h-10 border border-border ledger-border bg-card hover:bg-secondary inline-flex items-center justify-center cursor-pointer select-none transition-all whitespace-nowrap outline-none w-full sm:w-auto">
                     <Plus className="mr-2 h-4 w-4" /> Add Entry
                  </DialogTrigger>
-                <DialogContent className="bg-card border border-border rounded-none p-6 font-mono text-xs max-w-sm">
+                 <DialogContent className="bg-card border border-border rounded-none p-6 font-mono text-xs w-[95vw] max-w-sm max-h-[90vh] overflow-y-auto">
                    <DialogHeader className="border-b border-border pb-4">
                       <DialogTitle className="text-xs uppercase tracking-widest font-mono flex items-center gap-2">
                          <Landmark className="h-4 w-4" /> Node_Ingestion_v1.0
@@ -662,7 +667,8 @@ export function ExpensesView({ initialExpenses, categories, initialRules }: Expe
              <MagneticButton 
                onClick={smartCategorize} 
                disabled={isCategorizing}
-               className="bg-foreground text-background hover:bg-foreground/80 border border-transparent font-mono text-[10px] uppercase tracking-widest px-4 py-2 flex items-center justify-center rounded-none h-10 ledger-border"
+               variant="none"
+               className="bg-foreground text-background hover:bg-foreground/80 border border-transparent font-mono text-[10px] uppercase tracking-widest px-4 py-2 flex items-center justify-center rounded-none h-10 ledger-border w-full sm:w-auto"
                strength={0.2}
              >
                {isCategorizing ? (
@@ -677,23 +683,48 @@ export function ExpensesView({ initialExpenses, categories, initialRules }: Expe
           </div>
         </div>
 
+        {/* 3 Executive Ledger Summary Cards Up Top */}
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-0 border border-border ledger-border divide-y sm:divide-y-0 sm:divide-x divide-border bg-card overflow-hidden">
+          <div className="p-6 md:p-8 space-y-3 bg-card/40 hover:bg-secondary/35 transition-all duration-300 flex flex-col justify-between">
+            <span className="technical-label text-[9px] border-b border-dotted border-muted-foreground/30 w-fit">01 / TOTAL LEDGER RECORDS</span>
+            <div className="text-3xl md:text-5xl font-mono font-bold tracking-tighter">
+              {expenses.length} <span className="text-xs font-normal text-muted-foreground">ENTRIES</span>
+            </div>
+          </div>
+          <div className="p-6 md:p-8 space-y-3 bg-card/40 hover:bg-secondary/35 transition-all duration-300 flex flex-col justify-between">
+            <span className="technical-label text-[9px] border-b border-dotted border-muted-foreground/30 w-fit">02 / TOTAL INFLOW</span>
+            <div className="text-3xl md:text-5xl font-mono font-bold tracking-tighter">
+              <PrivacyValue>€{expenses.filter(e => parseFloat(e.amount.toString()) > 0).reduce((sum, e) => sum + parseFloat(e.amount.toString()), 0).toFixed(2)}</PrivacyValue>
+            </div>
+          </div>
+          <div className="p-6 md:p-8 space-y-3 bg-card/40 hover:bg-secondary/35 transition-all duration-300 flex flex-col justify-between">
+            <span className="technical-label text-[9px] border-b border-dotted border-muted-foreground/30 w-fit">03 / TOTAL OUTFLOW</span>
+            <div className="text-3xl md:text-5xl font-mono font-bold tracking-tighter">
+              <PrivacyValue>€{Math.abs(expenses.filter(e => parseFloat(e.amount.toString()) < 0).reduce((sum, e) => sum + parseFloat(e.amount.toString()), 0)).toFixed(2)}</PrivacyValue>
+            </div>
+          </div>
+        </div>
+
         <Tabs defaultValue="history" className="space-y-4">
-          <TabsList className="bg-card/40 border border-border p-1">
-            <TabsTrigger value="history" className="rounded-none px-6 py-2 uppercase tracking-widest font-mono text-[10px]">Transaction History</TabsTrigger>
-            <TabsTrigger value="rules" className="rounded-none px-6 py-2 uppercase tracking-widest font-mono text-[10px]">Merchant Rules</TabsTrigger>
-            <TabsTrigger value="ingest" className="rounded-none px-6 py-2 uppercase tracking-widest font-mono text-[10px]">Ingestion Node</TabsTrigger>
-          </TabsList>
+          <div className="w-full min-w-0">
+            <TabsList className="bg-card/40 border border-border p-1 grid grid-cols-3 w-full gap-1">
+              <TabsTrigger value="history" className="rounded-none px-1 sm:px-6 py-2.5 uppercase tracking-tighter sm:tracking-widest font-mono text-[11px] sm:text-xs font-bold truncate">History</TabsTrigger>
+              <TabsTrigger value="rules" className="rounded-none px-1 sm:px-6 py-2.5 uppercase tracking-tighter sm:tracking-widest font-mono text-[11px] sm:text-xs font-bold truncate">Rules</TabsTrigger>
+              <TabsTrigger value="ingest" className="rounded-none px-1 sm:px-6 py-2.5 uppercase tracking-widest font-mono text-[11px] sm:text-xs font-bold truncate">Ingest</TabsTrigger>
+            </TabsList>
+          </div>
 
           <TabsContent value="history" className="space-y-4">
             <Card>
               <CardHeader>
                 <CardTitle>Transactions</CardTitle>
               </CardHeader>
-              <CardContent>
-                <Table>
+              <CardContent className="p-0 sm:p-6">
+                <div className="overflow-x-auto w-full">
+                  <Table>
                   <TableHeader>
                     <TableRow>
-                      <TableHead className="w-[80px] md:w-[120px]">Date</TableHead>
+                      <TableHead className="w-[65px] sm:w-[120px]">Date</TableHead>
                       <TableHead>Merchant</TableHead>
                       <TableHead className="hidden sm:table-cell">Category</TableHead>
                       <TableHead className="hidden lg:table-cell">Source</TableHead>
@@ -714,7 +745,7 @@ export function ExpensesView({ initialExpenses, categories, initialRules }: Expe
                             month: "short"
                           })}
                         </TableCell>
-                        <TableCell className="font-medium text-xs md:text-sm group-hover:pl-2 transition-all max-w-[100px] md:max-w-none truncate">
+                        <TableCell className="font-medium text-xs md:text-sm group-hover:pl-2 transition-all max-w-[110px] sm:max-w-none truncate">
                           {expense.merchant || "Unknown"}
                         </TableCell>
                         <TableCell className="hidden sm:table-cell" onClick={(e) => e.stopPropagation()}>
@@ -746,12 +777,11 @@ export function ExpensesView({ initialExpenses, categories, initialRules }: Expe
                             {expense.source || "Direct"}
                           </GlowingBadge>
                         </TableCell>
-                        <TableCell className={cn(
-                          "text-right font-mono font-bold text-xs md:text-sm",
-                          parseFloat(expense.amount.toString()) > 0 ? "text-green-600" : ""
-                        )}>
-                          {parseFloat(expense.amount.toString()) > 0 ? "+" : ""}
-                          €{Math.abs(parseFloat(expense.amount.toString())).toFixed(2)}
+                        <TableCell className="text-right font-mono font-bold text-xs md:text-sm">
+                          <PrivacyValue>
+                            {parseFloat(expense.amount.toString()) > 0 ? "+" : ""}
+                            €{Math.abs(parseFloat(expense.amount.toString())).toFixed(2)}
+                          </PrivacyValue>
                         </TableCell>
                         <TableCell onClick={(e) => e.stopPropagation()}>
                           <Button 
@@ -774,6 +804,7 @@ export function ExpensesView({ initialExpenses, categories, initialRules }: Expe
                     )}
                   </TableBody>
                 </Table>
+                </div>
               </CardContent>
             </Card>
           </TabsContent>
@@ -824,29 +855,31 @@ export function ExpensesView({ initialExpenses, categories, initialRules }: Expe
                 <CardHeader>
                   <CardTitle>Rules List</CardTitle>
                 </CardHeader>
-                <CardContent>
-                  <Table>
-                    <TableHeader>
-                      <TableRow>
-                        <TableHead>Keyword</TableHead>
-                        <TableHead>Category</TableHead>
-                        <TableHead></TableHead>
-                      </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                      {rules.map((rule) => (
-                        <TableRow key={rule.id}>
-                          <TableCell className="font-mono text-xs">{rule.keyword}</TableCell>
-                          <TableCell>{categories.find(c => c.id === rule.category_id)?.name}</TableCell>
-                          <TableCell className="text-right">
-                            <Button variant="ghost" size="icon" onClick={() => handleDeleteRule(rule.id.toString())}>
-                              <Trash2 className="h-4 w-4" />
-                            </Button>
-                          </TableCell>
+                <CardContent className="p-0 sm:p-6">
+                  <div className="overflow-x-auto w-full">
+                    <Table>
+                      <TableHeader>
+                        <TableRow>
+                          <TableHead>Keyword</TableHead>
+                          <TableHead>Category</TableHead>
+                          <TableHead></TableHead>
                         </TableRow>
-                      ))}
-                    </TableBody>
-                  </Table>
+                      </TableHeader>
+                      <TableBody>
+                        {rules.map((rule) => (
+                          <TableRow key={rule.id}>
+                            <TableCell className="font-mono text-xs">{rule.keyword}</TableCell>
+                            <TableCell>{categories.find(c => c.id === rule.category_id)?.name}</TableCell>
+                            <TableCell className="text-right">
+                              <Button variant="ghost" size="icon" onClick={() => handleDeleteRule(rule.id.toString())}>
+                                <Trash2 className="h-4 w-4" />
+                              </Button>
+                            </TableCell>
+                          </TableRow>
+                        ))}
+                      </TableBody>
+                    </Table>
+                  </div>
                 </CardContent>
               </Card>
             </div>
@@ -891,6 +924,7 @@ export function ExpensesView({ initialExpenses, categories, initialRules }: Expe
 
                   <MagneticButton 
                     onClick={handleParseExtract} 
+                    variant="none"
                     className="w-full uppercase font-mono text-[10px] py-3 bg-foreground text-background font-bold tracking-widest border border-transparent hover:bg-foreground/80 justify-center"
                     strength={0.15}
                   >
@@ -924,20 +958,20 @@ export function ExpensesView({ initialExpenses, categories, initialRules }: Expe
                   ) : (
                     <div className="space-y-6">
                       {/* Telemetry Summary */}
-                      <div className="grid grid-cols-3 gap-4 p-4 bg-secondary/20 border border-border border-dashed font-mono">
+                      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 sm:gap-6 p-6 bg-secondary/20 border border-border border-dashed font-mono">
                         <div className="space-y-1">
-                          <span className="technical-label text-[8px]">Est. Start Balance</span>
-                          <p className="text-sm font-bold">€{parsedData.startBalance.toFixed(2)}</p>
+                          <span className="technical-label text-[9px]">Est. Start Balance</span>
+                          <p className="text-lg sm:text-xl font-bold">€{parsedData.startBalance.toFixed(2)}</p>
                         </div>
                         <div className="space-y-1">
-                          <span className="technical-label text-[8px]">Total Salary/Income</span>
-                          <p className="text-sm font-bold text-emerald-600">
+                          <span className="technical-label text-[9px]">Total Salary/Income</span>
+                          <p className="text-lg sm:text-xl font-bold">
                             €{parsedData.transactions.filter(t => t.checked && t.isIncome).reduce((sum, t) => sum + t.amount, 0).toFixed(2)}
                           </p>
                         </div>
                         <div className="space-y-1">
-                          <span className="technical-label text-[8px]">Parsed Records</span>
-                          <p className="text-sm font-bold">{parsedData.transactions.filter(t => t.checked).length} selected</p>
+                          <span className="technical-label text-[9px]">Parsed Records</span>
+                          <p className="text-lg sm:text-xl font-bold">{parsedData.transactions.filter(t => t.checked).length} selected</p>
                         </div>
                       </div>
 
@@ -949,7 +983,7 @@ export function ExpensesView({ initialExpenses, categories, initialRules }: Expe
                               <TableHead className="w-12 text-center"></TableHead>
                               <TableHead className="text-xs font-mono font-bold uppercase tracking-wider">Date</TableHead>
                               <TableHead className="text-xs font-mono font-bold uppercase tracking-wider">Merchant</TableHead>
-                              <TableHead className="text-xs font-mono font-bold uppercase tracking-wider">Category</TableHead>
+                              <TableHead className="hidden md:table-cell text-xs font-mono font-bold uppercase tracking-wider">Category</TableHead>
                               <TableHead className="text-right text-xs font-mono font-bold uppercase tracking-wider">Amount</TableHead>
                             </TableRow>
                           </TableHeader>
@@ -971,10 +1005,10 @@ export function ExpensesView({ initialExpenses, categories, initialRules }: Expe
                                 <TableCell className="font-mono text-[9px] p-2">
                                   {new Date(tx.date).toLocaleDateString("en-GB", { day: '2-digit', month: 'short' })}
                                 </TableCell>
-                                <TableCell className="font-mono text-[9px] p-2 uppercase max-w-[150px] truncate" title={tx.merchant}>
+                                <TableCell className="font-mono text-[9px] p-2 uppercase max-w-[100px] sm:max-w-[150px] truncate" title={tx.merchant}>
                                   {tx.merchant}
                                 </TableCell>
-                                <TableCell className="p-2">
+                                <TableCell className="hidden md:table-cell p-2">
                                   <Select
                                     value={tx.category_id?.toString() || "none"}
                                     onValueChange={(val) => {
@@ -1010,6 +1044,7 @@ export function ExpensesView({ initialExpenses, categories, initialRules }: Expe
                       <MagneticButton 
                         onClick={handleCommitIngestion} 
                         disabled={isIngesting}
+                        variant="none"
                         className="w-full uppercase font-mono text-[10px] py-4 bg-foreground text-background font-bold tracking-widest hover:bg-foreground/80 justify-center gap-2"
                         strength={0.1}
                       >

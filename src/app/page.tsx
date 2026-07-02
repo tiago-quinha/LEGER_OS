@@ -6,7 +6,7 @@ import { OnboardingView } from "@/components/OnboardingView"
 export const revalidate = 0
 
 interface PageProps {
-  searchParams: Promise<{ cycleId?: string }>
+  searchParams: Promise<{ cycleId?: string; onboarding?: string; force_onboarding?: string }>
 }
 
 export default async function DashboardPage({ searchParams }: PageProps) {
@@ -18,7 +18,7 @@ export default async function DashboardPage({ searchParams }: PageProps) {
   // 1. Fetch cycles using utility
   const cycles = await getCycles(supabase, user.id)
 
-  if (cycles.length === 0) {
+  if (cycles.length === 0 || params?.onboarding === "true" || params?.force_onboarding === "true") {
     return <OnboardingView />
   }
 
@@ -41,7 +41,7 @@ export default async function DashboardPage({ searchParams }: PageProps) {
   const cycleYear = dateObj.getUTCFullYear()
 
   // Run database queries in parallel
-  const [expensesRes, categoriesRes, budgetsRes, balancesRes, previousTxRes] = await Promise.all([
+  const [expensesRes, categoriesRes, budgetsRes, balancesRes, previousTxRes, profileRes] = await Promise.all([
     // Selected cycle expenses
     supabase
       .from("tracker_expense")
@@ -70,7 +70,13 @@ export default async function DashboardPage({ searchParams }: PageProps) {
       .from("tracker_expense")
       .select("*")
       .lt("date", startDateStr)
-      .order("date", { ascending: true })
+      .order("date", { ascending: true }),
+    // User profile keyword
+    supabase
+      .from("profiles")
+      .select("paycheck_keyword")
+      .eq("id", user.id)
+      .single()
   ])
 
   const expenses = expensesRes.data || []
@@ -78,6 +84,7 @@ export default async function DashboardPage({ searchParams }: PageProps) {
   const budgets = budgetsRes.data || []
   const balances = balancesRes.data || []
   const previousTx = previousTxRes.data || []
+  const paycheckKeyword = profileRes.data?.paycheck_keyword || "SALARY"
 
   // Helper to calculate starting balance for a cycle
   const calculateStartBalance = (cycleStartDateStr: string, allBalances: any[], txs: any[]) => {
@@ -125,6 +132,8 @@ export default async function DashboardPage({ searchParams }: PageProps) {
       injectedStartBalance={injectedStartBalance}
       previousExpenses={previousExpenses}
       previousStartBalance={previousStartBalance}
+      allPastExpenses={previousTx}
+      paycheckKeyword={paycheckKeyword}
     />
   )
 }

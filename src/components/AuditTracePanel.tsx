@@ -87,7 +87,7 @@ export function AuditTracePanel({ expenses, categories }: AuditTracePanelProps) 
           >
             <div className="flex flex-col h-full">
               {/* Header */}
-              <div className="p-8 border-b border-border space-y-6">
+              <div className="p-5 sm:p-8 border-b border-border space-y-6">
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-2 technical-label">
                     <Fingerprint className="h-3 w-3" />
@@ -104,7 +104,7 @@ export function AuditTracePanel({ expenses, categories }: AuditTracePanelProps) 
                     <Badge variant="outline" className="rounded-none font-mono text-[10px] uppercase">
                       {category?.name || "UNCLASSIFIED"}
                     </Badge>
-                    <span className={cn("text-xs font-mono font-bold", parseFloat(activeTx?.amount) > 0 ? "text-emerald-600" : "")}>
+                    <span className={cn("text-xs font-mono font-bold", parseFloat(activeTx?.amount) > 0 ? "text-emerald-600 dark:text-emerald-400" : "")}>
                       {parseFloat(activeTx?.amount) > 0 ? "+" : ""}€{parseFloat(activeTx?.amount).toFixed(2)}
                     </span>
                   </div>
@@ -112,7 +112,7 @@ export function AuditTracePanel({ expenses, categories }: AuditTracePanelProps) 
               </div>
 
               {/* Data Layers */}
-              <div className="flex-1 p-8 space-y-12">
+              <div className="flex-1 p-5 sm:p-8 space-y-8 sm:space-y-12">
                 <div className="space-y-4">
                    <div className="flex items-center gap-2 technical-label opacity-60">
                       <Database className="h-3 w-3" />
@@ -159,20 +159,20 @@ export function AuditTracePanel({ expenses, categories }: AuditTracePanelProps) 
               </div>
 
               {/* Footer Actions */}
-              <div className="p-8 border-t border-border bg-secondary/10 flex flex-col gap-3">
-                <div className="flex gap-3">
-                  <Button onClick={flipSign} variant="outline" className="flex-1 rounded-none uppercase text-[9px] font-bold tracking-widest gap-2 border-amber-200 text-amber-700 hover:bg-amber-50">
+              <div className="p-5 sm:p-8 border-t border-border bg-secondary/10 flex flex-col gap-3">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+                  <Button onClick={flipSign} variant="outline" className="w-full rounded-none uppercase text-[9px] font-bold tracking-widest gap-2 border-amber-200 text-amber-700 hover:bg-amber-50">
                     <ArrowLeftRight className="h-3 w-3" /> Flip Sign (+/-)
                   </Button>
-                  <Button onClick={deleteTx} variant="outline" className="flex-1 rounded-none uppercase text-[9px] font-bold tracking-widest gap-2 border-destructive/20 text-destructive hover:bg-destructive/5">
+                  <Button onClick={deleteTx} variant="outline" className="w-full rounded-none uppercase text-[9px] font-bold tracking-widest gap-2 border-destructive/20 text-destructive hover:bg-destructive/5">
                     <Trash2 className="h-3 w-3" /> Delete Entry
                   </Button>
                 </div>
-                <div className="flex gap-3">
-                  <Button variant="outline" className="flex-1 rounded-none uppercase text-[9px] font-bold tracking-widest gap-2">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+                  <Button variant="outline" className="w-full rounded-none uppercase text-[9px] font-bold tracking-widest gap-2">
                     <ShieldCheck className="h-3 w-3" /> Re-Categorize
                   </Button>
-                  <Button className="flex-1 rounded-none uppercase text-[9px] font-bold tracking-widest gap-2">
+                  <Button className="w-full rounded-none uppercase text-[9px] font-bold tracking-widest gap-2">
                     <ExternalLink className="h-3 w-3" /> View Trace
                   </Button>
                 </div>

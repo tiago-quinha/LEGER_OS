@@ -4,26 +4,55 @@ import React, { useState, useEffect } from "react"
 import { motion, AnimatePresence } from "framer-motion"
 import { Brain, Cpu, Zap, X, ShieldCheck, Sparkles, MessageSquare } from "lucide-react"
 import { cn } from "@/lib/utils"
+import { useSystem } from "@/lib/SystemContext"
 
-interface JarvisIntelligenceProps {
+interface LegerAIIntelligenceProps {
   cycleData: any
 }
 
-export function JarvisIntelligence({ cycleData }: JarvisIntelligenceProps) {
+export function LegerAIIntelligence({ cycleData }: LegerAIIntelligenceProps) {
+  const { profile } = useSystem()
   const [analysis, setAnalysis] = useState<any>(null)
   const [isLoading, setIsLoading] = useState(false)
 
-  const runAnalysis = async () => {
+  const userName = profile?.username || profile?.full_name || "User"
+  
+  // Cache Key grounded in a stable data fingerprint
+  const fingerprint = `${Math.round(cycleData.currentBalance)}_${cycleData.categories.length}_${profile?.id || 'guest'}`
+  const cacheKey = `leger_insight_${fingerprint}`
+
+  const runAnalysis = async (force = false) => {
+    // Check cache first if not forced
+    if (!force) {
+      const cached = localStorage.getItem(cacheKey)
+      if (cached) {
+        try {
+          const { data } = JSON.parse(cached)
+          setAnalysis(data)
+          return
+        } catch (e) {
+          localStorage.removeItem(cacheKey)
+        }
+      }
+    }
+
     setIsLoading(true)
     try {
       const response = await fetch("/api/analyze-cycle", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(cycleData)
+        body: JSON.stringify({
+          currentBalance: cycleData.currentBalance,
+          velocity: cycleData.velocity,
+          categories: cycleData.categories,
+          userName
+        })
       })
       if (response.ok) {
         const data = await response.json()
         setAnalysis(data)
+        const timestamp = new Date().toLocaleString()
+        localStorage.setItem(cacheKey, JSON.stringify({ data, timestamp }))
       }
     } catch (err) {
       console.error(err)
@@ -33,8 +62,8 @@ export function JarvisIntelligence({ cycleData }: JarvisIntelligenceProps) {
   }
 
   useEffect(() => {
-    runAnalysis()
-  }, [cycleData.currentBalance]) // Re-run when data changes significantly
+    if (profile) runAnalysis()
+  }, [cacheKey, !!profile]) // Re-run only when cache fingerprint or profile changes
 
   return (
     <div className="w-full border border-border ledger-border bg-card overflow-hidden flex flex-col md:flex-row">
@@ -48,7 +77,7 @@ export function JarvisIntelligence({ cycleData }: JarvisIntelligenceProps) {
               <Sparkles className="h-4 w-4 text-foreground" />
             </div>
             <div className="space-y-0.5">
-              <h3 className="text-xs font-bold uppercase tracking-[0.2em]">Jarvis // Strategy Node</h3>
+              <h3 className="text-xs font-bold uppercase tracking-[0.2em]">LEGER_AI // Strategy Node</h3>
               <p className="technical-label opacity-40">Active Analysis Engine</p>
             </div>
           </div>
@@ -58,7 +87,7 @@ export function JarvisIntelligence({ cycleData }: JarvisIntelligenceProps) {
                 <span className="technical-label">Status</span>
                 <span className={cn(
                   "font-mono text-[10px] font-bold uppercase",
-                  analysis?.status === "HEALTHY" ? "text-emerald-600" : 
+                  analysis?.status === "HEALTHY" ? "text-emerald-600 dark:text-emerald-400 font-bold" : 
                   analysis?.status === "WATCHING" ? "text-amber-600" : "text-destructive"
                 )}>
                   {isLoading ? "CALCULATING..." : (analysis?.status || "STANDBY")}
@@ -89,15 +118,33 @@ export function JarvisIntelligence({ cycleData }: JarvisIntelligenceProps) {
                     {analysis.message}
                   </p>
                </div>
-               <div className="flex items-center justify-between pt-4 border-t border-border/50 opacity-30 italic font-mono text-[8px] uppercase">
-                  <span>Logic Model: Gemini 2.5 Flash</span>
-                  <span>Threat Vector: {analysis.threatLevel}%</span>
-               </div>
+                <div className="flex flex-col sm:flex-row gap-3 justify-between items-stretch sm:items-center pt-4 border-t border-border/50">
+                   <div className="flex items-center gap-4 text-[8px] font-mono opacity-40 italic uppercase">
+                      <span>Model: Gemini 2.5 Flash</span>
+                      <span>Threat Vector: {analysis.threatLevel}%</span>
+                   </div>
+                   <div className="flex gap-2">
+                      <button 
+                        onClick={() => runAnalysis(true)} 
+                        disabled={isLoading}
+                        className="technical-label text-[9px] hover:text-foreground underline uppercase flex items-center gap-1 cursor-pointer transition-colors bg-transparent border-0 p-0"
+                      >
+                         [ RE-RUN SYNC ]
+                      </button>
+                      <span className="opacity-20 text-[9px] font-mono">/</span>
+                      <a 
+                        href="/leger-ai" 
+                        className="technical-label text-[9px] hover:text-foreground underline uppercase flex items-center gap-1 cursor-pointer transition-colors"
+                      >
+                         [ OPEN QUERY GATEWAY &gt; ]
+                      </a>
+                   </div>
+                </div>
             </div>
           ) : (
             <div className="flex items-center justify-center py-4">
-               <button onClick={runAnalysis} className="technical-label hover:text-foreground transition-colors uppercase underline decoration-dashed">
-                 Re-initialize JARVIS communication
+               <button onClick={() => runAnalysis(true)} className="technical-label hover:text-foreground transition-colors uppercase underline decoration-dashed">
+                 Re-initialize LEGER_AI communication
                </button>
             </div>
           )}

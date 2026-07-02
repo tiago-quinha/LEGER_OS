@@ -29,7 +29,7 @@
   --animate-spin-slow: spin 20s linear infinite;
 }
 
-@layer theme {
+@layer base {
   :root {
     --background: #ffffff;
     --foreground: #09090b;
@@ -106,6 +106,10 @@ body {
   100% {
     transform: translateY(100vh);
   }
+}
+
+.animate-scan {
+  animation: scan 8s linear infinite;
 }
 
 .scrollbar-hide::-webkit-scrollbar {

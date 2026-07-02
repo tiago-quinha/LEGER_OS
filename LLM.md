@@ -11,7 +11,7 @@ Welcome to the MoneyTrack (Leger_OS) mainframe! This journal tracks the exact st
 ## Main Architecture & Routing
 All pages are authenticated using the client-side session checker [SystemGuard.tsx](file:///C:/Users/Quinha/Documents/moneytrack/src/components/SystemGuard.tsx) and wrapped in [SystemProvider](file:///C:/Users/Quinha/Documents/moneytrack/src/lib/SystemContext.tsx) layout contexts.
 The application layout is structured by [AppLayout.tsx](file:///C:/Users/Quinha/Documents/moneytrack/src/components/AppLayout.tsx) to control grid layouts:
-* **Private Pages** (Dashboard `/`, Jarvis `/jarvis`, Ledger `/expenses`, Budgets `/budgets`, Analytics `/analytics`): Render the cybernetic [Navigation](file:///C:/Users/Quinha/Documents/moneytrack/src/components/Navigation.tsx) sidebar (desktop) / bottom navbar (mobile) and apply desktop content offset `md:pl-64`.
+* **Private Pages** (Dashboard `/`, LEGER_AI `/leger-ai`, Ledger `/expenses`, Budgets `/budgets`, Analytics `/analytics`): Render the cybernetic [Navigation](file:///C:/Users/Quinha/Documents/moneytrack/src/components/Navigation.tsx) sidebar (desktop) / bottom navbar (mobile) and apply desktop content offset `md:pl-64`.
 * **Public Pages** (`/login`, `/signup`): Render full-screen without sidebars or guards.
 
 ## Database Schema (PostgreSQL)
@@ -39,7 +39,7 @@ $$\text{Opening Balance} = \text{Snapshot Balance} + \sum \text{Transactions bet
 ## Implemented Modifications
 1. **Dynamic App Wrapper Integration**: Mounted contexts and page layouts in [layout.tsx](file:///C:/Users/Quinha/Documents/moneytrack/src/app/layout.tsx) and built [AppLayout.tsx](file:///C:/Users/Quinha/Documents/moneytrack/src/components/AppLayout.tsx) to provide standard side/bottom navigation.
 2. **Dashboard Assembly**: Wired up [page.tsx](file:///C:/Users/Quinha/Documents/moneytrack/src/app/page.tsx) to execute parallel queries for paycheck cycles, calculating starting balance snapshots and comparative metrics before rendering [DashboardView.tsx](file:///C:/Users/Quinha/Documents/moneytrack/src/components/DashboardView.tsx).
-3. **AI Strategy Injection**: Embedded the `JarvisIntelligence` strategy panel on the main homepage dashboard to display Gemini-driven risk analyses and savings plans in real-time.
+3. **AI Strategy Injection**: Embedded the `LegerAIIntelligence` strategy panel on the main homepage dashboard to display Gemini-driven risk analyses and savings plans in real-time.
 4. **In-App Statement Ingestion**: Built a complete statement uploader and regex parser inside [ExpensesView.tsx](file:///C:/Users/Quinha/Documents/moneytrack/src/components/ExpensesView.tsx) that replaces local Python workflows with an interactive drag-and-drop parsing dashboard.
 
 ## Mobile Responsive Guidelines

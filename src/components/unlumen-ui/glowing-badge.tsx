@@ -33,7 +33,7 @@ const variantStyles: Record<
     dot: "bg-foreground",
   },
   success: {
-    badge: "bg-emerald-500 text-emerald-100",
+    badge: "bg-emerald-600 dark:bg-emerald-500 text-white font-bold",
     glow: "bg-emerald-500/30",
     dot: "bg-emerald-200",
   },

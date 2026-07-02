@@ -1,5 +1,5 @@
 import { createClient } from "@/lib/supabase-server"
-import { LegerPageView } from "@/components/JarvisPageView"
+import { LegerAIPageView } from "@/components/LegerAIPageView"
 import { getCycles } from "@/lib/cycles"
 
 export const revalidate = 0
@@ -74,7 +74,8 @@ export default async function LegerPage() {
   const startDate = new Date(currentCycle.startDate)
   const today = new Date()
   const daysElapsed = Math.max(1, Math.floor((today.getTime() - startDate.getTime()) / 86400000))
-  const velocity = (totalOut / (totalIn || 1)) / (daysElapsed / 30)
+  const baseIncome = currentCycle.paycheckAmount > 0 ? currentCycle.paycheckAmount : 500
+  const velocity = (totalOut / baseIncome) / (daysElapsed / 30)
 
   const catSpending = categories.map(cat => ({
     name: cat.name,
@@ -84,7 +85,7 @@ export default async function LegerPage() {
   })).filter(c => c.value > 0)
 
   return (
-    <LegerPageView 
+    <LegerAIPageView 
       cycleData={{
         currentBalance,
         velocity,

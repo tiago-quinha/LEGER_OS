@@ -1,0 +1,42 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32" width="32" height="32">
+  <style>
+    :root {
+      --bg: #09090b;
+      --fg: #fafafa;
+      --accent: #10b981;
+      --border: #222226;
+    }
+    @media (prefers-color-scheme: light) {
+      :root {
+        --bg: #ffffff;
+        --fg: #09090b;
+        --accent: #10b981;
+        --border: #e4e4e7;
+      }
+    }
+    .bg { fill: var(--bg); }
+    .fg { fill: var(--fg); }
+    .accent { fill: var(--accent); }
+    .border { stroke: var(--border); }
+  </style>
+  <!-- Background border container -->
+  <rect x="2" y="2" width="28" height="28" fill="none" stroke-width="1.5" class="border" />
+  
+  <!-- Stylized Cybermatic Landmark (Bank/Ledger) -->
+  <!-- Base of the bank -->
+  <rect x="6" y="22" width="20" height="2" class="fg" />
+  
+  <!-- 3 Pillars (Columns / Bar Chart bars) -->
+  <rect x="8" y="14" width="2" height="7" class="fg" />
+  <rect x="15" y="11" width="2" height="10" class="fg" />
+  <rect x="22" y="13" width="2" height="8" class="fg" />
+  
+  <!-- Pediment / Roof Lintel -->
+  <rect x="6" y="8" width="20" height="2" class="fg" />
+  
+  <!-- Triangular Roof / Tech Chevron -->
+  <path d="M 6 8 L 16 3 L 26 8 Z" class="fg" />
+  
+  <!-- Active Green Node in the center pillar -->
+  <rect x="15" y="15" width="2" height="2" class="accent" />
+</svg>

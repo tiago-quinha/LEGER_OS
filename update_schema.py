@@ -49,8 +49,14 @@ CREATE TABLE IF NOT EXISTS profiles (
     username TEXT,
     full_name TEXT,
     updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
-    paycheck_keyword TEXT
+    paycheck_keyword TEXT,
+    role TEXT DEFAULT 'user',
+    is_admin BOOLEAN DEFAULT false
 );
+
+-- Add columns if table already exists
+ALTER TABLE profiles ADD COLUMN IF NOT EXISTS role TEXT DEFAULT 'user';
+ALTER TABLE profiles ADD COLUMN IF NOT EXISTS is_admin BOOLEAN DEFAULT false;
 
 -- Enable RLS on profiles
 ALTER TABLE profiles ENABLE ROW LEVEL SECURITY;
@@ -73,12 +79,14 @@ END $$;
 CREATE OR REPLACE FUNCTION public.handle_new_user()
 RETURNS trigger AS $$
 BEGIN
-  INSERT INTO public.profiles (id, username, full_name, paycheck_keyword)
+  INSERT INTO public.profiles (id, username, full_name, paycheck_keyword, role, is_admin)
   VALUES (
     new.id,
     COALESCE(new.raw_user_meta_data->>'username', SPLIT_PART(new.email, '@', 1)),
     COALESCE(new.raw_user_meta_data->>'full_name', ''),
-    'DELOITTE'
+    'SALARY',
+    'user',
+    false
   )
   ON CONFLICT (id) DO NOTHING;
   RETURN new;
@@ -92,14 +100,19 @@ CREATE TRIGGER on_auth_user_created
   FOR EACH ROW EXECUTE FUNCTION public.handle_new_user();
 
 -- Backfill existing users who don't have profiles
-INSERT INTO public.profiles (id, username, full_name, paycheck_keyword)
+INSERT INTO public.profiles (id, username, full_name, paycheck_keyword, role, is_admin)
 SELECT 
   id,
   COALESCE(raw_user_meta_data->>'username', SPLIT_PART(email, '@', 1)),
   COALESCE(raw_user_meta_data->>'full_name', ''),
-  'DELOITTE'
+  'SALARY',
+  'super_user',
+  true
 FROM auth.users
-ON CONFLICT (id) DO UPDATE SET paycheck_keyword = 'DELOITTE' WHERE profiles.paycheck_keyword IS NULL;
+ON CONFLICT (id) DO UPDATE SET paycheck_keyword = 'SALARY' WHERE profiles.paycheck_keyword IS NULL;
+
+-- Make sure existing users get admin testing flags
+UPDATE profiles SET role = 'super_user', is_admin = true WHERE is_admin IS NOT true;
 """
 
 try:

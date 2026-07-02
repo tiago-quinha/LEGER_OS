@@ -16,7 +16,7 @@ export async function getCycles(supabase: SupabaseClient, userId: string): Promi
     .eq("id", userId)
     .single()
 
-  const keyword = profile?.paycheck_keyword || "DELOITTE"
+  const keyword = profile?.paycheck_keyword || "SALARY"
 
   // 2. Identify cycles by Paycheck
   const { data: paychecks } = await supabase
@@ -27,7 +27,7 @@ export async function getCycles(supabase: SupabaseClient, userId: string): Promi
 
   let baseCycles: Cycle[] = []
 
-  if (paychecks && paychecks.length > 0) {
+  if (keyword !== "MONTHLY" && paychecks && paychecks.length > 0) {
       baseCycles = paychecks.map((pc, index) => {
         const startDate = new Date(pc.date)
         const nextPc = paychecks?.[index + 1]
@@ -44,12 +44,14 @@ export async function getCycles(supabase: SupabaseClient, userId: string): Promi
         }
       })
       
-      // Add initial opening cycle
+      // Add initial opening cycle dynamically based on first paycheck month start
       const firstPcDate = new Date(baseCycles[0].startDate)
-      const initialCycleStart = "2025-12-01T00:00:00.000Z"
+      const initialDateObj = new Date(Date.UTC(firstPcDate.getUTCFullYear(), firstPcDate.getUTCMonth(), 1))
+      const initialCycleStart = initialDateObj.toISOString()
+      const initialEndObj = new Date(firstPcDate.getTime() - 86400000)
       const initialCycle: Cycle = {
           id: "pc-0",
-          label: `Cycle: 01 Dec - ${(new Date(firstPcDate.getTime() - 86400000)).getUTCDate().toString().padStart(2, '0')} Dec`,
+          label: `Cycle: 01 ${initialDateObj.toLocaleDateString('en-GB', { month: 'short', timeZone: 'UTC' })} - ${initialEndObj.getUTCDate().toString().padStart(2, '0')} ${initialEndObj.toLocaleDateString('en-GB', { month: 'short', timeZone: 'UTC' })}`,
           startDate: initialCycleStart,
           endDate: baseCycles[0].startDate,
           paycheckAmount: 0

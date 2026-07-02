@@ -21,9 +21,9 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
 
   return (
     <FloatingTooltipProvider>
-      <div className="flex flex-col md:flex-row flex-1 min-h-screen">
+      <div className="flex flex-col md:flex-row flex-1 min-h-screen min-w-0 max-w-full overflow-x-hidden">
         <Navigation />
-        <main className="flex-1 md:pl-64 p-6 md:p-12 pb-24 md:pb-12 overflow-y-auto">
+        <main className="flex-1 min-w-0 max-w-full md:pl-64 p-3 sm:p-6 md:p-12 pb-24 md:pb-12 overflow-y-auto overflow-x-hidden">
           {children}
         </main>
         <Toaster />

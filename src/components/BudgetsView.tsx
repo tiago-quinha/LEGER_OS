@@ -9,13 +9,14 @@ import { Input } from "@/components/ui/input"
 import { Button } from "@/components/ui/button"
 import { Label } from "@/components/ui/label"
 import { toast } from "sonner"
-import { Save, ChevronLeft, ChevronRight, Landmark, Plus } from "lucide-react"
+import { Save, ChevronLeft, ChevronRight, Landmark, Plus, Edit2, Check, X } from "lucide-react"
 import { cn } from "@/lib/utils"
 
 import { Tilt } from "@/components/unlumen-ui/tilt"
 import { ClippedCircle } from "@/components/unlumen-ui/clipped-circle"
-import { GlowingBadge } from "@/components/unlumen-ui/glowing-badge"
 import { MagneticButton } from "@/components/unlumen-ui/magnetic-button"
+import { GlowingBadge } from "@/components/unlumen-ui/glowing-badge"
+import { PrivacyValue } from "@/components/ui/privacy-value"
 
 interface BudgetsViewProps {
   categories: any[]
@@ -50,6 +51,7 @@ export function BudgetsView({ categories, budgets: initialBudgets, expenses, cyc
 
   // New Budget Targets state
   const [isAdding, setIsAdding] = useState(false)
+  const [activeEditingId, setActiveEditingId] = useState<string | null>(null)
   const [newCatName, setNewCatName] = useState("")
   const [newCatLimit, setNewCatLimit] = useState("")
   const [newCatColor, setNewCatColor] = useState("#3357FF") // Default Neon Blue
@@ -190,21 +192,21 @@ export function BudgetsView({ categories, budgets: initialBudgets, expenses, cyc
         {!isAdding ? (
           <button 
             onClick={() => setIsAdding(true)}
-            className="border-2 border-dashed border-border hover:border-foreground/40 hover:bg-secondary/10 transition-all p-8 flex flex-col items-center justify-center text-center cursor-pointer h-full min-h-[220px] rounded-lg group"
+            className="border-2 border-dashed border-border hover:border-foreground/40 hover:bg-secondary/10 transition-all p-10 flex flex-col items-center justify-center text-center cursor-pointer h-full min-h-[220px] rounded-none group"
           >
             <Plus className="h-8 w-8 text-muted-foreground group-hover:text-foreground group-hover:scale-110 transition-all mb-3" />
             <span className="text-xs font-bold uppercase tracking-widest font-mono">Create Budget Target</span>
             <span className="text-[9px] text-muted-foreground uppercase mt-1">Add new category limit</span>
           </button>
         ) : (
-          <Card className="border-border border-2 rounded-lg relative overflow-hidden flex flex-col group min-h-[220px]">
-            <CardHeader className="pb-2">
+          <Card className="border-border ledger-border bg-card relative overflow-hidden flex flex-col group min-h-[220px]">
+            <CardHeader className="p-6 sm:p-8 pb-3">
               <CardTitle className="text-sm font-bold uppercase tracking-widest flex items-center justify-between">
                 <span>New Target Node</span>
                 <button onClick={() => setIsAdding(false)} className="text-muted-foreground hover:text-foreground text-xs uppercase font-mono">Cancel</button>
               </CardTitle>
             </CardHeader>
-            <CardContent className="flex-1 space-y-4">
+            <CardContent className="p-6 sm:p-8 pt-0 flex-1 space-y-4">
               <form onSubmit={handleAddBudget} className="space-y-4">
                 <div className="space-y-1">
                   <Label htmlFor="newCatName" className="text-[9px] font-mono uppercase text-muted-foreground">Category Name</Label>
@@ -272,9 +274,11 @@ export function BudgetsView({ categories, budgets: initialBudgets, expenses, cyc
           const progress = budgetAmount > 0 ? Math.min((spent / budgetAmount) * 100, 100) : 0
           const isOverBudget = spent > budgetAmount && budgetAmount > 0
 
+          const isEditing = activeEditingId === cat.id
+
           return (
-            <Tilt key={cat.id} rotationFactor={5} className="bg-card border border-border rounded-lg relative overflow-hidden flex flex-col group transition-shadow hover:shadow-lg">
-              <CardHeader className="pb-2 z-10">
+            <Tilt key={cat.id} rotationFactor={5} className="bg-card border border-border rounded-none ledger-border relative overflow-hidden flex flex-col group transition-shadow hover:shadow-lg h-full min-h-[220px]">
+              <CardHeader className="p-6 sm:p-8 pb-3 z-10">
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-2">
                     <div 
@@ -290,29 +294,79 @@ export function BudgetsView({ categories, budgets: initialBudgets, expenses, cyc
                   )}
                 </div>
               </CardHeader>
-              <CardContent className="flex-1 space-y-4 z-10">
-                <div className="space-y-1">
-                  <div className="flex justify-between text-sm">
-                    <span className="text-muted-foreground">Spent: €{spent.toFixed(2)}</span>
-                    <span className="font-medium text-foreground">Target: €{budgetAmount.toFixed(2)}</span>
+              <CardContent className="p-6 sm:p-8 pt-0 flex-1 space-y-4 z-10 flex flex-col justify-between">
+                {!isEditing ? (
+                  <div className="space-y-3">
+                    <div className="flex justify-between items-center text-xs font-mono">
+                      <span className="text-muted-foreground uppercase text-[10px]">Spent</span>
+                      <span className="font-bold text-foreground"><PrivacyValue>€{spent.toFixed(2)}</PrivacyValue></span>
+                    </div>
+                    <div className="flex justify-between items-center text-xs font-mono border-b border-border/50 pb-2">
+                      <span className="text-muted-foreground uppercase text-[10px]">Target</span>
+                      <div className="flex items-center gap-1.5 group/edit font-bold text-foreground">
+                        <span><PrivacyValue>€{budgetAmount.toFixed(2)}</PrivacyValue></span>
+                        <button 
+                          onClick={() => setActiveEditingId(cat.id)}
+                          className="opacity-0 group-hover:opacity-100 group-hover/edit:opacity-100 transition-opacity p-0.5 text-muted-foreground hover:text-foreground cursor-pointer"
+                          title="Edit target"
+                        >
+                          <Edit2 className="h-3.5 w-3.5" />
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="space-y-3">
+                    <div className="flex justify-between items-center text-xs font-mono">
+                      <span className="text-muted-foreground uppercase text-[10px]">Spent</span>
+                      <span className="font-bold text-foreground"><PrivacyValue>€{spent.toFixed(2)}</PrivacyValue></span>
+                    </div>
+                    <div className="flex items-center gap-2 pb-2">
+                      <div className="relative flex-1">
+                        <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground text-xs font-mono">€</span>
+                        <Input
+                          type="number"
+                          step="0.01"
+                          className="pl-7 h-8 text-xs font-mono rounded-none"
+                          value={editingBudgets[cat.id]}
+                          onChange={(e) => handleBudgetChange(cat.id, e.target.value)}
+                          autoFocus
+                        />
+                      </div>
+                      <div className="flex gap-1">
+                        <Button 
+                          size="icon-xs" 
+                          variant="ghost" 
+                          className="h-8 w-8 rounded-none border border-border bg-card hover:bg-secondary flex items-center justify-center cursor-pointer"
+                          onClick={() => {
+                            handleSaveBudget(cat.id)
+                            setActiveEditingId(null)
+                          }}
+                        >
+                          <Check className="h-3.5 w-3.5" />
+                        </Button>
+                        <Button 
+                          size="icon-xs" 
+                          variant="ghost" 
+                          className="h-8 w-8 rounded-none border border-border bg-card hover:bg-destructive/10 hover:text-destructive flex items-center justify-center cursor-pointer"
+                          onClick={() => {
+                            handleBudgetChange(cat.id, budgetAmount.toString())
+                            setActiveEditingId(null)
+                          }}
+                        >
+                          <X className="h-3.5 w-3.5" />
+                        </Button>
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                <div className="space-y-1.5 mt-auto">
+                  <div className="flex justify-between text-[9px] font-mono text-muted-foreground uppercase">
+                    <span>Progress</span>
+                    <span>{progress.toFixed(0)}%</span>
                   </div>
                   <Progress value={progress} className={isOverBudget ? "bg-destructive/20" : ""} />
-                </div>
-
-                <div className="flex items-center gap-2 pt-2">
-                  <div className="relative flex-1">
-                    <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground text-sm">€</span>
-                    <Input
-                      type="number"
-                      step="0.01"
-                      className="pl-7 h-9"
-                      value={editingBudgets[cat.id]}
-                      onChange={(e) => handleBudgetChange(cat.id, e.target.value)}
-                    />
-                  </div>
-                  <MagneticButton size="icon" variant="ghost" className="h-9 w-9 flex items-center justify-center rounded-lg" onClick={() => handleSaveBudget(cat.id)} strength={0.35}>
-                    <Save className="h-4 w-4" />
-                  </MagneticButton>
                 </div>
               </CardContent>
               <ClippedCircle circleClassName="bg-white/10 dark:bg-zinc-800/20" circleSize={400} />

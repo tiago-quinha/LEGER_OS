@@ -32,12 +32,15 @@ export function PrivacyValue({ children, className }: PrivacyValueProps) {
       <AnimatePresence>
         {!showValue && (
           <motion.span
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            className="absolute inset-0 flex items-center justify-center pointer-events-none"
+            initial={{ opacity: 0, scale: 0.95 }}
+            animate={{ opacity: 1, scale: 1 }}
+            exit={{ opacity: 0, scale: 0.95 }}
+            className="absolute inset-0 flex items-center justify-center pointer-events-none z-10"
           >
-            <span className="text-[10px] font-mono tracking-tighter opacity-40">***.***</span>
+            <span className="px-1.5 py-0.5 bg-secondary text-muted-foreground border border-border font-mono text-[10px] tracking-widest uppercase shadow-sm whitespace-nowrap select-none flex items-center gap-1">
+              <span className="w-1 h-1 bg-emerald-500 animate-pulse inline-block" />
+              ••••••
+            </span>
           </motion.span>
         )}
       </AnimatePresence>

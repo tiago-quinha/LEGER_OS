@@ -2,7 +2,11 @@
 
 import React, { useState, useMemo } from "react"
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
-import { Bar, BarChart, ResponsiveContainer, XAxis, YAxis, Tooltip, Cell, Area, AreaChart, ReferenceLine, CartesianGrid } from "recharts"
+import dynamic from "next/dynamic"
+const DashboardChart = dynamic(() => import("@/components/DashboardChart").then(mod => mod.DashboardChart), {
+  ssr: false,
+  loading: () => <div className="h-[280px] md:h-[320px] w-full flex items-center justify-center font-mono text-[9px] opacity-40">LOADING GRAPH SYSTEM...</div>
+})
 import { Button } from "@/components/ui/button"
 import { Download, TrendingUp, TrendingDown, Wallet, ArrowUpRight, Banknote, ChevronLeft, CalendarDays, ChevronRight, Landmark, Target, AlertTriangle, CheckCircle2, Zap, Brain } from "lucide-react"
 import { cn } from "@/lib/utils"
@@ -17,7 +21,86 @@ import { AnimatedList } from "@/components/unlumen-ui/animated-list"
 import { MagneticButton } from "@/components/unlumen-ui/magnetic-button"
 import { GlowingBadge } from "@/components/unlumen-ui/glowing-badge"
 import { FloatingTooltipTrigger } from "@/components/unlumen-ui/floating-tooltip"
-import { JarvisIntelligence } from "@/components/JarvisIntelligence"
+const LegerAIIntelligence = dynamic(() => import("@/components/LegerAIIntelligence").then(mod => mod.LegerAIIntelligence), {
+  ssr: false,
+  loading: () => <div className="h-[200px] w-full border border-border ledger-border bg-card/20 flex items-center justify-center font-mono text-[9px] opacity-40">LOADING INTELLIGENCE NODE...</div>
+})
+
+interface CurvePoint {
+  inflow: number
+  outflow: number
+}
+
+function getHistoricalCurves(pastExpenses: any[], profileKeyword: string) {
+  const kw = profileKeyword.toLowerCase()
+  const paychecks = pastExpenses
+    .filter((e: any) => e.merchant.toLowerCase().includes(kw) && parseFloat(e.amount) > 0)
+    .sort((a: any, b: any) => new Date(a.date).getTime() - new Date(b.date).getTime())
+
+  if (paychecks.length === 0) {
+    const avgInflow = Array.from({ length: 31 }, (_, i) => (500 / 30) * i)
+    const avgOutflow = Array.from({ length: 31 }, (_, i) => (900 / 30) * i)
+    return { avgInflow, avgOutflow }
+  }
+
+  const cyclesData: { startDate: Date; endDate: Date; txs: any[] }[] = []
+  for (let i = 0; i < paychecks.length; i++) {
+    const start = new Date(paychecks[i].date)
+    const end = paychecks[i + 1]
+      ? new Date(paychecks[i + 1].date)
+      : new Date(start.getTime() + 30 * 24 * 60 * 60 * 1000)
+      
+    const cycleTxs = pastExpenses.filter((e: any) => {
+      const d = new Date(e.date)
+      const isGas = e.category_id === 7 || e.merchant.toLowerCase().includes("superfaro-supermerca")
+      return d >= start && d < end && !isGas
+    })
+    
+    cyclesData.push({ startDate: start, endDate: end, txs: cycleTxs })
+  }
+
+  const cycleCurves: CurvePoint[][] = cyclesData.map(c => {
+    const curve: CurvePoint[] = Array.from({ length: 31 }, () => ({ inflow: 0, outflow: 0 }))
+    
+    c.txs.forEach((tx: any) => {
+      const txDate = new Date(tx.date)
+      const diffTime = txDate.getTime() - c.startDate.getTime()
+      const offsetDays = Math.max(0, Math.min(30, Math.floor(diffTime / (24 * 60 * 60 * 1000))))
+      const amt = parseFloat(tx.amount) || 0
+      if (amt < 0) {
+        curve[offsetDays].outflow += Math.abs(amt)
+      } else {
+        curve[offsetDays].inflow += amt
+      }
+    })
+
+    let cumInflow = 0
+    let cumOutflow = 0
+    for (let d = 0; d <= 30; d++) {
+      cumInflow += curve[d].inflow
+      cumOutflow += curve[d].outflow
+      curve[d] = { inflow: cumInflow, outflow: cumOutflow }
+    }
+    
+    return curve
+  })
+
+  const avgInflow = Array.from({ length: 31 }, () => 0)
+  const avgOutflow = Array.from({ length: 31 }, () => 0)
+  
+  for (let d = 0; d <= 30; d++) {
+    let sumIn = 0
+    let sumOut = 0
+    cycleCurves.forEach(curve => {
+      sumIn += curve[d].inflow
+      sumOut += curve[d].outflow
+    })
+    avgInflow[d] = sumIn / cycleCurves.length
+    avgOutflow[d] = sumOut / cycleCurves.length
+  }
+
+  return { avgInflow, avgOutflow }
+}
 
 interface DashboardViewProps {
   expenses: any[]
@@ -29,9 +112,23 @@ interface DashboardViewProps {
   injectedStartBalance: number
   previousExpenses: any[]
   previousStartBalance: number
+  allPastExpenses?: any[]
+  paycheckKeyword?: string
 }
 
-export function DashboardView({ expenses, categories, budgets, balances, cycles, currentCycleId, injectedStartBalance, previousExpenses, previousStartBalance }: DashboardViewProps) {
+export function DashboardView({ 
+  expenses, 
+  categories, 
+  budgets, 
+  balances, 
+  cycles, 
+  currentCycleId, 
+  injectedStartBalance, 
+  previousExpenses, 
+  previousStartBalance,
+  allPastExpenses,
+  paycheckKeyword
+}: DashboardViewProps) {
   const router = useRouter()
   const { setAuditPanelOpen, setActiveTransactionId } = useSystem()
   
@@ -54,17 +151,69 @@ export function DashboardView({ expenses, categories, budgets, balances, cycles,
   const today = new Date()
   const daysElapsed = Math.max(1, Math.floor((today.getTime() - startDate.getTime()) / 86400000))
   const totalDaysInCycle = 30
-  const dailyAvg = totalOut / daysElapsed
-  const projectedTotalOut = totalOut + (dailyAvg * Math.max(0, totalDaysInCycle - daysElapsed))
-  const onTrack = totalIn > 0 ? projectedTotalOut <= totalIn : true
 
   const currentIndex = cycles.findIndex(c => c.id === currentCycleId)
+  const isCurrentCycle = currentIndex === 0 || !currentCycle.endDate
+
+  // Predictive Curves Integration
+  const keyword = paycheckKeyword || "SALARY"
+  const curves = useMemo(() => {
+    const past = allPastExpenses || previousExpenses || []
+    console.log("DashboardView: count of past expenses:", past?.length, "keyword:", keyword)
+    const res = getHistoricalCurves(past, keyword)
+    console.log("DashboardView: curves avgInflow[30]:", res.avgInflow[30], "avgOutflow[30]:", res.avgOutflow[30])
+    return res
+  }, [allPastExpenses, previousExpenses, keyword])
+
+  const gasExpenses = expenses.filter(e => e.category_id === 7 || e.merchant.toLowerCase().includes("superfaro-supermerca"))
+  const totalGas = gasExpenses.reduce((sum, e) => sum + Math.abs(parseFloat(e.amount) || 0), 0)
+
+  const nonGasExpenses = expenses.filter(e => parseFloat(e.amount) < 0 && e.category_id !== 7 && !e.merchant.toLowerCase().includes("superfaro-supermerca"))
+  const totalOutNonGas = nonGasExpenses.reduce((sum, e) => sum + Math.abs(parseFloat(e.amount) || 0), 0)
+
+  const projectedTotalOut = useMemo(() => {
+    if (!isCurrentCycle) return totalOut
+    const histSpentAtToday = curves.avgOutflow[Math.min(30, daysElapsed)] || 1.0
+    const histSpentAtTarget = curves.avgOutflow[30]
+    const w = Math.min(1.0, daysElapsed / 30)
+    const currentOutflowRatio = totalOutNonGas / histSpentAtToday
+    const blendedOutflowFactor = w * currentOutflowRatio + (1 - w) * 1.0
+    const projectedOutflowDelta = (histSpentAtTarget - histSpentAtToday) * blendedOutflowFactor
+    
+    // Gas pattern projection: €60/week normally, but €36/week with 3 office days (0.6x)
+    const expectedGasDays = [7, 14, 21, 28]
+    const remainingGasDaysCount = expectedGasDays.filter(day => day > daysElapsed).length
+    const remainingProjectedGas = remainingGasDaysCount * 36
+    
+    const res = totalOutNonGas + totalGas + projectedOutflowDelta + remainingProjectedGas
+    console.log("DashboardView: projectedTotalOut:", res, "w:", w, "ratio:", currentOutflowRatio, "projectedGas:", remainingProjectedGas)
+    return res
+  }, [curves, daysElapsed, totalOutNonGas, totalGas, totalOut, isCurrentCycle])
+
+  const projectedTotalIn = useMemo(() => {
+    if (!isCurrentCycle) return totalIn
+    const histInflowAtToday = curves.avgInflow[Math.min(30, daysElapsed)] || 1.0
+    const histInflowAtTarget = curves.avgInflow[30]
+    const w = Math.min(1.0, daysElapsed / 30)
+    const currentInflowRatio = totalIn / histInflowAtToday
+    const blendedInflowFactor = w * currentInflowRatio + (1 - w) * 1.0
+    const projectedInflowDelta = (histInflowAtTarget - histInflowAtToday) * blendedInflowFactor
+    const res = totalIn + projectedInflowDelta
+    console.log("DashboardView: projectedTotalIn:", res, "w:", w, "ratio:", currentInflowRatio)
+    return res
+  }, [curves, daysElapsed, totalIn, isCurrentCycle])
+
+  const onTrack = totalIn > 0 ? projectedTotalOut <= totalIn : true
 
   // Velocity Calculation
   const timeProgress = Math.min(1, daysElapsed / totalDaysInCycle)
-  const spendProgress = totalIn > 0 ? totalOut / totalIn : 0
+  const baseIncome = currentCycle.paycheckAmount > 0 ? currentCycle.paycheckAmount : 500
+  const spendProgress = baseIncome > 0 ? totalOut / baseIncome : 0
   const velocity = timeProgress > 0 ? spendProgress / timeProgress : 0
-  const estimatedFinalBalance = injectedStartBalance + totalIn - projectedTotalOut
+  const estimatedFinalBalance = isCurrentCycle 
+    ? (injectedStartBalance + projectedTotalIn - projectedTotalOut) 
+    : cycleEndBalance
+  console.log("DashboardView: estimatedFinalBalance:", estimatedFinalBalance, "injectedStartBalance:", injectedStartBalance, "isCurrentCycle:", isCurrentCycle)
 
   const navigateCycle = (direction: 'prev' | 'next') => {
     const nextIndex = direction === 'prev' ? currentIndex + 1 : currentIndex - 1
@@ -112,16 +261,54 @@ export function DashboardView({ expenses, categories, budgets, balances, cycles,
     
     let projectionSpend = null
     let projectionBalance = null
-    if (date > today) {
-        const lastActualSpend = expenses
-            .filter(e => new Date(e.date) <= today && parseFloat(e.amount) < 0)
-            .reduce((sum, e) => sum + Math.abs(parseFloat(e.amount)), 0)
-        const lastActualBalance = injectedStartBalance + expenses
-            .filter(e => new Date(e.date) <= today)
-            .reduce((sum, e) => sum + (parseFloat(e.amount) || 0), 0)
+    
+    if (isCurrentCycle) {
+        const isSameDay = date.toDateString() === today.toDateString()
+        const isPastDay = date < today && !isSameDay
+        
+        if (isPastDay) {
+            projectionSpend = null
+            projectionBalance = null
+        } else if (isSameDay) {
+            projectionSpend = actualSpend
+            projectionBalance = actualBalance
+        } else {
+            const lastActualSpendNonGas = expenses
+                .filter(e => new Date(e.date) <= today && parseFloat(e.amount) < 0 && e.category_id !== 7 && !e.merchant.toLowerCase().includes("superfaro-supermerca"))
+                .reduce((sum, e) => sum + Math.abs(parseFloat(e.amount)), 0)
+                
+            const lastActualSpendGas = expenses
+                .filter(e => new Date(e.date) <= today && (e.category_id === 7 || e.merchant.toLowerCase().includes("superfaro-supermerca")))
+                .reduce((sum, e) => sum + Math.abs(parseFloat(e.amount)), 0)
+
+            const lastActualInflow = expenses
+                .filter(e => new Date(e.date) <= today && parseFloat(e.amount) > 0)
+                .reduce((sum, e) => sum + parseFloat(e.amount), 0)
+
+            const histSpentAtToday = curves.avgOutflow[Math.min(30, daysElapsed)] || 1.0
+            const histInflowAtToday = curves.avgInflow[Math.min(30, daysElapsed)] || 1.0
             
-        projectionSpend = lastActualSpend + (dailyAvg * (i - daysElapsed))
-        projectionBalance = lastActualBalance - (dailyAvg * (i - daysElapsed))
+            const histSpentAtTarget = curves.avgOutflow[Math.min(30, i)]
+            const histInflowAtTarget = curves.avgInflow[Math.min(30, i)]
+            
+            const w = Math.min(1.0, daysElapsed / 30)
+            
+            const currentOutflowRatio = lastActualSpendNonGas / histSpentAtToday
+            const blendedOutflowFactor = w * currentOutflowRatio + (1 - w) * 1.0
+            const projectedOutflowDelta = (histSpentAtTarget - histSpentAtToday) * blendedOutflowFactor
+            
+            const expectedGasDays = [7, 14, 21, 28]
+            const projectedGasDelta = expectedGasDays.filter(day => day > daysElapsed && day <= i).length * 36
+            
+            projectionSpend = lastActualSpendNonGas + lastActualSpendGas + projectedOutflowDelta + projectedGasDelta
+            
+            const currentInflowRatio = lastActualInflow / histInflowAtToday
+            const blendedInflowFactor = w * currentInflowRatio + (1 - w) * 1.0
+            const projectedInflowDelta = (histInflowAtTarget - histInflowAtToday) * blendedInflowFactor
+            const projectionInflow = lastActualInflow + projectedInflowDelta
+            
+            projectionBalance = injectedStartBalance + projectionInflow - projectionSpend
+        }
     }
 
     return {
@@ -192,19 +379,19 @@ export function DashboardView({ expenses, categories, budgets, balances, cycles,
     })
 
     // End-of-cycle projection warning
-    if (cycleEndBalance < 0) {
-      logs.push({ type: "error", text: `[PROJECTION_DEFICIT] Final cycle projection estimates deficit: €${cycleEndBalance.toFixed(2)}.` })
-    } else if (cycleEndBalance < injectedStartBalance * 0.1) {
-      logs.push({ type: "warning", text: `[LIQUIDITY_ALERT] End-cycle projection drops below 10% start balance. Final estimate: €${cycleEndBalance.toFixed(2)}.` })
+    if (estimatedFinalBalance < 0) {
+      logs.push({ type: "error", text: `[PROJECTION_DEFICIT] Final cycle projection estimates deficit: €${estimatedFinalBalance.toFixed(2)}.` })
+    } else if (estimatedFinalBalance < injectedStartBalance * 0.1) {
+      logs.push({ type: "warning", text: `[LIQUIDITY_ALERT] End-cycle projection drops below 10% start balance. Final estimate: €${estimatedFinalBalance.toFixed(2)}.` })
     }
 
     return logs
-  }, [currentCycle, velocity, spendingByCategory, expenses, cycleEndBalance, injectedStartBalance])
+  }, [currentCycle, velocity, spendingByCategory, expenses, estimatedFinalBalance, injectedStartBalance])
 
   const activeBudgets = spendingByCategory.filter(c => c.limit > 0)
 
   return (
-    <div className="mx-auto max-w-5xl space-y-10 md:space-y-16 w-full">
+    <div className="mx-auto max-w-5xl p-4 md:p-8 space-y-10 md:space-y-16 w-full">
       {/* 1. Header */}
       <header className="flex flex-col md:flex-row md:items-end justify-between gap-6 md:gap-8 border-b border-foreground/10 pb-6 md:pb-8 relative">
         <div className="absolute top-0 right-0 technical-label opacity-20 hidden lg:block uppercase tracking-widest text-[9px]">
@@ -316,35 +503,7 @@ export function DashboardView({ expenses, categories, budgets, balances, cycles,
           <div className="absolute top-4 left-4 technical-label opacity-10 uppercase tracking-widest font-mono text-[8px] md:text-[9px]">TS_QUANT_V4 // {viewMode === 'graph' ? 'REALTIME_PLOTTING' : 'TEMPORAL_AUDIT'}</div>
           
           {viewMode === 'graph' ? (
-            <div className="h-[280px] md:h-[320px] w-full mt-4 md:mt-0">
-              <ResponsiveContainer width="100%" height="100%">
-                <AreaChart data={hybridData} margin={{ top: 10, right: 10, left: -25, bottom: 0 }}>
-                  <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="var(--border)" />
-                  <XAxis dataKey="dateLabel" axisLine={false} tickLine={false} interval={window?.innerWidth < 768 ? 10 : 5} style={{ fontSize: '9px', fontFamily: 'var(--font-geist-mono)', fill: '#86868B' }} dy={10} />
-                  <YAxis axisLine={false} tickLine={false} style={{ fontSize: '9px', fontFamily: 'var(--font-geist-mono)', fill: '#86868B' }} tickFormatter={(val) => `€${Math.round(val)}`} />
-                  <Tooltip 
-                    content={({ active, payload, label }) => {
-                      if (active && payload && payload.length) {
-                        const data = payload[0].payload
-                        return (
-                          <div className="bg-card border border-border p-2 md:p-3 font-mono text-[9px] md:text-[10px] space-y-1.5 md:space-y-2 shadow-sm z-50">
-                            <p className="font-bold border-b border-border pb-1 uppercase">{label}</p>
-                            <div className="space-y-1">
-                              <p className="flex justify-between gap-6 md:gap-8 uppercase"><span>Position:</span> <span>€{(data.actualBalance ?? data.projectionBalance)?.toFixed(2)}</span></p>
-                              {data.actualSpend !== null && <p className="flex justify-between gap-6 md:gap-8 opacity-60 uppercase"><span>Burn:</span> <span>€{data.actualSpend.toFixed(2)}</span></p>}
-                            </div>
-                          </div>
-                        )
-                      }
-                      return null
-                    }}
-                    cursor={{ stroke: 'var(--border)', strokeWidth: 1 }}
-                  />
-                  <Area type="stepAfter" dataKey={activeTab === 'liquidity' ? "actualBalance" : "actualSpend"} stroke="var(--foreground)" strokeWidth={2} fill="var(--foreground)" fillOpacity={0.03} name="Active" isAnimationActive={false} />
-                  <Area type="monotone" dataKey={activeTab === 'liquidity' ? "projectionBalance" : "projectionSpend"} stroke="var(--foreground)" strokeOpacity={0.5} strokeWidth={1.5} strokeDasharray="5 5" fill="transparent" name="Projection" isAnimationActive={false} />
-                </AreaChart>
-              </ResponsiveContainer>
-            </div>
+            <DashboardChart hybridData={hybridData} activeTab={activeTab} />
           ) : (
             <div className="overflow-x-auto mt-6">
               <div className="min-w-[600px] grid grid-cols-7 border-t border-l border-border ledger-border bg-card/20">
@@ -391,7 +550,7 @@ export function DashboardView({ expenses, categories, budgets, balances, cycles,
                                   {dayIn > 0 && (
                                       <div className="flex items-center gap-1">
                                           <div className="w-1 h-1 bg-emerald-500 rounded-none" />
-                                          <span className="text-[7px] md:text-[8px] font-mono font-bold text-emerald-600">
+                                          <span className="text-[7px] md:text-[8px] font-mono font-bold text-emerald-600 dark:text-emerald-400">
                                               <PrivacyValue>+€{dayIn.toFixed(0)}</PrivacyValue>
                                           </span>
                                       </div>
@@ -419,30 +578,6 @@ export function DashboardView({ expenses, categories, budgets, balances, cycles,
         </div>
       </section>
 
-      {/* Mainframe System Logs Telemetry Feed */}
-      <section className="space-y-4">
-        <div className="flex items-center gap-2 border-b border-foreground/10 pb-2">
-           <span className="technical-label">Threat Telemetry Feed // Logs_V4</span>
-        </div>
-        <div className="border border-border ledger-border bg-card p-4 md:p-6 font-mono text-[9px] md:text-[10px] space-y-2 h-44 overflow-y-auto scrollbar-hide">
-           {systemLogs.map((log, idx) => (
-              <div key={idx} className="flex gap-4 hover:bg-secondary/20 py-0.5 px-1 items-start">
-                 <span className="text-muted-foreground opacity-30 select-none">{`[NODE_LOG_${idx.toString().padStart(3, '0')}]`}</span>
-                 <span className={cn(
-                    "font-bold shrink-0 uppercase tracking-tighter w-8",
-                    log.type === "error" ? "text-destructive" :
-                    log.type === "warning" ? "text-amber-500" :
-                    log.type === "success" ? "text-emerald-500" :
-                    "text-foreground/60"
-                 )}>
-                    {log.type === "error" ? "CRIT" : log.type === "warning" ? "WARN" : log.type === "success" ? "BOOT" : "INFO"}
-                 </span>
-                 <span className="text-foreground/80 leading-relaxed uppercase">{log.text}</span>
-              </div>
-           ))}
-        </div>
-      </section>
-
       {/* 3. Primary Metrics */}
       <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-0 border border-border ledger-border divide-y sm:divide-y-0 sm:divide-x md:divide-x divide-border bg-card overflow-hidden">
         {[
@@ -458,7 +593,6 @@ export function DashboardView({ expenses, categories, budgets, balances, cycles,
             label: "02 / TOTAL INFLOW", 
             value: totalIn, 
             sub: "REVENUE & EXTERNAL TRANSFERS", 
-            color: "text-emerald-600",
             tooltip: "Total Inflow Volume",
             tooltipDesc: "All positive transactions parsed in the current paycheck cycle, including payroll and incoming transfers."
           },
@@ -481,7 +615,7 @@ export function DashboardView({ expenses, categories, budgets, balances, cycles,
               </FloatingTooltipTrigger>
               {metric.sub && !metric.sub.includes('%') && <span className="text-[9px] font-mono text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity uppercase tracking-tighter hidden sm:inline">{metric.sub}</span>}
             </div>
-            <div className={cn("text-4xl md:text-5xl font-mono font-bold tracking-tighter z-10", metric.color)}>
+            <div className={cn("text-4xl md:text-5xl font-mono font-bold tracking-tighter z-10", idx === 1 ? "text-emerald-600 dark:text-emerald-400" : "")}>
               <PrivacyValue>
                 <NumberTicker value={metric.value} prefix="€" />
               </PrivacyValue>
@@ -507,9 +641,33 @@ export function DashboardView({ expenses, categories, budgets, balances, cycles,
         ))}
       </div>
 
+      {/* Mainframe System Logs Telemetry Feed */}
+      <section className="space-y-4">
+        <div className="flex items-center gap-2 border-b border-foreground/10 pb-2">
+           <span className="technical-label">Threat Telemetry Feed // Logs_V4</span>
+        </div>
+        <div className="border border-border ledger-border bg-card p-4 md:p-6 font-mono text-[9px] md:text-[10px] space-y-2 h-44 overflow-y-auto scrollbar-hide">
+           {systemLogs.map((log, idx) => (
+              <div key={idx} className="flex gap-4 hover:bg-secondary/20 py-0.5 px-1 items-start">
+                 <span className="text-muted-foreground opacity-30 select-none">{`[NODE_LOG_${idx.toString().padStart(3, '0')}]`}</span>
+                 <span className={cn(
+                    "font-bold shrink-0 uppercase tracking-tighter w-8",
+                    log.type === "error" ? "text-destructive" :
+                    log.type === "warning" ? "text-amber-500" :
+                    log.type === "success" ? "text-emerald-500" :
+                    "text-foreground/60"
+                 )}>
+                    {log.type === "error" ? "CRIT" : log.type === "warning" ? "WARN" : log.type === "success" ? "BOOT" : "INFO"}
+                 </span>
+                 <span className="text-foreground/80 leading-relaxed uppercase">{log.text}</span>
+              </div>
+           ))}
+        </div>
+      </section>
+
       {/* AI Strategy Insights */}
       <section className="space-y-6">
-        <JarvisIntelligence 
+        <LegerAIIntelligence 
           cycleData={{
             currentBalance: cycleEndBalance,
             velocity,
@@ -598,7 +756,7 @@ export function DashboardView({ expenses, categories, budgets, balances, cycles,
                     <p className="text-xs font-bold uppercase truncate max-w-[240px] tracking-tight group-hover:pl-1 transition-all">{exp.merchant || "UNSPECIFIED"}</p>
                     <p className="text-[9px] font-mono text-muted-foreground uppercase">{new Date(exp.date).toLocaleDateString("en-GB", { day: '2-digit', month: 'short' })} // SANTANDER_TX</p>
                   </div>
-                  <div className={cn("text-xs font-mono font-bold", parseFloat(exp.amount) > 0 ? "text-emerald-600" : "")}>
+                  <div className={cn("text-xs font-mono font-bold", parseFloat(exp.amount) > 0 ? "text-emerald-600 dark:text-emerald-400" : "")}>
                     <PrivacyValue><NumberTicker value={Math.abs(parseFloat(exp.amount))} prefix={parseFloat(exp.amount) > 0 ? "+" : "€"} /></PrivacyValue>
                   </div>
                 </div>

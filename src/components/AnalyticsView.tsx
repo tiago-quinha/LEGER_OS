@@ -112,7 +112,7 @@ export function AnalyticsView({ expenses, categories, paychecks: initialPaycheck
   } = analyticsData
 
   return (
-    <div className="mx-auto max-w-5xl space-y-10 md:space-y-16 pb-24 md:pb-8 w-full">
+    <div className="mx-auto max-w-5xl p-4 md:p-8 space-y-10 md:space-y-16 pb-24 md:pb-8 w-full">
       {/* 1. Header */}
       <header className="space-y-4 border-b border-foreground/10 pb-6 md:pb-8 relative">
         <div className="absolute top-0 right-0 technical-label opacity-20 hidden lg:block uppercase tracking-widest text-[9px]">
