@@ -77,6 +77,9 @@ export function OnboardingView() {
         }
       }
     }
+    if (user) {
+      await supabase.from("profiles").update({ onboarding_completed: true }).eq("id", user.id)
+    }
     setIsSeeding(false)
     toast.success("AI categorization rules initialized!")
     setStep(3)
@@ -262,10 +265,25 @@ export function OnboardingView() {
             </div>
 
             <div className="flex flex-col sm:flex-row gap-3 pt-2">
-              <Button onClick={() => router.push('/')} variant="outline" className="flex-1 rounded-none uppercase font-mono text-xs tracking-widest h-12">
+              <Button 
+                onClick={async () => {
+                  if (user) await supabase.from("profiles").update({ onboarding_completed: true }).eq("id", user.id)
+                  router.push('/')
+                  router.refresh()
+                }} 
+                variant="outline" 
+                className="flex-1 rounded-none uppercase font-mono text-xs tracking-widest h-12"
+              >
                 Return to Dashboard
               </Button>
-              <Button onClick={() => router.push('/expenses')} className="flex-1 rounded-none uppercase font-mono text-xs tracking-widest h-12 bg-foreground text-background hover:bg-foreground/90">
+              <Button 
+                onClick={async () => {
+                  if (user) await supabase.from("profiles").update({ onboarding_completed: true }).eq("id", user.id)
+                  router.push('/expenses')
+                  router.refresh()
+                }} 
+                className="flex-1 rounded-none uppercase font-mono text-xs tracking-widest h-12 bg-foreground text-background hover:bg-foreground/90"
+              >
                 <Upload className="mr-2 h-4 w-4" /> Upload Statement
               </Button>
             </div>

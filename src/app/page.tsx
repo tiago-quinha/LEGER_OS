@@ -24,8 +24,20 @@ export default async function DashboardPage({ searchParams }: PageProps) {
 
   const cycles = await getCycles(supabase, user.id)
 
-  if (!profile?.onboarding_completed || cycles.length === 0 || params?.onboarding === "true" || params?.force_onboarding === "true") {
+  if (!profile?.onboarding_completed || params?.onboarding === "true" || params?.force_onboarding === "true") {
     return <OnboardingView />
+  }
+
+  if (cycles.length === 0) {
+    const now = new Date()
+    const startOfMonth = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), 1)).toISOString()
+    cycles.push({
+      id: "default-0",
+      label: `Cycle: 01 ${now.toLocaleDateString('en-GB', { month: 'short', timeZone: 'UTC' })} - Present`,
+      startDate: startOfMonth,
+      endDate: null,
+      paycheckAmount: 0
+    })
   }
 
   // 2. Determine selected cycle
