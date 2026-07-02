@@ -42,15 +42,30 @@ export function OnboardingView() {
     })
   }, [])
 
+  const getUserId = async () => {
+    if (user?.id) return user.id
+    const { data: { user: authUser } } = await supabase.auth.getUser()
+    return authUser?.id
+  }
+
+  const handleCompleteOnboarding = async (targetUrl: string) => {
+    const targetId = await getUserId()
+    if (targetId) {
+      await supabase.from("profiles").update({ onboarding_completed: true }).eq("id", targetId)
+    }
+    window.location.href = targetUrl
+  }
+
   const handleCompleteStep1 = async (e: React.FormEvent) => {
     e.preventDefault()
-    if (!user) {
+    const targetId = await getUserId()
+    if (!targetId) {
       setStep(2)
       return
     }
     setIsSavingStep1(true)
     const finalKw = cycleMode === "monthly" ? "MONTHLY" : (keyword.trim() || "SALARY")
-    await supabase.from("profiles").update({ paycheck_keyword: finalKw, onboarding_completed: true }).eq("id", user.id)
+    await supabase.from("profiles").update({ paycheck_keyword: finalKw, onboarding_completed: true }).eq("id", targetId)
     setIsSavingStep1(false)
     toast.success("Paycheck architecture saved")
     setStep(2)
@@ -77,8 +92,9 @@ export function OnboardingView() {
         }
       }
     }
-    if (user) {
-      await supabase.from("profiles").update({ onboarding_completed: true }).eq("id", user.id)
+    const targetId = await getUserId()
+    if (targetId) {
+      await supabase.from("profiles").update({ onboarding_completed: true }).eq("id", targetId)
     }
     setIsSeeding(false)
     toast.success("AI categorization rules initialized!")
@@ -266,22 +282,14 @@ export function OnboardingView() {
 
             <div className="flex flex-col sm:flex-row gap-3 pt-2">
               <Button 
-                onClick={async () => {
-                  if (user) await supabase.from("profiles").update({ onboarding_completed: true }).eq("id", user.id)
-                  router.push('/')
-                  router.refresh()
-                }} 
+                onClick={() => handleCompleteOnboarding('/')} 
                 variant="outline" 
                 className="flex-1 rounded-none uppercase font-mono text-xs tracking-widest h-12"
               >
                 Return to Dashboard
               </Button>
               <Button 
-                onClick={async () => {
-                  if (user) await supabase.from("profiles").update({ onboarding_completed: true }).eq("id", user.id)
-                  router.push('/expenses')
-                  router.refresh()
-                }} 
+                onClick={() => handleCompleteOnboarding('/expenses')} 
                 className="flex-1 rounded-none uppercase font-mono text-xs tracking-widest h-12 bg-foreground text-background hover:bg-foreground/90"
               >
                 <Upload className="mr-2 h-4 w-4" /> Upload Statement
