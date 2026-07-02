@@ -79,13 +79,14 @@ END $$;
 CREATE OR REPLACE FUNCTION public.handle_new_user()
 RETURNS trigger AS $$
 BEGIN
-  INSERT INTO public.profiles (id, username, full_name, paycheck_keyword, role, is_admin)
+  INSERT INTO public.profiles (id, username, full_name, paycheck_keyword, role, is_admin, onboarding_completed)
   VALUES (
     new.id,
     COALESCE(new.raw_user_meta_data->>'username', SPLIT_PART(new.email, '@', 1)),
     COALESCE(new.raw_user_meta_data->>'full_name', ''),
     'SALARY',
     'user',
+    false,
     false
   )
   ON CONFLICT (id) DO NOTHING;

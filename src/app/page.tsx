@@ -15,10 +15,16 @@ export default async function DashboardPage({ searchParams }: PageProps) {
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) return null
 
-  // 1. Fetch cycles using utility
+  // 1. Fetch user profile and cycles using utility
+  const { data: profile } = await supabase
+    .from("profiles")
+    .select("onboarding_completed")
+    .eq("id", user.id)
+    .single()
+
   const cycles = await getCycles(supabase, user.id)
 
-  if (cycles.length === 0 || params?.onboarding === "true" || params?.force_onboarding === "true") {
+  if (!profile?.onboarding_completed || cycles.length === 0 || params?.onboarding === "true" || params?.force_onboarding === "true") {
     return <OnboardingView />
   }
 

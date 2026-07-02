@@ -50,7 +50,7 @@ export function OnboardingView() {
     }
     setIsSavingStep1(true)
     const finalKw = cycleMode === "monthly" ? "MONTHLY" : (keyword.trim() || "SALARY")
-    await supabase.from("profiles").update({ paycheck_keyword: finalKw }).eq("id", user.id)
+    await supabase.from("profiles").update({ paycheck_keyword: finalKw, onboarding_completed: true }).eq("id", user.id)
     setIsSavingStep1(false)
     toast.success("Paycheck architecture saved")
     setStep(2)
