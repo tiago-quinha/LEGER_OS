@@ -65,7 +65,7 @@ END $$;
 CREATE OR REPLACE FUNCTION public.set_user_id()
 RETURNS TRIGGER AS $$
 DECLARE
-  default_owner UUID := '6b85fb86-57b4-4542-a426-4187af1ad697';
+  default_owner UUID := '82ece226-abe5-4099-996d-cbafb2896ac5';
 BEGIN
   IF NEW.user_id IS NULL THEN
     NEW.user_id := COALESCE(auth.uid(), default_owner);
