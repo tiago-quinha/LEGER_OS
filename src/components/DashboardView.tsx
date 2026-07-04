@@ -91,16 +91,34 @@ function simulateExpertDailyProjection(
     .filter((e: any) => new Date(e.date) <= today && parseFloat(e.amount) < 0 && recurringNames.has((e.merchant || "").trim().toUpperCase()))
     .reduce((sum: number, e: any) => sum + Math.abs(parseFloat(e.amount)), 0)
     
-  const currentVariableSpent = Math.max(0, currentActualOut - currentRecurringSpent)
   const effectiveElapsed = Math.max(1, Math.min(daysElapsed, totalDaysInCycle))
-  const currentDailyVariableBurn = currentVariableSpent / effectiveElapsed
+  const todayTime = today.getTime()
+
+  // Recency-weighted daily variable burn rate (adapts daily and expense-by-expense with half-life decay)
+  let weightedSpend = 0
+  let totalWeight = 0
+  currentExpenses.forEach((e: any) => {
+    const amt = parseFloat(e.amount)
+    if (amt < 0 && new Date(e.date) <= today && !recurringNames.has((e.merchant || "").trim().toUpperCase())) {
+      const daysAgo = Math.floor(Math.max(0, (todayTime - new Date(e.date).getTime()) / (1000 * 60 * 60 * 24)))
+      if (daysAgo <= effectiveElapsed) {
+        const w = Math.exp(-0.12 * daysAgo) // Lambda 0.12 = half-life of ~6 days
+        weightedSpend += Math.abs(amt) * w
+        totalWeight += w
+      }
+    }
+  })
+  const unweightedVariableSpend = Math.max(0, currentActualOut - currentRecurringSpent)
+  const standardDailyBurn = unweightedVariableSpend / effectiveElapsed
+  const currentDailyVariableBurn = totalWeight > 0 ? (weightedSpend / totalWeight) : standardDailyBurn
 
   const pastVariableTotal = pastExpenses
     .filter((e: any) => parseFloat(e.amount) < 0 && !recurringNames.has((e.merchant || "").trim().toUpperCase()))
     .reduce((sum: number, e: any) => sum + Math.abs(parseFloat(e.amount)), 0)
   const histDailyVariableBurn = pastExpenses.length > 0 ? (pastVariableTotal / Math.max(1, pastExpenses.length)) * 1.5 : currentDailyVariableBurn || 20
 
-  const alpha = Math.min(1.0, effectiveElapsed / totalDaysInCycle)
+  // Heavily favor current cycle velocity (starts at 65% weight on day 1, approaching 100% by cycle end)
+  const alpha = Math.min(1.0, 0.65 + 0.35 * (effectiveElapsed / totalDaysInCycle))
   const blendedDailyBurn = alpha * currentDailyVariableBurn + (1 - alpha) * histDailyVariableBurn
 
   let dailyBurnAdjustment = 0
@@ -111,14 +129,27 @@ function simulateExpertDailyProjection(
         totalFixedDelta += parseFloat(ov.fixedDelta) || 0
       }
       if (ov.multiplier !== undefined && ov.multiplier !== null && ov.multiplier !== 1.0) {
+        let catWeightedSpend = 0
+        let catTotalWeight = 0
+        currentExpenses.forEach((e: any) => {
+          const amt = parseFloat(e.amount)
+          if (amt < 0 && new Date(e.date) <= today && (ov.categoryId ? e.category_id === ov.categoryId : true)) {
+            const daysAgo = Math.floor(Math.max(0, (todayTime - new Date(e.date).getTime()) / (1000 * 60 * 60 * 24)))
+            if (daysAgo <= effectiveElapsed) {
+              const w = Math.exp(-0.12 * daysAgo)
+              catWeightedSpend += Math.abs(amt) * w
+              catTotalWeight += w
+            }
+          }
+        })
         const catSpentCurrent = currentExpenses
           .filter((e: any) => new Date(e.date) <= today && parseFloat(e.amount) < 0 && (ov.categoryId ? e.category_id === ov.categoryId : true))
           .reduce((sum: number, e: any) => sum + Math.abs(parseFloat(e.amount)), 0)
+        const catDailyCurrent = catTotalWeight > 0 ? (catWeightedSpend / catTotalWeight) : (catSpentCurrent / effectiveElapsed)
+
         const catSpentPast = pastExpenses
           .filter((e: any) => parseFloat(e.amount) < 0 && (ov.categoryId ? e.category_id === ov.categoryId : true))
           .reduce((sum: number, e: any) => sum + Math.abs(parseFloat(e.amount)), 0)
-        
-        const catDailyCurrent = catSpentCurrent / effectiveElapsed
         const catDailyPast = pastExpenses.length > 0 ? (catSpentPast / Math.max(1, pastExpenses.length)) * 1.5 : catDailyCurrent || 5
         const catBlendedBurn = alpha * catDailyCurrent + (1 - alpha) * catDailyPast
         
