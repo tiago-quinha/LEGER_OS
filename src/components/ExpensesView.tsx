@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useMemo, useEffect } from "react"
 import { supabase } from "@/lib/supabase"
 import {
   Table,
@@ -64,11 +64,56 @@ interface ExpensesViewProps {
 }
 
 export function ExpensesView({ initialExpenses, categories, initialRules }: ExpensesViewProps) {
-  const [expenses, setExpenses] = useState<Expense[]>(initialExpenses)
+  const [expenses, setExpenses] = useState<Expense[]>(() => {
+    if (typeof window !== "undefined") {
+      const cached = sessionStorage.getItem("moneytrack_cache_expenses")
+      if (cached && initialExpenses.length === 0) {
+        try { return JSON.parse(cached) } catch {}
+      }
+    }
+    return initialExpenses
+  })
   const [rules, setRules] = useState<Rule[]>(initialRules)
   const [isCategorizing, setIsCategorizing] = useState(false)
   
   const { setAuditPanelOpen, setActiveTransactionId, refreshData, profile } = useSystem()
+
+  // Save to browser cache when expenses update
+  useEffect(() => {
+    if (typeof window !== "undefined" && expenses.length > 0) {
+      try { sessionStorage.setItem("moneytrack_cache_expenses", JSON.stringify(expenses)) } catch {}
+    }
+  }, [expenses])
+
+  // Pagination & High-Performance Memoization
+  const [currentPage, setCurrentPage] = useState(1)
+  const pageSize = 40
+
+  const totalPages = Math.ceil(expenses.length / pageSize)
+  const paginatedExpenses = useMemo(() => {
+    return expenses.slice((currentPage - 1) * pageSize, currentPage * pageSize)
+  }, [expenses, currentPage])
+
+  useEffect(() => {
+    if (currentPage > totalPages && totalPages > 0) {
+      setCurrentPage(totalPages)
+    }
+  }, [totalPages, currentPage])
+
+  const summaryStats = useMemo(() => {
+    let inflow = 0
+    let outflow = 0
+    for (let i = 0; i < expenses.length; i++) {
+      const amt = parseFloat(expenses[i].amount.toString()) || 0
+      if (amt > 0) inflow += amt
+      else if (amt < 0) outflow += Math.abs(amt)
+    }
+    return {
+      total: expenses.length,
+      inflow: inflow.toFixed(2),
+      outflow: outflow.toFixed(2)
+    }
+  }, [expenses])
 
   // New Rule State
   const [newRuleKeyword, setNewRuleKeyword] = useState("")
@@ -102,6 +147,7 @@ export function ExpensesView({ initialExpenses, categories, initialRules }: Expe
     }[]
   } | null>(null)
   const [isIngesting, setIsIngesting] = useState(false)
+  const [isAiParsing, setIsAiParsing] = useState(false)
 
   const matchCategory = (merchantStr: string, rulesList: Rule[], categoriesList: Category[]) => {
     const lowerMerchant = merchantStr.toLowerCase()
@@ -226,6 +272,69 @@ export function ExpensesView({ initialExpenses, categories, initialRules }: Expe
     } catch (err: any) {
       console.error(err)
       toast.error(`Ingestion parsing failure: ${err.message}`)
+    }
+  }
+
+  const handleAiSmartParse = async () => {
+    if (!extractText.trim()) {
+      toast.error("Please paste statement text or upload a file first.")
+      return
+    }
+
+    setIsAiParsing(true)
+    const toastId = toast.loading("🤖 Leger AI is analyzing statement structure across universal bank formats...")
+
+    try {
+      const res = await fetch("/api/ingest/ai-parse", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ text: extractText })
+      })
+
+      const data = await res.json()
+      if (!res.ok) throw new Error(data.error || "AI parsing failed")
+      if (!data.transactions || data.transactions.length === 0) {
+        throw new Error("AI could not detect valid transactions in this text.")
+      }
+
+      const userPaycheckKw = profile?.paycheck_keyword || "SALARY"
+      const txList = data.transactions.map((tx: any, index: number) => {
+        const amtVal = parseFloat(tx.amount) || 0
+        const merch = tx.merchant || "Unknown Merchant"
+        const isInc = amtVal > 0 && (
+          (userPaycheckKw !== "MONTHLY" && merch.toLowerCase().includes(userPaycheckKw.toLowerCase())) ||
+          merch.toUpperCase().includes("SALARY") || 
+          merch.toUpperCase().includes("PAYROLL") || 
+          merch.toUpperCase().includes("PAYCHECK")
+        )
+        const catId = matchCategory(merch, rules, categories)
+
+        return {
+          id: `ai-${index}-${Date.now()}`,
+          amount: amtVal,
+          merchant: merch.trim(),
+          date: new Date(tx.date || new Date()).toISOString(),
+          raw_text: tx.raw_text || merch,
+          isIncome: isInc,
+          category_id: catId,
+          checked: true
+        }
+      })
+
+      setParsedData({
+        startDate: data.startDate || `${data.year}-${String(data.month).padStart(2, '0')}-01`,
+        startBalance: data.startBalance || 0,
+        month: data.month || new Date().getMonth() + 1,
+        year: data.year || new Date().getFullYear(),
+        transactions: txList
+      })
+
+      toast.success(`🤖 Leger AI extracted ${txList.length} transactions successfully!`, { id: toastId })
+    } catch (err: any) {
+      console.error(err)
+      toast.error(`AI Parse error: ${err.message}`, { id: toastId })
+    } finally {
+      setIsAiParsing(false)
     }
   }
 
@@ -688,19 +797,19 @@ export function ExpensesView({ initialExpenses, categories, initialRules }: Expe
           <div className="p-6 md:p-8 space-y-3 bg-card/40 hover:bg-secondary/35 transition-all duration-300 flex flex-col justify-between">
             <span className="technical-label text-[9px] border-b border-dotted border-muted-foreground/30 w-fit">01 / TOTAL LEDGER RECORDS</span>
             <div className="text-3xl md:text-5xl font-mono font-bold tracking-tighter">
-              {expenses.length} <span className="text-xs font-normal text-muted-foreground">ENTRIES</span>
+              {summaryStats.total} <span className="text-xs font-normal text-muted-foreground">ENTRIES</span>
             </div>
           </div>
           <div className="p-6 md:p-8 space-y-3 bg-card/40 hover:bg-secondary/35 transition-all duration-300 flex flex-col justify-between">
             <span className="technical-label text-[9px] border-b border-dotted border-muted-foreground/30 w-fit">02 / TOTAL INFLOW</span>
             <div className="text-3xl md:text-5xl font-mono font-bold tracking-tighter">
-              <PrivacyValue>€{expenses.filter(e => parseFloat(e.amount.toString()) > 0).reduce((sum, e) => sum + parseFloat(e.amount.toString()), 0).toFixed(2)}</PrivacyValue>
+              <PrivacyValue>€{summaryStats.inflow}</PrivacyValue>
             </div>
           </div>
           <div className="p-6 md:p-8 space-y-3 bg-card/40 hover:bg-secondary/35 transition-all duration-300 flex flex-col justify-between">
             <span className="technical-label text-[9px] border-b border-dotted border-muted-foreground/30 w-fit">03 / TOTAL OUTFLOW</span>
             <div className="text-3xl md:text-5xl font-mono font-bold tracking-tighter">
-              <PrivacyValue>€{Math.abs(expenses.filter(e => parseFloat(e.amount.toString()) < 0).reduce((sum, e) => sum + parseFloat(e.amount.toString()), 0)).toFixed(2)}</PrivacyValue>
+              <PrivacyValue>€{summaryStats.outflow}</PrivacyValue>
             </div>
           </div>
         </div>
@@ -733,7 +842,7 @@ export function ExpensesView({ initialExpenses, categories, initialRules }: Expe
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {expenses.map((expense) => (
+                    {paginatedExpenses.map((expense) => (
                       <TableRow 
                         key={expense.id} 
                         onClick={() => openAudit(expense.id)}
@@ -805,6 +914,34 @@ export function ExpensesView({ initialExpenses, categories, initialRules }: Expe
                   </TableBody>
                 </Table>
                 </div>
+                {expenses.length > 0 && (
+                  <div className="flex flex-col sm:flex-row items-center justify-between gap-4 px-6 py-4 border-t border-border bg-card/40">
+                    <div className="text-xs font-mono text-muted-foreground">
+                      Showing <span className="font-bold text-foreground">{(currentPage - 1) * pageSize + 1}</span> - <span className="font-bold text-foreground">{Math.min(expenses.length, currentPage * pageSize)}</span> of <span className="font-bold text-foreground">{expenses.length}</span> entries
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <button
+                        type="button"
+                        disabled={currentPage === 1}
+                        onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
+                        className="h-8 px-3 text-xs font-mono border border-border bg-background hover:bg-secondary disabled:opacity-40 disabled:cursor-not-allowed transition-all font-bold uppercase"
+                      >
+                        Previous
+                      </button>
+                      <div className="text-xs font-mono font-bold px-3 py-1 border border-border bg-secondary/50">
+                        Page {currentPage} / {totalPages || 1}
+                      </div>
+                      <button
+                        type="button"
+                        disabled={currentPage >= totalPages}
+                        onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
+                        className="h-8 px-3 text-xs font-mono border border-border bg-background hover:bg-secondary disabled:opacity-40 disabled:cursor-not-allowed transition-all font-bold uppercase"
+                      >
+                        Next
+                      </button>
+                    </div>
+                  </div>
+                )}
               </CardContent>
             </Card>
           </TabsContent>
@@ -901,35 +1038,47 @@ export function ExpensesView({ initialExpenses, categories, initialRules }: Expe
                   <div className="border border-dashed border-border p-6 flex flex-col items-center justify-center text-center cursor-pointer hover:bg-secondary/10 transition-colors relative">
                     <input 
                       type="file" 
-                      accept=".txt" 
+                      accept=".txt,.csv,.json,.pdf" 
                       onChange={handleFileUpload} 
                       className="absolute inset-0 opacity-0 cursor-pointer"
                     />
                     <FileText className="h-8 w-8 text-muted-foreground mb-2" />
-                    <p className="text-[10px] font-mono font-bold uppercase">Select Extract File (.txt)</p>
-                    <p className="text-[8px] font-mono text-muted-foreground uppercase mt-1">or drag & drop here</p>
+                    <p className="text-[10px] font-mono font-bold uppercase">Select Statement (.txt, .csv, .pdf)</p>
+                    <p className="text-[8px] font-mono text-muted-foreground uppercase mt-1">or drag & drop universal bank extract</p>
                   </div>
 
                   <div className="space-y-2">
-                    <Label htmlFor="extractText" className="technical-label opacity-60">Or Paste Extract Text</Label>
+                    <Label htmlFor="extractText" className="technical-label opacity-60">Or Paste Extract / CSV Text</Label>
                     <textarea
                       id="extractText"
                       rows={12}
                       className="w-full p-4 border border-border ledger-border font-mono text-[10px] bg-secondary/5 focus:bg-card focus:outline-none transition-all resize-none"
-                      placeholder="Paste your Santander transaction extract lines here..."
+                      placeholder="Paste text from any bank statement, CSV, or PDF extract..."
                       value={extractText}
                       onChange={(e) => setExtractText(e.target.value)}
                     />
                   </div>
 
-                  <MagneticButton 
-                    onClick={handleParseExtract} 
-                    variant="none"
-                    className="w-full uppercase font-mono text-[10px] py-3 bg-foreground text-background font-bold tracking-widest border border-transparent hover:bg-foreground/80 justify-center"
-                    strength={0.15}
-                  >
-                    Parse Extract Node
-                  </MagneticButton>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                    <MagneticButton 
+                      onClick={handleParseExtract} 
+                      variant="outline"
+                      className="w-full uppercase font-mono text-[9px] py-3 font-bold tracking-widest justify-center border border-border"
+                      strength={0.1}
+                    >
+                      ⚡ Fast Regex (.txt)
+                    </MagneticButton>
+                    <MagneticButton 
+                      onClick={handleAiSmartParse} 
+                      variant="none"
+                      disabled={isAiParsing}
+                      className="w-full uppercase font-mono text-[9px] py-3 bg-foreground text-background font-bold tracking-widest border border-transparent hover:bg-foreground/80 justify-center flex items-center gap-1.5"
+                      strength={0.15}
+                    >
+                      <Sparkles className="h-3.5 w-3.5" />
+                      {isAiParsing ? "AI Analyzing..." : "🤖 AI Universal Parse"}
+                    </MagneticButton>
+                  </div>
                 </CardContent>
               </Card>
 

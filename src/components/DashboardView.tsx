@@ -31,15 +31,15 @@ interface CurvePoint {
   outflow: number
 }
 
-function getHistoricalCurves(pastExpenses: any[], profileKeyword: string) {
+function getHistoricalCurves(pastExpenses: any[], profileKeyword: string, targetIncome: number = 2500, targetSpend: number = 1500) {
   const kw = profileKeyword.toLowerCase()
   const paychecks = pastExpenses
     .filter((e: any) => e.merchant.toLowerCase().includes(kw) && parseFloat(e.amount) > 0)
     .sort((a: any, b: any) => new Date(a.date).getTime() - new Date(b.date).getTime())
 
   if (paychecks.length === 0) {
-    const avgInflow = Array.from({ length: 31 }, (_, i) => (500 / 30) * i)
-    const avgOutflow = Array.from({ length: 31 }, (_, i) => (900 / 30) * i)
+    const avgInflow = Array.from({ length: 31 }, (_, i) => (targetIncome / 30) * i)
+    const avgOutflow = Array.from({ length: 31 }, (_, i) => (targetSpend / 30) * i)
     return { avgInflow, avgOutflow }
   }
 
@@ -114,6 +114,8 @@ interface DashboardViewProps {
   previousStartBalance: number
   allPastExpenses?: any[]
   paycheckKeyword?: string
+  targetMonthlyIncome?: number
+  targetMonthlySpend?: number
 }
 
 export function DashboardView({ 
@@ -127,7 +129,9 @@ export function DashboardView({
   previousExpenses, 
   previousStartBalance,
   allPastExpenses,
-  paycheckKeyword
+  paycheckKeyword,
+  targetMonthlyIncome = 2500,
+  targetMonthlySpend = 1500
 }: DashboardViewProps) {
   const router = useRouter()
   const { setAuditPanelOpen, setActiveTransactionId } = useSystem()
@@ -141,16 +145,34 @@ export function DashboardView({
 
   const totalIn = expenses
     .filter(exp => parseFloat(exp.amount.toString()) > 0)
-    .reduce((sum, exp) => sum + (parseFloat(exp.amount.toString()) || 0), 0)
+    .reduce((sum, exp) => sum + Math.abs(parseFloat(exp.amount.toString()) || 0), 0)
 
   const netChange = expenses.reduce((sum, exp) => sum + (parseFloat(exp.amount) || 0), 0)
   const cycleEndBalance = injectedStartBalance + netChange
+  const netFlow = totalIn - totalOut
 
-  // PROJECTION & CYCLE PROGRESS
+  const calculateDaysElapsed = () => {
+    if (!currentCycle) return 30
+    const start = new Date(currentCycle.startDate)
+    const end = currentCycle.endDate ? new Date(currentCycle.endDate) : new Date()
+    const diffTime = Math.abs(end.getTime() - start.getTime())
+    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24))
+    return Math.max(1, diffDays)
+  }
+
+  const daysElapsed = calculateDaysElapsed()
+
+  const calculateTotalDays = () => {
+    if (!currentCycle || !currentCycle.endDate) return 30
+    const start = new Date(currentCycle.startDate)
+    const end = new Date(currentCycle.endDate)
+    const diffTime = Math.abs(end.getTime() - start.getTime())
+    return Math.max(1, Math.ceil(diffTime / (1000 * 60 * 60 * 24)))
+  }
+
+  const totalDaysInCycle = calculateTotalDays()
   const startDate = new Date(currentCycle.startDate)
   const today = new Date()
-  const daysElapsed = Math.max(1, Math.floor((today.getTime() - startDate.getTime()) / 86400000))
-  const totalDaysInCycle = 30
 
   const currentIndex = cycles.findIndex(c => c.id === currentCycleId)
   const isCurrentCycle = currentIndex === 0 || !currentCycle.endDate
@@ -160,10 +182,10 @@ export function DashboardView({
   const curves = useMemo(() => {
     const past = allPastExpenses || previousExpenses || []
     console.log("DashboardView: count of past expenses:", past?.length, "keyword:", keyword)
-    const res = getHistoricalCurves(past, keyword)
+    const res = getHistoricalCurves(past, keyword, targetMonthlyIncome, targetMonthlySpend)
     console.log("DashboardView: curves avgInflow[30]:", res.avgInflow[30], "avgOutflow[30]:", res.avgOutflow[30])
     return res
-  }, [allPastExpenses, previousExpenses, keyword])
+  }, [allPastExpenses, previousExpenses, keyword, targetMonthlyIncome, targetMonthlySpend])
 
   const gasExpenses = expenses.filter(e => e.category_id === 7 || e.merchant.toLowerCase().includes("superfaro-supermerca"))
   const totalGas = gasExpenses.reduce((sum, e) => sum + Math.abs(parseFloat(e.amount) || 0), 0)

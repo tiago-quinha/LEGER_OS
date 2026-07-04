@@ -26,9 +26,11 @@ export function OnboardingView() {
   const { user, refreshData } = useSystem()
   const [step, setStep] = useState<1 | 2 | 3>(1)
 
-  // Step 1: Paycheck Keyword
+  // Step 1: Paycheck Keyword & Target Curves
   const [cycleMode, setCycleMode] = useState<"keyword" | "monthly">("keyword")
   const [keyword, setKeyword] = useState("SALARY")
+  const [targetIncome, setTargetIncome] = useState("2500")
+  const [targetSpend, setTargetSpend] = useState("1500")
   const [isSavingStep1, setIsSavingStep1] = useState(false)
 
   // Step 2: Habits
@@ -65,9 +67,14 @@ export function OnboardingView() {
     }
     setIsSavingStep1(true)
     const finalKw = cycleMode === "monthly" ? "MONTHLY" : (keyword.trim() || "SALARY")
-    await supabase.from("profiles").update({ paycheck_keyword: finalKw, onboarding_completed: true }).eq("id", targetId)
+    await supabase.from("profiles").update({ 
+      paycheck_keyword: finalKw, 
+      target_monthly_income: parseFloat(targetIncome) || 2500,
+      target_monthly_spend: parseFloat(targetSpend) || 1500,
+      onboarding_completed: true 
+    }).eq("id", targetId)
     setIsSavingStep1(false)
-    toast.success("Paycheck architecture saved")
+    toast.success("Paycheck & projection targets saved")
     setStep(2)
   }
 
@@ -201,6 +208,38 @@ export function OnboardingView() {
                   </span>
                 </div>
               )}
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-2">
+                <div className="space-y-2">
+                  <Label htmlFor="targetIncome" className="text-[10px] font-mono uppercase tracking-widest text-muted-foreground">
+                    Expected Monthly Income (€)
+                  </Label>
+                  <Input
+                    id="targetIncome"
+                    type="number"
+                    value={targetIncome}
+                    onChange={(e) => setTargetIncome(e.target.value)}
+                    placeholder="2500"
+                    className="rounded-none font-mono text-xs h-10 bg-background text-emerald-600 dark:text-emerald-400 font-bold"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="targetSpend" className="text-[10px] font-mono uppercase tracking-widest text-muted-foreground">
+                    Target Spending Ceiling (€)
+                  </Label>
+                  <Input
+                    id="targetSpend"
+                    type="number"
+                    value={targetSpend}
+                    onChange={(e) => setTargetSpend(e.target.value)}
+                    placeholder="1500"
+                    className="rounded-none font-mono text-xs h-10 bg-background font-bold"
+                  />
+                </div>
+              </div>
+              <span className="text-[9px] text-muted-foreground block font-sans">
+                These targets dynamically generate your dashed projection trajectory curves on the main dashboard.
+              </span>
 
               <Button type="submit" disabled={isSavingStep1} className="w-full rounded-none uppercase font-mono text-xs tracking-widest h-11">
                 {isSavingStep1 ? "Saving Configuration..." : "Proceed to Habits"} <ArrowRight className="ml-2 h-4 w-4" />

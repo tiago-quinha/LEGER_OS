@@ -57,6 +57,8 @@ CREATE TABLE IF NOT EXISTS profiles (
 -- Add columns if table already exists
 ALTER TABLE profiles ADD COLUMN IF NOT EXISTS role TEXT DEFAULT 'user';
 ALTER TABLE profiles ADD COLUMN IF NOT EXISTS is_admin BOOLEAN DEFAULT false;
+ALTER TABLE profiles ADD COLUMN IF NOT EXISTS target_monthly_income NUMERIC(10, 2) DEFAULT 2500;
+ALTER TABLE profiles ADD COLUMN IF NOT EXISTS target_monthly_spend NUMERIC(10, 2) DEFAULT 1500;
 
 -- Enable RLS on profiles
 ALTER TABLE profiles ENABLE ROW LEVEL SECURITY;
@@ -79,7 +81,7 @@ END $$;
 CREATE OR REPLACE FUNCTION public.handle_new_user()
 RETURNS trigger AS $$
 BEGIN
-  INSERT INTO public.profiles (id, username, full_name, paycheck_keyword, role, is_admin, onboarding_completed)
+  INSERT INTO public.profiles (id, username, full_name, paycheck_keyword, role, is_admin, onboarding_completed, target_monthly_income, target_monthly_spend)
   VALUES (
     new.id,
     COALESCE(new.raw_user_meta_data->>'username', SPLIT_PART(new.email, '@', 1)),
@@ -87,7 +89,9 @@ BEGIN
     'SALARY',
     'user',
     false,
-    false
+    false,
+    2500,
+    1500
   )
   ON CONFLICT (id) DO NOTHING;
   RETURN new;

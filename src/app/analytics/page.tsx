@@ -2,7 +2,7 @@ import { createClient } from "@/lib/supabase-server"
 import { AnalyticsView } from "@/components/AnalyticsView"
 import { getCycles } from "@/lib/cycles"
 
-export const revalidate = 0
+export const revalidate = 60
 
 export default async function Analytics() {
   const supabase = await createClient()

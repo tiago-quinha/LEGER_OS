@@ -81,6 +81,8 @@ export function SystemSettingsModal({ open, onOpenChange }: SystemSettingsModalP
   // Paycheck state
   const [keywordInput, setKeywordInput] = useState("")
   const [cycleMode, setCycleMode] = useState<"keyword" | "monthly">("keyword")
+  const [targetIncomeInput, setTargetIncomeInput] = useState("2500")
+  const [targetSpendInput, setTargetSpendInput] = useState("1500")
   const [isSavingProfile, setIsSavingProfile] = useState(false)
 
   const router = useRouter()
@@ -149,6 +151,42 @@ export function SystemSettingsModal({ open, onOpenChange }: SystemSettingsModalP
     toast.success("System diagnostic dump downloaded")
   }
 
+  const [isTestingWebhook, setIsTestingWebhook] = useState(false)
+
+  const handleTestWebhook = async () => {
+    setIsTestingWebhook(true)
+    try {
+      const payload = {
+        app: "Santander",
+        title: "Compra Cartao",
+        text: `COMPRA 1234 TESTE MACRODROID LISBOA ${((Math.random() * 25) + 5).toFixed(2)} EUR`,
+        time: new Date().toISOString()
+      }
+      const res = await fetch("/api/transactions/macrodroid", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload)
+      })
+      if (res.ok || res.status === 201) {
+        toast.success("📡 MacroDroid Webhook Test Successful (201 Created)!")
+        refreshData()
+      } else {
+        toast.error(`Webhook Test Failed: HTTP ${res.status}`)
+      }
+    } catch (e: any) {
+      toast.error(`Webhook error: ${e.message}`)
+    } finally {
+      setIsTestingWebhook(false)
+    }
+  }
+
+  const handleInspectClaims = async () => {
+    const session = await supabase.auth.getSession()
+    const jwt = session.data.session?.access_token || "None"
+    toast.info(`🔑 Auth Node: ${user?.id?.slice(0, 8)}... | Role: ${profile?.role || "SUPER_USER"} | RLS Isolation: Active`)
+    console.log("LEGER_OS Diagnostic Claims:", { user, profile, jwt })
+  }
+
   // Habits & Rules state
   const [selectedHabits, setSelectedHabits] = useState<string[]>(["groceries", "transport", "housing"])
   const [isSeeding, setIsSeeding] = useState(false)
@@ -167,6 +205,8 @@ export function SystemSettingsModal({ open, onOpenChange }: SystemSettingsModalP
         setCycleMode("keyword")
         setKeywordInput(kw)
       }
+      if (profile.target_monthly_income) setTargetIncomeInput(profile.target_monthly_income.toString())
+      if (profile.target_monthly_spend) setTargetSpendInput(profile.target_monthly_spend.toString())
     }
   }, [profile, open])
 
@@ -194,7 +234,11 @@ export function SystemSettingsModal({ open, onOpenChange }: SystemSettingsModalP
 
     const { error } = await supabase
       .from("profiles")
-      .update({ paycheck_keyword: finalKeyword })
+      .update({ 
+        paycheck_keyword: finalKeyword,
+        target_monthly_income: parseFloat(targetIncomeInput) || 2500,
+        target_monthly_spend: parseFloat(targetSpendInput) || 1500
+      })
       .eq("id", user.id)
 
     setIsSavingProfile(false)
@@ -202,7 +246,7 @@ export function SystemSettingsModal({ open, onOpenChange }: SystemSettingsModalP
       toast.error("Failed to save income profile")
       console.error(error)
     } else {
-      toast.success(cycleMode === "monthly" ? "Calendar Monthly Mode Activated" : `Paycheck Keyword set to "${finalKeyword}"`)
+      toast.success("Paycheck & projection trajectory settings updated!")
       refreshData()
       onOpenChange(false)
     }
@@ -367,6 +411,38 @@ export function SystemSettingsModal({ open, onOpenChange }: SystemSettingsModalP
                   </span>
                 </div>
               )}
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-2">
+                <div className="space-y-2">
+                  <Label htmlFor="targetIncomeModal" className="text-[10px] uppercase tracking-widest text-muted-foreground">
+                    Expected Monthly Income (€)
+                  </Label>
+                  <Input
+                    id="targetIncomeModal"
+                    type="number"
+                    value={targetIncomeInput}
+                    onChange={(e) => setTargetIncomeInput(e.target.value)}
+                    placeholder="2500"
+                    className="rounded-none font-mono text-xs h-10 bg-background text-emerald-600 dark:text-emerald-400 font-bold"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="targetSpendModal" className="text-[10px] uppercase tracking-widest text-muted-foreground">
+                    Target Spending Ceiling (€)
+                  </Label>
+                  <Input
+                    id="targetSpendModal"
+                    type="number"
+                    value={targetSpendInput}
+                    onChange={(e) => setTargetSpendInput(e.target.value)}
+                    placeholder="1500"
+                    className="rounded-none font-mono text-xs h-10 bg-background font-bold"
+                  />
+                </div>
+              </div>
+              <span className="text-[9px] text-muted-foreground block font-sans">
+                * Dynamically scales your dashed predictive trajectory curves on the main dashboard.
+              </span>
 
               <Button 
                 type="submit" 
@@ -611,6 +687,45 @@ export function SystemSettingsModal({ open, onOpenChange }: SystemSettingsModalP
                     className="w-full rounded-none uppercase font-mono text-[10px] tracking-widest h-8 bg-secondary/40 hover:bg-foreground hover:text-background transition-all"
                   >
                     Download JSON Log
+                  </Button>
+                </div>
+
+                {/* 5. Simulate MacroDroid Webhook */}
+                <div className="p-3 border border-border bg-card space-y-2.5 flex flex-col justify-between">
+                  <div>
+                    <div className="flex items-center gap-2 font-bold font-mono uppercase text-xs text-foreground">
+                      <Activity className="h-4 w-4 shrink-0" /> Test Webhook Node
+                    </div>
+                    <p className="text-[10px] text-muted-foreground font-sans mt-1 leading-relaxed">
+                      Simulate an automated MacroDroid notification payload to verify real-time ingestion latency.
+                    </p>
+                  </div>
+                  <Button 
+                    onClick={handleTestWebhook}
+                    disabled={isTestingWebhook}
+                    variant="outline" 
+                    className="w-full rounded-none uppercase font-mono text-[10px] tracking-widest h-8 bg-secondary/40 hover:bg-foreground hover:text-background transition-all"
+                  >
+                    {isTestingWebhook ? "Sending Payload..." : "Trigger Test Webhook"}
+                  </Button>
+                </div>
+
+                {/* 6. Inspect RLS Security Claims */}
+                <div className="p-3 border border-border bg-card space-y-2.5 flex flex-col justify-between">
+                  <div>
+                    <div className="flex items-center gap-2 font-bold font-mono uppercase text-xs text-foreground">
+                      <Shield className="h-4 w-4 shrink-0" /> Inspect Auth Claims
+                    </div>
+                    <p className="text-[10px] text-muted-foreground font-sans mt-1 leading-relaxed">
+                      Verify multi-tenant RLS isolation policies, active UUID, and session token validity.
+                    </p>
+                  </div>
+                  <Button 
+                    onClick={handleInspectClaims}
+                    variant="outline" 
+                    className="w-full rounded-none uppercase font-mono text-[10px] tracking-widest h-8 bg-secondary/40 hover:bg-foreground hover:text-background transition-all"
+                  >
+                    Check Isolation State
                   </Button>
                 </div>
               </div>

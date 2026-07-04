@@ -2,7 +2,7 @@ import { createClient } from "@/lib/supabase-server"
 import { LegerAIPageView } from "@/components/LegerAIPageView"
 import { getCycles } from "@/lib/cycles"
 
-export const revalidate = 0
+export const revalidate = 60
 
 export default async function LegerPage() {
   const supabase = await createClient()

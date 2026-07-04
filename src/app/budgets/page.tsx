@@ -2,7 +2,7 @@ import { createClient } from "@/lib/supabase-server"
 import { BudgetsView } from "@/components/BudgetsView"
 import { getCycles } from "@/lib/cycles"
 
-export const revalidate = 0
+export const revalidate = 60
 
 interface PageProps {
   searchParams: Promise<{ cycleId?: string }>

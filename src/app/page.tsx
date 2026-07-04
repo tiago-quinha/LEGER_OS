@@ -3,7 +3,7 @@ import { getCycles } from "@/lib/cycles"
 import { DashboardView } from "@/components/DashboardView"
 import { OnboardingView } from "@/components/OnboardingView"
 
-export const revalidate = 0
+export const revalidate = 60
 
 interface PageProps {
   searchParams: Promise<{ cycleId?: string; onboarding?: string; force_onboarding?: string }>
@@ -18,7 +18,7 @@ export default async function DashboardPage({ searchParams }: PageProps) {
   // 1. Fetch user profile and cycles using utility
   const { data: profile } = await supabase
     .from("profiles")
-    .select("onboarding_completed")
+    .select("onboarding_completed, target_monthly_income, target_monthly_spend")
     .eq("id", user.id)
     .single()
 
@@ -152,6 +152,8 @@ export default async function DashboardPage({ searchParams }: PageProps) {
       previousStartBalance={previousStartBalance}
       allPastExpenses={previousTx}
       paycheckKeyword={paycheckKeyword}
+      targetMonthlyIncome={parseFloat(profile?.target_monthly_income) || 2500}
+      targetMonthlySpend={parseFloat(profile?.target_monthly_spend) || 1500}
     />
   )
 }

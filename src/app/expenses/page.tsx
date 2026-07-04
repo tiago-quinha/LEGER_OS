@@ -1,7 +1,7 @@
 import { createClient } from "@/lib/supabase-server"
 import { ExpensesView } from "@/components/ExpensesView"
 
-export const revalidate = 0
+export const revalidate = 60
 
 export default async function ExpensesPage() {
   const supabase = await createClient()

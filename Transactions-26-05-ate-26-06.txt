@@ -1,0 +1,244 @@
+Data Operação Data valor Descrição Montante Saldo Contabilístico
+26-06-2026 26-06-2026 Trf. MB WAY de Jaime
+Santos
+3,58 EUR 715,26 EUR
+26-06-2026 26-06-2026 Continente Albufeira -13,86 EUR 711,68 EUR
+26-06-2026 26-06-2026 H3 Albufeira
+Terracealbufeira
+-21,05 EUR 725,54 EUR
+26-06-2026 26-06-2026 Trf.imed. De Jaime Santos 10,85 EUR 746,59 EUR
+26-06-2026 26-06-2026 Eupago - Inst De -10,00 EUR 735,74 EUR
+26-06-2026 26-06-2026 Trf. MB WAY de Alexandre
+Daniel Saynov
+87,00 EUR 745,74 EUR
+26-06-2026 26-06-2026 Trf. MB WAY de Jaime
+Santos
+10,00 EUR 658,74 EUR
+26-06-2026 26-06-2026 Sogenave Vendig -1,15 EUR 648,74 EUR
+26-06-2026 26-06-2026 Pingo Doce Faro Penh -5,83 EUR 649,89 EUR
+25-06-2026 25-06-2026 Betano -10,00 EUR 655,72 EUR
+25-06-2026 25-06-2026 Trf. MB WAY de Luis
+Francisco Pereira Moreira
+4,24 EUR 665,72 EUR
+25-06-2026 25-06-2026 Pingo Doce Faro Penh -12,56 EUR 661,48 EUR
+25-06-2026 25-06-2026 Ordenado de Deloitte
+Delivery Center S.a.
+500,00 EUR 674,04 EUR
+24-06-2026 24-06-2026 Sogenave Vendig -1,15 EUR 174,04 EUR
+24-06-2026 24-06-2026 Ppro Payment Ser. Sa -10,00 EUR 175,19 EUR
+24-06-2026 24-06-2026 Trf.Imed. de Trustly Group
+Ab-R22716467
+75,00 EUR 185,19 EUR
+24-06-2026 24-06-2026 Betano -100,00 EUR 110,19 EUR
+24-06-2026 24-06-2026 Pingo Doce Faro Penh -5,83 EUR 210,19 EUR
+24-06-2026 24-06-2026 Altice Pay, S.a -24,44 EUR 216,02 EUR
+24-06-2026 24-06-2026 Discord Nitromonthly -9,99 EUR 240,46 EUR
+23-06-2026 23-06-2026 Betclic.pt Malta -1,00 EUR 250,45 EUR
+Sábado, 27 de Junho de 2026
+TIAGO PACHECO SILVA MARTINS
+©2026 Banco Santander Totta, S.A. registado no Banco de Portugal com o n.º 18. O Banco Santander Totta, S.A., com sede na Rua Áurea, n.º 88, 1100-063 Lisboa, matriculado na Conservatória
+do Registo Comercial de Lisboa sob o número único de registo e identificação fiscal 500 844 321, com o capital social de 1.391.779.674Eur (Banco), encontra-se registado junto da Autoridade de
+Supervisão de Seguros e Fundos de Pensões (ASF), sob o n.º 419 501 250, como Agente de Seguros autorizado a distribuir seguros dos Ramos Vida e Não Vida. Informações e outros detalhes
+do registo disponíveis em www.asf.com.pt. O Banco distribui seguros do Ramo Vida das Empresas de Seguros Santander Totta Seguros - Companhia de Seguros de Vida, S.A. e Aegon
+Santander Portugal Vida - Companhia de Seguros de Vida, S.A. e dos Ramos Não Vida das Empresas de Seguros Aegon Santander Portugal Não Vida - Companhia de Seguros, S.A., Ageas
+Portugal, Companhia de Seguros, S.A. e MAPFRE Santander Portugal # Companhia de Seguros, S.A. O Banco, na qualidade de Agente de Seguros, atua em nome e por conta das referidas
+Empresas de Seguros, mas não se encontra autorizado a celebrar contratos em nome destas, nem a receber prémios e não assume a cobertura de riscos. Esta informação não dispensa a
+consulta da informação pré-contratual e contratual legalmente exigida.
+23-06-2026 23-06-2026 Trf. MB WAY de Timur
+Olegovich Sysoev
+8,90 EUR 251,45 EUR
+23-06-2026 23-06-2026 Mcdonalds Albufeira
+Albufeira
+-19,00 EUR 242,55 EUR
+23-06-2026 23-06-2026 Intermarche -1,89 EUR 261,55 EUR
+23-06-2026 23-06-2026 Eupago - Inst De -10,00 EUR 263,44 EUR
+23-06-2026 23-06-2026 Paypal Google Arlosof -5,99 EUR 273,44 EUR
+23-06-2026 23-06-2026 Betclic.pt -1,00 EUR 279,43 EUR
+22-06-2026 22-06-2026 Ppro Payment Ser. Sa -10,00 EUR 280,43 EUR
+22-06-2026 22-06-2026 Auchan Faro -1,49 EUR 290,43 EUR
+22-06-2026 22-06-2026 H3 Forum Algarve -10,10 EUR 291,92 EUR
+22-06-2026 22-06-2026 Spotify P43acc02fa -4,99 EUR 302,02 EUR
+22-06-2026 22-06-2026 Betclic.pt -5,00 EUR 307,01 EUR
+22-06-2026 22-06-2026 Trf. MB WAY para Ricardo
+Jorge Nunes Eusebio
+-4,25 EUR 312,01 EUR
+22-06-2026 22-06-2026 Trf.Imed. de Mifinity Malta
+Limited-R22646301
+87,69 EUR 316,26 EUR
+22-06-2026 22-06-2026 Mcdonalds Albufeira -8,90 EUR 228,57 EUR
+22-06-2026 22-06-2026 Betclic.pt -10,00 EUR 237,47 EUR
+22-06-2026 22-06-2026 Eupago - Inst De -10,00 EUR 247,47 EUR
+22-06-2026 22-06-2026 Trf. MB WAY para Lucas
+Tonelino Santos Cs
+-25,00 EUR 257,47 EUR
+19-06-2026 19-06-2026 Othawa Lounge Bar -2,50 EUR 282,47 EUR
+18-06-2026 18-06-2026 Superfaro-supermerca -60,00 EUR 284,97 EUR
+18-06-2026 18-06-2026 Sogenave Vendig -1,15 EUR 344,97 EUR
+18-06-2026 18-06-2026 Pingo Doce Faro Penh -5,48 EUR 346,12 EUR
+17-06-2026 17-06-2026 H3 Albufeira
+Terracealbufeira
+-20,20 EUR 351,60 EUR
+17-06-2026 17-06-2026 Betclic.pt -10,00 EUR 371,80 EUR
+17-06-2026 17-06-2026 Pingo Doce Faro Penh -2,94 EUR 381,80 EUR
+16-06-2026 16-06-2026 Sogenave Vendig -1,25 EUR 384,74 EUR
+Sábado, 27 de Junho de 2026
+©2026 Banco Santander Totta, S.A. registado no Banco de Portugal com o n.º 18. O Banco Santander Totta, S.A., com sede na Rua Áurea, n.º 88, 1100-063 Lisboa, matriculado na Conservatória
+do Registo Comercial de Lisboa sob o número único de registo e identificação fiscal 500 844 321, com o capital social de 1.391.779.674Eur (Banco), encontra-se registado junto da Autoridade de
+Supervisão de Seguros e Fundos de Pensões (ASF), sob o n.º 419 501 250, como Agente de Seguros autorizado a distribuir seguros dos Ramos Vida e Não Vida. Informações e outros detalhes
+do registo disponíveis em www.asf.com.pt. O Banco distribui seguros do Ramo Vida das Empresas de Seguros Santander Totta Seguros - Companhia de Seguros de Vida, S.A. e Aegon
+Santander Portugal Vida - Companhia de Seguros de Vida, S.A. e dos Ramos Não Vida das Empresas de Seguros Aegon Santander Portugal Não Vida - Companhia de Seguros, S.A., Ageas
+Portugal, Companhia de Seguros, S.A. e MAPFRE Santander Portugal # Companhia de Seguros, S.A. O Banco, na qualidade de Agente de Seguros, atua em nome e por conta das referidas
+Empresas de Seguros, mas não se encontra autorizado a celebrar contratos em nome destas, nem a receber prémios e não assume a cobertura de riscos. Esta informação não dispensa a
+consulta da informação pré-contratual e contratual legalmente exigida.
+16-06-2026 16-06-2026 Pingo Doce Faro Penh -5,78 EUR 385,99 EUR
+15-06-2026 15-06-2026 Sogenave Vendig -1,15 EUR 391,77 EUR
+15-06-2026 15-06-2026 Betclic.pt -10,00 EUR 392,92 EUR
+15-06-2026 15-06-2026 Pingo Doce Faro Penh -4,78 EUR 402,92 EUR
+15-06-2026 15-06-2026 Betclic.pt -20,00 EUR 407,70 EUR
+15-06-2026 15-06-2026 Trf. MB WAY para Luis
+Francisco Pereira Moreira
+-1,00 EUR 427,70 EUR
+15-06-2026 15-06-2026 Trf. MB WAY de Luis
+Francisco Pereira Moreira
+1,00 EUR 428,70 EUR
+15-06-2026 15-06-2026 Trf. MB WAY para Luis
+Francisco Pereira Moreira
+-1,00 EUR 427,70 EUR
+15-06-2026 15-06-2026 Trf. MB WAY de Luis
+Francisco Pereira Moreira
+1,00 EUR 428,70 EUR
+15-06-2026 15-06-2026 Trf. MB WAY para Luis
+Francisco Pereira Moreira
+-1,01 EUR 427,70 EUR
+15-06-2026 15-06-2026 Trf. MB WAY de Luis
+Francisco Pereira Moreira
+1,01 EUR 428,71 EUR
+15-06-2026 15-06-2026 Trf. MB WAY para Luis
+Francisco Pereira Moreira
+-1,00 EUR 427,70 EUR
+15-06-2026 15-06-2026 Trf. MB WAY de Luis
+Francisco Pereira Moreira
+1,00 EUR 428,70 EUR
+15-06-2026 15-06-2026 Trf. MB WAY para Luis
+Francisco Pereira Moreira
+-1,00 EUR 427,70 EUR
+15-06-2026 15-06-2026 Trf. MB WAY de Luis
+Francisco Pereira Moreira
+1,00 EUR 428,70 EUR
+15-06-2026 15-06-2026 Levantamento Dunfermlin82 -20,00 EUR 427,70 EUR
+15-06-2026 15-06-2026 Steam Purchase -5,00 EUR 447,70 EUR
+15-06-2026 15-06-2026 Betclic -5,00 EUR 452,70 EUR
+15-06-2026 15-06-2026 Trf. MB WAY emitida -10,00 EUR 457,70 EUR
+12-06-2026 15-06-2026 Betclic.pt -20,00 EUR 467,70 EUR
+12-06-2026 12-06-2026 Sogenave Vendig -1,15 EUR 487,70 EUR
+12-06-2026 12-06-2026 Pingo Doce Faro Penh -7,28 EUR 488,85 EUR
+Sábado, 27 de Junho de 2026
+©2026 Banco Santander Totta, S.A. registado no Banco de Portugal com o n.º 18. O Banco Santander Totta, S.A., com sede na Rua Áurea, n.º 88, 1100-063 Lisboa, matriculado na Conservatória
+do Registo Comercial de Lisboa sob o número único de registo e identificação fiscal 500 844 321, com o capital social de 1.391.779.674Eur (Banco), encontra-se registado junto da Autoridade de
+Supervisão de Seguros e Fundos de Pensões (ASF), sob o n.º 419 501 250, como Agente de Seguros autorizado a distribuir seguros dos Ramos Vida e Não Vida. Informações e outros detalhes
+do registo disponíveis em www.asf.com.pt. O Banco distribui seguros do Ramo Vida das Empresas de Seguros Santander Totta Seguros - Companhia de Seguros de Vida, S.A. e Aegon
+Santander Portugal Vida - Companhia de Seguros de Vida, S.A. e dos Ramos Não Vida das Empresas de Seguros Aegon Santander Portugal Não Vida - Companhia de Seguros, S.A., Ageas
+Portugal, Companhia de Seguros, S.A. e MAPFRE Santander Portugal # Companhia de Seguros, S.A. O Banco, na qualidade de Agente de Seguros, atua em nome e por conta das referidas
+Empresas de Seguros, mas não se encontra autorizado a celebrar contratos em nome destas, nem a receber prémios e não assume a cobertura de riscos. Esta informação não dispensa a
+consulta da informação pré-contratual e contratual legalmente exigida.
+12-06-2026 12-06-2026 Trf. MB WAY para Milena
+Isabel Pacheco Da Silva
+-75,00 EUR 496,13 EUR
+12-06-2026 12-06-2026 Betclic.pt -5,00 EUR 571,13 EUR
+12-06-2026 12-06-2026 Betclic.pt -10,00 EUR 576,13 EUR
+11-06-2026 11-06-2026 Pingo Doce Faro Penh -6,28 EUR 586,13 EUR
+11-06-2026 10-06-2026 Trf. MB WAY para Goncalo
+Arvela Vieira
+-10,10 EUR 592,41 EUR
+11-06-2026 11-06-2026 Continente Albufeira -1,49 EUR 602,51 EUR
+11-06-2026 10-06-2026 Trf. MB WAY para Jaime
+Santos
+-10,00 EUR 604,00 EUR
+11-06-2026 11-06-2026 Trf. MB WAY de Jaime
+Santos
+10,00 EUR 614,00 EUR
+11-06-2026 11-06-2026 Betclic.pt Malta -10,00 EUR 604,00 EUR
+11-06-2026 11-06-2026 Eupago - Inst De Porto -10,00 EUR 614,00 EUR
+09-06-2026 09-06-2026 Sogenave Vendig -1,15 EUR 624,00 EUR
+09-06-2026 09-06-2026 Pingo Doce Faro Penh -0,79 EUR 625,15 EUR
+09-06-2026 09-06-2026 Betclic.pt -10,00 EUR 625,94 EUR
+09-06-2026 09-06-2026 Pingo Doce Faro Penh -5,83 EUR 635,94 EUR
+08-06-2026 08-06-2026 Intermarche -60,00 EUR 641,77 EUR
+08-06-2026 08-06-2026 Sogenave Vendig -1,15 EUR 701,77 EUR
+08-06-2026 08-06-2026 Betclic.pt -1,00 EUR 702,92 EUR
+08-06-2026 08-06-2026 Pingo Doce Faro Penh -6,72 EUR 703,92 EUR
+08-06-2026 08-06-2026 Betclic.pt -10,00 EUR 710,64 EUR
+05-06-2026 05-06-2026 Sogenave Vendig -1,25 EUR 720,64 EUR
+05-06-2026 05-06-2026 Pingo Doce Faro Penh -5,83 EUR 721,89 EUR
+05-06-2026 05-06-2026 Trf. MB WAY de Martim
+Coelho Gomes
+54,00 EUR 727,72 EUR
+03-06-2026 03-06-2026 Mcdonalds Albufeira
+Albufeira
+-6,90 EUR 673,72 EUR
+03-06-2026 03-06-2026 Trf. MB WAY para Milena
+Isabel Pacheco Da Silva
+-10,00 EUR 680,62 EUR
+Sábado, 27 de Junho de 2026
+©2026 Banco Santander Totta, S.A. registado no Banco de Portugal com o n.º 18. O Banco Santander Totta, S.A., com sede na Rua Áurea, n.º 88, 1100-063 Lisboa, matriculado na Conservatória
+do Registo Comercial de Lisboa sob o número único de registo e identificação fiscal 500 844 321, com o capital social de 1.391.779.674Eur (Banco), encontra-se registado junto da Autoridade de
+Supervisão de Seguros e Fundos de Pensões (ASF), sob o n.º 419 501 250, como Agente de Seguros autorizado a distribuir seguros dos Ramos Vida e Não Vida. Informações e outros detalhes
+do registo disponíveis em www.asf.com.pt. O Banco distribui seguros do Ramo Vida das Empresas de Seguros Santander Totta Seguros - Companhia de Seguros de Vida, S.A. e Aegon
+Santander Portugal Vida - Companhia de Seguros de Vida, S.A. e dos Ramos Não Vida das Empresas de Seguros Aegon Santander Portugal Não Vida - Companhia de Seguros, S.A., Ageas
+Portugal, Companhia de Seguros, S.A. e MAPFRE Santander Portugal # Companhia de Seguros, S.A. O Banco, na qualidade de Agente de Seguros, atua em nome e por conta das referidas
+Empresas de Seguros, mas não se encontra autorizado a celebrar contratos em nome destas, nem a receber prémios e não assume a cobertura de riscos. Esta informação não dispensa a
+consulta da informação pré-contratual e contratual legalmente exigida.
+02-06-2026 02-06-2026 Sogenave Vendig -1,15 EUR 690,62 EUR
+02-06-2026 02-06-2026 Pingo Doce Faro Penh -7,58 EUR 691,77 EUR
+02-06-2026 02-06-2026 Sogenave Vendig -1,15 EUR 699,35 EUR
+01-06-2026 01-06-2026 Pingo Doce Faro Penh -2,83 EUR 700,50 EUR
+01-06-2026 01-06-2026 Bar Engenharia Civil -3,80 EUR 703,33 EUR
+01-06-2026 01-06-2026 Sogenave Vendig -1,15 EUR 707,13 EUR
+01-06-2026 01-06-2026 Transferência de Milena
+Isabel Pacheco Da Silva
+100,00 EUR 708,28 EUR
+01-06-2026 01-06-2026 Trf. MB WAY de Rafael
+Martins Colaco
+10,00 EUR 608,28 EUR
+01-06-2026 01-06-2026 Casinha Dos Saboresa -4,00 EUR 598,28 EUR
+01-06-2026 01-06-2026 Betclic.pt -5,00 EUR 602,28 EUR
+01-06-2026 01-06-2026 Trf. MB WAY emitida -2,00 EUR 607,28 EUR
+01-06-2026 01-06-2026 Trf. MB WAY emitida -6,90 EUR 609,28 EUR
+29-05-2026 29-05-2026 Trf. MB WAY para Milena
+Isabel Pacheco Da Silva
+-50,00 EUR 616,18 EUR
+29-05-2026 29-05-2026 Eupago- Inst Pag Lda -20,00 EUR 666,18 EUR
+29-05-2026 29-05-2026 Bar Engenharia Civil -6,10 EUR 686,18 EUR
+28-05-2026 28-05-2026 Betclic -10,00 EUR 692,28 EUR
+28-05-2026 28-05-2026 Sogenave Vendig -1,15 EUR 702,28 EUR
+28-05-2026 28-05-2026 Trf. MB WAY para Sergiy
+Iurchenko
+-1,89 EUR 703,43 EUR
+28-05-2026 28-05-2026 Bar Engenharia Civil -3,20 EUR 705,32 EUR
+28-05-2026 28-05-2026 Pingo Doce Faro Penh -1,84 EUR 708,52 EUR
+27-05-2026 27-05-2026 Betclic -10,00 EUR 710,36 EUR
+27-05-2026 27-05-2026 Pingo Doce Faro Penh -1,84 EUR 720,36 EUR
+27-05-2026 27-05-2026 Pingo Doce Faro Penh -6,98 EUR 722,20 EUR
+27-05-2026 27-05-2026 Trf. MB WAY para Milena
+Isabel Pacheco Da Silva
+-10,00 EUR 729,18 EUR
+26-05-2026 27-05-2026 Trf. MB WAY para Beatriz
+Alexandra Gomes Chainho
+-5,00 EUR 739,18 EUR
+Sábado, 27 de Junho de 2026
+©2026 Banco Santander Totta, S.A. registado no Banco de Portugal com o n.º 18. O Banco Santander Totta, S.A., com sede na Rua Áurea, n.º 88, 1100-063 Lisboa, matriculado na Conservatória
+do Registo Comercial de Lisboa sob o número único de registo e identificação fiscal 500 844 321, com o capital social de 1.391.779.674Eur (Banco), encontra-se registado junto da Autoridade de
+Supervisão de Seguros e Fundos de Pensões (ASF), sob o n.º 419 501 250, como Agente de Seguros autorizado a distribuir seguros dos Ramos Vida e Não Vida. Informações e outros detalhes
+do registo disponíveis em www.asf.com.pt. O Banco distribui seguros do Ramo Vida das Empresas de Seguros Santander Totta Seguros - Companhia de Seguros de Vida, S.A. e Aegon
+Santander Portugal Vida - Companhia de Seguros de Vida, S.A. e dos Ramos Não Vida das Empresas de Seguros Aegon Santander Portugal Não Vida - Companhia de Seguros, S.A., Ageas
+Portugal, Companhia de Seguros, S.A. e MAPFRE Santander Portugal # Companhia de Seguros, S.A. O Banco, na qualidade de Agente de Seguros, atua em nome e por conta das referidas
+Empresas de Seguros, mas não se encontra autorizado a celebrar contratos em nome destas, nem a receber prémios e não assume a cobertura de riscos. Esta informação não dispensa a
+consulta da informação pré-contratual e contratual legalmente exigida.
+26-05-2026 26-05-2026 Trf. MB WAY de Beatriz
+Alexandra Gomes Chainho
+5,00 EUR 744,18 EUR
+26-05-2026 26-05-2026 Surpresa Garantida -1,39 EUR 739,18 EUR
+26-05-2026 26-05-2026 Auchan Faro -1,49 EUR 740,57 EUR
+26-05-2026 26-05-2026 H3 Forum Algarve -10,00 EUR 742,06 EUR
+26-05-2026 26-05-2026 Ordenado de Deloitte
+Delivery Center S.a
