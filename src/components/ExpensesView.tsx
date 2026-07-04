@@ -1066,17 +1066,16 @@ export function ExpensesView({ initialExpenses, categories, initialRules }: Expe
                       className="w-full uppercase font-mono text-[9px] py-3 font-bold tracking-widest justify-center border border-border"
                       strength={0.1}
                     >
-                      ⚡ Fast Regex (.txt)
+                      Fast Regex (.txt)
                     </MagneticButton>
                     <MagneticButton 
                       onClick={handleAiSmartParse} 
                       variant="none"
                       disabled={isAiParsing}
-                      className="w-full uppercase font-mono text-[9px] py-3 bg-foreground text-background font-bold tracking-widest border border-transparent hover:bg-foreground/80 justify-center flex items-center gap-1.5"
+                      className="w-full uppercase font-mono text-[9px] py-3 bg-foreground text-background font-bold tracking-widest border border-transparent hover:bg-foreground/80 justify-center"
                       strength={0.15}
                     >
-                      <Sparkles className="h-3.5 w-3.5" />
-                      {isAiParsing ? "AI Analyzing..." : "🤖 AI Universal Parse"}
+                      {isAiParsing ? "AI Analyzing..." : "AI Universal Parse"}
                     </MagneticButton>
                   </div>
                 </CardContent>
