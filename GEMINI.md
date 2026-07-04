@@ -57,3 +57,4 @@ Most scripts rely on a `.env` file containing:
 2.  **Schema Updates:** Use `update_schema.py` or similar scripts for database changes to keep everything in sync.
 3.  **Data Importing:** Bank extracts are provided as `.txt` or `.pdf` files. Parsing logic is defined in `import_transactions.py` and `audit_balances.py`.
 4.  **Categorization:** New transactions can be automatically categorized via the `/api/categorize` endpoint which interfaces with Gemini.
+5.  **No Vibecoded Slop / Minimal UI Standard:** Do not generate unsolicited UI components, decorative math, speculative metrics, or overengineered abstractions. All code changes must be clean, minimal, robust, and strictly scoped to explicit user requirements—never add unprompted dashboard widgets, speculative analytics cards, or complex helper libraries unless explicitly requested.
