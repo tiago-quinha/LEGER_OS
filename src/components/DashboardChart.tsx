@@ -23,6 +23,16 @@ export function DashboardChart({ hybridData, activeTab }: DashboardChartProps) {
     <div className="h-[280px] md:h-[320px] w-full mt-4 md:mt-0">
       <ResponsiveContainer width="100%" height="100%">
         <AreaChart data={hybridData} margin={{ top: 10, right: 10, left: -25, bottom: 0 }}>
+          <defs>
+            <linearGradient id="activeGradient" x1="0" y1="0" x2="0" y2="1">
+              <stop offset="5%" stopColor="var(--foreground)" stopOpacity={0.15}/>
+              <stop offset="95%" stopColor="var(--foreground)" stopOpacity={0.0}/>
+            </linearGradient>
+            <linearGradient id="projectionGradient" x1="0" y1="0" x2="0" y2="1">
+              <stop offset="5%" stopColor="var(--foreground)" stopOpacity={0.06}/>
+              <stop offset="95%" stopColor="var(--foreground)" stopOpacity={0.0}/>
+            </linearGradient>
+          </defs>
           <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="var(--border)" />
           <XAxis 
             dataKey="dateLabel" 
@@ -69,10 +79,13 @@ export function DashboardChart({ hybridData, activeTab }: DashboardChartProps) {
             dataKey={activeTab === 'liquidity' ? "actualBalance" : "actualSpend"} 
             stroke="var(--foreground)" 
             strokeWidth={2} 
-            fill="var(--foreground)" 
-            fillOpacity={0.03} 
+            fill="url(#activeGradient)" 
+            fillOpacity={1} 
             name="Active" 
-            isAnimationActive={false} 
+            isAnimationActive={true}
+            animationBegin={0}
+            animationDuration={1200}
+            animationEasing="ease-out"
           />
           <Area 
             type="monotone" 
@@ -81,9 +94,13 @@ export function DashboardChart({ hybridData, activeTab }: DashboardChartProps) {
             strokeOpacity={0.5} 
             strokeWidth={1.5} 
             strokeDasharray="5 5" 
-            fill="transparent" 
+            fill="url(#projectionGradient)" 
+            fillOpacity={1}
             name="Projection" 
-            isAnimationActive={false} 
+            isAnimationActive={true}
+            animationBegin={400}
+            animationDuration={1400}
+            animationEasing="ease-out"
           />
         </AreaChart>
       </ResponsiveContainer>
