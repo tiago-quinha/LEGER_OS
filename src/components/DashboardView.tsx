@@ -350,9 +350,12 @@ export function DashboardView({
     date.setDate(date.getDate() + i)
     const dateLabel = date.toLocaleDateString('en-GB', { day: '2-digit', month: 'short' })
 
+    const isSameDay = date.toDateString() === today.toDateString()
+    const isPastDay = date < today && !isSameDay
+
     let actualSpend: number | null = null
     let actualBalance: number | null = null
-    if (date <= today) {
+    if (isPastDay || isSameDay) {
         const dateEnd = new Date(date)
         dateEnd.setHours(23, 59, 59, 999)
 
@@ -371,9 +374,6 @@ export function DashboardView({
     let projectionBalance = null
     
     if (isCurrentCycle) {
-        const isSameDay = date.toDateString() === today.toDateString()
-        const isPastDay = date < today && !isSameDay
-        
         if (isPastDay) {
             projectionSpend = null
             projectionBalance = null

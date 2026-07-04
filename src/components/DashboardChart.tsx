@@ -82,6 +82,7 @@ export function DashboardChart({ hybridData, activeTab }: DashboardChartProps) {
             fill="url(#activeGradient)" 
             fillOpacity={1} 
             name="Active" 
+            connectNulls={true}
             isAnimationActive={true}
             animationBegin={0}
             animationDuration={1200}
@@ -97,6 +98,7 @@ export function DashboardChart({ hybridData, activeTab }: DashboardChartProps) {
             fill="url(#projectionGradient)" 
             fillOpacity={1}
             name="Projection" 
+            connectNulls={true}
             isAnimationActive={true}
             animationBegin={400}
             animationDuration={1400}
