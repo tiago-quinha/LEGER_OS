@@ -46,6 +46,13 @@ export async function POST(request: Request) {
          - "amountMin": positive number for minimum absolute amount (or null)
          - "amountMax": positive number for maximum absolute amount (or null)
          - "type": "expense" (negative amounts) | "income" (positive amounts) | "all"
+      4. Determine if the user is instructing you to adjust or override their spending prediction for the rest of this current cycle (e.g., "I am doing hybrid work, so I'll spend 40% less on gas", "I have a vacation next week, add 200 to dining", "cut supermarket spending in half", "reset my overrides").
+      5. If yes, generate an "override" object. If resetting, set { "reset": true }. Otherwise set:
+         - "categoryId": numerical ID of the category being affected (or null if affecting all categories)
+         - "categoryName": name of the category (e.g., "Gas / Supermarket")
+         - "multiplier": positive number scaling remaining daily velocity (e.g., 0.6 for 40% reduction, 1.5 for 50% increase, 1.0 for unchanged)
+         - "fixedDelta": number representing a lump sum amount to add/subtract from the remaining cycle spend (default 0)
+         - "description": a short 3-6 word summary of why (e.g., "Hybrid work gas reduction")
 
       Format your response as a JSON object:
       {
@@ -56,7 +63,15 @@ export async function POST(request: Request) {
           "amountMin": number | null,
           "amountMax": number | null,
           "type": "expense" | "income" | "all"
-        }
+        },
+        "override": {
+          "reset": boolean,
+          "categoryId": number | null,
+          "categoryName": "string" | null,
+          "multiplier": number,
+          "fixedDelta": number,
+          "description": "string"
+        } | null
       }
     `;
 

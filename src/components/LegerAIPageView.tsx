@@ -113,6 +113,19 @@ export function LegerAIPageView({ cycleData, expenses, categories }: LegerAIPage
         setDisplayMessage(data.message)
         setActiveFilters(data.filters)
         setUserQuery("")
+        if (data.override) {
+          try {
+            if (data.override.reset) {
+              localStorage.removeItem("leger_cycle_overrides")
+            } else {
+              const existing = JSON.parse(localStorage.getItem("leger_cycle_overrides") || "[]")
+              const updated = existing.filter((o: any) => o.categoryId !== data.override.categoryId)
+              updated.push(data.override)
+              localStorage.setItem("leger_cycle_overrides", JSON.stringify(updated))
+            }
+            window.dispatchEvent(new Event("leger_overrides_updated"))
+          } catch (e) {}
+        }
       } else {
         setErrorMessage(data.error || "Leger AI query diagnostics failed.")
       }

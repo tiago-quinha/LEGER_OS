@@ -1,6 +1,6 @@
 "use client"
 
-import React, { useState, useMemo } from "react"
+import React, { useState, useMemo, useEffect } from "react"
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
 import dynamic from "next/dynamic"
 const DashboardChart = dynamic(() => import("@/components/DashboardChart").then(mod => mod.DashboardChart), {
@@ -37,7 +37,8 @@ function simulateExpertDailyProjection(
   currentCycle: any,
   today: Date,
   daysElapsed: number,
-  totalDaysInCycle: number
+  totalDaysInCycle: number,
+  overrides: any[] = []
 ) {
   const merchantMap = new Map<string, { amounts: number[], days: number[] }>()
   pastExpenses.forEach((e: any) => {
@@ -102,9 +103,35 @@ function simulateExpertDailyProjection(
   const alpha = Math.min(1.0, effectiveElapsed / totalDaysInCycle)
   const blendedDailyBurn = alpha * currentDailyVariableBurn + (1 - alpha) * histDailyVariableBurn
 
+  let dailyBurnAdjustment = 0
+  let totalFixedDelta = 0
+  if (overrides && overrides.length > 0) {
+    overrides.forEach((ov: any) => {
+      if (ov.fixedDelta) {
+        totalFixedDelta += parseFloat(ov.fixedDelta) || 0
+      }
+      if (ov.multiplier !== undefined && ov.multiplier !== null && ov.multiplier !== 1.0) {
+        const catSpentCurrent = currentExpenses
+          .filter((e: any) => new Date(e.date) <= today && parseFloat(e.amount) < 0 && (ov.categoryId ? e.category_id === ov.categoryId : true))
+          .reduce((sum: number, e: any) => sum + Math.abs(parseFloat(e.amount)), 0)
+        const catSpentPast = pastExpenses
+          .filter((e: any) => parseFloat(e.amount) < 0 && (ov.categoryId ? e.category_id === ov.categoryId : true))
+          .reduce((sum: number, e: any) => sum + Math.abs(parseFloat(e.amount)), 0)
+        
+        const catDailyCurrent = catSpentCurrent / effectiveElapsed
+        const catDailyPast = pastExpenses.length > 0 ? (catSpentPast / Math.max(1, pastExpenses.length)) * 1.5 : catDailyCurrent || 5
+        const catBlendedBurn = alpha * catDailyCurrent + (1 - alpha) * catDailyPast
+        
+        dailyBurnAdjustment += catBlendedBurn * (ov.multiplier - 1.0)
+      }
+    })
+  }
+
   const dailySpend = new Array(totalDaysInCycle + 1).fill(0)
   const dailyInflow = new Array(totalDaysInCycle + 1).fill(0)
   const startDate = new Date(currentCycle.startDate)
+  const remainingDays = Math.max(1, totalDaysInCycle - daysElapsed)
+  const dailyFixedDelta = totalFixedDelta / remainingDays
 
   for (let i = 0; i <= totalDaysInCycle; i++) {
     const d = new Date(startDate)
@@ -133,7 +160,7 @@ function simulateExpertDailyProjection(
       })
 
       const dow = d.getDay()
-      const variableSpendToday = blendedDailyBurn * (dowWeights[dow] || 1.0)
+      const variableSpendToday = Math.max(0, (blendedDailyBurn + dailyBurnAdjustment) * (dowWeights[dow] || 1.0) + dailyFixedDelta)
       
       dailySpend[i] = prevSpend + billsDueToday + variableSpendToday
       dailyInflow[i] = prevInflow
@@ -223,11 +250,25 @@ export function DashboardView({
   const currentIndex = cycles.findIndex(c => c.id === currentCycleId)
   const isCurrentCycle = currentIndex === 0 || !currentCycle.endDate
 
+  const [overrides, setOverrides] = useState<any[]>([])
+  useEffect(() => {
+    const loadOverrides = () => {
+      try {
+        const stored = localStorage.getItem("leger_cycle_overrides")
+        if (stored) setOverrides(JSON.parse(stored))
+        else setOverrides([])
+      } catch (e) {}
+    }
+    loadOverrides()
+    window.addEventListener("leger_overrides_updated", loadOverrides)
+    return () => window.removeEventListener("leger_overrides_updated", loadOverrides)
+  }, [currentCycleId])
+
   // Predictive Expert Data Analyst Daily Simulation
   const expertProjection = useMemo(() => {
     const past = allPastExpenses || previousExpenses || []
-    return simulateExpertDailyProjection(past, expenses, currentCycle, today, daysElapsed, totalDaysInCycle)
-  }, [allPastExpenses, previousExpenses, expenses, currentCycle, today, daysElapsed, totalDaysInCycle])
+    return simulateExpertDailyProjection(past, expenses, currentCycle, today, daysElapsed, totalDaysInCycle, overrides)
+  }, [allPastExpenses, previousExpenses, expenses, currentCycle, today, daysElapsed, totalDaysInCycle, overrides])
 
   const projectedTotalOut = useMemo(() => {
     if (!isCurrentCycle) return totalOut
