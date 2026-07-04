@@ -31,75 +31,121 @@ interface CurvePoint {
   outflow: number
 }
 
-function getHistoricalCurves(pastExpenses: any[], profileKeyword: string, targetIncome: number = 2500, targetSpend: number = 1500) {
-  const kw = profileKeyword.toLowerCase()
-  const paychecks = pastExpenses
-    .filter((e: any) => e.merchant.toLowerCase().includes(kw) && parseFloat(e.amount) > 0)
-    .sort((a: any, b: any) => new Date(a.date).getTime() - new Date(b.date).getTime())
-
-  if (paychecks.length === 0) {
-    const avgInflow = Array.from({ length: 31 }, (_, i) => (targetIncome / 30) * i)
-    const avgOutflow = Array.from({ length: 31 }, (_, i) => (targetSpend / 30) * i)
-    return { avgInflow, avgOutflow }
-  }
-
-  const cyclesData: { startDate: Date; endDate: Date; txs: any[] }[] = []
-  for (let i = 0; i < paychecks.length; i++) {
-    const start = new Date(paychecks[i].date)
-    const end = paychecks[i + 1]
-      ? new Date(paychecks[i + 1].date)
-      : new Date(start.getTime() + 30 * 24 * 60 * 60 * 1000)
-      
-    const cycleTxs = pastExpenses.filter((e: any) => {
-      const d = new Date(e.date)
-      const isGas = e.category_id === 7 || e.merchant.toLowerCase().includes("superfaro-supermerca")
-      return d >= start && d < end && !isGas
-    })
-    
-    cyclesData.push({ startDate: start, endDate: end, txs: cycleTxs })
-  }
-
-  const cycleCurves: CurvePoint[][] = cyclesData.map(c => {
-    const curve: CurvePoint[] = Array.from({ length: 31 }, () => ({ inflow: 0, outflow: 0 }))
-    
-    c.txs.forEach((tx: any) => {
-      const txDate = new Date(tx.date)
-      const diffTime = txDate.getTime() - c.startDate.getTime()
-      const offsetDays = Math.max(0, Math.min(30, Math.floor(diffTime / (24 * 60 * 60 * 1000))))
-      const amt = parseFloat(tx.amount) || 0
-      if (amt < 0) {
-        curve[offsetDays].outflow += Math.abs(amt)
-      } else {
-        curve[offsetDays].inflow += amt
-      }
-    })
-
-    let cumInflow = 0
-    let cumOutflow = 0
-    for (let d = 0; d <= 30; d++) {
-      cumInflow += curve[d].inflow
-      cumOutflow += curve[d].outflow
-      curve[d] = { inflow: cumInflow, outflow: cumOutflow }
+function simulateExpertDailyProjection(
+  pastExpenses: any[],
+  currentExpenses: any[],
+  currentCycle: any,
+  today: Date,
+  daysElapsed: number,
+  totalDaysInCycle: number
+) {
+  const merchantMap = new Map<string, { amounts: number[], days: number[] }>()
+  pastExpenses.forEach((e: any) => {
+    const amt = parseFloat(e.amount)
+    if (amt < 0 && e.date) {
+      const m = (e.merchant || "").trim().toUpperCase()
+      if (!merchantMap.has(m)) merchantMap.set(m, { amounts: [], days: [] })
+      const entry = merchantMap.get(m)!
+      entry.amounts.push(Math.abs(amt))
+      const day = new Date(e.date).getDate() - 1
+      if (day >= 0 && day <= 31) entry.days.push(day)
     }
-    
-    return curve
   })
 
-  const avgInflow = Array.from({ length: 31 }, () => 0)
-  const avgOutflow = Array.from({ length: 31 }, () => 0)
+  const recurringMerchants: { merchant: string, amount: number, expectedDay: number }[] = []
+  merchantMap.forEach((val, key) => {
+    if (val.amounts.length >= 2) {
+      val.amounts.sort((a, b) => a - b)
+      val.days.sort((a, b) => a - b)
+      const medianAmt = val.amounts[Math.floor(val.amounts.length / 2)]
+      const medianDay = val.days[Math.floor(val.days.length / 2)]
+      if (val.amounts[0] >= medianAmt * 0.65 && val.amounts[val.amounts.length - 1] <= medianAmt * 1.35) {
+        recurringMerchants.push({ merchant: key, amount: medianAmt, expectedDay: medianDay })
+      }
+    }
+  })
+
+  const recurringNames = new Set(recurringMerchants.map(r => r.merchant))
+
+  const dowSpend = [1, 1, 1, 1, 1, 1, 1]
+  pastExpenses.forEach((e: any) => {
+    const amt = parseFloat(e.amount)
+    if (amt < 0 && !recurringNames.has((e.merchant || "").trim().toUpperCase())) {
+      const dow = new Date(e.date).getDay()
+      dowSpend[dow] += Math.abs(amt)
+    }
+  })
+  const totalDow = dowSpend.reduce((a, b) => a + b, 0)
+  const dowWeights = dowSpend.map(s => (s / totalDow) * 7)
+
+  const currentActualOut = currentExpenses
+    .filter((e: any) => new Date(e.date) <= today && parseFloat(e.amount) < 0)
+    .reduce((sum: number, e: any) => sum + Math.abs(parseFloat(e.amount)), 0)
   
-  for (let d = 0; d <= 30; d++) {
-    let sumIn = 0
-    let sumOut = 0
-    cycleCurves.forEach(curve => {
-      sumIn += curve[d].inflow
-      sumOut += curve[d].outflow
-    })
-    avgInflow[d] = sumIn / cycleCurves.length
-    avgOutflow[d] = sumOut / cycleCurves.length
+  const currentActualIn = currentExpenses
+    .filter((e: any) => new Date(e.date) <= today && parseFloat(e.amount) > 0)
+    .reduce((sum: number, e: any) => sum + parseFloat(e.amount), 0)
+
+  const currentRecurringSpent = currentExpenses
+    .filter((e: any) => new Date(e.date) <= today && parseFloat(e.amount) < 0 && recurringNames.has((e.merchant || "").trim().toUpperCase()))
+    .reduce((sum: number, e: any) => sum + Math.abs(parseFloat(e.amount)), 0)
+    
+  const currentVariableSpent = Math.max(0, currentActualOut - currentRecurringSpent)
+  const effectiveElapsed = Math.max(1, Math.min(daysElapsed, totalDaysInCycle))
+  const currentDailyVariableBurn = currentVariableSpent / effectiveElapsed
+
+  const pastVariableTotal = pastExpenses
+    .filter((e: any) => parseFloat(e.amount) < 0 && !recurringNames.has((e.merchant || "").trim().toUpperCase()))
+    .reduce((sum: number, e: any) => sum + Math.abs(parseFloat(e.amount)), 0)
+  const histDailyVariableBurn = pastExpenses.length > 0 ? (pastVariableTotal / Math.max(1, pastExpenses.length)) * 1.5 : currentDailyVariableBurn || 20
+
+  const alpha = Math.min(1.0, effectiveElapsed / totalDaysInCycle)
+  const blendedDailyBurn = alpha * currentDailyVariableBurn + (1 - alpha) * histDailyVariableBurn
+
+  const dailySpend = new Array(totalDaysInCycle + 1).fill(0)
+  const dailyInflow = new Array(totalDaysInCycle + 1).fill(0)
+  const startDate = new Date(currentCycle.startDate)
+
+  for (let i = 0; i <= totalDaysInCycle; i++) {
+    const d = new Date(startDate)
+    d.setDate(d.getDate() + i)
+    const isSameDay = d.toDateString() === today.toDateString()
+    const isPastDay = d < today && !isSameDay
+
+    if (isPastDay || isSameDay) {
+      const dEnd = new Date(d)
+      dEnd.setHours(23, 59, 59, 999)
+      dailySpend[i] = currentExpenses
+        .filter((e: any) => new Date(e.date) <= dEnd && parseFloat(e.amount) < 0)
+        .reduce((sum: number, e: any) => sum + Math.abs(parseFloat(e.amount)), 0)
+      dailyInflow[i] = currentExpenses
+        .filter((e: any) => new Date(e.date) <= dEnd && parseFloat(e.amount) > 0)
+        .reduce((sum: number, e: any) => sum + parseFloat(e.amount), 0)
+    } else {
+      const prevSpend = i > 0 ? dailySpend[i - 1] : currentActualOut
+      const prevInflow = i > 0 ? dailyInflow[i - 1] : currentActualIn
+
+      let billsDueToday = 0
+      recurringMerchants.forEach(rm => {
+        if (rm.expectedDay === i && rm.expectedDay > daysElapsed) {
+          billsDueToday += rm.amount
+        }
+      })
+
+      const dow = d.getDay()
+      const variableSpendToday = blendedDailyBurn * (dowWeights[dow] || 1.0)
+      
+      dailySpend[i] = prevSpend + billsDueToday + variableSpendToday
+      dailyInflow[i] = prevInflow
+    }
   }
 
-  return { avgInflow, avgOutflow }
+  return {
+    dailySpend,
+    dailyInflow,
+    projectedTotalOut: dailySpend[totalDaysInCycle] || currentActualOut,
+    projectedTotalIn: dailyInflow[totalDaysInCycle] || currentActualIn
+  }
 }
 
 interface DashboardViewProps {
@@ -177,53 +223,21 @@ export function DashboardView({
   const currentIndex = cycles.findIndex(c => c.id === currentCycleId)
   const isCurrentCycle = currentIndex === 0 || !currentCycle.endDate
 
-  // Predictive Curves Integration
-  const keyword = paycheckKeyword || "SALARY"
-  const curves = useMemo(() => {
+  // Predictive Expert Data Analyst Daily Simulation
+  const expertProjection = useMemo(() => {
     const past = allPastExpenses || previousExpenses || []
-    console.log("DashboardView: count of past expenses:", past?.length, "keyword:", keyword)
-    const res = getHistoricalCurves(past, keyword, targetMonthlyIncome, targetMonthlySpend)
-    console.log("DashboardView: curves avgInflow[30]:", res.avgInflow[30], "avgOutflow[30]:", res.avgOutflow[30])
-    return res
-  }, [allPastExpenses, previousExpenses, keyword, targetMonthlyIncome, targetMonthlySpend])
-
-  const gasExpenses = expenses.filter(e => e.category_id === 7 || e.merchant.toLowerCase().includes("superfaro-supermerca"))
-  const totalGas = gasExpenses.reduce((sum, e) => sum + Math.abs(parseFloat(e.amount) || 0), 0)
-
-  const nonGasExpenses = expenses.filter(e => parseFloat(e.amount) < 0 && e.category_id !== 7 && !e.merchant.toLowerCase().includes("superfaro-supermerca"))
-  const totalOutNonGas = nonGasExpenses.reduce((sum, e) => sum + Math.abs(parseFloat(e.amount) || 0), 0)
+    return simulateExpertDailyProjection(past, expenses, currentCycle, today, daysElapsed, totalDaysInCycle)
+  }, [allPastExpenses, previousExpenses, expenses, currentCycle, today, daysElapsed, totalDaysInCycle])
 
   const projectedTotalOut = useMemo(() => {
     if (!isCurrentCycle) return totalOut
-    const histSpentAtToday = curves.avgOutflow[Math.min(30, daysElapsed)] || 1.0
-    const histSpentAtTarget = curves.avgOutflow[30]
-    const w = Math.min(1.0, daysElapsed / 30)
-    const currentOutflowRatio = totalOutNonGas / histSpentAtToday
-    const blendedOutflowFactor = w * currentOutflowRatio + (1 - w) * 1.0
-    const projectedOutflowDelta = (histSpentAtTarget - histSpentAtToday) * blendedOutflowFactor
-    
-    // Gas pattern projection: €60/week normally, but €36/week with 3 office days (0.6x)
-    const expectedGasDays = [7, 14, 21, 28]
-    const remainingGasDaysCount = expectedGasDays.filter(day => day > daysElapsed).length
-    const remainingProjectedGas = remainingGasDaysCount * 36
-    
-    const res = totalOutNonGas + totalGas + projectedOutflowDelta + remainingProjectedGas
-    console.log("DashboardView: projectedTotalOut:", res, "w:", w, "ratio:", currentOutflowRatio, "projectedGas:", remainingProjectedGas)
-    return res
-  }, [curves, daysElapsed, totalOutNonGas, totalGas, totalOut, isCurrentCycle])
+    return expertProjection.projectedTotalOut
+  }, [expertProjection, totalOut, isCurrentCycle])
 
   const projectedTotalIn = useMemo(() => {
     if (!isCurrentCycle) return totalIn
-    const histInflowAtToday = curves.avgInflow[Math.min(30, daysElapsed)] || 1.0
-    const histInflowAtTarget = curves.avgInflow[30]
-    const w = Math.min(1.0, daysElapsed / 30)
-    const currentInflowRatio = totalIn / histInflowAtToday
-    const blendedInflowFactor = w * currentInflowRatio + (1 - w) * 1.0
-    const projectedInflowDelta = (histInflowAtTarget - histInflowAtToday) * blendedInflowFactor
-    const res = totalIn + projectedInflowDelta
-    console.log("DashboardView: projectedTotalIn:", res, "w:", w, "ratio:", currentInflowRatio)
-    return res
-  }, [curves, daysElapsed, totalIn, isCurrentCycle])
+    return expertProjection.projectedTotalIn
+  }, [expertProjection, totalIn, isCurrentCycle])
 
   const onTrack = totalIn > 0 ? projectedTotalOut <= totalIn : true
 
@@ -295,41 +309,8 @@ export function DashboardView({
             projectionSpend = actualSpend
             projectionBalance = actualBalance
         } else {
-            const lastActualSpendNonGas = expenses
-                .filter(e => new Date(e.date) <= today && parseFloat(e.amount) < 0 && e.category_id !== 7 && !e.merchant.toLowerCase().includes("superfaro-supermerca"))
-                .reduce((sum, e) => sum + Math.abs(parseFloat(e.amount)), 0)
-                
-            const lastActualSpendGas = expenses
-                .filter(e => new Date(e.date) <= today && (e.category_id === 7 || e.merchant.toLowerCase().includes("superfaro-supermerca")))
-                .reduce((sum, e) => sum + Math.abs(parseFloat(e.amount)), 0)
-
-            const lastActualInflow = expenses
-                .filter(e => new Date(e.date) <= today && parseFloat(e.amount) > 0)
-                .reduce((sum, e) => sum + parseFloat(e.amount), 0)
-
-            const histSpentAtToday = curves.avgOutflow[Math.min(30, daysElapsed)] || 1.0
-            const histInflowAtToday = curves.avgInflow[Math.min(30, daysElapsed)] || 1.0
-            
-            const histSpentAtTarget = curves.avgOutflow[Math.min(30, i)]
-            const histInflowAtTarget = curves.avgInflow[Math.min(30, i)]
-            
-            const w = Math.min(1.0, daysElapsed / 30)
-            
-            const currentOutflowRatio = lastActualSpendNonGas / histSpentAtToday
-            const blendedOutflowFactor = w * currentOutflowRatio + (1 - w) * 1.0
-            const projectedOutflowDelta = (histSpentAtTarget - histSpentAtToday) * blendedOutflowFactor
-            
-            const expectedGasDays = [7, 14, 21, 28]
-            const projectedGasDelta = expectedGasDays.filter(day => day > daysElapsed && day <= i).length * 36
-            
-            projectionSpend = lastActualSpendNonGas + lastActualSpendGas + projectedOutflowDelta + projectedGasDelta
-            
-            const currentInflowRatio = lastActualInflow / histInflowAtToday
-            const blendedInflowFactor = w * currentInflowRatio + (1 - w) * 1.0
-            const projectedInflowDelta = (histInflowAtTarget - histInflowAtToday) * blendedInflowFactor
-            const projectionInflow = lastActualInflow + projectedInflowDelta
-            
-            projectionBalance = injectedStartBalance + projectionInflow - projectionSpend
+            projectionSpend = expertProjection.dailySpend[i]
+            projectionBalance = injectedStartBalance + expertProjection.dailyInflow[i] - projectionSpend
         }
     }
 
