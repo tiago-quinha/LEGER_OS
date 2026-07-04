@@ -1028,10 +1028,10 @@ export function ExpensesView({ initialExpenses, categories, initialRules }: Expe
               <Card className="lg:col-span-1 border-border ledger-border">
                 <CardHeader>
                   <CardTitle className="text-sm font-bold uppercase tracking-widest flex items-center gap-2">
-                    <Upload className="h-4 w-4" /> Import Source Node
+                    <Upload className="h-4 w-4" /> Universal File Importer (.txt, .csv, .pdf)
                   </CardTitle>
                   <CardDescription className="font-mono text-[9px] uppercase">
-                    Upload or paste Santander extract data
+                    Upload .txt, .csv, .json, .pdf statement files or paste extract text
                   </CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-4">
@@ -1043,8 +1043,8 @@ export function ExpensesView({ initialExpenses, categories, initialRules }: Expe
                       className="absolute inset-0 opacity-0 cursor-pointer"
                     />
                     <FileText className="h-8 w-8 text-muted-foreground mb-2" />
-                    <p className="text-[10px] font-mono font-bold uppercase">Select Statement (.txt, .csv, .pdf)</p>
-                    <p className="text-[8px] font-mono text-muted-foreground uppercase mt-1">or drag & drop universal bank extract</p>
+                    <p className="text-[10px] font-mono font-bold uppercase">Select File (.txt, .csv, .json, .pdf)</p>
+                    <p className="text-[8px] font-mono text-muted-foreground uppercase mt-1">or drag & drop universal bank statement</p>
                   </div>
 
                   <div className="space-y-2">
