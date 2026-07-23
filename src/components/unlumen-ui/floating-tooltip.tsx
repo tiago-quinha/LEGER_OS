@@ -67,10 +67,16 @@ export function FloatingTooltipProvider({
       y.set(e.clientY / zoom);
     };
 
+    const handleMouseLeaveDoc = () => {
+      setIsActive(false);
+    };
+
     window.addEventListener("mousemove", handleMouseMove, { passive: true });
+    document.documentElement.addEventListener("mouseleave", handleMouseLeaveDoc, { passive: true });
 
     return () => {
       window.removeEventListener("mousemove", handleMouseMove);
+      document.documentElement.removeEventListener("mouseleave", handleMouseLeaveDoc);
     };
   }, [x, y]);
 

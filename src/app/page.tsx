@@ -3,7 +3,7 @@ import { getCycles } from "@/lib/cycles"
 import { DashboardView } from "@/components/DashboardView"
 import { OnboardingView } from "@/components/OnboardingView"
 
-export const revalidate = 60
+export const dynamic = "force-dynamic"
 
 interface PageProps {
   searchParams: Promise<{ cycleId?: string; onboarding?: string; force_onboarding?: string }>

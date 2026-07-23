@@ -23,8 +23,16 @@ const HABIT_PRESETS = [
 
 export function OnboardingView() {
   const router = useRouter()
-  const { user, refreshData } = useSystem()
-  const [step, setStep] = useState<1 | 2 | 3>(1)
+  const { user, refreshData, currencySymbol, isPro, profile, refreshProfile } = useSystem()
+  const [step, setStep] = useState<1 | 2 | 3 | 4>(1)
+  const [yapLevel, setYapLevel] = useState<"concise" | "standard" | "verbose">("standard")
+  const [isSavingStep3, setIsSavingStep3] = useState(false)
+
+  useEffect(() => {
+    if (profile?.ai_yap_level) {
+      setYapLevel(profile.ai_yap_level)
+    }
+  }, [profile])
 
   // Step 1: Paycheck Keyword & Target Curves
   const [cycleMode, setCycleMode] = useState<"keyword" | "monthly">("keyword")
@@ -101,11 +109,32 @@ export function OnboardingView() {
     }
     const targetId = await getUserId()
     if (targetId) {
-      await supabase.from("profiles").update({ onboarding_completed: true }).eq("id", targetId)
+      if (!isPro) {
+        await supabase.from("profiles").update({ onboarding_completed: true }).eq("id", targetId)
+      }
     }
     setIsSeeding(false)
     toast.success("AI categorization rules initialized!")
-    setStep(3)
+    if (isPro) {
+      setStep(3)
+    } else {
+      setStep(4)
+    }
+  }
+
+  const handleCompleteStep3 = async () => {
+    setIsSavingStep3(true)
+    const targetId = await getUserId()
+    if (targetId) {
+      await supabase.from("profiles").update({ 
+        ai_yap_level: yapLevel,
+        onboarding_completed: true
+      }).eq("id", targetId)
+      await refreshProfile()
+    }
+    setIsSavingStep3(false)
+    toast.success("AI Personality configuration saved!")
+    setStep(4)
   }
 
   return (
@@ -126,15 +155,20 @@ export function OnboardingView() {
           <p className="text-muted-foreground font-mono text-xs uppercase tracking-[0.25em] opacity-80">
             {step === 1 && "Step 01 // Paycheck Cycle Architecture"}
             {step === 2 && "Step 02 // Neural Categorization Habits"}
-            {step === 3 && "Step 03 // Ready for Data Ingestion"}
+            {step === 3 && "Step 03 // AI Assistant Personality Setup"}
+            {step === 4 && (isPro ? "Step 04 // Ready for Data Ingestion" : "Step 03 // Ready for Data Ingestion")}
           </p>
         </div>
 
         {/* Step indicators */}
         <div className="flex items-center gap-2 pt-2">
-          {[1, 2, 3].map((s) => (
-            <div key={s} className={cn("h-1.5 w-12 transition-all duration-300", step === s ? "bg-emerald-500 shadow-[0_0_8px_#10b981]" : step > s ? "bg-foreground" : "bg-muted")} />
-          ))}
+          {(isPro ? [1, 2, 3, 4] : [1, 2, 4]).map((s) => {
+            const isActive = step === s
+            const isCompleted = step > s || (s === 2 && step === 4 && !isPro)
+            return (
+              <div key={s} className={cn("h-1.5 w-12 transition-all duration-300", isActive ? "bg-emerald-500 shadow-[0_0_8px_#10b981]" : isCompleted ? "bg-foreground" : "bg-muted")} />
+            )
+          })}
         </div>
       </div>
 
@@ -212,7 +246,7 @@ export function OnboardingView() {
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-2">
                 <div className="space-y-2">
                   <Label htmlFor="targetIncome" className="text-[10px] font-mono uppercase tracking-widest text-muted-foreground">
-                    Expected Monthly Income (€)
+                    Expected Monthly Income ({currencySymbol})
                   </Label>
                   <Input
                     id="targetIncome"
@@ -225,7 +259,7 @@ export function OnboardingView() {
                 </div>
                 <div className="space-y-2">
                   <Label htmlFor="targetSpend" className="text-[10px] font-mono uppercase tracking-widest text-muted-foreground">
-                    Target Spending Ceiling (€)
+                    Target Spending Ceiling ({currencySymbol})
                   </Label>
                   <Input
                     id="targetSpend"
@@ -300,16 +334,96 @@ export function OnboardingView() {
           </motion.div>
         )}
 
-        {step === 3 && (
+        {step === 3 && isPro && (
           <motion.div
             key="step3"
+            initial={{ opacity: 0, y: 15 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -15 }}
+            className="w-full max-w-xl bg-card border border-border p-8 space-y-6 shadow-2xl"
+          >
+            <div className="w-16 h-16 bg-foreground/10 border border-foreground/40 text-foreground mx-auto flex items-center justify-center">
+              <Sliders className="h-8 w-8 text-emerald-500 animate-pulse" />
+            </div>
+
+            <div className="space-y-2 text-center">
+              <h3 className="text-lg font-bold uppercase tracking-widest text-foreground">AI Mainframe Personality</h3>
+              <p className="text-xs text-muted-foreground font-sans max-w-md mx-auto leading-relaxed">
+                As a PRO subscriber, calibrate your wealth agent's verbal velocity and analysis detail depth.
+              </p>
+            </div>
+
+            <div className="grid grid-cols-1 gap-3">
+              {[
+                {
+                  id: "concise",
+                  title: "Concise & Direct",
+                  desc: "Optimized for speed. AI replies will be brief, analytical, and data-dense.",
+                  label: "Token Saver"
+                },
+                {
+                  id: "standard",
+                  title: "Balanced Mainframe",
+                  desc: "The default experience. Balanced strategic guidance, summaries, and chat.",
+                  label: "Standard"
+                },
+                {
+                  id: "verbose",
+                  title: "Verbose & Analytical",
+                  desc: "Comprehensive advice. Deep breakdowns, cash flow strategies, and projections.",
+                  label: "Deep Brain"
+                }
+              ].map((opt) => {
+                const isSel = yapLevel === opt.id
+                return (
+                  <div
+                    key={opt.id}
+                    onClick={() => setYapLevel(opt.id as any)}
+                    className={cn(
+                      "p-4 border text-left cursor-pointer transition-all flex items-center justify-between select-none",
+                      isSel 
+                        ? "bg-primary/5 border-emerald-500/80 shadow-[0_0_10px_rgba(16,185,129,0.15)]" 
+                        : "bg-secondary/10 border-border hover:border-border-hover"
+                    )}
+                  >
+                    <div className="space-y-1">
+                      <div className="text-xs font-bold uppercase tracking-wider flex items-center gap-2">
+                        {opt.title}
+                        {isSel && <Check className="h-3 w-3 text-emerald-500" />}
+                      </div>
+                      <p className="text-[10px] text-muted-foreground font-sans max-w-[380px] leading-relaxed">
+                        {opt.desc}
+                      </p>
+                    </div>
+                    <span className={cn("text-[8px] font-mono uppercase px-2 py-0.5 border shrink-0", isSel ? "border-emerald-500 text-emerald-500" : "border-border text-muted-foreground")}>
+                      {opt.label}
+                    </span>
+                  </div>
+                )
+              })}
+            </div>
+
+            <div className="flex gap-3 pt-2">
+              <Button onClick={() => setStep(2)} variant="outline" className="rounded-none uppercase font-mono text-xs tracking-widest h-11 px-6">
+                Back
+              </Button>
+              <Button onClick={handleCompleteStep3} disabled={isSavingStep3} className="flex-1 rounded-none uppercase font-mono text-xs tracking-widest h-11 bg-foreground text-background hover:bg-foreground/90">
+                {isSavingStep3 ? "Calibrating..." : "Calibrate & Complete Setup"} <ArrowRight className="ml-2 h-4 w-4" />
+              </Button>
+            </div>
+          </motion.div>
+        )}
+
+        {step === 4 && (
+          <motion.div
+            key="step4"
             initial={{ opacity: 0, y: 15 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -15 }}
             className="w-full max-w-xl bg-card border border-border p-8 text-center space-y-6 shadow-2xl"
           >
             <div className="w-16 h-16 bg-foreground/10 border border-foreground/40 text-foreground mx-auto flex items-center justify-center">
-              <Terminal className="h-8 w-8" />
+              <Terminal className="h-8 w-8 animate-pulse text-primary" />
             </div>
 
             <div className="space-y-2">

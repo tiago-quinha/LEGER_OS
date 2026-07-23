@@ -1,14 +1,16 @@
-import { GoogleGenerativeAI } from "@google/generative-ai";
 import { createClient } from "@supabase/supabase-js";
 import { NextResponse } from "next/server";
-
-const rawApiKey = process.env.GOOGLE_GEMINI_API_KEY || "";
-const cleanApiKey = rawApiKey.replace(/^\ufeff/g, "").trim();
-const genAI = new GoogleGenerativeAI(cleanApiKey);
-const model = genAI.getGenerativeModel({ model: "gemini-2.5-flash" });
+import { generateAIContent } from "@/lib/ai-bridge";
+import { verifyAndConsumeQuota } from "@/lib/server-auth";
 
 export async function POST(request: Request) {
   try {
+    const { allowed, reason } = await verifyAndConsumeQuota(request);
+
+    if (!allowed) {
+      return NextResponse.json({ error: reason }, { status: 403 });
+    }
+
     const { expenses, categories } = await request.json();
 
     if (!expenses || expenses.length === 0) {
@@ -21,7 +23,9 @@ export async function POST(request: Request) {
     const prompt = `
       You are a high-precision financial auditor and categorization expert.
       I will provide a list of bank transactions (Merchant names and Raw transaction text) and a list of available expense categories.
-      Your task is to assign the MOST LOGICAL category to each transaction.
+      Your task is twofold for EACH transaction:
+      1. Clean the merchant name into a human-readable, professional brand or company name (e.g., "POSIX/DEBIT 4920 STARBUCKS COFFEE #892" -> "Starbucks Coffee", "sogenave vendig" -> "Sogenave Vending"). Strip out random card terminal numbers, POSIX codes, location strings if redundant, and formatting junk.
+      2. Assign the MOST LOGICAL expense category from the provided list.
 
       CRITICAL REASONING RULES:
       1. Cryptic Names: Merchant names are often truncated or misspelled (e.g., "sogenave vendig" means "Sogenave Vending", which is a vending machine -> Category: Food).
@@ -32,23 +36,32 @@ export async function POST(request: Request) {
 
       Available Categories: ${categoryList}
 
-      Transactions to Categorize:
+      Transactions to Categorize & Cleanse:
       ${merchantData}
 
-      Return ONLY a JSON array of strings, where each string is the category name corresponding to the transaction ID [i] in the input list.
+      Return ONLY a JSON array of objects, where each object corresponds to transaction ID [i] in the input list and has exactly two keys: "category" (the predicted category name) and "merchant" (the cleaned merchant name).
       The length of the returned array MUST exactly match the number of transactions provided (${expenses.length}).
       
-      Example Output: ["Food", "Transport", "Entertainment"]
+      Example Output: [
+        {"category": "Food", "merchant": "Starbucks Coffee"},
+        {"category": "Transport", "merchant": "Uber"},
+        {"category": "Entertainment", "merchant": "Netflix"}
+      ]
       Strictly follow the JSON array format. No markdown, no conversational text.
     `;
 
-    const result = await model.generateContent(prompt);
-    const response = await result.response;
-    const text = response.text().trim().replace(/```json|```/g, "");
+    const text = await generateAIContent(prompt, {
+      provider: request.headers.get("x-ai-provider") || undefined,
+      customKey: request.headers.get("x-custom-api-key") || undefined,
+      jsonMode: true,
+      modelType: "flash"
+    });
     
     try {
-        const predictedCategories = JSON.parse(text);
-        return NextResponse.json({ predictions: predictedCategories });
+        const results = JSON.parse(text);
+        const predictedCategories = results.map((r: any) => typeof r === 'string' ? r : r.category);
+        const cleanedMerchants = results.map((r: any) => typeof r === 'string' ? null : r.merchant);
+        return NextResponse.json({ predictions: predictedCategories, cleanedMerchants });
     } catch (parseError) {
         console.error("JSON Parse Error from Gemini:", text);
         return NextResponse.json({ error: "Invalid AI response format" }, { status: 500 });

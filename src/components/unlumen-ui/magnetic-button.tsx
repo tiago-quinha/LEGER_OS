@@ -72,6 +72,13 @@ export function MagneticButton({
   const x = useSpring(rawX, springOptions);
   const y = useSpring(rawY, springOptions);
 
+  React.useEffect(() => {
+    if (props.disabled) {
+      rawX.set(0);
+      rawY.set(0);
+    }
+  }, [props.disabled, rawX, rawY]);
+
   const handleMouseMove = React.useCallback(
     (e: React.MouseEvent<HTMLButtonElement>) => {
       const el = ref.current;
@@ -97,6 +104,11 @@ export function MagneticButton({
     rawY.set(0);
   }, [rawX, rawY]);
 
+  const handleTouchEnd = React.useCallback(() => {
+    rawX.set(0);
+    rawY.set(0);
+  }, [rawX, rawY]);
+
   return (
     <motion.button
       ref={ref}
@@ -104,6 +116,12 @@ export function MagneticButton({
       className={cn(magneticButtonVariants({ variant, size }), className)}
       onMouseMove={handleMouseMove}
       onMouseLeave={handleMouseLeave}
+      onTouchEnd={handleTouchEnd}
+      onTouchCancel={handleTouchEnd}
+      onClick={(e) => {
+        handleTouchEnd();
+        props.onClick?.(e as any);
+      }}
       {...props}
     >
       {children}

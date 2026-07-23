@@ -39,3 +39,10 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# local toolings and temp directories
+.agents/
+.gemini/
+scratch/
+lighthouse-report.json
+

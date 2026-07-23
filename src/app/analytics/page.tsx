@@ -2,7 +2,7 @@ import { createClient } from "@/lib/supabase-server"
 import { AnalyticsView } from "@/components/AnalyticsView"
 import { getCycles } from "@/lib/cycles"
 
-export const revalidate = 60
+export const dynamic = "force-dynamic"
 
 export default async function Analytics() {
   const supabase = await createClient()

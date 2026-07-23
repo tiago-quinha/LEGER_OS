@@ -59,7 +59,7 @@ export function Tilt({
       : [rotationFactor, -rotationFactor],
   );
 
-  const transform = useMotionTemplate`perspective(1000px) rotateX(${rotateX}deg) rotateY(${rotateY}deg)`;
+  const transform = useMotionTemplate`perspective(1000px) rotateX(${rotateX}deg) rotateY(${rotateY}deg) translateZ(0)`;
 
   const handleMouseMove = (e: React.MouseEvent<HTMLDivElement>) => {
     if (!ref.current) return;
@@ -77,7 +77,14 @@ export function Tilt({
     <motion.div
       ref={ref}
       className={className}
-      style={{ transformStyle: "preserve-3d", ...style, transform }}
+      style={{ 
+        transformStyle: "preserve-3d", 
+        backfaceVisibility: "hidden",
+        WebkitBackfaceVisibility: "hidden",
+        willChange: "transform",
+        ...style, 
+        transform 
+      }}
       onMouseMove={handleMouseMove}
       onMouseLeave={handleMouseLeave}
     >

@@ -1,98 +1,38 @@
 import { createClient } from "@/lib/supabase-server"
-import { LegerAIPageView } from "@/components/LegerAIPageView"
-import { getCycles } from "@/lib/cycles"
+import { Brain } from "lucide-react"
+import { ClientTrigger } from "./ClientTrigger"
 
-export const revalidate = 60
+export const dynamic = "force-dynamic"
 
 export default async function LegerPage() {
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) return null
 
-  // 1. Identify current cycle using utility
-  const cycles = await getCycles(supabase, user.id)
-  const currentCycle = cycles[0]
-
-  if (!currentCycle) return <div className="p-8 font-mono technical-label text-destructive">Mainframe status: Offline. No cycle data found.</div>
-
-  // 2. Fetch all necessary nodes in parallel
-  const [expensesRes, categoriesRes, balancesRes, allTxRes] = await Promise.all([
-    supabase
-      .from("tracker_expense")
-      .select("*")
-      .gte("date", currentCycle.startDate)
-      .order("date", { ascending: false }),
-    supabase
-      .from("categories")
-      .select("*"),
-    supabase
-      .from("account_balance")
-      .select("*")
-      .order("date", { ascending: false }),
-    supabase
-      .from("tracker_expense")
-      .select("*")
-      .lt("date", currentCycle.startDate)
-      .order("date", { ascending: true })
-  ])
-
-  const expenses = expensesRes.data || []
-  const categories = categoriesRes.data || []
-  const balances = balancesRes.data || []
-  const previousTx = allTxRes.data || []
-
-  // 3. Calculate HIGH-PRECISION START BALANCE
-  const snapshot = balances
-    .filter(b => new Date(b.date) <= new Date(currentCycle.startDate))
-    .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())[0]
-  
-  let actualStartBalance = 0
-  if (snapshot) {
-      const snapDate = new Date(snapshot.date)
-      const snapAmount = parseFloat(snapshot.amount)
-      
-      const transitionTxSum = previousTx
-        .filter(tx => new Date(tx.date) >= snapDate)
-        .reduce((sum, tx) => sum + (parseFloat(tx.amount) || 0), 0)
-      
-      actualStartBalance = snapAmount + transitionTxSum
-  }
-
-  // 4. Final Position Calculation
-  const netChange = expenses.reduce((sum, e) => sum + (parseFloat(e.amount) || 0), 0)
-  const currentBalance = actualStartBalance + netChange
-
-  // 5. Synthesis Parameters
-  const totalOut = expenses
-    .filter(e => parseFloat(e.amount) < 0)
-    .reduce((sum, e) => sum + Math.abs(parseFloat(e.amount)), 0)
-  
-  const totalIn = expenses
-    .filter(e => parseFloat(e.amount) > 0)
-    .reduce((sum, e) => sum + parseFloat(e.amount), 0)
-
-  const startDate = new Date(currentCycle.startDate)
-  const today = new Date()
-  const daysElapsed = Math.max(1, Math.floor((today.getTime() - startDate.getTime()) / 86400000))
-  const baseIncome = currentCycle.paycheckAmount > 0 ? currentCycle.paycheckAmount : 500
-  const velocity = (totalOut / baseIncome) / (daysElapsed / 30)
-
-  const catSpending = categories.map(cat => ({
-    name: cat.name,
-    value: expenses
-        .filter(e => e.category_id === cat.id && parseFloat(e.amount) < 0)
-        .reduce((sum, e) => sum + Math.abs(parseFloat(e.amount)), 0)
-  })).filter(c => c.value > 0)
-
   return (
-    <LegerAIPageView 
-      cycleData={{
-        currentBalance,
-        velocity,
-        categories: catSpending
-      }}
-      expenses={expenses}
-      categories={categories}
-    />
+    <div className="mx-auto max-w-[1500px] p-4 md:p-8 space-y-8 md:space-y-12 pb-24 text-foreground w-full flex flex-col items-center justify-center min-h-[70vh] relative">
+      {/* Cyber OS background grid */}
+      <div className="absolute inset-0 bg-[linear-gradient(to_right,rgba(128,128,128,0.02)_1px,transparent_1px),linear-gradient(to_bottom,rgba(128,128,128,0.02)_1px,transparent_1px)] bg-[size:24px_24px] pointer-events-none" />
+
+      <div className="max-w-md w-full border border-border bg-card p-8 md:p-12 text-center space-y-6 shadow-2xl relative rounded-xl overflow-hidden">
+        {/* Glowing aura */}
+        <div className="absolute -top-24 -left-24 w-48 h-48 bg-foreground/[0.02] dark:bg-emerald-500/[0.02] blur-2xl rounded-full pointer-events-none" />
+        
+        <div className="mx-auto w-12 h-12 bg-secondary flex items-center justify-center border border-border rounded-lg relative z-10">
+          <Brain className="h-6 w-6 text-foreground animate-pulse" />
+        </div>
+        
+        <div className="space-y-2 relative z-10">
+          <h2 className="text-[10px] font-mono uppercase tracking-[0.22em] text-muted-foreground">LEGER_AI // Central mainframes</h2>
+          <h1 className="text-xl font-bold uppercase tracking-widest text-foreground font-sans">Neural Bridge Upgraded</h1>
+        </div>
+
+        <p className="text-xs text-muted-foreground font-sans leading-relaxed relative z-10">
+          The Leger AI terminal is now a global, floating assistant node. It is context-aware and accessible from the bottom-right corner of any page.
+        </p>
+
+        <ClientTrigger />
+      </div>
+    </div>
   )
 }

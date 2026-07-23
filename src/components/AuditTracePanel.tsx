@@ -16,7 +16,7 @@ interface AuditTracePanelProps {
 }
 
 export function AuditTracePanel({ expenses, categories }: AuditTracePanelProps) {
-  const { isAuditPanelOpen, setAuditPanelOpen, activeTransactionId, setActiveTransactionId, refreshData } = useSystem()
+  const { isAuditPanelOpen, setAuditPanelOpen, activeTransactionId, setActiveTransactionId, refreshData, currencySymbol } = useSystem()
 
   const activeTx = expenses.find(e => e.id === activeTransactionId)
   
@@ -83,7 +83,7 @@ export function AuditTracePanel({ expenses, categories }: AuditTracePanelProps) 
             animate={{ x: 0 }}
             exit={{ x: "100%" }}
             transition={{ type: "spring", damping: 25, stiffness: 200 }}
-            className="fixed right-0 top-0 bottom-0 w-full md:w-[450px] bg-card border-l border-border z-50 shadow-2xl overflow-y-auto"
+            className="fixed right-0 top-0 bottom-16 md:bottom-0 w-full md:w-[450px] bg-card border-l border-border z-50 shadow-2xl overflow-y-auto"
           >
             <div className="flex flex-col h-full">
               {/* Header */}
@@ -105,7 +105,7 @@ export function AuditTracePanel({ expenses, categories }: AuditTracePanelProps) 
                       {category?.name || "UNCLASSIFIED"}
                     </Badge>
                     <span className={cn("text-xs font-mono font-bold", parseFloat(activeTx?.amount) > 0 ? "text-emerald-600 dark:text-emerald-400" : "")}>
-                      {parseFloat(activeTx?.amount) > 0 ? "+" : ""}€{parseFloat(activeTx?.amount).toFixed(2)}
+                      {parseFloat(activeTx?.amount) > 0 ? "+" : ""}{currencySymbol}{parseFloat(activeTx?.amount).toFixed(2)}
                     </span>
                   </div>
                 </div>

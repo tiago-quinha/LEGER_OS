@@ -27,14 +27,16 @@ export function NumberTicker({
     })
   }
 
-  const digits = formatNumber(value).split("")
+  // Force conversion to number to prevent string toLocaleString formatting bypass
+  const numValue = Number(value)
+  const digits = formatNumber(isNaN(numValue) ? 0 : numValue).split("")
 
   return (
-    <span className={cn("inline-flex overflow-hidden leading-none", className)}>
+    <span className={cn("inline-flex items-baseline overflow-hidden leading-none tabular-nums", className)}>
       {prefix && <span className="mr-0.5">{prefix}</span>}
       {digits.map((digit, i) => {
         if (isNaN(parseInt(digit))) {
-          return <span key={i}>{digit}</span>
+          return <span key={i} className="align-baseline">{digit}</span>
         }
         return <Digit key={i} digit={digit} />
       })}
@@ -49,9 +51,9 @@ function Digit({ digit }: { digit: string }) {
       <AnimatePresence mode="popLayout">
         <motion.span
           key={digit}
-          initial={{ y: "100%" }}
-          animate={{ y: "0%" }}
-          exit={{ y: "-100%" }}
+          initial={{ y: "100%", translateZ: 0 }}
+          animate={{ y: "0%", translateZ: 0 }}
+          exit={{ y: "-100%", translateZ: 0 }}
           transition={{ 
             type: "spring", 
             stiffness: 300, 
@@ -59,6 +61,7 @@ function Digit({ digit }: { digit: string }) {
             mass: 0.8
           }}
           className="absolute inset-0 flex items-center justify-center"
+          style={{ willChange: "transform", backfaceVisibility: "hidden" }}
         >
           {digit}
         </motion.span>

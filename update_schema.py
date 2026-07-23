@@ -59,6 +59,17 @@ ALTER TABLE profiles ADD COLUMN IF NOT EXISTS role TEXT DEFAULT 'user';
 ALTER TABLE profiles ADD COLUMN IF NOT EXISTS is_admin BOOLEAN DEFAULT false;
 ALTER TABLE profiles ADD COLUMN IF NOT EXISTS target_monthly_income NUMERIC(10, 2) DEFAULT 2500;
 ALTER TABLE profiles ADD COLUMN IF NOT EXISTS target_monthly_spend NUMERIC(10, 2) DEFAULT 1500;
+ALTER TABLE profiles ADD COLUMN IF NOT EXISTS currency TEXT DEFAULT 'EUR';
+ALTER TABLE profiles ADD COLUMN IF NOT EXISTS language TEXT DEFAULT 'en-US';
+ALTER TABLE profiles ADD COLUMN IF NOT EXISTS subscription_tier TEXT DEFAULT 'FREE';
+ALTER TABLE profiles ADD COLUMN IF NOT EXISTS ai_provider TEXT DEFAULT 'gemini';
+ALTER TABLE profiles ADD COLUMN IF NOT EXISTS custom_api_key TEXT DEFAULT '';
+ALTER TABLE profiles ADD COLUMN IF NOT EXISTS decay_weight NUMERIC(4, 2) DEFAULT 0.12;
+ALTER TABLE profiles ADD COLUMN IF NOT EXISTS ai_quota_usage INTEGER DEFAULT 0;
+ALTER TABLE profiles ADD COLUMN IF NOT EXISTS ai_quota_limit INTEGER DEFAULT 50;
+ALTER TABLE profiles ADD COLUMN IF NOT EXISTS projection_overrides JSONB DEFAULT '[]'::jsonb;
+ALTER TABLE profiles ADD COLUMN IF NOT EXISTS ai_yap_level TEXT DEFAULT 'standard';
+ALTER TABLE profiles ADD COLUMN IF NOT EXISTS ai_journal JSONB DEFAULT '[]'::jsonb;
 
 -- Enable RLS on profiles
 ALTER TABLE profiles ENABLE ROW LEVEL SECURITY;
@@ -81,7 +92,7 @@ END $$;
 CREATE OR REPLACE FUNCTION public.handle_new_user()
 RETURNS trigger AS $$
 BEGIN
-  INSERT INTO public.profiles (id, username, full_name, paycheck_keyword, role, is_admin, onboarding_completed, target_monthly_income, target_monthly_spend)
+  INSERT INTO public.profiles (id, username, full_name, paycheck_keyword, role, is_admin, onboarding_completed, target_monthly_income, target_monthly_spend, currency, language, subscription_tier, ai_provider, custom_api_key, decay_weight, ai_quota_usage, ai_quota_limit, projection_overrides)
   VALUES (
     new.id,
     COALESCE(new.raw_user_meta_data->>'username', SPLIT_PART(new.email, '@', 1)),
@@ -91,7 +102,16 @@ BEGIN
     false,
     false,
     2500,
-    1500
+    1500,
+    'EUR',
+    'en-US',
+    'FREE',
+    'gemini',
+    '',
+    0.12,
+    0,
+    50,
+    '[]'::jsonb
   )
   ON CONFLICT (id) DO NOTHING;
   RETURN new;
@@ -116,8 +136,10 @@ SELECT
 FROM auth.users
 ON CONFLICT (id) DO UPDATE SET paycheck_keyword = 'SALARY' WHERE profiles.paycheck_keyword IS NULL;
 
--- Make sure existing users get admin testing flags
-UPDATE profiles SET role = 'super_user', is_admin = true WHERE is_admin IS NOT true;
+
+
+-- Reload PostgREST schema cache in Supabase so new columns are immediately recognized by the API
+NOTIFY pgrst, 'reload schema';
 """
 
 try:

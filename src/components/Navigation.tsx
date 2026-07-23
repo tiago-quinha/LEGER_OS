@@ -4,7 +4,7 @@ import React, { useState, useEffect } from "react"
 import { createPortal } from "react-dom"
 import Link from "next/link"
 import { usePathname, useRouter } from "next/navigation"
-import { Home, List, PieChart, BarChart3, Landmark, Shield, ShieldOff, Cpu, Activity, Database, Brain, LogOut, User, Sun, Moon, Sliders, Menu, X, ChevronRight } from "lucide-react"
+import { Home, List, PieChart, BarChart3, Landmark, Shield, ShieldOff, Cpu, Activity, Database, Brain, LogOut, User, Sun, Moon, Sliders, Menu, X, ChevronRight, Tag } from "lucide-react"
 import { useTheme } from "next-themes"
 import { cn } from "@/lib/utils"
 import { useSystem } from "@/lib/SystemContext"
@@ -19,6 +19,7 @@ const navigation = [
   { name: "Dashboard", href: "/", icon: Home, id: "NODE_01", desc: "Global Overview" },
   { name: "LEGER AI", href: "/leger-ai", icon: Brain, id: "NODE_05", desc: "Neural Strategy" },
   { name: "Ledger", href: "/expenses", icon: List, id: "NODE_02", desc: "Transactional Audit" },
+  { name: "Categories", href: "/categories", icon: Tag, id: "NODE_06", desc: "Category Analysis" },
   { name: "Budgets", href: "/budgets", icon: PieChart, id: "NODE_03", desc: "Constraint Matrix" },
   { name: "Analytics", href: "/analytics", icon: BarChart3, id: "NODE_04", desc: "Trend Synthesis" },
 ]
@@ -27,6 +28,7 @@ const navigation = [
 const mobileNavigation = [
   { name: "Dashboard", href: "/", icon: Home },
   { name: "Ledger", href: "/expenses", icon: List },
+  { name: "Categories", href: "/categories", icon: Tag },
   { name: "Budgets", href: "/budgets", icon: PieChart },
   { name: "Analytics", href: "/analytics", icon: BarChart3 },
 ]
@@ -34,10 +36,9 @@ const mobileNavigation = [
 export function Navigation() {
   const pathname = usePathname()
   const router = useRouter()
-  const { isPrivacyMode, setPrivacyMode, systemLatency, nodeStatus, profile, signOut, user } = useSystem()
+  const { isPrivacyMode, setPrivacyMode, systemLatency, nodeStatus, profile, signOut, user, isPro, isSettingsOpen, setSettingsOpen, setSettingsActiveTab, setSubscriptionOnly } = useSystem()
   const [mounted, setMounted] = useState(false)
   const { theme, setTheme } = useTheme()
-  const [settingsOpen, setSettingsOpen] = useState(false)
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
 
   useEffect(() => {
@@ -60,7 +61,7 @@ export function Navigation() {
               </div>
               <div>
                 <h1 className="text-base font-bold tracking-tighter uppercase leading-none text-foreground">LEGER_OS</h1>
-                <p className="text-[9px] font-mono text-muted-foreground tracking-widest uppercase mt-0.5">Kernel v1.0.4.A</p>
+                <p className="text-[9px] font-mono text-muted-foreground tracking-widest uppercase mt-0.5">Personal Finance Mainframe</p>
               </div>
             </div>
 
@@ -68,12 +69,28 @@ export function Navigation() {
             {profile && (
               <div className="p-2.5 bg-secondary/30 border border-border ledger-border space-y-1.5">
                   <div className="flex items-center justify-between text-[9px] font-mono text-muted-foreground">
-                    <span className="flex items-center gap-1.5 uppercase"><User className="h-2.5 w-2.5" /> Active Node</span>
+                    <span className="flex items-center gap-1.5 uppercase"><User className="h-2.5 w-2.5" /> User</span>
                     <button onClick={signOut} className="hover:text-destructive transition-colors text-[9px] uppercase font-bold flex items-center gap-1" title="Disconnect Session">
-                       <span>Quit</span> <LogOut className="h-2.5 w-2.5" />
+                       <span>Sign Out</span> <LogOut className="h-2.5 w-2.5" />
                     </button>
-                 </div>
-                 <p className="text-[11px] font-bold font-mono uppercase truncate text-foreground">{profile.username || "UNKNOWN_USER"}</p>
+                  </div>
+                  <div className="flex items-center justify-between gap-2">
+                    <p className="text-[11px] font-bold font-mono uppercase truncate text-foreground">{profile.username || "UNKNOWN_USER"}</p>
+                    {isPro ? (
+                       <GlowingBadge variant="success" pulse dot className="px-1.5 py-0.5 text-[8px] uppercase font-mono">PRO</GlowingBadge>
+                    ) : (
+                       <button 
+                         onClick={() => {
+                           setSettingsActiveTab("pro");
+                           setSubscriptionOnly(true);
+                           setSettingsOpen(true);
+                         }} 
+                         className="px-1.5 py-0.5 bg-foreground text-background text-[8px] uppercase font-mono font-bold tracking-tighter hover:bg-emerald-500 hover:text-white transition-colors shrink-0"
+                       >
+                         Upgrade
+                       </button>
+                    )}
+                  </div>
               </div>
             )}
           </div>
@@ -103,7 +120,6 @@ export function Navigation() {
                         {item.name}
                       </span>
                     </div>
-                    <span className="text-[9px] font-mono opacity-30 group-hover:opacity-100 transition-opacity font-bold uppercase">{item.id}</span>
                   </Link>
                 </FloatingTooltipTrigger>
               )
@@ -142,7 +158,7 @@ export function Navigation() {
               </button>
 
               <button
-                onClick={() => setSettingsOpen(true)}
+                onClick={() => router.push("/system")}
                 className="flex flex-col items-center justify-center py-2 px-1 border border-border bg-card text-muted-foreground hover:bg-secondary hover:text-foreground transition-all text-[8px] font-mono uppercase font-bold gap-1 select-none"
                 title="System Configuration Matrix"
               >
@@ -151,25 +167,7 @@ export function Navigation() {
               </button>
             </div>
 
-            {/* Hardware Status */}
-            <div className="space-y-2 pt-1">
-              <div className="flex items-center justify-between font-mono text-[8px] text-muted-foreground">
-                <div className="flex items-center gap-1.5">
-                  <Cpu className="h-2.5 w-2.5" />
-                  <span className="uppercase">Sub-System</span>
-                </div>
-                <GlowingBadge variant={nodeStatus === "ONLINE" ? "success" : "neutral"} pulse={nodeStatus === "ONLINE"} dot className="px-1.5 py-0.2 scale-75 origin-right">
-                  {nodeStatus}
-                </GlowingBadge>
-              </div>
-              <div className="flex items-center justify-between font-mono text-[8px] text-muted-foreground">
-                <div className="flex items-center gap-1.5">
-                  <Activity className="h-2.5 w-2.5" />
-                  <span className="uppercase">Latency</span>
-                </div>
-                <span className="font-bold text-foreground">{systemLatency}ms</span>
-              </div>
-            </div>
+            {/* Telemetry Removed */}
           </div>
         </div>
       </aside>
@@ -223,14 +221,11 @@ export function Navigation() {
           <DialogHeader className="border-b border-border pb-4 mb-4">
             <div className="flex items-center justify-between">
               <DialogTitle className="text-sm font-bold uppercase tracking-widest flex items-center gap-2 text-foreground">
-                <Landmark className="h-4 w-4" /> LEGER_OS // Mobile Matrix
+                <Landmark className="h-4 w-4" /> LEGER_OS
               </DialogTitle>
-              <GlowingBadge variant="success" pulse={false} dot={true} className="text-[8px]">
-                ONLINE
-              </GlowingBadge>
             </div>
             <DialogDescription className="text-[10px] uppercase tracking-wider text-muted-foreground">
-              Neural controls, environment settings, and session actions.
+              System settings and session actions.
             </DialogDescription>
           </DialogHeader>
 
@@ -250,9 +245,24 @@ export function Navigation() {
               <ChevronRight className="h-4 w-4 text-muted-foreground group-hover:translate-x-1 transition-transform" />
             </button>
 
+            {/* Categories Link */}
+            <button
+              onClick={() => { setMobileMenuOpen(false); router.push('/categories'); }}
+              className="w-full p-3 bg-secondary/30 border border-border flex items-center justify-between text-left hover:bg-secondary/60 transition-all group"
+            >
+              <div className="flex items-center gap-3">
+                <Tag className="h-4 w-4 shrink-0" />
+                <div>
+                  <div className="font-bold uppercase text-xs text-foreground">Categories</div>
+                  <div className="text-[9px] text-muted-foreground font-sans">Category Explorer & Profit Analytics</div>
+                </div>
+              </div>
+              <ChevronRight className="h-4 w-4 text-muted-foreground group-hover:translate-x-1 transition-transform" />
+            </button>
+
             {/* System Config Link */}
             <button
-              onClick={() => { setMobileMenuOpen(false); setSettingsOpen(true); }}
+              onClick={() => { setMobileMenuOpen(false); router.push('/system'); }}
               className="w-full p-3 bg-secondary/30 border border-border flex items-center justify-between text-left hover:bg-secondary/60 transition-all group"
             >
               <div className="flex items-center gap-3">
@@ -320,7 +330,7 @@ export function Navigation() {
         </DialogContent>
       </Dialog>
 
-      <SystemSettingsModal open={settingsOpen} onOpenChange={setSettingsOpen} />
+      <SystemSettingsModal open={isSettingsOpen} onOpenChange={setSettingsOpen} />
     </>
   )
 }

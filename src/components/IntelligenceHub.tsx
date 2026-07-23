@@ -7,6 +7,8 @@ import { Button } from "@/components/ui/button"
 import { cn } from "@/lib/utils"
 import { GlowingBadge } from "@/components/unlumen-ui/glowing-badge"
 import { MagneticButton } from "@/components/unlumen-ui/magnetic-button"
+import { useSystem } from "@/lib/SystemContext"
+import { getAIHeaders } from "@/lib/ai-client"
 
 interface IntelligenceHubProps {
   isOpen: boolean
@@ -15,6 +17,7 @@ interface IntelligenceHubProps {
 }
 
 export function IntelligenceHub({ isOpen, onClose, cycleData }: IntelligenceHubProps) {
+  const { aiProvider, customApiKey } = useSystem()
   const [analysis, setAnalysis] = useState<any>(null)
   const [isLoading, setIsLoading] = useState(false)
 
@@ -23,7 +26,7 @@ export function IntelligenceHub({ isOpen, onClose, cycleData }: IntelligenceHubP
     try {
       const response = await fetch("/api/analyze-cycle", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: getAIHeaders(aiProvider, customApiKey),
         body: JSON.stringify(cycleData)
       })
       if (response.ok) {
@@ -140,7 +143,7 @@ export function IntelligenceHub({ isOpen, onClose, cycleData }: IntelligenceHubP
 
                     {/* Meta Footer */}
                     <div className="pt-8 border-t border-border flex items-center justify-between opacity-30 italic font-mono text-[8px] uppercase">
-                       <span>Processed by Gemini 1.5 Flash</span>
+                       <span>Processed by Gemini 2.5 Pro</span>
                        <span>Runtime: 842ms // Session: EX-901</span>
                     </div>
                   </>

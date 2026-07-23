@@ -1,10 +1,10 @@
 "use client"
 
 import { useState, useEffect } from "react"
+import { motion } from "framer-motion"
 import { useRouter } from "next/navigation"
 import { supabase } from "@/lib/supabase"
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
-import { Progress } from "@/components/ui/progress"
 import { Input } from "@/components/ui/input"
 import { Button } from "@/components/ui/button"
 import { Label } from "@/components/ui/label"
@@ -17,6 +17,7 @@ import { ClippedCircle } from "@/components/unlumen-ui/clipped-circle"
 import { MagneticButton } from "@/components/unlumen-ui/magnetic-button"
 import { GlowingBadge } from "@/components/unlumen-ui/glowing-badge"
 import { PrivacyValue } from "@/components/ui/privacy-value"
+import { useSystem } from "@/lib/SystemContext"
 
 interface BudgetsViewProps {
   categories: any[]
@@ -28,6 +29,7 @@ interface BudgetsViewProps {
 
 export function BudgetsView({ categories, budgets: initialBudgets, expenses, cycles, currentCycleId }: BudgetsViewProps) {
   const router = useRouter()
+  const { currencySymbol } = useSystem()
   const [budgets, setBudgets] = useState(initialBudgets)
   const [editingBudgets, setEditingBudgets] = useState<{ [key: string]: string }>(
     categories.reduce((acc, cat) => {
@@ -139,7 +141,20 @@ export function BudgetsView({ categories, budgets: initialBudgets, expenses, cyc
     const amount = parseFloat(editingBudgets[categoryId]) || 0
     const existingBudget = budgets.find(b => b.category_id === categoryId)
 
+    // Save previous state to revert on failure
+    const previousBudgets = [...budgets]
+
+    // Optimistically update state instantly
+    if (existingBudget) {
+      setBudgets(prev => prev.map(b => b.id === existingBudget.id ? { ...b, amount } : b))
+    } else {
+      const tempId = `temp-bud-${Date.now()}`
+      setBudgets(prev => [...prev, { id: tempId, category_id: categoryId, amount, month: cycleMonth + 1, year: cycleYear }])
+    }
+    toast.success("Budget updated")
+
     let error
+    let insertedData: any = null
     if (existingBudget) {
       const { error: updateError } = await supabase
         .from("budgets")
@@ -157,29 +172,30 @@ export function BudgetsView({ categories, budgets: initialBudgets, expenses, cyc
         })
         .select()
       error = insertError
-      if (data) {
-        setBudgets(prev => [...prev, data[0]])
-      }
+      insertedData = data?.[0]
     }
 
     if (error) {
       toast.error("Failed to save budget")
+      setBudgets(previousBudgets)
       console.error(error)
-    } else {
-      toast.success("Budget updated")
-      if (existingBudget) {
-        setBudgets(prev => prev.map(b => b.id === existingBudget.id ? { ...b, amount } : b))
-      }
+    } else if (insertedData) {
+      setBudgets(prev => prev.map(b => b.id.toString().startsWith("temp-bud-") ? insertedData : b))
     }
   }
 
   return (
-    <div className="mx-auto max-w-5xl p-4 md:p-8 space-y-6 w-full pb-20">
+    <motion.div
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      transition={{ duration: 0.2, ease: "easeOut" }}
+      className="mx-auto max-w-[1500px] p-4 md:p-8 space-y-6 w-full pb-20"
+    >
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-foreground/10 pb-6">
         <div className="space-y-1">
           <div className="flex items-center gap-2 text-[9px] font-mono tracking-[0.2em] uppercase text-muted-foreground">
             <Landmark className="h-3 w-3" />
-            <span>Budgets allocation // Targets Matrix</span>
+            <span>Budget Allocation</span>
           </div>
           <h1 className="text-3xl md:text-4xl font-bold tracking-tighter uppercase leading-none">
             Monthly Budgets
@@ -221,13 +237,15 @@ export function BudgetsView({ categories, budgets: initialBudgets, expenses, cyc
                 </div>
 
                 <div className="space-y-1">
-                  <Label htmlFor="newCatLimit" className="text-[9px] font-mono uppercase text-muted-foreground">Monthly Limit (€)</Label>
+                  <Label htmlFor="newCatLimit" className="text-[9px] font-mono uppercase text-muted-foreground">Monthly Limit ({currencySymbol})</Label>
                   <div className="relative">
-                    <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground text-sm">€</span>
+                    <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground text-sm">{currencySymbol}</span>
                     <Input 
                       id="newCatLimit"
                       type="number"
                       step="0.01"
+                      inputMode="decimal"
+                      pattern="[0-9]*"
                       placeholder="100.00"
                       value={newCatLimit}
                       onChange={(e) => setNewCatLimit(e.target.value)}
@@ -267,12 +285,21 @@ export function BudgetsView({ categories, budgets: initialBudgets, expenses, cyc
         {categories.map((cat) => {
           const budget = budgets.find(b => b.category_id === cat.id)
           const budgetAmount = budget ? parseFloat(budget.amount) : 0
-          const spent = expenses
+          
+          // Calculate net pocket balance (inflows > 0, outflows < 0)
+          const netBalance = expenses
             .filter(exp => exp.category_id === cat.id)
             .reduce((sum, exp) => sum + (parseFloat(exp.amount) || 0), 0)
           
-          const progress = budgetAmount > 0 ? Math.min((spent / budgetAmount) * 100, 100) : 0
-          const isOverBudget = spent > budgetAmount && budgetAmount > 0
+          const isProfitable = netBalance > 0
+          const netSpent = netBalance < 0 ? Math.abs(netBalance) : 0
+          const netProfit = isProfitable ? netBalance : 0
+
+          const progressPercent = budgetAmount > 0 
+            ? (Math.abs(netBalance) / budgetAmount) * 100 
+            : 0
+          
+          const isOverBudget = !isProfitable && netSpent > budgetAmount && budgetAmount > 0
 
           const isEditing = activeEditingId === cat.id
 
@@ -287,24 +314,34 @@ export function BudgetsView({ categories, budgets: initialBudgets, expenses, cyc
                     />
                     <CardTitle className="text-lg">{cat.name}</CardTitle>
                   </div>
-                  {isOverBudget && (
-                    <GlowingBadge variant="error" pulse dot className="scale-75 origin-right px-2 py-0.5">
-                      Over Budget
+                  {isProfitable ? (
+                    <GlowingBadge variant="success" pulse dot className="scale-75 origin-right px-2 py-0.5">
+                      +{netProfit.toFixed(2)} Profit
                     </GlowingBadge>
-                  )}
+                  ) : isOverBudget ? (
+                    <GlowingBadge variant="error" pulse dot className="scale-75 origin-right px-2 py-0.5">
+                      Over Target
+                    </GlowingBadge>
+                  ) : null}
                 </div>
               </CardHeader>
               <CardContent className="p-6 sm:p-8 pt-0 flex-1 space-y-4 z-10 flex flex-col justify-between">
                 {!isEditing ? (
                   <div className="space-y-3">
                     <div className="flex justify-between items-center text-xs font-mono">
-                      <span className="text-muted-foreground uppercase text-[10px]">Spent</span>
-                      <span className="font-bold text-foreground"><PrivacyValue>€{spent.toFixed(2)}</PrivacyValue></span>
+                      <span className="text-muted-foreground uppercase text-[10px]">
+                        {isProfitable ? "Net Surplus" : "Net Spent"}
+                      </span>
+                      <span className={cn("font-bold", isProfitable ? "text-emerald-600 dark:text-emerald-400" : "text-foreground")}>
+                        <PrivacyValue>
+                          {isProfitable ? `+${currencySymbol}${netProfit.toFixed(2)}` : `${currencySymbol}${netSpent.toFixed(2)}`}
+                        </PrivacyValue>
+                      </span>
                     </div>
                     <div className="flex justify-between items-center text-xs font-mono border-b border-border/50 pb-2">
-                      <span className="text-muted-foreground uppercase text-[10px]">Target</span>
+                      <span className="text-muted-foreground uppercase text-[10px]">Pocket Limit</span>
                       <div className="flex items-center gap-1.5 group/edit font-bold text-foreground">
-                        <span><PrivacyValue>€{budgetAmount.toFixed(2)}</PrivacyValue></span>
+                        <span><PrivacyValue>{currencySymbol}{budgetAmount.toFixed(2)}</PrivacyValue></span>
                         <button 
                           onClick={() => setActiveEditingId(cat.id)}
                           className="opacity-0 group-hover:opacity-100 group-hover/edit:opacity-100 transition-opacity p-0.5 text-muted-foreground hover:text-foreground cursor-pointer"
@@ -318,12 +355,18 @@ export function BudgetsView({ categories, budgets: initialBudgets, expenses, cyc
                 ) : (
                   <div className="space-y-3">
                     <div className="flex justify-between items-center text-xs font-mono">
-                      <span className="text-muted-foreground uppercase text-[10px]">Spent</span>
-                      <span className="font-bold text-foreground"><PrivacyValue>€{spent.toFixed(2)}</PrivacyValue></span>
+                      <span className="text-muted-foreground uppercase text-[10px]">
+                        {isProfitable ? "Net Surplus" : "Net Spent"}
+                      </span>
+                      <span className={cn("font-bold", isProfitable ? "text-emerald-600 dark:text-emerald-400" : "text-foreground")}>
+                        <PrivacyValue>
+                          {isProfitable ? `+${currencySymbol}${netProfit.toFixed(2)}` : `${currencySymbol}${netSpent.toFixed(2)}`}
+                        </PrivacyValue>
+                      </span>
                     </div>
                     <div className="flex items-center gap-2 pb-2">
                       <div className="relative flex-1">
-                        <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground text-xs font-mono">€</span>
+                        <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground text-xs font-mono">{currencySymbol}</span>
                         <Input
                           type="number"
                           step="0.01"
@@ -363,17 +406,42 @@ export function BudgetsView({ categories, budgets: initialBudgets, expenses, cyc
 
                 <div className="space-y-1.5 mt-auto">
                   <div className="flex justify-between text-[9px] font-mono text-muted-foreground uppercase">
-                    <span>Progress</span>
-                    <span>{progress.toFixed(0)}%</span>
+                    <span>{isProfitable ? "Surplus Direction" : "Pocket Usage"}</span>
+                    <span className={cn(isProfitable ? "text-emerald-600 dark:text-emerald-400 font-bold" : isOverBudget ? "text-destructive font-bold" : "")}>
+                      {isProfitable ? `+${progressPercent.toFixed(0)}% (PROFIT) →` : `← ${progressPercent.toFixed(0)}% (USED)`}
+                    </span>
                   </div>
-                  <Progress value={progress} className={isOverBudget ? "bg-destructive/20" : ""} />
+                  <div className="relative w-full h-2 bg-secondary/60 rounded-full border border-border/40 flex items-center">
+                    {/* Center zero-point indicator notch */}
+                    <div className="absolute left-1/2 -top-1 -bottom-1 -translate-x-1/2 w-0.5 bg-foreground dark:bg-white z-20 flex items-center justify-center">
+                      <div className="w-1 h-1 rounded-full bg-foreground dark:bg-white" />
+                    </div>
+
+                    {/* Bar fill container with overflow-hidden */}
+                    <div className="absolute inset-0 overflow-hidden rounded-full">
+                      {/* IF PROFITABLE (> 0): Expand Right from center in Emerald Green */}
+                      {isProfitable && (
+                        <div 
+                          className="absolute left-1/2 top-0 bottom-0 bg-emerald-600/90 dark:bg-emerald-500/80 transition-all duration-500"
+                          style={{ width: `${Math.min(50, (netProfit / (budgetAmount || 100)) * 50)}%` }}
+                        />
+                      )}
+
+                      {/* IF DOWN / SPENT (< 0): Expand Left from center in Destructive/Zinc */}
+                      {!isProfitable && netSpent > 0 && (
+                        <div 
+                          className={cn("absolute right-1/2 top-0 bottom-0 transition-all duration-500", isOverBudget ? "bg-rose-600/90 dark:bg-rose-500/85" : "bg-muted-foreground/60")}
+                          style={{ width: `${Math.min(50, (netSpent / (budgetAmount || 100)) * 50)}%` }}
+                        />
+                      )}
+                    </div>
+                  </div>
                 </div>
               </CardContent>
-              <ClippedCircle circleClassName="bg-white/10 dark:bg-zinc-800/20" circleSize={400} />
             </Tilt>
           )
         })}
       </div>
-    </div>
+    </motion.div>
   )
 }

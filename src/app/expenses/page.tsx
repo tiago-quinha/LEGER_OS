@@ -1,14 +1,15 @@
 import { createClient } from "@/lib/supabase-server"
 import { ExpensesView } from "@/components/ExpensesView"
+import { getCycles } from "@/lib/cycles"
 
-export const revalidate = 60
+export const dynamic = "force-dynamic"
 
 export default async function ExpensesPage() {
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) return null
 
-  const [expensesRes, categoriesRes, rulesRes] = await Promise.all([
+  const [expensesRes, categoriesRes, rulesRes, cycles] = await Promise.all([
     supabase
       .from("tracker_expense")
       .select("*")
@@ -20,7 +21,8 @@ export default async function ExpensesPage() {
     supabase
       .from("merchant_rules")
       .select("*")
-      .order("keyword")
+      .order("keyword"),
+    getCycles(supabase, user.id)
   ])
 
   return (
@@ -28,6 +30,7 @@ export default async function ExpensesPage() {
       initialExpenses={expensesRes.data || []} 
       categories={categoriesRes.data || []} 
       initialRules={rulesRes.data || []}
+      cycles={cycles || []}
     />
   )
 }

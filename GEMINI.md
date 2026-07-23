@@ -1,23 +1,33 @@
-# MoneyTrack Project Overview
+# LEGER_OS // Personal Finance Mainframe
 
-MoneyTrack is a personal finance tracking application designed to monitor expenses, budgets, and income cycles. It features a modern Next.js frontend and a Supabase (PostgreSQL) backend, with heavy reliance on Python scripts for data ingestion and database reconciliation.
+LEGER_OS is a high-precision personal finance tracking application and operating system designed to monitor expenses, budgets, and income cycles. It features a modern Next.js frontend and a Supabase (PostgreSQL) backend, with heavy reliance on Python scripts and real-time AI ingestion for data reconciliation.
 
 ## Tech Stack
 
 - **Frontend:** Next.js 16.2.9 (App Router), React 19, Tailwind CSS 4, Lucide icons, Recharts, Shadcn UI.
 - **Backend:** Supabase (Auth, Database, Storage).
-- **AI Integration:** Gemini 1.5 Flash for automatic transaction categorization.
-- **Data Ingestion:** Python scripts (Regex-based text parsing of bank extracts).
+- **AI Integration (Multi-Provider Bridge):** Powered by `src/lib/ai-bridge.ts`, supporting Google Gemini (`gemini-2.5-pro`, never use `1.5-flash`), OpenAI (`gpt-4o-mini`), Groq (`llama-3.3-70b-versatile`), and self-hosted Ollama (free local inference without API fees). Users configure their preferred provider and custom API keys in System Settings.
+- **Data Ingestion:** Python scripts and in-app statement ingestion (Regex + AI parsing of bank extracts).
 
 ## Project Structure
 
 - `src/app/`: Next.js application routes and logic.
-- `src/components/`: Reusable React components, including complex views like `DashboardView` and `ExpensesView`.
-- `src/lib/`: Utility libraries, including the Supabase client.
+    - `/leger-ai/`: Natural language assistant page leveraging `LegerAIPageView.tsx`.
+    - `/system/`: Core configuration dashboard utilizing `SystemConfigView.tsx` for API provider keys, custom quotas, and system health checks.
+    - `/analytics/`: Analytics view showing cash flow comparisons and category breakdowns.
+- `src/components/`: Reusable React components.
+    - `DashboardView.tsx`: Financial dashboard and daily projection engine simulator.
+    - `ExpensesView.tsx`: Main transactions table and editing controls.
+    - `OnboardingView.tsx`: Profile setup wizard for first-time login users.
+    - `LegerAIAssistant.tsx`: Main AI query client and sidebar component.
+- `src/lib/`: Utility libraries.
+    - `ai-bridge.ts`: Handles requests across provider options (Gemini, Groq, OpenAI, local Ollama).
+    - `server-telemetry.ts`: Diagnostic log aggregator for system health checks.
+    - `server-auth.ts`: Middleware and context helpers for Supabase multi-tenant isolation.
 - `Python Scripts` (root): A collection of tools for data management:
     - `import_transactions.py`: Parses Santander bank extracts and imports them to Supabase.
     - `audit_balances.py`: Reconciles bank statements and updates the `account_balance` snapshots.
-    - `update_schema.py`: Manages the PostgreSQL schema via direct connections.
+    - `update_schema.py`: Manages the PostgreSQL schema and profile tables via direct connections.
 - `archive/`: Legacy Django-based implementation of the tracker.
 
 ## Key Concepts
@@ -32,6 +42,7 @@ The daily projection engine (`simulateExpertDailyProjection` in `DashboardView.t
 - **Conversational AI Overrides**: Users can set natural language assumptions in Leger AI (e.g., "I'm working hybrid, reduce gas spend by 30%"). These overrides are stored in `localStorage` (`leger_cycle_overrides`) and dynamically modify category burn rates inside the simulation without requiring visual UI widgets.
 
 ### Data Model
+- `profiles`: Extends user records linked directly to `auth.users(id)` via database triggers. Stores user preferences (currency, preferred `ai_provider`, `custom_api_key`), limits (`ai_quota_limit`, `ai_quota_usage`), target budgets (`target_monthly_income`, `target_monthly_spend`), and JSONB state objects (`projection_overrides`, `ai_journal`).
 - `tracker_expense`: Stores individual transactions (legacy naming convention).
 - `categories`: User-defined expense categories with colors and icons.
 - `budgets`: Monthly budget targets per category.
@@ -67,8 +78,12 @@ Most scripts rely on a `.env` file containing:
 ## Development Conventions
 
 1.  **Next.js 16.2.9 Notice:** This project uses a specialized version of Next.js. Refer to `AGENTS.md` for specific rules and breaking changes.
-2.  **Schema Updates:** Use `update_schema.py` or similar scripts for database changes to keep everything in sync.
+2.  **Schema Updates & PostgREST Cache Invalidation:** Use `update_schema.py` or similar scripts for database changes to keep everything in sync. All SQL migration scripts must end with `NOTIFY pgrst, 'reload schema';` to force Supabase's PostgREST API to immediately clear and reload its table schema cache. Note that on Supabase Cloud, propagation over direct connections (port 5432) can take 30–60 seconds; if a `PGRST204` (missing column in schema cache) error occurs in the browser after a migration, instruct the user to perform a hard refresh (`Ctrl + F5` or `Cmd + Shift + R`) to clear cached client responses.
 3.  **Data Importing:** Bank extracts are provided as `.txt` or `.pdf` files. Parsing logic is defined in `import_transactions.py` and `audit_balances.py`.
 4.  **Categorization:** New transactions can be automatically categorized via the `/api/categorize` endpoint which interfaces with Gemini.
 5.  **No Vibecoded Slop / Minimal UI Standard:** Do not generate unsolicited UI components, decorative math, speculative metrics, or overengineered abstractions. Keep UI button labels and typography clean, professional, and minimal—do NOT add conversational emojis (e.g., ⚡, 🤖) or decorative icon components inside action buttons unless explicitly requested. All code changes must be clean, minimal, robust, and strictly scoped to explicit user requirements—never add unprompted dashboard widgets, speculative analytics cards, or complex helper libraries unless explicitly requested.
 6.  **Projection Engine Invariants:** Never simplify or remove the recency decay weighting or heavy current cycle alpha ($\alpha \ge 0.65$) in `DashboardView.tsx`. All adjustments to future cash forecasts must respect stored conversational overrides and preserve mathematical rigor over visual ornamentation.
+7.  **Strict Rebranding Invariant (`LEGER_OS`):** Never use "money track" or legacy names anywhere in code, UI, or scripts. Always use `LEGER_OS` or `LEGER_OS // Personal Finance Mainframe`.
+8.  **Multi-Provider AI & Free Alternatives:** All AI API endpoints (`/api/categorize`, `/api/analyze-cycle`, `/api/ingest/ai-parse`, `/api/leger-ai/query`) must utilize `generateAIContent` from `ai-bridge.ts` and respect client-passed `x-ai-provider` and `x-custom-api-key` headers. Always ensure users have free alternatives (like local Ollama or personal keys) without forced subscription paywalls for core data processing.
+9.  **Freemium vs. PRO Monetization:** Preserve a free Core Base tier to maximize user adoption. Gate advanced predictive simulations and high-tier neural bridge features cleanly behind `isPro` / `subscriptionTier = 'pro'` in `SystemContext`.
+10. **Universal Responsive & Theme Mastery:** Every component, table, chart, and modal must be tested and optimized for both desktop and mobile viewports (e.g., wrapping tables in `overflow-x-auto` and using responsive grid columns). All UI elements must strictly use semantic Tailwind tokens (`bg-card`, `text-foreground`, `border-border`) so dark and light modes work seamlessly without contrast degradation.

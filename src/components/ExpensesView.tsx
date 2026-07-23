@@ -1,6 +1,7 @@
 "use client"
 
 import { useState, useMemo, useEffect } from "react"
+import { motion, AnimatePresence } from "framer-motion"
 import { supabase } from "@/lib/supabase"
 import {
   Table,
@@ -24,15 +25,18 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { Sparkles, Plus, Trash2, Search, Upload, FileText, Check, Loader2, Landmark } from "lucide-react"
+import { Sparkles, Plus, Trash2, Search, Upload, FileText, Check, Loader2, Landmark, Edit2, X, ChevronDown, SlidersHorizontal, Filter, AlertTriangle } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { AuditTracePanel } from "@/components/AuditTracePanel"
 import { useSystem } from "@/lib/SystemContext"
+import { getAIHeaders } from "@/lib/ai-client"
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogDescription } from "@/components/ui/dialog"
 
 import { MagneticButton } from "@/components/unlumen-ui/magnetic-button"
 import { GlowingBadge } from "@/components/unlumen-ui/glowing-badge"
 import { PrivacyValue } from "@/components/ui/privacy-value"
+import { Tilt } from "@/components/unlumen-ui/tilt"
+import { ClippedCircle } from "@/components/unlumen-ui/clipped-circle"
 
 interface Category {
   id: number
@@ -57,16 +61,26 @@ interface Expense {
   raw_text?: string
 }
 
+interface Cycle {
+  id: string
+  label: string
+  startDate: string
+  endDate: string | null
+  paycheckAmount: number
+}
+
 interface ExpensesViewProps {
   initialExpenses: Expense[]
   categories: Category[]
   initialRules: Rule[]
+  cycles?: Cycle[]
 }
 
-export function ExpensesView({ initialExpenses, categories, initialRules }: ExpensesViewProps) {
+export function ExpensesView({ initialExpenses, categories: initialCategories, initialRules, cycles }: ExpensesViewProps) {
+  const [categories, setCategories] = useState<Category[]>(initialCategories)
   const [expenses, setExpenses] = useState<Expense[]>(() => {
     if (typeof window !== "undefined") {
-      const cached = sessionStorage.getItem("moneytrack_cache_expenses")
+      const cached = sessionStorage.getItem("leger_os_cache_expenses")
       if (cached && initialExpenses.length === 0) {
         try { return JSON.parse(cached) } catch {}
       }
@@ -74,25 +88,247 @@ export function ExpensesView({ initialExpenses, categories, initialRules }: Expe
     return initialExpenses
   })
   const [rules, setRules] = useState<Rule[]>(initialRules)
+  const [activeTab, setActiveTab] = useState("history")
   const [isCategorizing, setIsCategorizing] = useState(false)
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set())
+  const [editingMerchantId, setEditingMerchantId] = useState<string | null>(null)
+  const [editingMerchantValue, setEditingMerchantValue] = useState("")
   
-  const { setAuditPanelOpen, setActiveTransactionId, refreshData, profile } = useSystem()
+  const { setAuditPanelOpen, setActiveTransactionId, refreshData, profile, currencySymbol, aiProvider, customApiKey, isPro, setSettingsOpen, setSettingsActiveTab, setSubscriptionOnly, user } = useSystem()
 
   // Save to browser cache when expenses update
   useEffect(() => {
     if (typeof window !== "undefined" && expenses.length > 0) {
-      try { sessionStorage.setItem("moneytrack_cache_expenses", JSON.stringify(expenses)) } catch {}
+      try { sessionStorage.setItem("leger_os_cache_expenses", JSON.stringify(expenses)) } catch {}
     }
   }, [expenses])
+
+  // Sync state when parent server components re-fetch and refresh props
+  useEffect(() => {
+    setExpenses(initialExpenses)
+  }, [initialExpenses])
+
+  useEffect(() => {
+    setCategories(initialCategories)
+  }, [initialCategories])
+
+  useEffect(() => {
+    setRules(initialRules)
+  }, [initialRules])
+
+  const currentCycle = cycles && cycles.length > 0 ? cycles[0] : null
+
+  const cycleExpenses = useMemo(() => {
+    if (!currentCycle) return []
+    const start = new Date(currentCycle.startDate)
+    const end = currentCycle.endDate ? new Date(currentCycle.endDate) : null
+    
+    return expenses.filter(e => {
+      const d = new Date(e.date)
+      const dTime = new Date(d.getFullYear(), d.getMonth(), d.getDate()).getTime()
+      const sTime = new Date(start.getFullYear(), start.getMonth(), start.getDate()).getTime()
+      const eTime = end ? new Date(end.getFullYear(), end.getMonth(), end.getDate()).getTime() : null
+      
+      return dTime >= sTime && (!eTime || dTime <= eTime)
+    })
+  }, [expenses, currentCycle])
+
+  const totalOut = useMemo(() => cycleExpenses
+    .filter(e => parseFloat(e.amount as string) < 0)
+    .reduce((sum, e) => sum + Math.abs(parseFloat(e.amount as string)), 0), [cycleExpenses])
+
+  const totalIn = useMemo(() => cycleExpenses
+    .filter(e => parseFloat(e.amount as string) > 0)
+    .reduce((sum, e) => sum + parseFloat(e.amount as string), 0), [cycleExpenses])
+
+  const daysElapsed = useMemo(() => {
+    if (!currentCycle) return 1
+    const today = new Date()
+    const start = new Date(currentCycle.startDate)
+    return Math.max(1, Math.floor((today.getTime() - start.getTime()) / 86400000))
+  }, [currentCycle])
+
+  const spendingLimit = profile?.target_monthly_spend || 1500
+
+  useEffect(() => {
+    if (typeof window !== "undefined") {
+      const unclassifiedCount = expenses.filter(e => !e.category_id).length;
+      
+      const spendingByCategory: { name: string; value: number }[] = categories.map(cat => {
+        const spent = cycleExpenses
+          .filter(exp => exp.category_id === cat.id && parseFloat(exp.amount as string) < 0)
+          .reduce((sum, exp) => sum + Math.abs(parseFloat(exp.amount as string) || 0), 0)
+        return { name: cat.name, value: spent }
+      }).filter(c => c.value > 0).sort((a, b) => b.value - a.value);
+
+      const topExpenses = cycleExpenses
+        .filter(e => parseFloat(e.amount as string) < 0)
+        .sort((a, b) => parseFloat(a.amount as string) - parseFloat(b.amount as string))
+        .slice(0, 10)
+        .map(e => ({ date: e.date, merchant: e.merchant, amount: e.amount, category_id: e.category_id }));
+
+      const recentExpenses = [...cycleExpenses]
+        .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
+        .slice(0, 10)
+        .map(e => ({ date: e.date, merchant: e.merchant, amount: e.amount, category_id: e.category_id }));
+
+      (window as any).__leger_cycle_telemetry = {
+        totalIn,
+        totalOut,
+        currentBalance: totalIn - totalOut, // net delta
+        velocity: 1.0,
+        daysElapsed,
+        spendingLimit,
+        categories: spendingByCategory,
+        netDelta: totalIn - totalOut,
+        totalExpenses: expenses.length,
+        unclassifiedCount,
+        recentExpense: expenses[0] || null,
+        categoriesCount: categories.length,
+        topExpenses,
+        recentExpenses
+      };
+      window.dispatchEvent(new Event("leger_telemetry_updated"));
+    }
+  }, [expenses, categories, cycleExpenses, totalIn, totalOut, daysElapsed, spendingLimit, profile])
+
+  // --- Filtering States ---
+  const [isFiltersVisible, setIsFiltersVisible] = useState(false)
+  const [filterSearch, setFilterSearch] = useState("")
+  const [filterCategory, setFilterCategory] = useState<string>("ALL")
+  const [filterType, setFilterType] = useState<"all" | "inflow" | "outflow">("all")
+  const [filterSource, setFilterSource] = useState<string>("ALL")
+  const [filterDatePreset, setFilterDatePreset] = useState<string>("all")
+  const [filterStartDate, setFilterStartDate] = useState("")
+  const [filterEndDate, setFilterEndDate] = useState("")
+  const [filterMinAmount, setFilterMinAmount] = useState("")
+  const [filterMaxAmount, setFilterMaxAmount] = useState("")
+
+  const uniqueSources = useMemo(() => {
+    const sources = new Set<string>()
+    expenses.forEach(e => {
+      if (e.source) sources.add(e.source)
+    })
+    return Array.from(sources).sort()
+  }, [expenses])
+
+  const activeCycle = useMemo(() => {
+    if (!cycles || cycles.length === 0) return null
+    return cycles[cycles.length - 1]
+  }, [cycles])
+
+  const dateBoundaries = useMemo(() => {
+    const today = new Date()
+    let start = new Date(0)
+    let end = new Date(today.getFullYear(), today.getMonth(), today.getDate(), 23, 59, 59, 999)
+
+    if (filterDatePreset === "cycle" && activeCycle) {
+      start = new Date(activeCycle.startDate)
+      if (activeCycle.endDate) {
+        end = new Date(activeCycle.endDate)
+      } else {
+        end = new Date()
+        end.setDate(end.getDate() + 1)
+      }
+    } else if (filterDatePreset === "30days") {
+      start = new Date()
+      start.setDate(today.getDate() - 30)
+    } else if (filterDatePreset === "90days") {
+      start = new Date()
+      start.setDate(today.getDate() - 90)
+    } else if (filterDatePreset === "ytd") {
+      start = new Date(today.getFullYear(), 0, 1)
+    } else if (filterDatePreset === "custom") {
+      if (filterStartDate) start = new Date(filterStartDate)
+      if (filterEndDate) {
+        end = new Date(filterEndDate)
+        end.setHours(23, 59, 59, 999)
+      }
+    }
+
+    return { start, end }
+  }, [filterDatePreset, activeCycle, filterStartDate, filterEndDate])
+
+  const filteredExpenses = useMemo(() => {
+    return expenses.filter(exp => {
+      // 1. Search Query
+      if (filterSearch.trim() !== "") {
+        const query = filterSearch.toLowerCase()
+        const merchantMatch = exp.merchant?.toLowerCase().includes(query)
+        const rawTextMatch = exp.raw_text?.toLowerCase().includes(query)
+        if (!merchantMatch && !rawTextMatch) return false
+      }
+
+      // 2. Category
+      if (filterCategory !== "ALL") {
+        if (filterCategory === "UNCATEGORIZED") {
+          if (exp.category_id !== null && exp.category_id !== undefined) return false
+        } else {
+          if (exp.category_id?.toString() !== filterCategory) return false
+        }
+      }
+
+      // 3. Record Type
+      const amt = parseFloat(exp.amount.toString()) || 0
+      if (filterType === "inflow" && amt <= 0) return false
+      if (filterType === "outflow" && amt >= 0) return false
+
+      // 4. Source
+      if (filterSource !== "ALL") {
+        if (exp.source !== filterSource) return false
+      }
+
+      // 5. Date Boundaries
+      const expDate = new Date(exp.date)
+      if (expDate < dateBoundaries.start || expDate > dateBoundaries.end) return false
+
+      // 6. Amount Range
+      if (filterMinAmount !== "") {
+        const minVal = parseFloat(filterMinAmount)
+        if (!isNaN(minVal) && Math.abs(amt) < minVal) return false
+      }
+      if (filterMaxAmount !== "") {
+        const maxVal = parseFloat(filterMaxAmount)
+        if (!isNaN(maxVal) && Math.abs(amt) > maxVal) return false
+      }
+
+      return true
+    })
+  }, [expenses, filterSearch, filterCategory, filterType, filterSource, dateBoundaries, filterMinAmount, filterMaxAmount])
+
+  const hasActiveFilters = useMemo(() => {
+    return (
+      filterSearch !== "" ||
+      filterCategory !== "ALL" ||
+      filterType !== "all" ||
+      filterSource !== "ALL" ||
+      filterDatePreset !== "all" ||
+      filterMinAmount !== "" ||
+      filterMaxAmount !== ""
+    )
+  }, [filterSearch, filterCategory, filterType, filterSource, filterDatePreset, filterMinAmount, filterMaxAmount])
+
+  const handleResetFilters = () => {
+    setFilterSearch("")
+    setFilterCategory("ALL")
+    setFilterType("all")
+    setFilterSource("ALL")
+    setFilterDatePreset("all")
+    setFilterStartDate("")
+    setFilterEndDate("")
+    setFilterMinAmount("")
+    setFilterMaxAmount("")
+    setCurrentPage(1)
+  }
 
   // Pagination & High-Performance Memoization
   const [currentPage, setCurrentPage] = useState(1)
   const pageSize = 40
 
-  const totalPages = Math.ceil(expenses.length / pageSize)
+  const totalPages = Math.ceil(filteredExpenses.length / pageSize)
   const paginatedExpenses = useMemo(() => {
-    return expenses.slice((currentPage - 1) * pageSize, currentPage * pageSize)
-  }, [expenses, currentPage])
+    return filteredExpenses.slice((currentPage - 1) * pageSize, currentPage * pageSize)
+  }, [filteredExpenses, currentPage])
 
   useEffect(() => {
     if (currentPage > totalPages && totalPages > 0) {
@@ -103,17 +339,17 @@ export function ExpensesView({ initialExpenses, categories, initialRules }: Expe
   const summaryStats = useMemo(() => {
     let inflow = 0
     let outflow = 0
-    for (let i = 0; i < expenses.length; i++) {
-      const amt = parseFloat(expenses[i].amount.toString()) || 0
+    for (let i = 0; i < filteredExpenses.length; i++) {
+      const amt = parseFloat(filteredExpenses[i].amount.toString()) || 0
       if (amt > 0) inflow += amt
       else if (amt < 0) outflow += Math.abs(amt)
     }
     return {
-      total: expenses.length,
+      total: filteredExpenses.length,
       inflow: inflow.toFixed(2),
       outflow: outflow.toFixed(2)
     }
-  }, [expenses])
+  }, [filteredExpenses])
 
   // New Rule State
   const [newRuleKeyword, setNewRuleKeyword] = useState("")
@@ -127,6 +363,10 @@ export function ExpensesView({ initialExpenses, categories, initialRules }: Expe
   const [manualDate, setManualDate] = useState(new Date().toISOString().split('T')[0])
   const [isIncome, setIsIncome] = useState(false)
   const [isSavingManual, setIsSavingManual] = useState(false)
+
+  // Deletion confirmation custom dialog states (Jakob's Law UX alignment)
+  const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false)
+  const [deleteTarget, setDeleteTarget] = useState<{ id: string; type: "transaction" | "rule" } | null>(null)
 
   // Ingestion Node State
   const [extractText, setExtractText] = useState("")
@@ -165,46 +405,108 @@ export function ExpensesView({ initialExpenses, categories, initialRules }: Expe
     return null
   }
 
-  const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]
     if (!file) return
 
-    const reader = new FileReader()
-    reader.onload = (event) => {
-      const text = event.target?.result as string
-      setExtractText(text)
-      toast.success(`Loaded file: ${file.name}`)
+    if (file.name.endsWith(".pdf")) {
+      const toastId = toast.loading(`Extracting text from PDF: ${file.name}...`)
+      try {
+        const arrayBuffer = await file.arrayBuffer()
+        const res = await fetch("/api/ingest/parse-pdf", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/octet-stream"
+          },
+          body: arrayBuffer
+        })
+        const data = await res.json()
+        if (!res.ok) throw new Error(data.error || "Failed to extract PDF text")
+        
+        setExtractText(data.text)
+        toast.success(`Successfully loaded and extracted PDF text!`, { id: toastId })
+        
+        // Auto-run the regex parser immediately for instant feedback
+        setTimeout(() => {
+          handleParseExtract(data.text)
+        }, 100)
+      } catch (err: any) {
+        console.error(err)
+        toast.error(`PDF Import error: ${err.message}`, { id: toastId })
+      }
+    } else {
+      const reader = new FileReader()
+      reader.onload = (event) => {
+        const text = event.target?.result as string
+        setExtractText(text)
+        toast.success(`Loaded file: ${file.name}`)
+        
+        // Auto-run the regex parser immediately for instant feedback
+        setTimeout(() => {
+          handleParseExtract(text)
+        }, 100)
+      }
+      reader.onerror = () => {
+        toast.error("Error reading text file.")
+      }
+      reader.readAsText(file)
     }
-    reader.onerror = () => {
-      toast.error("Error reading text file.")
-    }
-    reader.readAsText(file)
   }
 
-  const handleParseExtract = () => {
-    if (!extractText.trim()) {
+  const handleParseExtract = (inputText?: string | React.MouseEvent) => {
+    const textToParse = typeof inputText === "string" ? inputText : extractText
+    if (!textToParse.trim()) {
       toast.error("Please paste bank statement text first.")
       return
     }
 
     try {
-      const txPattern1 = /^(\d{2}-\d{2})\s+\d{2}-\d{2}\s+(.+?)\s+(-?\d+,\d{2})\s+(-?\d+,\d{2})$/
-      const txPattern2 = /^(\d{2}-\d{2})\s+\d{2}-\d{2}\s+(.+?)\s+(-?\d+,\d{2})\s+\d+,\d{2}$/
-      const balancePattern = /Saldo Inicial EUR ([\d.,]+)/
-      const periodPattern = /PERÍODO DE (\d{4})-\d{2}-\d{2} A (\d{4})-\d{2}-\d{2}/
+      // Explicit pattern: date, optional second date, merchant, amount with optional sign (+/-), optional currency, optional trailing balance and currency (handles spaces optional)
+      const txPatternA = /^(\d{2}[-\/]\d{2}(?:[-\/]\d{4})?)(?:\s+\d{2}[-\/]\d{2}(?:[-\/]\d{4})?)?\s+(.+?)\s*([+-]?[\d.]+,\d{2})(?:\s*(?:EUR|[\w$€£]+))?(?:\s+(-?[\d.]+(?:,\d{2})?)(?:\s*(?:EUR|[\w$€£]+))?)?$/
+      
+      // Period and balance patterns for Format A
+      const balancePattern = /Saldo Inicial EUR ([\d.,]+)/i
+      const periodPattern = /PERÍODO DE (\d{4})-\d{2}-\d{2} A (\d{4})-\d{2}-\d{2}/i
 
-      const lines = extractText.split("\n")
+      const rawLines = textToParse.split("\n")
+      const lines: string[] = []
+      let currentTxLine = ""
+
+      for (let i = 0; i < rawLines.length; i++) {
+        const line = rawLines[i].trim()
+        if (!line) continue
+
+        if (/^\d{2}[-\/]\d{2}/.test(line)) {
+          if (currentTxLine) {
+            lines.push(currentTxLine)
+          }
+          currentTxLine = line
+        } else {
+          if (currentTxLine) {
+            if (txPatternA.test(currentTxLine)) {
+              // Already complete, do not append subsequent garbage lines (e.g. copyright footer)
+            } else {
+              currentTxLine += " " + line
+            }
+          } else {
+            lines.push(line)
+          }
+        }
+      }
+      if (currentTxLine) {
+        lines.push(currentTxLine)
+      }
       
       let startYear = new Date().getFullYear()
       let endYear = new Date().getFullYear()
-      const periodMatch = extractText.match(periodPattern)
+      const periodMatch = textToParse.match(periodPattern)
       if (periodMatch) {
         startYear = parseInt(periodMatch[1])
         endYear = parseInt(periodMatch[2])
       }
 
       let initialBalance = 0
-      const balanceMatch = extractText.match(balancePattern)
+      const balanceMatch = textToParse.match(balancePattern)
       if (balanceMatch) {
         initialBalance = parseFloat(balanceMatch[1].replace(/\./g, "").replace(",", "."))
       }
@@ -214,16 +516,29 @@ export function ExpensesView({ initialExpenses, categories, initialRules }: Expe
 
       const txList: any[] = []
 
-      lines.forEach((line, index) => {
-        const trimmed = line.trim()
-        const match = trimmed.match(txPattern1) || trimmed.match(txPattern2)
-        if (match) {
-          const [_, dateStr, merchant, amountStr] = match
+      // Month name parser helper
+      const parsePortugueseMonth = (mStr: string) => {
+        const mClean = mStr.toLowerCase().replace(/\./g, "").trim()
+        const months: Record<string, number> = {
+          jan: 1, fev: 2, mar: 3, abr: 4, mai: 5, jun: 6,
+          jul: 7, ago: 8, set: 9, out: 10, nov: 11, dez: 12
+        }
+        return months[mClean] || 1
+      }
+
+      for (let i = 0; i < lines.length; i++) {
+        const line = lines[i].trim()
+        if (!line) continue
+
+        // 1. Try Format A (single-line consolidated statement)
+        const matchA = line.match(txPatternA)
+        if (matchA) {
+          const [_, dateStr, merchant, amountStr] = matchA
           const amountVal = parseFloat(amountStr.replace(/\./g, "").replace(",", "."))
-          const [dayStr, monthStr] = dateStr.split("-")
-          const day = parseInt(dayStr)
-          const month = parseInt(monthStr)
-          const txYear = (month >= 11) ? startYear : endYear
+          const dateParts = dateStr.split(/[-\/]/)
+          const day = parseInt(dateParts[0])
+          const month = parseInt(dateParts[1])
+          const txYear = dateParts.length === 3 ? parseInt(dateParts[2]) : ((month >= 11) ? startYear : endYear)
           
           detectedMonth = month
           detectedYear = txYear
@@ -241,17 +556,19 @@ export function ExpensesView({ initialExpenses, categories, initialRules }: Expe
           const categoryId = matchCategory(merchant, rules, categories)
 
           txList.push({
-            id: `temp-${index}-${Date.now()}`,
+            id: `temp-${i}-${Date.now()}`,
             amount: amountVal,
             merchant: merchant.trim(),
             date: new Date(Date.UTC(txYear, month - 1, day)).toISOString(),
-            raw_text: trimmed,
+            raw_text: line,
             isIncome,
             category_id: categoryId,
             checked: true
           })
+          continue
         }
-      })
+
+      }
 
       const balanceDate = `${detectedYear}-${String(detectedMonth).padStart(2, '0')}-01`
 
@@ -276,18 +593,28 @@ export function ExpensesView({ initialExpenses, categories, initialRules }: Expe
   }
 
   const handleAiSmartParse = async () => {
+    if (!isPro) {
+      toast.error("AI Smart Ingestion is a LEGER_OS PRO feature.", {
+        description: "Upgrade to PRO to unlock neural extraction of statements.",
+      })
+      setSettingsActiveTab("pro")
+      setSubscriptionOnly(true)
+      setSettingsOpen(true)
+      return
+    }
+
     if (!extractText.trim()) {
       toast.error("Please paste statement text or upload a file first.")
       return
     }
 
     setIsAiParsing(true)
-    const toastId = toast.loading("🤖 Leger AI is analyzing statement structure across universal bank formats...")
+    const toastId = toast.loading("Leger AI is analyzing statement structure across universal bank formats...")
 
     try {
       const res = await fetch("/api/ingest/ai-parse", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: getAIHeaders(aiProvider, customApiKey),
         body: JSON.stringify({ text: extractText })
       })
 
@@ -329,7 +656,7 @@ export function ExpensesView({ initialExpenses, categories, initialRules }: Expe
         transactions: txList
       })
 
-      toast.success(`🤖 Leger AI extracted ${txList.length} transactions successfully!`, { id: toastId })
+      toast.success(`Leger AI extracted ${txList.length} transactions successfully!`, { id: toastId })
     } catch (err: any) {
       console.error(err)
       toast.error(`AI Parse error: ${err.message}`, { id: toastId })
@@ -356,8 +683,9 @@ export function ExpensesView({ initialExpenses, categories, initialRules }: Expe
           .from("account_balance")
           .upsert({
             amount: parsedData.startBalance.toString(),
-            date: parsedData.startDate
-          }, { onConflict: 'date' })
+            date: parsedData.startDate,
+            user_id: user?.id
+          }, { onConflict: 'user_id,date' })
         
         if (balError) throw balError
       }
@@ -373,8 +701,9 @@ export function ExpensesView({ initialExpenses, categories, initialRules }: Expe
           .upsert({
             amount: incomeSum,
             month: parsedData.month,
-            year: parsedData.year
-          }, { onConflict: 'month,year' })
+            year: parsedData.year,
+            user_id: user?.id
+          }, { onConflict: 'user_id,month,year' })
         
         if (incError) throw incError
       }
@@ -411,12 +740,31 @@ export function ExpensesView({ initialExpenses, categories, initialRules }: Expe
   }
 
   const openAudit = (id: string) => {
+    if (!isPro) {
+      toast.error("Forensic Transaction Auditing is a LEGER_OS PRO feature.", {
+        description: "Upgrade to PRO to inspect transaction anomalies and edit record balances.",
+      })
+      setSettingsActiveTab("pro")
+      setSubscriptionOnly(true)
+      setSettingsOpen(true)
+      return
+    }
     setActiveTransactionId(id)
     setAuditPanelOpen(true)
   }
 
   const handleCategoryChange = async (expenseId: string, categoryId: string) => {
     const catId = categoryId === "none" ? null : parseInt(categoryId)
+    
+    // Optimistically update list state instantly
+    const previousExpenses = [...expenses]
+    setExpenses(prev =>
+      prev.map(exp =>
+        exp.id.toString() === expenseId.toString() ? { ...exp, category_id: catId } : exp
+      )
+    )
+    toast.success("Category updated")
+
     const { error } = await supabase
       .from("tracker_expense")
       .update({ category_id: catId })
@@ -424,17 +772,117 @@ export function ExpensesView({ initialExpenses, categories, initialRules }: Expe
 
     if (error) {
       toast.error("Failed to update category")
+      setExpenses(previousExpenses)
       console.error(error)
       return
     }
+  }
 
+  const handleBulkCategoryChange = async (categoryId: string | null) => {
+    if (!categoryId || selectedIds.size === 0) return
+    const catId = categoryId === "none" ? null : parseInt(categoryId)
+    const idsArray = Array.from(selectedIds)
+    
+    // Optimistically update lists and clear selection instantly
+    const previousExpenses = [...expenses]
     setExpenses(prev =>
       prev.map(exp =>
-        exp.id === expenseId ? { ...exp, category_id: catId } : exp
+        selectedIds.has(exp.id.toString()) ? { ...exp, category_id: catId } : exp
       )
     )
-    toast.success("Category updated")
-    refreshData()
+    const selectedCopy = new Set(selectedIds)
+    setSelectedIds(new Set())
+    toast.success("Bulk categories updated")
+
+    const { error } = await supabase
+      .from("tracker_expense")
+      .update({ category_id: catId })
+      .in("id", idsArray)
+
+    if (error) {
+      toast.error("Failed to bulk update categories")
+      setExpenses(previousExpenses)
+      setSelectedIds(selectedCopy)
+      console.error(error)
+      return
+    }
+  }
+
+  const handleBulkDelete = async () => {
+    if (selectedIds.size === 0) return
+    if (!confirm(`Delete ${selectedIds.size} selected transactions?`)) return
+    const idsArray = Array.from(selectedIds)
+    const previousExpenses = [...expenses]
+    const selectedCopy = new Set(selectedIds)
+
+    // Optimistically update state instantly
+    setExpenses(prev => prev.filter(exp => !selectedIds.has(exp.id.toString())))
+    setSelectedIds(new Set())
+    toast.success(`Deleted ${selectedCopy.size} transactions`)
+
+    const { error } = await supabase
+      .from("tracker_expense")
+      .delete()
+      .in("id", idsArray)
+
+    if (error) {
+      toast.error("Failed to delete transactions")
+      setExpenses(previousExpenses)
+      setSelectedIds(selectedCopy)
+      console.error(error)
+      return
+    }
+  }
+
+  const handleSaveMerchant = async (expenseId: string, newMerchant: string) => {
+    const trimmed = newMerchant.trim()
+    const originalExpense = expenses.find(e => e.id.toString() === expenseId.toString())
+    if (!trimmed || trimmed === originalExpense?.merchant) {
+      setEditingMerchantId(null)
+      return
+    }
+
+    const previousExpenses = [...expenses]
+
+    // Optimistically update state and close editor instantly
+    setExpenses(prev =>
+      prev.map(exp => exp.id.toString() === expenseId.toString() ? { ...exp, merchant: trimmed } : exp)
+    )
+    setEditingMerchantId(null)
+    toast.success("Merchant updated")
+
+    const { error } = await supabase
+      .from("tracker_expense")
+      .update({ merchant: trimmed })
+      .eq("id", expenseId)
+
+    if (error) {
+      toast.error("Failed to update merchant")
+      setExpenses(previousExpenses)
+      console.error(error)
+      return
+    }
+  }
+
+  const handleSelectAll = () => {
+    const pageIds = paginatedExpenses.map(e => e.id)
+    const allSelected = pageIds.length > 0 && pageIds.every(id => selectedIds.has(id))
+    if (allSelected) {
+      const next = new Set(selectedIds)
+      pageIds.forEach(id => next.delete(id))
+      setSelectedIds(next)
+    } else {
+      const next = new Set(selectedIds)
+      pageIds.forEach(id => next.add(id))
+      setSelectedIds(next)
+    }
+  }
+
+  const handleSelectOne = (id: string) => {
+    const next = new Set(selectedIds)
+    if (next.has(id)) next.delete(id)
+    else next.add(id)
+    setSelectedIds(next)
   }
 
   const getLocalCategory = (merchant: string) => {
@@ -446,12 +894,22 @@ export function ExpensesView({ initialExpenses, categories, initialRules }: Expe
       return categories.find(c => c.name === "Gas")
     }
 
-    if (name.includes("eupago") || name.includes("betclic") || name.includes("betano") || 
-        name.includes("keydrop") || name.includes("casino") || name.includes("jogos santa casa")) {
+    if (
+      name.includes("eupago - inst") || name.includes("eupago- inst") ||
+      name.includes("eu pago - inst") || name.includes("eu pago- inst") ||
+      name.includes("trf.imed.") || name.includes("trf imed") ||
+      name.includes("betclic") || name.includes("betano") || 
+      name.includes("keydrop") || name.includes("casino") || 
+      name.includes("jogos santa casa")
+    ) {
       return categories.find(c => c.name === "Gambling")
     }
 
-    if (name.includes("trf.imed.") || name.includes("mbway") || name.includes("mb way") || 
+    if (name.includes("eupago") || name.includes("eu pago")) {
+      return categories.find(c => c.name === "Other")
+    }
+
+    if (name.includes("mbway") || name.includes("mb way") || 
         name.startsWith("p/ ") || name.startsWith("de ")) {
       return categories.find(c => c.name === "MB WAY")
     }
@@ -490,6 +948,15 @@ export function ExpensesView({ initialExpenses, categories, initialRules }: Expe
   }
 
   const smartCategorize = async () => {
+    if (!isPro) {
+      toast.error("AI Cleanse & Categorize is a LEGER_OS PRO feature.", {
+        description: "Upgrade to PRO to unlock neural transaction cleansing and automated categorization.",
+      })
+      setSettingsActiveTab("pro")
+      setSubscriptionOnly(true)
+      setSettingsOpen(true)
+      return
+    }
     const uncategorized = expenses.filter(e => !e.category_id)
     if (uncategorized.length === 0) {
       toast.info("No uncategorized expenses found")
@@ -528,7 +995,7 @@ export function ExpensesView({ initialExpenses, categories, initialRules }: Expe
       try {
         const response = await fetch("/api/categorize", {
           method: "POST",
-          headers: { "Content-Type": "application/json" },
+          headers: getAIHeaders(aiProvider, customApiKey),
           body: JSON.stringify({ expenses: remainingForAI, categories })
         })
 
@@ -537,25 +1004,29 @@ export function ExpensesView({ initialExpenses, categories, initialRules }: Expe
         } else if (response.ok) {
           const data = await response.json()
           
-          const updates: { id: string, category_id: number }[] = []
+          const updates: { id: string, category_id?: number, merchant?: string }[] = []
           for (let i = 0; i < remainingForAI.length; i++) {
             const predictedCategoryName = data.predictions[i]
+            const cleanedMerchant = data.cleanedMerchants ? data.cleanedMerchants[i] : null
             const category = categories.find(c => c.name === predictedCategoryName)
-            if (category) {
-              updates.push({ id: remainingForAI[i].id, category_id: category.id })
+            if (category || (cleanedMerchant && typeof cleanedMerchant === 'string')) {
+              const u: { id: string, category_id?: number, merchant?: string } = { id: remainingForAI[i].id }
+              if (category) u.category_id = category.id
+              if (cleanedMerchant && typeof cleanedMerchant === 'string') u.merchant = cleanedMerchant
+              updates.push(u)
             }
           }
 
           if (updates.length > 0) {
-            const { error: sbErr } = await supabase.from("tracker_expense").upsert(updates)
-            if (!sbErr) {
-              setExpenses(prev => prev.map(exp => {
-                const update = updates.find(u => u.id === exp.id)
-                return update ? { ...exp, category_id: update.category_id } : exp
-              }))
-              successCount += updates.length
-              toast.success(`Leger AI categorized ${updates.length} additional expenses!`)
-            }
+            await Promise.all(
+              updates.map(u => supabase.from("tracker_expense").update(u).eq("id", u.id))
+            )
+            setExpenses(prev => prev.map(exp => {
+              const update = updates.find(u => u.id === exp.id)
+              return update ? { ...exp, ...update } : exp
+            }))
+            successCount += updates.length
+            toast.success(`Leger AI cleansed & categorized ${updates.length} additional expenses!`)
           }
         } else {
           toast.error("AI categorization failed")
@@ -568,8 +1039,74 @@ export function ExpensesView({ initialExpenses, categories, initialRules }: Expe
 
     setIsCategorizing(false)
     if (successCount > 0) {
-      toast.success(`Total categorized: ${successCount}`)
+      toast.success(`Total processed: ${successCount}`)
       refreshData()
+    }
+  }
+
+  const handleBulkAiCleanse = async () => {
+    if (!isPro) {
+      toast.error("AI Cleanse & Categorize is a LEGER_OS PRO feature.", {
+        description: "Upgrade to PRO to unlock neural transaction cleansing and automated categorization.",
+      })
+      setSettingsActiveTab("pro")
+      setSubscriptionOnly(true)
+      setSettingsOpen(true)
+      return
+    }
+    if (selectedIds.size === 0) return
+    const selectedTxs = expenses.filter(e => selectedIds.has(e.id))
+    if (selectedTxs.length === 0) return
+
+    setIsCategorizing(true)
+    toast.info(`Consulting Leger AI to cleanse & categorize ${selectedTxs.length} selected items...`)
+
+    try {
+      const response = await fetch("/api/categorize", {
+        method: "POST",
+        headers: getAIHeaders(aiProvider, customApiKey),
+        body: JSON.stringify({ expenses: selectedTxs, categories })
+      })
+
+      if (response.status === 429) {
+        toast.error("Leger AI Quota Exceeded. Please try again later.")
+      } else if (response.ok) {
+        const data = await response.json()
+        const updates: { id: string, category_id?: number, merchant?: string }[] = []
+        for (let i = 0; i < selectedTxs.length; i++) {
+          const predictedCategoryName = data.predictions[i]
+          const cleanedMerchant = data.cleanedMerchants ? data.cleanedMerchants[i] : null
+          const category = categories.find(c => c.name === predictedCategoryName)
+          if (category || (cleanedMerchant && typeof cleanedMerchant === 'string')) {
+            const u: { id: string, category_id?: number, merchant?: string } = { id: selectedTxs[i].id }
+            if (category) u.category_id = category.id
+            if (cleanedMerchant && typeof cleanedMerchant === 'string') u.merchant = cleanedMerchant
+            updates.push(u)
+          }
+        }
+
+        if (updates.length > 0) {
+          await Promise.all(
+            updates.map(u => supabase.from("tracker_expense").update(u).eq("id", u.id))
+          )
+          setExpenses(prev => prev.map(exp => {
+            const update = updates.find(u => u.id === exp.id)
+            return update ? { ...exp, ...update } : exp
+          }))
+          toast.success(`Leger AI cleansed & categorized ${updates.length} transactions!`)
+          setSelectedIds(new Set())
+          refreshData()
+        } else {
+          toast.info("No new updates generated for selected items.")
+        }
+      } else {
+        toast.error("AI cleansing failed")
+      }
+    } catch (err) {
+      console.error("AI Error:", err)
+      toast.error("Failed to connect to AI service")
+    } finally {
+      setIsCategorizing(false)
     }
   }
 
@@ -596,35 +1133,53 @@ export function ExpensesView({ initialExpenses, categories, initialRules }: Expe
     }
   }
 
-  const handleDeleteRule = async (id: string) => {
-    const { error } = await supabase
-      .from("merchant_rules")
-      .delete()
-      .eq("id", id)
-
-    if (error) {
-      toast.error("Failed to delete rule")
-      return
-    }
-
-    setRules(rules.filter(r => Number(r.id) !== Number(id)))
-    toast.success("Rule deleted")
+  const handleDeleteRule = (id: string) => {
+    setDeleteTarget({ id, type: "rule" })
+    setDeleteConfirmOpen(true)
   }
 
-  const handleDeleteExpense = async (id: string) => {
-    const { error } = await supabase
-      .from("tracker_expense")
-      .delete()
-      .eq("id", id)
+  const handleDeleteExpense = (id: string) => {
+    setDeleteTarget({ id, type: "transaction" })
+    setDeleteConfirmOpen(true)
+  }
 
-    if (error) {
-      toast.error("Failed to delete transaction")
-      return
+  const executeDelete = async () => {
+    if (!deleteTarget) return
+    const { id, type } = deleteTarget
+    setDeleteConfirmOpen(false)
+    setDeleteTarget(null)
+
+    if (type === "rule") {
+      const previousRules = [...rules]
+      setRules(rules.filter(r => Number(r.id) !== Number(id)))
+      toast.success("Rule deleted")
+
+      const { error } = await supabase
+        .from("merchant_rules")
+        .delete()
+        .eq("id", id)
+
+      if (error) {
+        toast.error("Failed to delete rule")
+        setRules(previousRules)
+        return
+      }
+    } else {
+      const previousExpenses = [...expenses]
+      setExpenses(prev => prev.filter(exp => exp.id.toString() !== id.toString()))
+      toast.success("Transaction deleted")
+
+      const { error } = await supabase
+        .from("tracker_expense")
+        .delete()
+        .eq("id", id)
+
+      if (error) {
+        toast.error("Failed to delete transaction")
+        setExpenses(previousExpenses)
+        return
+      }
     }
-
-    setExpenses(prev => prev.filter(exp => exp.id !== id))
-    toast.success("Transaction deleted")
-    refreshData()
   }
 
   const handleAddManualExpense = async (e: React.FormEvent) => {
@@ -634,11 +1189,32 @@ export function ExpensesView({ initialExpenses, categories, initialRules }: Expe
       return
     }
 
+    const amtVal = parseFloat(manualAmount)
+    const formattedAmount = isIncome ? Math.abs(amtVal) : -Math.abs(amtVal)
+    const tempId = `temp-${Date.now()}`
+    
+    const newTx: Expense = {
+      id: tempId,
+      amount: formattedAmount,
+      merchant: manualMerchant.toUpperCase(),
+      date: manualDate,
+      source: "Manual UI Ingest",
+      raw_text: `Manual Entry: ${manualMerchant.toUpperCase()} [${manualDate}]`,
+      category_id: manualCategoryId ? parseInt(manualCategoryId) : null
+    }
+
+    // Optimistically update list state and close overlay drawer instantly
+    setExpenses(prev => [newTx, ...prev])
+    setIsAddOpen(false)
+    setManualAmount("")
+    setManualMerchant("")
+    setManualCategoryId("")
+    setManualDate(new Date().toISOString().split('T')[0])
+    setIsIncome(false)
+    toast.success("Transaction committed successfully.")
+
     setIsSavingManual(true)
     try {
-      const amtVal = parseFloat(manualAmount)
-      const formattedAmount = isIncome ? Math.abs(amtVal) : -Math.abs(amtVal)
-      
       const { data, error } = await supabase
         .from("tracker_expense")
         .insert({
@@ -654,19 +1230,13 @@ export function ExpensesView({ initialExpenses, categories, initialRules }: Expe
       if (error) throw error
 
       if (data && data[0]) {
-        setExpenses(prev => [data[0] as Expense, ...prev])
-        toast.success("Transaction committed successfully.")
-        setIsAddOpen(false)
-        setManualAmount("")
-        setManualMerchant("")
-        setManualCategoryId("")
-        setManualDate(new Date().toISOString().split('T')[0])
-        setIsIncome(false)
-        refreshData()
+        // Swap temp state item with the resolved DB response data item
+        setExpenses(prev => prev.map(exp => exp.id.toString() === tempId.toString() ? (data[0] as Expense) : exp))
       }
     } catch (err: any) {
       console.error(err)
       toast.error(`Manual insert failure: ${err.message}`)
+      setExpenses(prev => prev.filter(exp => exp.id.toString() !== tempId.toString()))
     } finally {
       setIsSavingManual(false)
     }
@@ -674,28 +1244,61 @@ export function ExpensesView({ initialExpenses, categories, initialRules }: Expe
 
   return (
     <>
-      <div className="mx-auto max-w-5xl p-4 md:p-8 space-y-6 w-full">
+      <motion.div
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        transition={{ duration: 0.2, ease: "easeOut" }}
+        className="mx-auto max-w-[1500px] p-4 md:p-8 space-y-6 w-full"
+      >
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
           <div>
-            <h1 className="text-3xl font-bold tracking-tight">Expenses</h1>
-            <p className="text-muted-foreground">Manage your spending and automation rules.</p>
+            <h1 className="text-3xl font-bold tracking-tight">Ledger</h1>
+            <p className="text-muted-foreground">Manage your transactions and automation rules.</p>
           </div>
           <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 w-full sm:w-auto">
              <Dialog open={isAddOpen} onOpenChange={setIsAddOpen}>
                  <DialogTrigger className="rounded-none px-6 font-mono text-[10px] uppercase tracking-widest h-10 border border-border ledger-border bg-card hover:bg-secondary inline-flex items-center justify-center cursor-pointer select-none transition-all whitespace-nowrap outline-none w-full sm:w-auto">
                     <Plus className="mr-2 h-4 w-4" /> Add Entry
                  </DialogTrigger>
-                 <DialogContent className="bg-card border border-border rounded-none p-6 font-mono text-xs w-[95vw] max-w-sm max-h-[90vh] overflow-y-auto">
+                 <DialogContent className="bg-card border border-border rounded-none p-4 sm:p-6 font-mono text-xs w-[95vw] max-w-sm max-h-[90dvh] sm:max-h-[85dvh] overflow-y-auto">
                    <DialogHeader className="border-b border-border pb-4">
                       <DialogTitle className="text-xs uppercase tracking-widest font-mono flex items-center gap-2">
-                         <Landmark className="h-4 w-4" /> Node_Ingestion_v1.0
+                         <Landmark className="h-4 w-4" /> Add Entry
                       </DialogTitle>
                       <DialogDescription className="text-[9px] uppercase font-mono tracking-wider opacity-60 text-muted-foreground">
-                         Manual transaction ledger registration
+                         Register transaction details manually
                       </DialogDescription>
                    </DialogHeader>
                    
                    <form onSubmit={handleAddManualExpense} className="space-y-4 pt-4">
+                      {/* Segmented Transaction Type Selector */}
+                      <div className="grid grid-cols-2 gap-1 bg-secondary/15 border border-border/80 p-0.5 font-mono text-[9px] uppercase tracking-wider">
+                        <button
+                          type="button"
+                          onClick={() => setIsIncome(false)}
+                          className={cn(
+                            "py-2 px-3 text-center transition-all cursor-pointer font-bold select-none border",
+                            !isIncome 
+                              ? "bg-foreground text-background border-foreground" 
+                              : "text-muted-foreground hover:text-foreground border-transparent hover:bg-secondary/20"
+                          )}
+                        >
+                          Outflow (Debit)
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => setIsIncome(true)}
+                          className={cn(
+                            "py-2 px-3 text-center transition-all cursor-pointer font-bold select-none border",
+                            isIncome 
+                              ? "bg-emerald-500 text-white border-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.2)]" 
+                              : "text-muted-foreground hover:text-foreground border-transparent hover:bg-secondary/20"
+                          )}
+                        >
+                          Inflow (Income)
+                        </button>
+                      </div>
+
                       <div className="space-y-1.5">
                          <Label htmlFor="manualMerchant" className="technical-label">Merchant / Payee</Label>
                          <Input 
@@ -705,22 +1308,24 @@ export function ExpensesView({ initialExpenses, categories, initialRules }: Expe
                             placeholder="e.g. LIDL" 
                             value={manualMerchant}
                             onChange={(e) => setManualMerchant(e.target.value)}
-                            className="rounded-none h-9 text-xs uppercase"
+                            className="rounded-none h-10 sm:h-9 text-base sm:text-xs uppercase"
                          />
                       </div>
                       
                       <div className="grid grid-cols-2 gap-4">
                          <div className="space-y-1.5">
-                            <Label htmlFor="manualAmount" className="technical-label">Amount (€)</Label>
+                            <Label htmlFor="manualAmount" className="technical-label">Amount ({currencySymbol})</Label>
                             <Input 
                                id="manualAmount" 
                                type="number" 
                                step="0.01"
+                               inputMode="decimal"
+                               pattern="[0-9]*"
                                required
                                placeholder="15.50" 
                                value={manualAmount}
                                onChange={(e) => setManualAmount(e.target.value)}
-                               className="rounded-none h-9 text-xs"
+                               className="rounded-none h-10 sm:h-9 text-base sm:text-xs"
                             />
                          </div>
                          <div className="space-y-1.5">
@@ -731,35 +1336,27 @@ export function ExpensesView({ initialExpenses, categories, initialRules }: Expe
                                required
                                value={manualDate}
                                onChange={(e) => setManualDate(e.target.value)}
-                               className="rounded-none h-9 text-xs"
+                               className="rounded-none h-10 sm:h-9 text-base sm:text-xs"
                             />
                          </div>
                       </div>
 
                       <div className="space-y-1.5">
                          <Label htmlFor="manualCategory" className="technical-label">Target Category</Label>
-                         <select
-                            id="manualCategory"
-                            value={manualCategoryId}
-                            onChange={(e) => setManualCategoryId(e.target.value)}
-                            className="w-full h-9 px-2 border border-border bg-secondary/15 rounded-none text-xs uppercase text-foreground outline-none"
-                         >
-                            <option value="">Unclassified</option>
-                            {categories.map((cat) => (
-                               <option key={cat.id} value={cat.id}>{cat.name}</option>
-                            ))}
-                         </select>
-                      </div>
-
-                      <div className="flex items-center gap-2 py-2">
-                         <input 
-                            id="isIncome" 
-                            type="checkbox" 
-                            checked={isIncome}
-                            onChange={(e) => setIsIncome(e.target.checked)}
-                            className="w-3.5 h-3.5 accent-foreground rounded-none border border-border"
-                         />
-                         <Label htmlFor="isIncome" className="technical-label cursor-pointer uppercase select-none text-[8px]">Flag as Inflow / Income</Label>
+                         <div className="relative">
+                            <select
+                               id="manualCategory"
+                               value={manualCategoryId}
+                               onChange={(e) => setManualCategoryId(e.target.value)}
+                               className="w-full h-10 sm:h-9 px-2 pr-8 border border-border bg-secondary/15 rounded-none text-base sm:text-xs uppercase text-foreground outline-none appearance-none"
+                            >
+                               <option value="">Unclassified</option>
+                               {categories.map((cat) => (
+                                  <option key={cat.id} value={cat.id}>{cat.name}</option>
+                               ))}
+                            </select>
+                            <ChevronDown className="absolute right-2.5 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground pointer-events-none" />
+                         </div>
                       </div>
 
                       <Button 
@@ -767,7 +1364,7 @@ export function ExpensesView({ initialExpenses, categories, initialRules }: Expe
                          disabled={isSavingManual}
                          className="w-full rounded-none h-10 font-mono text-[9px] uppercase tracking-widest font-bold bg-foreground text-background hover:bg-foreground/80 mt-2"
                       >
-                         {isSavingManual ? "COMMITTING..." : "EXECUTE INGEST"}
+                         {isSavingManual ? "Saving..." : "Add Entry"}
                       </Button>
                    </form>
                 </DialogContent>
@@ -781,11 +1378,11 @@ export function ExpensesView({ initialExpenses, categories, initialRules }: Expe
                strength={0.2}
              >
                {isCategorizing ? (
-                 "Categorizing..."
+                 "Cleansing..."
                ) : (
                  <>
                    <Sparkles className="mr-2 h-4 w-4" />
-                   Smart Categorize
+                   AI Cleanse & Categorize
                  </>
                )}
              </MagneticButton>
@@ -793,25 +1390,28 @@ export function ExpensesView({ initialExpenses, categories, initialRules }: Expe
         </div>
 
         {/* 3 Executive Ledger Summary Cards Up Top */}
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-0 border border-border ledger-border divide-y sm:divide-y-0 sm:divide-x divide-border bg-card overflow-hidden">
-          <div className="p-6 md:p-8 space-y-3 bg-card/40 hover:bg-secondary/35 transition-all duration-300 flex flex-col justify-between">
-            <span className="technical-label text-[9px] border-b border-dotted border-muted-foreground/30 w-fit">01 / TOTAL LEDGER RECORDS</span>
-            <div className="text-3xl md:text-5xl font-mono font-bold tracking-tighter">
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-6">
+          <Tilt rotationFactor={6} className="p-6 md:p-8 space-y-3 bg-card/20 border border-border hover:bg-secondary/35 transition-all duration-300 relative group overflow-hidden flex flex-col justify-between">
+            <span className="technical-label text-[9px] border-b border-dotted border-muted-foreground/30 w-fit z-10">Total Ledger Entries</span>
+            <div className="text-3xl md:text-5xl font-mono font-bold tracking-tighter z-10">
               {summaryStats.total} <span className="text-xs font-normal text-muted-foreground">ENTRIES</span>
             </div>
-          </div>
-          <div className="p-6 md:p-8 space-y-3 bg-card/40 hover:bg-secondary/35 transition-all duration-300 flex flex-col justify-between">
-            <span className="technical-label text-[9px] border-b border-dotted border-muted-foreground/30 w-fit">02 / TOTAL INFLOW</span>
-            <div className="text-3xl md:text-5xl font-mono font-bold tracking-tighter">
-              <PrivacyValue>€{summaryStats.inflow}</PrivacyValue>
+            <ClippedCircle circleClassName="bg-foreground/5" circleSize={400} />
+          </Tilt>
+          <Tilt rotationFactor={6} className="p-6 md:p-8 space-y-3 bg-card/20 border border-border hover:bg-secondary/35 transition-all duration-300 relative group overflow-hidden flex flex-col justify-between">
+            <span className="technical-label text-[9px] border-b border-dotted border-muted-foreground/30 w-fit z-10">Total Inflow</span>
+            <div className="text-3xl md:text-5xl font-mono font-bold tracking-tighter z-10">
+              <PrivacyValue>{currencySymbol}{summaryStats.inflow}</PrivacyValue>
             </div>
-          </div>
-          <div className="p-6 md:p-8 space-y-3 bg-card/40 hover:bg-secondary/35 transition-all duration-300 flex flex-col justify-between">
-            <span className="technical-label text-[9px] border-b border-dotted border-muted-foreground/30 w-fit">03 / TOTAL OUTFLOW</span>
-            <div className="text-3xl md:text-5xl font-mono font-bold tracking-tighter">
-              <PrivacyValue>€{summaryStats.outflow}</PrivacyValue>
+            <ClippedCircle circleClassName="bg-foreground/5" circleSize={400} />
+          </Tilt>
+          <Tilt rotationFactor={6} className="p-6 md:p-8 space-y-3 bg-card/20 border border-border hover:bg-secondary/35 transition-all duration-300 relative group overflow-hidden flex flex-col justify-between">
+            <span className="technical-label text-[9px] border-b border-dotted border-muted-foreground/30 w-fit z-10">Total Outflow</span>
+            <div className="text-3xl md:text-5xl font-mono font-bold tracking-tighter z-10">
+              <PrivacyValue>{currencySymbol}{summaryStats.outflow}</PrivacyValue>
             </div>
-          </div>
+            <ClippedCircle circleClassName="bg-foreground/5" circleSize={400} />
+          </Tilt>
         </div>
 
         <Tabs defaultValue="history" className="space-y-4">
@@ -824,21 +1424,288 @@ export function ExpensesView({ initialExpenses, categories, initialRules }: Expe
           </div>
 
           <TabsContent value="history" className="space-y-4">
-            <Card>
-              <CardHeader>
-                <CardTitle>Transactions</CardTitle>
+            {/* Sleek Floating Glassmorphism Bulk Action Dock (Mobile Responsive) */}
+            {selectedIds.size > 0 && (
+              <div className="fixed bottom-20 md:bottom-6 left-1/2 -translate-x-1/2 z-50 w-[94vw] max-w-md sm:w-auto sm:max-w-none bg-card/98 dark:bg-zinc-900/98 backdrop-blur-md border border-border shadow-[0_12px_40px_rgb(0,0,0,0.35)] p-2.5 sm:px-4 sm:py-2.5 flex flex-wrap sm:flex-nowrap items-center justify-between sm:justify-start gap-2 sm:gap-4 transition-all duration-300 animate-in fade-in slide-in-from-bottom-6">
+                <div className="flex items-center gap-2 font-mono text-xs font-bold">
+                  <span className="bg-foreground text-background px-2 py-0.5">{selectedIds.size}</span>
+                  <span className="text-muted-foreground uppercase tracking-wider text-[11px] hidden sm:inline">Selected</span>
+                </div>
+                
+                <div className="h-4 w-px bg-border hidden sm:block" />
+
+                <div className="flex items-center gap-2 flex-1 sm:flex-initial justify-end">
+                  <Button
+                    size="sm"
+                    variant="ghost"
+                    className="h-8 rounded-none text-xs font-mono text-foreground hover:bg-secondary transition-colors cursor-pointer px-2 sm:px-3 flex-shrink-0 border border-border/60"
+                    onClick={handleBulkAiCleanse}
+                    disabled={isCategorizing}
+                    title="AI Cleanse & Categorize selected"
+                  >
+                    <Sparkles className="h-3.5 w-3.5 sm:mr-1 text-emerald-500" /> <span>AI Cleanse</span>
+                  </Button>
+
+                  <Select onValueChange={(val: string | null) => {
+                    handleBulkCategoryChange(val)
+                  }}>
+                    <SelectTrigger className="w-full sm:w-[180px] flex-1 min-w-[130px] h-8 text-xs font-mono bg-secondary/60 border-border hover:bg-secondary transition-colors rounded-none cursor-pointer">
+                      <SelectValue placeholder="Categorize..." />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="none">Uncategorized</SelectItem>
+                      {categories.map((cat) => (
+                        <SelectItem key={cat.id} value={cat.id.toString()}>
+                          <div className="flex items-center gap-2">
+                            <div className="h-2 w-2 rounded-full" style={{ backgroundColor: cat.color }} />
+                            {cat.name}
+                          </div>
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+
+                  <Button
+                    size="sm"
+                    variant="ghost"
+                    className="h-8 rounded-none text-xs font-mono text-muted-foreground hover:text-destructive hover:bg-destructive/10 transition-colors cursor-pointer px-2 sm:px-3 flex-shrink-0"
+                    onClick={handleBulkDelete}
+                    title="Delete selected"
+                  >
+                    <Trash2 className="h-3.5 w-3.5 sm:mr-1" /> <span>Delete</span>
+                  </Button>
+
+                  <div className="h-4 w-px bg-border ml-0.5 sm:ml-1" />
+
+                  <Button
+                    size="icon-xs"
+                    variant="ghost"
+                    className="h-7 w-7 text-muted-foreground hover:text-foreground cursor-pointer flex-shrink-0"
+                    onClick={() => setSelectedIds(new Set())}
+                    title="Clear selection"
+                  >
+                    <X className="h-3.5 w-3.5" />
+                  </Button>
+                </div>
+              </div>
+            )}
+            <Card className="rounded-none border-border ledger-border">
+              <CardHeader className="flex flex-row items-center justify-between pb-4 border-b border-border/40">
+                <CardTitle className="text-base sm:text-lg font-mono tracking-tight flex items-center gap-2">
+                  Transactions
+                </CardTitle>
+                <div className="flex items-center gap-2">
+                  {hasActiveFilters && (
+                    <Button
+                      variant="ghost"
+                      onClick={handleResetFilters}
+                      className="h-8 text-[9px] uppercase font-mono tracking-widest text-muted-foreground hover:text-foreground hover:bg-secondary/40 rounded-none border border-border/30 px-3 cursor-pointer"
+                    >
+                      Clear Filters
+                    </Button>
+                  )}
+                  <Button
+                    variant="ghost"
+                    onClick={() => setIsFiltersVisible(!isFiltersVisible)}
+                    className={cn(
+                      "h-8 text-[9px] uppercase font-mono tracking-widest rounded-none border px-3 cursor-pointer flex items-center gap-1.5 transition-all select-none",
+                      isFiltersVisible 
+                        ? "border-foreground bg-secondary/35 text-foreground" 
+                        : "border-border hover:bg-secondary/20 text-muted-foreground hover:text-foreground"
+                    )}
+                  >
+                    <Filter className="h-3 w-3" />
+                    Filters {isFiltersVisible ? "[Close]" : "[Open]"}
+                  </Button>
+                </div>
               </CardHeader>
+              
+              {/* Clean, minimalist and hideable filter panel */}
+              {isFiltersVisible && (
+                <div className="p-4 sm:p-6 bg-secondary/15 border-b border-border space-y-4 animate-in fade-in slide-in-from-top-4 duration-200">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4 font-mono text-[10px] uppercase">
+                    {/* Search Matcher */}
+                    <div className="space-y-1.5">
+                      <label htmlFor="filter-search" className="text-muted-foreground font-bold tracking-wider">Search Matcher</label>
+                      <div className="relative">
+                        <Input
+                          id="filter-search"
+                          placeholder="E.g. Uber, Lidl..."
+                          value={filterSearch}
+                          onChange={(e) => setFilterSearch(e.target.value)}
+                          className="h-9 rounded-none pl-8 text-[11px] placeholder:opacity-50"
+                        />
+                        <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground/60" />
+                      </div>
+                    </div>
+
+                    {/* Category */}
+                    <div className="space-y-1.5">
+                      <label htmlFor="filter-category" className="text-muted-foreground font-bold tracking-wider">Category</label>
+                      <div className="relative">
+                        <select
+                          id="filter-category"
+                          value={filterCategory}
+                          onChange={(e) => setFilterCategory(e.target.value)}
+                          className="w-full h-9 px-3 pr-8 border border-border bg-card rounded-none outline-none focus:border-foreground appearance-none text-[11px] uppercase text-foreground"
+                        >
+                          <option value="ALL">All Categories</option>
+                          <option value="UNCATEGORIZED">Uncategorized</option>
+                          {categories.map(cat => (
+                            <option key={cat.id} value={cat.id.toString()}>{cat.name}</option>
+                          ))}
+                        </select>
+                        <ChevronDown className="absolute right-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground pointer-events-none" />
+                      </div>
+                    </div>
+
+                    {/* Record Type */}
+                    <div className="space-y-1.5">
+                      <label htmlFor="filter-type" className="text-muted-foreground font-bold tracking-wider">Record Type</label>
+                      <div className="relative">
+                        <select
+                          id="filter-type"
+                          value={filterType}
+                          onChange={(e) => setFilterType(e.target.value as any)}
+                          className="w-full h-9 px-3 pr-8 border border-border bg-card rounded-none outline-none focus:border-foreground appearance-none text-[11px] uppercase text-foreground"
+                        >
+                          <option value="all">All Types</option>
+                          <option value="inflow">Inflow (Credits)</option>
+                          <option value="outflow">Outflow (Debits)</option>
+                        </select>
+                        <ChevronDown className="absolute right-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground pointer-events-none" />
+                      </div>
+                    </div>
+
+                    {/* Source */}
+                    <div className="space-y-1.5">
+                      <label htmlFor="filter-source" className="text-muted-foreground font-bold tracking-wider">Source</label>
+                      <div className="relative">
+                        <select
+                          id="filter-source"
+                          value={filterSource}
+                          onChange={(e) => setFilterSource(e.target.value)}
+                          className="w-full h-9 px-3 pr-8 border border-border bg-card rounded-none outline-none focus:border-foreground appearance-none text-[11px] uppercase text-foreground"
+                        >
+                          <option value="ALL">All Sources</option>
+                          {uniqueSources.map(src => (
+                            <option key={src} value={src}>{src}</option>
+                          ))}
+                        </select>
+                        <ChevronDown className="absolute right-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground pointer-events-none" />
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4 font-mono text-[10px] uppercase">
+                    {/* Date Preset */}
+                    <div className="space-y-1.5">
+                      <label htmlFor="filter-preset" className="text-muted-foreground font-bold tracking-wider">Temporal Window</label>
+                      <div className="relative">
+                        <select
+                          id="filter-preset"
+                          value={filterDatePreset}
+                          onChange={(e) => setFilterDatePreset(e.target.value)}
+                          className="w-full h-9 px-3 pr-8 border border-border bg-card rounded-none outline-none focus:border-foreground appearance-none text-[11px] uppercase text-foreground"
+                        >
+                          <option value="all">All Time</option>
+                          {cycles && cycles.length > 0 && <option value="cycle">Paycheck Cycle</option>}
+                          <option value="30days">Last 30 Days</option>
+                          <option value="90days">Last 90 Days</option>
+                          <option value="ytd">Year to Date (YTD)</option>
+                          <option value="custom">Custom Range</option>
+                        </select>
+                        <ChevronDown className="absolute right-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground pointer-events-none" />
+                      </div>
+                    </div>
+
+                    {/* Custom Range start and end dates */}
+                    {filterDatePreset === "custom" ? (
+                      <>
+                        <div className="space-y-1.5">
+                          <label htmlFor="filter-start-date" className="text-muted-foreground font-bold tracking-wider">Start Date</label>
+                          <Input
+                            id="filter-start-date"
+                            type="date"
+                            value={filterStartDate}
+                            onChange={(e) => setFilterStartDate(e.target.value)}
+                            className="h-9 rounded-none text-[11px]"
+                          />
+                        </div>
+                        <div className="space-y-1.5">
+                          <label htmlFor="filter-end-date" className="text-muted-foreground font-bold tracking-wider">End Date</label>
+                          <Input
+                            id="filter-end-date"
+                            type="date"
+                            value={filterEndDate}
+                            onChange={(e) => setFilterEndDate(e.target.value)}
+                            className="h-9 rounded-none text-[11px]"
+                          />
+                        </div>
+                      </>
+                    ) : (
+                      <>
+                        {/* Min Amount */}
+                        <div className="space-y-1.5">
+                          <label htmlFor="filter-min-amount" className="text-muted-foreground font-bold tracking-wider">Min Absolute Amount</label>
+                          <Input
+                            id="filter-min-amount"
+                            type="number"
+                            placeholder="Min €"
+                            value={filterMinAmount}
+                            onChange={(e) => setFilterMinAmount(e.target.value)}
+                            className="h-9 rounded-none text-[11px]"
+                          />
+                        </div>
+                        {/* Max Amount */}
+                        <div className="space-y-1.5">
+                          <label htmlFor="filter-max-amount" className="text-muted-foreground font-bold tracking-wider">Max Absolute Amount</label>
+                          <Input
+                            id="filter-max-amount"
+                            type="number"
+                            placeholder="Max €"
+                            value={filterMaxAmount}
+                            onChange={(e) => setFilterMaxAmount(e.target.value)}
+                            className="h-9 rounded-none text-[11px]"
+                          />
+                        </div>
+                        {/* Empty spacer grid col to maintain layout */}
+                        <div className="hidden md:block" />
+                      </>
+                    )}
+                  </div>
+                </div>
+              )}
               <CardContent className="p-0 sm:p-6">
-                <div className="overflow-x-auto w-full">
+                {/* Desktop View: Table */}
+                <div className="hidden md:block overflow-x-auto w-full">
                   <Table>
                   <TableHeader>
                     <TableRow>
-                      <TableHead className="w-[65px] sm:w-[120px]">Date</TableHead>
-                      <TableHead>Merchant</TableHead>
-                      <TableHead className="hidden sm:table-cell">Category</TableHead>
-                      <TableHead className="hidden lg:table-cell">Source</TableHead>
-                      <TableHead className="text-right">Amount</TableHead>
-                      <TableHead className="w-[40px] md:w-[50px]"></TableHead>
+                      <TableHead className="w-[40px] pl-3 sm:pl-4">
+                        <button
+                          type="button"
+                          onClick={(e) => {
+                            e.stopPropagation()
+                            handleSelectAll()
+                          }}
+                          className={cn(
+                            "h-5 w-5 sm:h-4 sm:w-4 border flex items-center justify-center transition-all cursor-pointer",
+                            paginatedExpenses.length > 0 && paginatedExpenses.every(e => selectedIds.has(e.id))
+                              ? "bg-foreground border-foreground text-background shadow-sm"
+                              : "border-border/80 bg-card/40 hover:border-foreground/50 text-transparent"
+                          )}
+                          title="Select all on page"
+                        >
+                          <Check className="h-3.5 w-3.5 sm:h-3 sm:w-3 stroke-[3]" />
+                        </button>
+                      </TableHead>
+                      <TableHead className="w-[60px] sm:w-[100px] px-1 sm:px-2">Date</TableHead>
+                      <TableHead className="px-1 sm:px-2">Merchant</TableHead>
+                      <TableHead className="w-[105px] sm:min-w-[110px] px-1 sm:px-2">Category</TableHead>
+                      <TableHead className="min-w-[80px] hidden md:table-cell">Source</TableHead>
+                      <TableHead className="text-right px-1 sm:px-2">Amount</TableHead>
+                      <TableHead className="w-[40px] md:w-[50px] hidden md:table-cell"></TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
@@ -846,24 +1713,83 @@ export function ExpensesView({ initialExpenses, categories, initialRules }: Expe
                       <TableRow 
                         key={expense.id} 
                         onClick={() => openAudit(expense.id)}
-                        className="cursor-pointer group"
+                        className={cn("cursor-pointer group", selectedIds.has(expense.id) && "bg-secondary/40")}
                       >
-                        <TableCell className="text-[10px] md:text-xs text-muted-foreground group-hover:text-foreground">
+                        <TableCell className="pl-3 sm:pl-4 py-2.5 sm:py-2" onClick={(e) => e.stopPropagation()}>
+                          <button
+                            type="button"
+                            onClick={(e) => {
+                              e.stopPropagation()
+                              handleSelectOne(expense.id)
+                            }}
+                            className={cn(
+                              "h-5 w-5 sm:h-4 sm:w-4 border flex items-center justify-center transition-all cursor-pointer",
+                              selectedIds.has(expense.id)
+                                ? "bg-foreground border-foreground text-background shadow-sm"
+                                : "border-border/80 bg-card/40 hover:border-foreground/50 text-transparent"
+                            )}
+                          >
+                            <Check className="h-3.5 w-3.5 sm:h-3 sm:w-3 stroke-[3]" />
+                          </button>
+                        </TableCell>
+                        <TableCell className="text-[9px] sm:text-[10px] md:text-xs text-muted-foreground group-hover:text-foreground px-1 sm:px-2 whitespace-nowrap">
                           {new Date(expense.date).toLocaleDateString("en-GB", {
                             day: "2-digit",
                             month: "short"
                           })}
                         </TableCell>
-                        <TableCell className="font-medium text-xs md:text-sm group-hover:pl-2 transition-all max-w-[110px] sm:max-w-none truncate">
-                          {expense.merchant || "Unknown"}
+                        <TableCell className="font-medium text-[11px] sm:text-xs md:text-sm max-w-[90px] sm:max-w-none truncate px-1 sm:px-2" onClick={(e) => e.stopPropagation()}>
+                          {editingMerchantId === expense.id ? (
+                            <Input
+                              value={editingMerchantValue}
+                              onChange={(e) => setEditingMerchantValue(e.target.value)}
+                              onBlur={() => handleSaveMerchant(expense.id, editingMerchantValue)}
+                              onKeyDown={(e) => {
+                                if (e.key === "Enter") handleSaveMerchant(expense.id, editingMerchantValue)
+                                if (e.key === "Escape") setEditingMerchantId(null)
+                              }}
+                              className="h-7 sm:h-6 text-xs font-mono bg-background border-foreground/50 px-1.5 py-0 rounded-none w-full shadow-sm focus-visible:ring-1 focus-visible:ring-foreground"
+                              autoFocus
+                            />
+                          ) : (
+                            <div 
+                              onClick={() => {
+                                setEditingMerchantId(expense.id)
+                                setEditingMerchantValue(expense.merchant || "")
+                              }}
+                              className="flex items-center gap-1.5 group/merch cursor-pointer w-fit py-1 sm:py-0.5 px-1 -ml-1 rounded hover:bg-secondary/60 transition-colors"
+                              title="Click to rename merchant inline"
+                            >
+                              <span className="truncate">{expense.merchant || "Unknown"}</span>
+                              <Edit2 className="h-3 w-3 sm:h-2.5 sm:w-2.5 text-muted-foreground opacity-60 sm:opacity-0 sm:group-hover/merch:opacity-100 transition-opacity flex-shrink-0" />
+                            </div>
+                          )}
                         </TableCell>
-                        <TableCell className="hidden sm:table-cell" onClick={(e) => e.stopPropagation()}>
+                        <TableCell className="p-1 sm:p-2" onClick={(e) => e.stopPropagation()}>
                           <Select
                             value={expense.category_id?.toString() || "none"}
-                            onValueChange={(value) => expense.id && handleCategoryChange(expense.id.toString(), value || "none")}
+                            onValueChange={(value: string | null) => {
+                              if (expense.id) handleCategoryChange(expense.id.toString(), value || "none")
+                            }}
                           >
-                            <SelectTrigger className="w-[120px] md:w-[160px] h-8 text-[10px] md:text-xs">
-                              <SelectValue placeholder="No category" />
+                            <SelectTrigger className="w-full min-w-0 max-w-[105px] sm:max-w-none sm:w-[130px] md:w-[160px] h-7 sm:h-8 text-[9px] md:text-xs px-1 sm:px-1.5">
+                              {expense.category_id ? (
+                                (() => {
+                                  const cat = categories.find(c => c.id === expense.category_id)
+                                  if (!cat) return <span className="truncate text-muted-foreground">No category</span>
+                                  return (
+                                    <div className="flex items-center gap-1.5 overflow-hidden w-full text-[9px] md:text-xs">
+                                      <div 
+                                        className="h-1.5 w-1.5 rounded-full shrink-0" 
+                                        style={{ backgroundColor: cat.color }} 
+                                      />
+                                      <span className="truncate uppercase">{cat.name}</span>
+                                    </div>
+                                  )
+                                })()
+                              ) : (
+                                <span className="truncate text-muted-foreground">No category</span>
+                              )}
                             </SelectTrigger>
                             <SelectContent>
                               <SelectItem value="none">Uncategorized</SelectItem>
@@ -881,32 +1807,33 @@ export function ExpensesView({ initialExpenses, categories, initialRules }: Expe
                             </SelectContent>
                           </Select>
                         </TableCell>
-                        <TableCell className="hidden lg:table-cell">
+                        <TableCell className="text-[10px] md:text-xs hidden md:table-cell">
                           <GlowingBadge variant="neutral" pulse={false} dot={false} className="text-[9px] md:text-[10px] uppercase tracking-wider">
                             {expense.source || "Direct"}
                           </GlowingBadge>
                         </TableCell>
-                        <TableCell className="text-right font-mono font-bold text-xs md:text-sm">
+                        <TableCell className="text-right font-mono font-bold text-[11px] sm:text-xs md:text-sm px-1 sm:px-2">
                           <PrivacyValue>
                             {parseFloat(expense.amount.toString()) > 0 ? "+" : ""}
-                            €{Math.abs(parseFloat(expense.amount.toString())).toFixed(2)}
+                            {currencySymbol}{Math.abs(parseFloat(expense.amount.toString())).toFixed(2)}
                           </PrivacyValue>
                         </TableCell>
-                        <TableCell onClick={(e) => e.stopPropagation()}>
+                        <TableCell className="hidden md:table-cell" onClick={(e) => e.stopPropagation()}>
                           <Button 
                             variant="ghost" 
                             size="icon" 
                             className="h-8 w-8 text-muted-foreground hover:text-destructive transition-colors md:opacity-0 group-hover:opacity-100"
                             onClick={() => handleDeleteExpense(expense.id.toString())}
+                            aria-label="Delete transaction"
                           >
                             <Trash2 className="h-4 w-4" />
                           </Button>
                         </TableCell>
                       </TableRow>
                     ))}
-                    {expenses.length === 0 && (
+                    {filteredExpenses.length === 0 && (
                       <TableRow>
-                        <TableCell colSpan={5} className="text-center py-10 text-muted-foreground">
+                        <TableCell colSpan={7} className="text-center py-10 text-muted-foreground">
                           No transactions found.
                         </TableCell>
                       </TableRow>
@@ -914,10 +1841,160 @@ export function ExpensesView({ initialExpenses, categories, initialRules }: Expe
                   </TableBody>
                 </Table>
                 </div>
-                {expenses.length > 0 && (
+
+                {/* Mobile View: Stacked List */}
+                <div className="md:hidden space-y-3 px-3 py-4">
+                  <AnimatePresence initial={false}>
+                    {paginatedExpenses.map((expense) => {
+                      const isIncome = parseFloat(expense.amount.toString()) > 0
+                      return (
+                        <motion.div 
+                          key={expense.id}
+                          initial={{ opacity: 0, y: 15 }}
+                          animate={{ opacity: 1, y: 0 }}
+                          exit={{ opacity: 0, scale: 0.95 }}
+                          transition={{ duration: 0.22, ease: "easeOut" }}
+                          onClick={() => openAudit(expense.id)}
+                          className={cn(
+                            "p-4 border border-border bg-card/25 flex flex-col gap-3 relative glow-card cursor-pointer",
+                            selectedIds.has(expense.id) && "bg-secondary/40 border-foreground/30"
+                          )}
+                        >
+                          <div className="flex items-center justify-between">
+                            <div className="flex items-center gap-3">
+                              <button
+                                type="button"
+                                onClick={(e) => {
+                                  e.stopPropagation()
+                                  handleSelectOne(expense.id)
+                                }}
+                                className={cn(
+                                  "h-8 w-8 border flex items-center justify-center transition-all cursor-pointer shrink-0 ledger-border",
+                                  selectedIds.has(expense.id)
+                                    ? "bg-foreground border-foreground text-background shadow-sm"
+                                    : "border-border/80 bg-card/40 hover:border-foreground/50 text-transparent"
+                                )}
+                              >
+                                <Check className="h-4.5 w-4.5 stroke-[3]" />
+                              </button>
+                              <div className="flex flex-col min-w-0">
+                                {editingMerchantId === expense.id ? (
+                                  <Input
+                                    value={editingMerchantValue}
+                                    onChange={(e) => setEditingMerchantValue(e.target.value)}
+                                    onBlur={() => handleSaveMerchant(expense.id, editingMerchantValue)}
+                                    onKeyDown={(e) => {
+                                      if (e.key === "Enter") handleSaveMerchant(expense.id, editingMerchantValue)
+                                      if (e.key === "Escape") setEditingMerchantId(null)
+                                    }}
+                                    className="h-7 text-xs font-mono bg-background border-foreground/50 px-1.5 py-0 rounded-none w-full shadow-sm focus-visible:ring-1 focus-visible:ring-foreground"
+                                    autoFocus
+                                    onClick={(e) => e.stopPropagation()}
+                                  />
+                                ) : (
+                                  <div 
+                                    onClick={(e) => {
+                                      e.stopPropagation()
+                                      setEditingMerchantId(expense.id)
+                                      setEditingMerchantValue(expense.merchant || "")
+                                    }}
+                                    className="font-mono text-xs font-bold uppercase truncate hover:underline cursor-text flex items-center gap-1.5"
+                                  >
+                                    {expense.merchant}
+                                    <Edit2 className="h-3 w-3 text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity" />
+                                  </div>
+                                )}
+                                <div className="text-[10px] text-muted-foreground font-sans">{new Date(expense.date).toLocaleDateString("en-GB", {
+                                  day: "2-digit",
+                                  month: "short",
+                                  year: "numeric"
+                                })}</div>
+                              </div>
+                            </div>
+
+                            <div className="flex items-center gap-2">
+                              <div className={cn(
+                                "text-xs font-mono font-bold tracking-tight",
+                                isIncome ? "text-emerald-500" : "text-foreground"
+                              )}>
+                                <PrivacyValue>{isIncome ? "+" : "-"}{currencySymbol}{Math.abs(parseFloat(expense.amount.toString())).toFixed(2)}</PrivacyValue>
+                              </div>
+                              <button
+                                type="button"
+                                onClick={(e) => {
+                                  e.stopPropagation()
+                                  handleDeleteExpense(expense.id.toString())
+                                }}
+                                className="h-8 w-8 text-muted-foreground hover:text-destructive hover:bg-destructive/10 flex items-center justify-center transition-colors rounded-none border border-transparent hover:border-destructive/20"
+                                aria-label="Delete transaction"
+                              >
+                                <Trash2 className="h-4 w-4" />
+                              </button>
+                            </div>
+                          </div>
+
+                          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-t border-border/40 pt-2.5">
+                            <div className="flex items-center gap-1.5">
+                              <span className="text-[8px] font-mono text-muted-foreground uppercase tracking-widest">Source:</span>
+                              <span className="text-[9px] font-mono uppercase bg-secondary/50 px-1.5 py-0.5 border border-border/50 text-muted-foreground truncate max-w-[150px]">{expense.source || "Unknown"}</span>
+                            </div>
+                            <div className="w-full sm:w-44" onClick={(e) => e.stopPropagation()}>
+                              <Select
+                                value={expense.category_id?.toString() || "none"}
+                                onValueChange={(value: string | null) => {
+                                  if (expense.id) handleCategoryChange(expense.id.toString(), value || "none")
+                                }}
+                              >
+                                <SelectTrigger className="w-full h-7 text-[10px] px-2 font-mono">
+                                  {expense.category_id ? (
+                                    (() => {
+                                      const cat = categories.find(c => c.id === expense.category_id)
+                                      if (!cat) return <span className="truncate text-muted-foreground">No category</span>
+                                      return (
+                                        <div className="flex items-center gap-1.5 overflow-hidden w-full">
+                                          <div 
+                                            className="h-1.5 w-1.5 rounded-full shrink-0" 
+                                            style={{ backgroundColor: cat.color }} 
+                                          />
+                                          <span className="truncate uppercase">{cat.name}</span>
+                                        </div>
+                                      )
+                                    })()
+                                  ) : (
+                                    <span className="truncate text-muted-foreground">No category</span>
+                                  )}
+                                </SelectTrigger>
+                                <SelectContent>
+                                  <SelectItem value="none">Uncategorized</SelectItem>
+                                  {categories.map((cat) => (
+                                    <SelectItem key={cat.id} value={cat.id.toString()}>
+                                      <div className="flex items-center gap-2">
+                                        <div 
+                                          className="h-2 w-2 rounded-full" 
+                                          style={{ backgroundColor: cat.color }} 
+                                        />
+                                        {cat.name}
+                                      </div>
+                                    </SelectItem>
+                                  ))}
+                                </SelectContent>
+                              </Select>
+                            </div>
+                          </div>
+                        </motion.div>
+                      )
+                    })}
+                  </AnimatePresence>
+                  {paginatedExpenses.length === 0 && (
+                    <div className="text-center py-10 text-muted-foreground font-mono text-xs uppercase">
+                      No transactions found.
+                    </div>
+                  )}
+                </div>
+                {filteredExpenses.length > 0 && (
                   <div className="flex flex-col sm:flex-row items-center justify-between gap-4 px-6 py-4 border-t border-border bg-card/40">
                     <div className="text-xs font-mono text-muted-foreground">
-                      Showing <span className="font-bold text-foreground">{(currentPage - 1) * pageSize + 1}</span> - <span className="font-bold text-foreground">{Math.min(expenses.length, currentPage * pageSize)}</span> of <span className="font-bold text-foreground">{expenses.length}</span> entries
+                      Showing <span className="font-bold text-foreground">{filteredExpenses.length === 0 ? 0 : (currentPage - 1) * pageSize + 1}</span> - <span className="font-bold text-foreground">{Math.min(filteredExpenses.length, currentPage * pageSize)}</span> of <span className="font-bold text-foreground">{filteredExpenses.length}</span> entries
                     </div>
                     <div className="flex items-center gap-2">
                       <button
@@ -948,7 +2025,7 @@ export function ExpensesView({ initialExpenses, categories, initialRules }: Expe
 
           <TabsContent value="rules" className="space-y-4">
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-              <Card className="md:col-span-1">
+              <Card className="md:col-span-1 rounded-none border-border ledger-border">
                 <CardHeader>
                   <CardTitle>Add New Rule</CardTitle>
                 </CardHeader>
@@ -968,11 +2045,29 @@ export function ExpensesView({ initialExpenses, categories, initialRules }: Expe
                       <Label htmlFor="category">Default Category</Label>
                       <Select
                         value={newRuleCategoryId}
-                        onValueChange={(val) => setNewRuleCategoryId(val || "")}
+                        onValueChange={(val: string | null) => {
+                          setNewRuleCategoryId(val || "")
+                        }}
                         required
                       >
-                        <SelectTrigger>
-                          <SelectValue placeholder="Select category" />
+                        <SelectTrigger className="w-full">
+                          {newRuleCategoryId ? (
+                            (() => {
+                              const cat = categories.find(c => c.id.toString() === newRuleCategoryId)
+                              if (!cat) return <span className="truncate text-muted-foreground">Select category</span>
+                              return (
+                                <div className="flex items-center gap-1.5 overflow-hidden w-full text-xs font-mono">
+                                  <div 
+                                    className="h-1.5 w-1.5 rounded-full shrink-0" 
+                                    style={{ backgroundColor: cat.color }} 
+                                  />
+                                  <span className="truncate uppercase">{cat.name}</span>
+                                </div>
+                              )
+                            })()
+                          ) : (
+                            <span className="truncate text-muted-foreground">Select category</span>
+                          )}
                         </SelectTrigger>
                         <SelectContent>
                           {categories.map((cat) => (
@@ -988,7 +2083,7 @@ export function ExpensesView({ initialExpenses, categories, initialRules }: Expe
                 </CardContent>
               </Card>
 
-              <Card className="md:col-span-2">
+              <Card className="md:col-span-2 rounded-none border-border ledger-border">
                 <CardHeader>
                   <CardTitle>Rules List</CardTitle>
                 </CardHeader>
@@ -1008,7 +2103,7 @@ export function ExpensesView({ initialExpenses, categories, initialRules }: Expe
                             <TableCell className="font-mono text-xs">{rule.keyword}</TableCell>
                             <TableCell>{categories.find(c => c.id === rule.category_id)?.name}</TableCell>
                             <TableCell className="text-right">
-                              <Button variant="ghost" size="icon" onClick={() => handleDeleteRule(rule.id.toString())}>
+                              <Button variant="ghost" size="icon" onClick={() => handleDeleteRule(rule.id.toString())} aria-label="Delete rule">
                                 <Trash2 className="h-4 w-4" />
                               </Button>
                             </TableCell>
@@ -1025,13 +2120,13 @@ export function ExpensesView({ initialExpenses, categories, initialRules }: Expe
           <TabsContent value="ingest" className="space-y-6">
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
               {/* Text / File Input Column */}
-              <Card className="lg:col-span-1 border-border ledger-border">
+              <Card className="lg:col-span-1 rounded-none border-border ledger-border">
                 <CardHeader>
                   <CardTitle className="text-sm font-bold uppercase tracking-widest flex items-center gap-2">
                     <Upload className="h-4 w-4" /> Universal File Importer (.txt, .csv, .pdf)
                   </CardTitle>
                   <CardDescription className="font-mono text-[9px] uppercase">
-                    Upload .txt, .csv, .json, .pdf statement files or paste extract text
+                    Upload .txt, .csv, .json, .pdf statement files or paste extract text. Fast Regex matches: [Date] [Merchant] [Amount (+/-)]
                   </CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-4">
@@ -1053,7 +2148,7 @@ export function ExpensesView({ initialExpenses, categories, initialRules }: Expe
                       id="extractText"
                       rows={12}
                       className="w-full p-4 border border-border ledger-border font-mono text-[10px] bg-secondary/5 focus:bg-card focus:outline-none transition-all resize-none"
-                      placeholder="Paste text from any bank statement, CSV, or PDF extract..."
+                      placeholder={"Paste text from any bank statement, CSV, or PDF extract...\n\nFast Regex Format:\n[Date] [Optional Second Date] [Merchant Description] [Amount (+/-)] [Optional Balance]\n\nExamples:\n- 26-06-2026 ContinenteAlbufeira -13,86\n- 04-05 04-05 PINGO DOCE -6,98 526,73"}
                       value={extractText}
                       onChange={(e) => setExtractText(e.target.value)}
                     />
@@ -1082,7 +2177,7 @@ export function ExpensesView({ initialExpenses, categories, initialRules }: Expe
               </Card>
 
               {/* Parsed Preview Column */}
-              <Card className="lg:col-span-2 border-border ledger-border">
+              <Card className="lg:col-span-2 rounded-none border-border ledger-border">
                 <CardHeader className="border-b border-border">
                   <CardTitle className="text-sm font-bold uppercase tracking-widest flex items-center justify-between">
                     <span>Parsed Preview Node</span>
@@ -1109,12 +2204,12 @@ export function ExpensesView({ initialExpenses, categories, initialRules }: Expe
                       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 sm:gap-6 p-6 bg-secondary/20 border border-border border-dashed font-mono">
                         <div className="space-y-1">
                           <span className="technical-label text-[9px]">Est. Start Balance</span>
-                          <p className="text-lg sm:text-xl font-bold">€{parsedData.startBalance.toFixed(2)}</p>
+                          <p className="text-lg sm:text-xl font-bold">{currencySymbol}{parsedData.startBalance.toFixed(2)}</p>
                         </div>
                         <div className="space-y-1">
                           <span className="technical-label text-[9px]">Total Salary/Income</span>
                           <p className="text-lg sm:text-xl font-bold">
-                            €{parsedData.transactions.filter(t => t.checked && t.isIncome).reduce((sum, t) => sum + t.amount, 0).toFixed(2)}
+                            {currencySymbol}{parsedData.transactions.filter(t => t.checked && t.isIncome).reduce((sum, t) => sum + t.amount, 0).toFixed(2)}
                           </p>
                         </div>
                         <div className="space-y-1">
@@ -1131,7 +2226,7 @@ export function ExpensesView({ initialExpenses, categories, initialRules }: Expe
                               <TableHead className="w-12 text-center"></TableHead>
                               <TableHead className="text-xs font-mono font-bold uppercase tracking-wider">Date</TableHead>
                               <TableHead className="text-xs font-mono font-bold uppercase tracking-wider">Merchant</TableHead>
-                              <TableHead className="hidden md:table-cell text-xs font-mono font-bold uppercase tracking-wider">Category</TableHead>
+                              <TableHead className="text-xs font-mono font-bold uppercase tracking-wider">Category</TableHead>
                               <TableHead className="text-right text-xs font-mono font-bold uppercase tracking-wider">Amount</TableHead>
                             </TableRow>
                           </TableHeader>
@@ -1156,10 +2251,10 @@ export function ExpensesView({ initialExpenses, categories, initialRules }: Expe
                                 <TableCell className="font-mono text-[9px] p-2 uppercase max-w-[100px] sm:max-w-[150px] truncate" title={tx.merchant}>
                                   {tx.merchant}
                                 </TableCell>
-                                <TableCell className="hidden md:table-cell p-2">
+                                <TableCell className="p-2">
                                   <Select
                                     value={tx.category_id?.toString() || "none"}
-                                    onValueChange={(val) => {
+                                    onValueChange={(val: string | null) => {
                                       const catId = (!val || val === "none") ? null : parseInt(val)
                                       const updatedTxs = [...parsedData.transactions]
                                       updatedTxs[idx].category_id = catId
@@ -1167,7 +2262,23 @@ export function ExpensesView({ initialExpenses, categories, initialRules }: Expe
                                     }}
                                   >
                                     <SelectTrigger className="h-6 text-[8px] font-mono uppercase bg-transparent border-border rounded-none p-1 shrink-0 w-24">
-                                      <SelectValue placeholder="Categorize" />
+                                      {tx.category_id ? (
+                                        (() => {
+                                          const cat = categories.find(c => c.id === tx.category_id)
+                                          if (!cat) return <span className="truncate text-muted-foreground">Categorize</span>
+                                          return (
+                                            <div className="flex items-center gap-1.5 overflow-hidden w-full text-[8px] font-mono">
+                                              <div 
+                                                className="h-1.5 w-1.5 rounded-full shrink-0" 
+                                                style={{ backgroundColor: cat.color }} 
+                                              />
+                                              <span className="truncate">{cat.name}</span>
+                                            </div>
+                                          )
+                                        })()
+                                      ) : (
+                                        <span className="truncate text-muted-foreground">Categorize</span>
+                                      )}
                                     </SelectTrigger>
                                     <SelectContent>
                                       <SelectItem value="none">Uncategorized</SelectItem>
@@ -1180,7 +2291,7 @@ export function ExpensesView({ initialExpenses, categories, initialRules }: Expe
                                   </Select>
                                 </TableCell>
                                 <TableCell className={cn("text-right font-mono text-[10px] font-bold p-2", tx.isIncome ? "text-emerald-600" : "")}>
-                                  {tx.amount > 0 ? "+" : ""}€{tx.amount.toFixed(2)}
+                                  {tx.amount > 0 ? "+" : ""}{currencySymbol}{tx.amount.toFixed(2)}
                                 </TableCell>
                               </TableRow>
                             ))}
@@ -1215,8 +2326,55 @@ export function ExpensesView({ initialExpenses, categories, initialRules }: Expe
             </div>
           </TabsContent>
         </Tabs>
+      </motion.div>
+      {/* Mobile Floating Action Button (FAB) for Thumb Zone accessibility */}
+      <div className="md:hidden fixed bottom-20 right-6 z-40">
+        <button
+          onClick={() => setIsAddOpen(true)}
+          className="h-14 w-14 rounded-none bg-foreground text-background border border-border flex items-center justify-center shadow-[0_4px_20px_rgba(0,0,0,0.3)] active:scale-95 transition-all select-none cursor-pointer ledger-border"
+          aria-label="Add Transaction manual entry"
+        >
+          <Plus className="h-6 w-6" />
+        </button>
       </div>
+
       <AuditTracePanel expenses={expenses} categories={categories} />
+
+      {/* Custom Deletion Confirmation Dialog (NN/G Usability Guideline) */}
+      <Dialog open={deleteConfirmOpen} onOpenChange={setDeleteConfirmOpen}>
+        <DialogContent className="bg-card border border-border rounded-none p-6 font-mono text-xs w-[90vw] max-w-sm">
+          <DialogHeader className="border-b border-border pb-4 mb-4">
+            <DialogTitle className="text-xs uppercase tracking-widest font-mono flex items-center gap-2 text-destructive">
+              <AlertTriangle className="h-4 w-4" /> Deletion Warning
+            </DialogTitle>
+            <DialogDescription className="text-[9px] uppercase font-mono tracking-wider opacity-60 text-muted-foreground mt-1">
+              Confirm permanent database removal
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="space-y-4">
+            <p className="text-[11px] leading-relaxed text-muted-foreground uppercase">
+              Are you sure you want to permanently delete this {deleteTarget?.type}? This action is irreversible and will update all balances.
+            </p>
+
+            <div className="flex gap-3 pt-2">
+              <Button
+                variant="outline"
+                onClick={() => setDeleteConfirmOpen(false)}
+                className="flex-1 rounded-none h-10 font-mono text-[9px] uppercase tracking-widest font-bold border border-border hover:bg-secondary transition-colors"
+              >
+                Cancel
+              </Button>
+              <Button
+                onClick={executeDelete}
+                className="flex-1 rounded-none h-10 font-mono text-[9px] uppercase tracking-widest font-bold bg-destructive text-white hover:bg-destructive/80 transition-colors"
+              >
+                Confirm Delete
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
     </>
   )
 }

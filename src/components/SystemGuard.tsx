@@ -18,7 +18,28 @@ export function SystemGuard({ children }: { children: React.ReactNode }) {
     }
   }, [user, isLoading, isPublicPage, router])
 
-  if (isLoading && !isPublicPage) {
+  // Optimize hydration behavior: check if a session token exists in local storage
+  // to avoid flashing the boot screen for already-logged-in users.
+  const [hasToken, setHasToken] = React.useState<boolean>(true)
+
+  useEffect(() => {
+    try {
+      const hasLocalToken = Object.keys(localStorage).some(
+        key => key.startsWith("sb-") && key.endsWith("-auth-token")
+      )
+      const hasCookieToken = document.cookie.split(";").some(
+        c => c.trim().startsWith("sb-")
+      )
+      if (!hasLocalToken && !hasCookieToken) {
+        setHasToken(false)
+      }
+    } catch (e) {
+      // Fallback if storage/cookies are blocked
+      setHasToken(false)
+    }
+  }, [])
+
+  if (isLoading && !isPublicPage && !hasToken) {
     return (
       <div className="fixed inset-0 flex flex-col items-center justify-center bg-background z-[9999] space-y-8">
         <div className="relative flex items-center justify-center w-16 h-16">
