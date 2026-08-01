@@ -18,7 +18,7 @@ export default async function DashboardPage({ searchParams }: PageProps) {
   // 1. Fetch user profile and cycles using utility
   const { data: profile } = await supabase
     .from("profiles")
-    .select("onboarding_completed, target_monthly_income, target_monthly_spend")
+    .select("onboarding_completed, target_monthly_income, target_monthly_spend, paycheck_keyword")
     .eq("id", user.id)
     .single()
 
@@ -59,7 +59,7 @@ export default async function DashboardPage({ searchParams }: PageProps) {
   const cycleYear = dateObj.getUTCFullYear()
 
   // Run database queries in parallel
-  const [expensesRes, categoriesRes, budgetsRes, balancesRes, previousTxRes, profileRes] = await Promise.all([
+  const [expensesRes, categoriesRes, budgetsRes, balancesRes, previousTxRes] = await Promise.all([
     // Selected cycle expenses
     supabase
       .from("tracker_expense")
@@ -83,26 +83,52 @@ export default async function DashboardPage({ searchParams }: PageProps) {
       .from("account_balance")
       .select("*")
       .order("date", { ascending: false }),
-    // All transactions before the selected cycle (used for starting balance calculations and previous cycle comparison)
+    // All transactions before the selected cycle
     supabase
       .from("tracker_expense")
       .select("*")
       .lt("date", startDateStr)
-      .order("date", { ascending: true }),
-    // User profile keyword
-    supabase
-      .from("profiles")
-      .select("paycheck_keyword")
-      .eq("id", user.id)
-      .single()
+      .order("date", { ascending: true })
   ])
 
   const expenses = expensesRes.data || []
   const categories = categoriesRes.data || []
-  const budgets = budgetsRes.data || []
   const balances = balancesRes.data || []
   const previousTx = previousTxRes.data || []
-  const paycheckKeyword = profileRes.data?.paycheck_keyword || "SALARY"
+  const paycheckKeyword = profile?.paycheck_keyword || "SALARY"
+
+  let budgets = budgetsRes.data || []
+  if (budgets.length === 0 && cycles.length > 0) {
+    const { data: latestBudgets } = await supabase
+      .from("budgets")
+      .select("*")
+      .eq("user_id", user.id)
+      .order("year", { ascending: false })
+      .order("month", { ascending: false })
+    
+    if (latestBudgets && latestBudgets.length > 0) {
+      const latestMonth = latestBudgets[0].month
+      const latestYear = latestBudgets[0].year
+      const fallbackBudgets = latestBudgets.filter(b => b.month === latestMonth && b.year === latestYear)
+      
+      const clonePayload = fallbackBudgets.map(b => ({
+        category_id: b.category_id,
+        amount: b.amount,
+        month: cycleMonth,
+        year: cycleYear,
+        user_id: user.id
+      }))
+      
+      const { data: insertedBudgets, error: cloneError } = await supabase
+        .from("budgets")
+        .insert(clonePayload)
+        .select()
+        
+      if (!cloneError && insertedBudgets) {
+        budgets = insertedBudgets
+      }
+    }
+  }
 
   // Helper to calculate starting balance for a cycle
   const calculateStartBalance = (cycleStartDateStr: string, allBalances: any[], txs: any[]) => {
@@ -116,7 +142,6 @@ export default async function DashboardPage({ searchParams }: PageProps) {
     const snapDate = new Date(snapshot.date)
     const snapAmount = parseFloat(snapshot.amount)
 
-    // Sum transactions between the snapshot date and the cycle start date
     const transitionTxSum = txs
       .filter(tx => {
         const txDate = new Date(tx.date)
@@ -127,10 +152,8 @@ export default async function DashboardPage({ searchParams }: PageProps) {
     return snapAmount + transitionTxSum
   }
 
-  // Calculate starting balance for current cycle
   const injectedStartBalance = calculateStartBalance(selectedCycle.startDate, balances, previousTx)
 
-  // Calculate previous cycle expenses and starting balance
   let previousExpenses: any[] = []
   let previousStartBalance = 0
 

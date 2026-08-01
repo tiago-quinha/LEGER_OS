@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Card, CardContent, CardHeader } from "@/components/ui/card"
-import { Landmark, Terminal, Lock, User, Mail, ArrowRight, UserPlus, Fingerprint, ShieldCheck, Zap } from "lucide-react"
+import { Landmark, Terminal, Lock, User, Mail, ArrowRight, ArrowUpRight, UserPlus, Fingerprint, ShieldCheck, Zap } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { toast } from "sonner"
 import Link from "next/link"
@@ -59,7 +59,7 @@ export default function SignupPage() {
       <div className="absolute inset-0 bg-gradient-to-b from-transparent via-foreground/[0.02] to-transparent h-64 w-full animate-[scan_6s_linear_infinite] pointer-events-none" />
       
       {/* Left Side: Auth Form */}
-      <div className="lg:col-span-5 flex items-center justify-center p-6 sm:p-12 min-h-[100dvh] lg:min-h-0 relative z-10 border-r border-border/40 bg-background/95">
+      <div className="lg:col-span-5 flex items-center justify-center p-6 sm:p-12 min-h-[100dvh] lg:min-h-[100dvh] relative z-10 border-r border-border/40 bg-background/95">
         <div className="w-full max-w-md space-y-8 my-auto py-4">
           <div className="flex flex-col items-center text-center space-y-4">
             <div className="w-16 h-16 bg-foreground flex items-center justify-center ledger-border rotate-45 group">
@@ -143,10 +143,33 @@ export default function SignupPage() {
                   </div>
                 </div>
 
+                <div className="flex items-start gap-2.5 py-1 text-left my-1">
+                  <input
+                    type="checkbox"
+                    id="age-gate"
+                    required
+                    className="mt-0.5 h-3.5 w-3.5 border-border rounded-none bg-secondary/20 text-foreground focus:ring-0 cursor-pointer"
+                  />
+                  <Label htmlFor="age-gate" className="text-[9px] font-sans text-muted-foreground leading-relaxed uppercase cursor-pointer select-none">
+                    I confirm that I am at least 18 years of age and agree to the <a href="/terms.txt" target="_blank" rel="noopener noreferrer" className="text-foreground hover:underline">Terms of Service</a> and <a href="/privacy.txt" target="_blank" rel="noopener noreferrer" className="text-foreground hover:underline">Privacy Policy</a>.
+                  </Label>
+                </div>
+
+                <div className="flex items-start gap-2.5 py-1 text-left my-1">
+                  <input
+                    type="checkbox"
+                    id="marketing-consent"
+                    className="mt-0.5 h-3.5 w-3.5 border-border rounded-none bg-secondary/20 text-foreground focus:ring-0 cursor-pointer"
+                  />
+                  <Label htmlFor="marketing-consent" className="text-[9px] font-sans text-muted-foreground leading-relaxed uppercase cursor-pointer select-none">
+                    I consent to receive diagnostic reports, cycle forecast updates, and product announcements.
+                  </Label>
+                </div>
+
                 <Button 
                   type="submit" 
                   disabled={isLoading}
-                  className="w-full h-11 rounded-none bg-foreground text-background hover:bg-foreground/90 uppercase text-[10px] font-bold tracking-[0.2em] gap-2 active:scale-[0.98] transition-all mt-2"
+                  className="w-full h-11 rounded-none bg-foreground text-background hover:bg-foreground/90 uppercase text-[10px] font-bold tracking-[0.2em] gap-2 active:scale-[0.98] transition-all mt-1"
                 >
                   {isLoading ? "GENERATING ID..." : (
                     <>
@@ -184,10 +207,20 @@ export default function SignupPage() {
             </div>
           </div>
 
-          <div className="flex justify-between items-center px-4 opacity-30 italic font-mono text-[8px] uppercase tracking-tighter">
-             <span>Terms: ACCEPTED</span>
-             <span>Privacy: SECURED</span>
-             <span>Connection: ENCRYPTED</span>
+          <div className="w-full border-t border-border/40 pt-4 flex flex-col sm:flex-row justify-between items-center gap-3 sm:gap-0 px-2 opacity-50 font-mono text-[8px] uppercase tracking-wider">
+             <div className="flex gap-4 items-center">
+                <a href="/terms.txt" target="_blank" rel="noopener noreferrer" className="hover:underline hover:text-foreground flex items-center gap-1">
+                   Terms <ArrowUpRight className="h-2.5 w-2.5 opacity-55" />
+                </a>
+                <span className="opacity-30">/</span>
+                <a href="/privacy.txt" target="_blank" rel="noopener noreferrer" className="hover:underline hover:text-foreground flex items-center gap-1">
+                   Privacy <ArrowUpRight className="h-2.5 w-2.5 opacity-55" />
+                </a>
+             </div>
+             <span className="flex items-center gap-1.5 text-muted-foreground/80">
+                <span className="h-1.5 w-1.5 bg-emerald-500 rounded-none inline-block animate-pulse" />
+                System: Encrypted Connection
+             </span>
           </div>
         </div>
       </div>

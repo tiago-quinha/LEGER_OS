@@ -114,6 +114,11 @@ export function SystemSettingsModal({ open, onOpenChange }: SystemSettingsModalP
               >
                 {isPro ? "PRO Access Active" : "Upgrade to PRO (€4.99/mo)"}
               </Button>
+              {!isPro && (
+                <p className="text-[8px] text-muted-foreground font-mono text-center tracking-normal leading-relaxed mt-1.5">
+                  Billing automatically renews monthly. Cancel anytime in System Configuration settings.
+                </p>
+              )}
             </div>
           </div>
         </div>

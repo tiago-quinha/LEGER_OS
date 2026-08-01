@@ -2,70 +2,44 @@
 
 > This file is mirrored across CLAUDE.md, AGENTS.md, and GEMINI.md so the same instructions load in any AI environment.
 
-You operate within a 3-layer architecture that separates concerns to maximize reliability. LLMs are probabilistic, whereas most business logic is deterministic and requires consistency. This system fixes that mismatch.
+You operate within a 3-Layer Architecture (`directives/`, `orchestration`, `execution/`) coupled with an **Obsidian Vault First Policy** to maximize precision and reliability.
+
+---
+
+## 🔒 Mandatory Obsidian Vault Protocol (Vault-First Policy)
+
+1. **Check Obsidian Vault Before Executing:**
+   Before forming a hypothesis, writing code, or answering architecture questions, you **MUST** first inspect the **LEGER_OS Obsidian Vault** (`LEGER_OS/` or via Obsidian MCP tools).
+   - Read the relevant SOP directive in `LEGER_OS/01 - Directives (SOPs)/`.
+   - Read the current cycle note in `LEGER_OS/02 - Paycheck Cycles/`.
+   - Verify calculation standards in `LEGER_OS/00 - System & AI/Mathematical Projection Engine.md`.
+
+2. **Use Obsidian MCP Tools:**
+   Prefer querying the Obsidian MCP server (`leger-obsidian-vault` or `leger-obsidian-rest`) to fetch context, search notes, or update task Kanbans.
+
+3. **Update Obsidian Vault with Learnings:**
+   Whenever an edge case, API limit, or error is resolved, update the corresponding Markdown SOP inside `LEGER_OS/01 - Directives (SOPs)/` or trigger `python build_full_vault.py`.
+
+---
 
 ## The 3-Layer Architecture
 
 **Layer 1: Directive (What to do)**
-- Basically just SOPs written in Markdown, live in `directives/`
-- Define the goals, inputs, tools/scripts to use, outputs, and edge cases
-- Natural language instructions, like you'd give a mid-level employee
+- Live in `directives/` and `LEGER_OS/01 - Directives (SOPs)/`.
+- Define goals, inputs, tools/scripts to use, outputs, and edge cases.
 
 **Layer 2: Orchestration (Decision making)**
 - This is you. Your job: intelligent routing.
-- Read directives, call execution tools in the right order, handle errors, ask for clarification, update directives with learnings
-- You're the glue between intent and execution. E.g you don't try scraping websites yourself—you read `directives/scrape_website.md` and come up with inputs/outputs and then run `execution/scrape_single_site.py`
+- Read directives, call execution tools in order, handle errors, update directives with learnings.
 
 **Layer 3: Execution (Doing the work)**
-- Deterministic Python scripts in `execution/`
-- Environment variables, api tokens, etc are stored in `.env`
-- Handle API calls, data processing, file operations, database interactions
-- Reliable, testable, fast. Use scripts instead of manual work. Commented well.
+- Deterministic Python scripts in root / `execution/` (`import_transactions.py`, `audit_balances.py`, `update_schema.py`, `build_full_vault.py`).
 
-**Why this works:** if you do everything yourself, errors compound. 90% accuracy per step = 59% success over 5 steps. The solution is push complexity into deterministic code. That way you just focus on decision-making.
+---
 
 ## Operating Principles
 
-**1. Check for tools first**
-Before writing a script, check `execution/` per your directive. Only create new scripts if none exist.
-
-**2. Self-anneal when things break**
-- Read error message and stack trace
-- Fix the script and test it again (unless it uses paid tokens/credits/etc—in which case you check w user first)
-- Update the directive with what you learned (API limits, timing, edge cases)
-- Example: you hit an API rate limit → you then look into API → find a batch endpoint that would fix → rewrite script to accommodate → test → update directive.
-
-**3. Update directives as you learn**
-Directives are living documents. When you discover API constraints, better approaches, common errors, or timing expectations—update the directive. But don't create or overwrite directives without asking unless explicitly told to. Directives are your instruction set and must be preserved (and improved upon over time, not extemporaneously used and then discarded).
-
-## Self-annealing loop
-
-Errors are learning opportunities. When something breaks:
-1. Fix it
-2. Update the tool
-3. Test tool, make sure it works
-4. Update directive to include new flow
-5. System is now stronger
-
-## File Organization
-
-**Deliverables vs Intermediates:**
-- **Deliverables**: Google Sheets, Google Slides, or other cloud-based outputs that the user can access
-- **Intermediates**: Temporary files needed during processing
-
-**Directory structure:**
-- `.tmp/` - All intermediate files (dossiers, scraped data, temp exports). Never commit, always regenerated.
-- `execution/` - Python scripts (the deterministic tools)
-- `directives/` - SOPs in Markdown (the instruction set)
-- `.env` - Environment variables and API keys
-- `credentials.json`, `token.json` - Google OAuth credentials (required files, in `.gitignore`)
-
-**Key principle:** Local files are only for processing. Deliverables live in cloud services (Google Sheets, Slides, etc.) where the user can access them. Everything in `.tmp/` can be deleted and regenerated.
-
-## Summary
-
-You sit between human intent (directives) and deterministic execution (Python scripts). Read instructions, make decisions, call tools, handle errors, continuously improve the system.
-
-Be pragmatic. Be reliable. Self-anneal.
-
-
+1. **Check Obsidian & execution tools first.**
+2. **Self-anneal when things break:** Fix the code, test it, and update the Obsidian directive note.
+3. **Preserve Mathematical Invariants:** Recency decay ($\lambda = 0.12$) and current cycle alpha ($\alpha \ge 0.65$).
+4. **PostgREST Invariant:** SQL migrations must finish with `NOTIFY pgrst, 'reload schema';`.

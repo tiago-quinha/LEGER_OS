@@ -59,6 +59,7 @@ interface Expense {
   source: string
   category_id?: number | null
   raw_text?: string
+  is_anomaly?: boolean
 }
 
 interface Cycle {
@@ -74,9 +75,10 @@ interface ExpensesViewProps {
   categories: Category[]
   initialRules: Rule[]
   cycles?: Cycle[]
+  currentCycleId?: string
 }
 
-export function ExpensesView({ initialExpenses, categories: initialCategories, initialRules, cycles }: ExpensesViewProps) {
+export function ExpensesView({ initialExpenses, categories: initialCategories, initialRules, cycles, currentCycleId }: ExpensesViewProps) {
   const [categories, setCategories] = useState<Category[]>(initialCategories)
   const [expenses, setExpenses] = useState<Expense[]>(() => {
     if (typeof window !== "undefined") {
@@ -93,6 +95,8 @@ export function ExpensesView({ initialExpenses, categories: initialCategories, i
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set())
   const [editingMerchantId, setEditingMerchantId] = useState<string | null>(null)
   const [editingMerchantValue, setEditingMerchantValue] = useState("")
+  const [editingDateId, setEditingDateId] = useState<string | null>(null)
+  const [editingDateValue, setEditingDateValue] = useState("")
   
   const { setAuditPanelOpen, setActiveTransactionId, refreshData, profile, currencySymbol, aiProvider, customApiKey, isPro, setSettingsOpen, setSettingsActiveTab, setSubscriptionOnly, user } = useSystem()
 
@@ -116,7 +120,13 @@ export function ExpensesView({ initialExpenses, categories: initialCategories, i
     setRules(initialRules)
   }, [initialRules])
 
-  const currentCycle = cycles && cycles.length > 0 ? cycles[0] : null
+  const currentCycle = useMemo(() => {
+    if (!cycles || cycles.length === 0) return null
+    if (currentCycleId) {
+      return cycles.find(c => c.id === currentCycleId) || cycles[0]
+    }
+    return cycles[0]
+  }, [cycles, currentCycleId])
 
   const cycleExpenses = useMemo(() => {
     if (!currentCycle) return []
@@ -212,10 +222,7 @@ export function ExpensesView({ initialExpenses, categories: initialCategories, i
     return Array.from(sources).sort()
   }, [expenses])
 
-  const activeCycle = useMemo(() => {
-    if (!cycles || cycles.length === 0) return null
-    return cycles[cycles.length - 1]
-  }, [cycles])
+  const activeCycle = currentCycle
 
   const dateBoundaries = useMemo(() => {
     const today = new Date()
@@ -864,6 +871,61 @@ export function ExpensesView({ initialExpenses, categories: initialCategories, i
     }
   }
 
+  const handleSaveDate = async (expenseId: string, newDateStr: string) => {
+    if (!newDateStr) {
+      setEditingDateId(null)
+      return
+    }
+
+    const originalExpense = expenses.find(e => e.id.toString() === expenseId.toString())
+    if (!originalExpense) {
+      setEditingDateId(null)
+      return
+    }
+
+    const [year, month, day] = newDateStr.split("-").map(Number)
+    if (!year || !month || !day) {
+      setEditingDateId(null)
+      return
+    }
+
+    const dateObj = new Date(originalExpense.date)
+    dateObj.setFullYear(year, month - 1, day)
+    const formattedIsoDate = dateObj.toISOString()
+
+    const origD = new Date(originalExpense.date)
+    const origYyyy = origD.getFullYear()
+    const origMm = String(origD.getMonth() + 1).padStart(2, '0')
+    const origDd = String(origD.getDate()).padStart(2, '0')
+    const origDateStr = `${origYyyy}-${origMm}-${origDd}`
+
+    if (newDateStr === origDateStr) {
+      setEditingDateId(null)
+      return
+    }
+
+    const previousExpenses = [...expenses]
+
+    // Optimistically update state and close editor instantly
+    setExpenses(prev =>
+      prev.map(exp => exp.id.toString() === expenseId.toString() ? { ...exp, date: formattedIsoDate } : exp)
+    )
+    setEditingDateId(null)
+    toast.success("Transaction date updated")
+
+    const { error } = await supabase
+      .from("tracker_expense")
+      .update({ date: formattedIsoDate })
+      .eq("id", expenseId)
+
+    if (error) {
+      toast.error("Failed to update date")
+      setExpenses(previousExpenses)
+      console.error(error)
+      return
+    }
+  }
+
   const handleSelectAll = () => {
     const pageIds = paginatedExpenses.map(e => e.id)
     const allSelected = pageIds.length > 0 && pageIds.every(id => selectedIds.has(id))
@@ -1143,6 +1205,35 @@ export function ExpensesView({ initialExpenses, categories: initialCategories, i
     setDeleteConfirmOpen(true)
   }
 
+  const handleToggleAnomaly = async (id: string, currentStatus?: boolean) => {
+    const newStatus = !currentStatus
+
+    // Optimistically update local list state
+    const previousExpenses = [...expenses]
+    setExpenses(prev =>
+      prev.map(exp => 
+        exp.id.toString() === id.toString() 
+          ? { ...exp, is_anomaly: newStatus } 
+          : exp
+      )
+    )
+
+    toast.success(newStatus ? "Flagged as anomaly (excluded from burn rate)" : "Removed anomaly flag")
+
+    const { error } = await supabase
+      .from("tracker_expense")
+      .update({ is_anomaly: newStatus })
+      .eq("id", id)
+
+    if (error) {
+      toast.error("Failed to update transaction status")
+      setExpenses(previousExpenses)
+      return
+    }
+
+    refreshData()
+  }
+
   const executeDelete = async () => {
     if (!deleteTarget) return
     const { id, type } = deleteTarget
@@ -1190,6 +1281,14 @@ export function ExpensesView({ initialExpenses, categories: initialCategories, i
     }
 
     const amtVal = parseFloat(manualAmount)
+    if (isNaN(amtVal) || amtVal <= 0) {
+      toast.error("Please enter a valid positive number for the amount.")
+      return
+    }
+    if (amtVal > 1000000) {
+      toast.error("Amount exceeds realistic limits (max €1,000,000 per transaction).")
+      return
+    }
     const formattedAmount = isIncome ? Math.abs(amtVal) : -Math.abs(amtVal)
     const tempId = `temp-${Date.now()}`
     
@@ -1245,19 +1344,26 @@ export function ExpensesView({ initialExpenses, categories: initialCategories, i
   return (
     <>
       <motion.div
-        initial={{ opacity: 0 }}
-        animate={{ opacity: 1 }}
-        transition={{ duration: 0.2, ease: "easeOut" }}
-        className="mx-auto max-w-[1500px] p-4 md:p-8 space-y-6 w-full"
+        initial={{ opacity: 0, y: 4 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.45, ease: [0.16, 1, 0.3, 1] }}
+        className="mx-auto max-w-[1500px] p-4 md:p-8 space-y-10 md:space-y-12 pb-24 md:pb-8 w-full"
       >
-        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-          <div>
-            <h1 className="text-3xl font-bold tracking-tight">Ledger</h1>
-            <p className="text-muted-foreground">Manage your transactions and automation rules.</p>
+        {/* 1. Header */}
+        <header className="flex flex-col md:flex-row md:items-center justify-between gap-6 md:gap-8 border-b border-foreground/10 pb-6 md:pb-8 relative">
+          <div className="space-y-3">
+            <div className="flex items-center gap-3 text-[9px] md:text-[10px] font-mono tracking-[0.2em] uppercase text-muted-foreground">
+              <Landmark className="h-3.5 w-3.5" />
+              <span>Transaction ledger</span>
+            </div>
+            <h1 className="text-4xl md:text-5xl font-bold tracking-tighter uppercase leading-none break-words">
+              Ledger
+            </h1>
           </div>
+          
           <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 w-full sm:w-auto">
              <Dialog open={isAddOpen} onOpenChange={setIsAddOpen}>
-                 <DialogTrigger className="rounded-none px-6 font-mono text-[10px] uppercase tracking-widest h-10 border border-border ledger-border bg-card hover:bg-secondary inline-flex items-center justify-center cursor-pointer select-none transition-all whitespace-nowrap outline-none w-full sm:w-auto">
+                 <DialogTrigger className="hidden sm:inline-flex rounded-none px-6 font-mono text-[10px] uppercase tracking-widest h-10 border border-border ledger-border bg-card hover:bg-secondary items-center justify-center cursor-pointer select-none transition-all whitespace-nowrap outline-none w-full sm:w-auto">
                     <Plus className="mr-2 h-4 w-4" /> Add Entry
                  </DialogTrigger>
                  <DialogContent className="bg-card border border-border rounded-none p-4 sm:p-6 font-mono text-xs w-[95vw] max-w-sm max-h-[90dvh] sm:max-h-[85dvh] overflow-y-auto">
@@ -1374,7 +1480,7 @@ export function ExpensesView({ initialExpenses, categories: initialCategories, i
                onClick={smartCategorize} 
                disabled={isCategorizing}
                variant="none"
-               className="bg-foreground text-background hover:bg-foreground/80 border border-transparent font-mono text-[10px] uppercase tracking-widest px-4 py-2 flex items-center justify-center rounded-none h-10 ledger-border w-full sm:w-auto"
+               className="hidden md:flex bg-foreground text-background hover:bg-foreground/80 border border-transparent font-mono text-[10px] uppercase tracking-widest px-4 py-2 items-center justify-center rounded-none h-10 ledger-border w-full sm:w-auto"
                strength={0.2}
              >
                {isCategorizing ? (
@@ -1386,26 +1492,26 @@ export function ExpensesView({ initialExpenses, categories: initialCategories, i
                  </>
                )}
              </MagneticButton>
-          </div>
-        </div>
+           </div>
+        </header>
 
         {/* 3 Executive Ledger Summary Cards Up Top */}
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-6">
-          <Tilt rotationFactor={6} className="p-6 md:p-8 space-y-3 bg-card/20 border border-border hover:bg-secondary/35 transition-all duration-300 relative group overflow-hidden flex flex-col justify-between">
+          <Tilt rotationFactor={6} className="p-6 md:p-8 space-y-3 bg-card/20 border border-border relative group overflow-hidden flex flex-col justify-between glow-card">
             <span className="technical-label text-[9px] border-b border-dotted border-muted-foreground/30 w-fit z-10">Total Ledger Entries</span>
             <div className="text-3xl md:text-5xl font-mono font-bold tracking-tighter z-10">
               {summaryStats.total} <span className="text-xs font-normal text-muted-foreground">ENTRIES</span>
             </div>
             <ClippedCircle circleClassName="bg-foreground/5" circleSize={400} />
           </Tilt>
-          <Tilt rotationFactor={6} className="p-6 md:p-8 space-y-3 bg-card/20 border border-border hover:bg-secondary/35 transition-all duration-300 relative group overflow-hidden flex flex-col justify-between">
+          <Tilt rotationFactor={6} className="p-6 md:p-8 space-y-3 bg-card/20 border border-border relative group overflow-hidden flex flex-col justify-between glow-card">
             <span className="technical-label text-[9px] border-b border-dotted border-muted-foreground/30 w-fit z-10">Total Inflow</span>
             <div className="text-3xl md:text-5xl font-mono font-bold tracking-tighter z-10">
               <PrivacyValue>{currencySymbol}{summaryStats.inflow}</PrivacyValue>
             </div>
             <ClippedCircle circleClassName="bg-foreground/5" circleSize={400} />
           </Tilt>
-          <Tilt rotationFactor={6} className="p-6 md:p-8 space-y-3 bg-card/20 border border-border hover:bg-secondary/35 transition-all duration-300 relative group overflow-hidden flex flex-col justify-between">
+          <Tilt rotationFactor={6} className="p-6 md:p-8 space-y-3 bg-card/20 border border-border relative group overflow-hidden flex flex-col justify-between glow-card">
             <span className="technical-label text-[9px] border-b border-dotted border-muted-foreground/30 w-fit z-10">Total Outflow</span>
             <div className="text-3xl md:text-5xl font-mono font-bold tracking-tighter z-10">
               <PrivacyValue>{currencySymbol}{summaryStats.outflow}</PrivacyValue>
@@ -1506,16 +1612,25 @@ export function ExpensesView({ initialExpenses, categories: initialCategories, i
                   )}
                   <Button
                     variant="ghost"
+                    onClick={smartCategorize}
+                    disabled={isCategorizing}
+                    className="md:hidden h-8 text-[9px] uppercase font-mono tracking-widest border border-border hover:bg-secondary/20 text-muted-foreground hover:text-foreground rounded-none px-3 cursor-pointer flex items-center gap-1.5 transition-all select-none"
+                  >
+                    <Sparkles className="h-3 w-3 text-emerald-500" />
+                    {isCategorizing ? "Cleansing..." : "AI Cleanse"}
+                  </Button>
+                  <Button
+                    variant="ghost"
                     onClick={() => setIsFiltersVisible(!isFiltersVisible)}
                     className={cn(
-                      "h-8 text-[9px] uppercase font-mono tracking-widest rounded-none border px-3 cursor-pointer flex items-center gap-1.5 transition-all select-none",
+                      "h-8 text-[9px] uppercase font-mono tracking-widest rounded-none border px-2.5 sm:px-3 cursor-pointer flex items-center justify-center sm:justify-start gap-0 sm:gap-1.5 transition-all select-none",
                       isFiltersVisible 
                         ? "border-foreground bg-secondary/35 text-foreground" 
                         : "border-border hover:bg-secondary/20 text-muted-foreground hover:text-foreground"
                     )}
                   >
-                    <Filter className="h-3 w-3" />
-                    Filters {isFiltersVisible ? "[Close]" : "[Open]"}
+                    <Filter className="h-3.5 w-3.5" />
+                    <span className="hidden sm:inline">Filters {isFiltersVisible ? "[Close]" : "[Open]"}</span>
                   </Button>
                 </div>
               </CardHeader>
@@ -1549,10 +1664,10 @@ export function ExpensesView({ initialExpenses, categories: initialCategories, i
                           onChange={(e) => setFilterCategory(e.target.value)}
                           className="w-full h-9 px-3 pr-8 border border-border bg-card rounded-none outline-none focus:border-foreground appearance-none text-[11px] uppercase text-foreground"
                         >
-                          <option value="ALL">All Categories</option>
-                          <option value="UNCATEGORIZED">Uncategorized</option>
+                          <option value="ALL" className="bg-[#121215] text-foreground font-mono py-1">All Categories</option>
+                          <option value="UNCATEGORIZED" className="bg-[#121215] text-foreground font-mono py-1">Uncategorized</option>
                           {categories.map(cat => (
-                            <option key={cat.id} value={cat.id.toString()}>{cat.name}</option>
+                            <option key={cat.id} value={cat.id.toString()} className="bg-[#121215] text-foreground font-mono py-1">{cat.name}</option>
                           ))}
                         </select>
                         <ChevronDown className="absolute right-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground pointer-events-none" />
@@ -1569,9 +1684,9 @@ export function ExpensesView({ initialExpenses, categories: initialCategories, i
                           onChange={(e) => setFilterType(e.target.value as any)}
                           className="w-full h-9 px-3 pr-8 border border-border bg-card rounded-none outline-none focus:border-foreground appearance-none text-[11px] uppercase text-foreground"
                         >
-                          <option value="all">All Types</option>
-                          <option value="inflow">Inflow (Credits)</option>
-                          <option value="outflow">Outflow (Debits)</option>
+                          <option value="all" className="bg-[#121215] text-foreground font-mono py-1">All Types</option>
+                          <option value="inflow" className="bg-[#121215] text-foreground font-mono py-1">Inflow (Credits)</option>
+                          <option value="outflow" className="bg-[#121215] text-foreground font-mono py-1">Outflow (Debits)</option>
                         </select>
                         <ChevronDown className="absolute right-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground pointer-events-none" />
                       </div>
@@ -1587,9 +1702,9 @@ export function ExpensesView({ initialExpenses, categories: initialCategories, i
                           onChange={(e) => setFilterSource(e.target.value)}
                           className="w-full h-9 px-3 pr-8 border border-border bg-card rounded-none outline-none focus:border-foreground appearance-none text-[11px] uppercase text-foreground"
                         >
-                          <option value="ALL">All Sources</option>
+                          <option value="ALL" className="bg-[#121215] text-foreground font-mono py-1">All Sources</option>
                           {uniqueSources.map(src => (
-                            <option key={src} value={src}>{src}</option>
+                            <option key={src} value={src} className="bg-[#121215] text-foreground font-mono py-1">{src}</option>
                           ))}
                         </select>
                         <ChevronDown className="absolute right-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground pointer-events-none" />
@@ -1608,12 +1723,12 @@ export function ExpensesView({ initialExpenses, categories: initialCategories, i
                           onChange={(e) => setFilterDatePreset(e.target.value)}
                           className="w-full h-9 px-3 pr-8 border border-border bg-card rounded-none outline-none focus:border-foreground appearance-none text-[11px] uppercase text-foreground"
                         >
-                          <option value="all">All Time</option>
-                          {cycles && cycles.length > 0 && <option value="cycle">Paycheck Cycle</option>}
-                          <option value="30days">Last 30 Days</option>
-                          <option value="90days">Last 90 Days</option>
-                          <option value="ytd">Year to Date (YTD)</option>
-                          <option value="custom">Custom Range</option>
+                          <option value="all" className="bg-[#121215] text-foreground font-mono py-1">All Time</option>
+                          {cycles && cycles.length > 0 && <option value="cycle" className="bg-[#121215] text-foreground font-mono py-1">Paycheck Cycle</option>}
+                          <option value="30days" className="bg-[#121215] text-foreground font-mono py-1">Last 30 Days</option>
+                          <option value="90days" className="bg-[#121215] text-foreground font-mono py-1">Last 90 Days</option>
+                          <option value="ytd" className="bg-[#121215] text-foreground font-mono py-1">Year to Date (YTD)</option>
+                          <option value="custom" className="bg-[#121215] text-foreground font-mono py-1">Custom Range</option>
                         </select>
                         <ChevronDown className="absolute right-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground pointer-events-none" />
                       </div>
@@ -1651,7 +1766,7 @@ export function ExpensesView({ initialExpenses, categories: initialCategories, i
                           <Input
                             id="filter-min-amount"
                             type="number"
-                            placeholder="Min €"
+                            placeholder={currencySymbol}
                             value={filterMinAmount}
                             onChange={(e) => setFilterMinAmount(e.target.value)}
                             className="h-9 rounded-none text-[11px]"
@@ -1663,7 +1778,7 @@ export function ExpensesView({ initialExpenses, categories: initialCategories, i
                           <Input
                             id="filter-max-amount"
                             type="number"
-                            placeholder="Max €"
+                            placeholder={currencySymbol}
                             value={filterMaxAmount}
                             onChange={(e) => setFilterMaxAmount(e.target.value)}
                             className="h-9 rounded-none text-[11px]"
@@ -1732,11 +1847,43 @@ export function ExpensesView({ initialExpenses, categories: initialCategories, i
                             <Check className="h-3.5 w-3.5 sm:h-3 sm:w-3 stroke-[3]" />
                           </button>
                         </TableCell>
-                        <TableCell className="text-[9px] sm:text-[10px] md:text-xs text-muted-foreground group-hover:text-foreground px-1 sm:px-2 whitespace-nowrap">
-                          {new Date(expense.date).toLocaleDateString("en-GB", {
-                            day: "2-digit",
-                            month: "short"
-                          })}
+                        <TableCell className="text-[9px] sm:text-[10px] md:text-xs text-muted-foreground group-hover:text-foreground px-1 sm:px-2 whitespace-nowrap" onClick={(e) => e.stopPropagation()}>
+                          {editingDateId === expense.id ? (
+                            <Input
+                              type="date"
+                              value={editingDateValue}
+                              onChange={(e) => setEditingDateValue(e.target.value)}
+                              onBlur={() => handleSaveDate(expense.id, editingDateValue)}
+                              onKeyDown={(e) => {
+                                if (e.key === "Enter") handleSaveDate(expense.id, editingDateValue)
+                                if (e.key === "Escape") setEditingDateId(null)
+                              }}
+                              className="h-7 sm:h-6 text-[10px] font-mono bg-background border-foreground/50 px-1 py-0 rounded-none w-28 sm:w-32 shadow-sm focus-visible:ring-1 focus-visible:ring-foreground"
+                              autoFocus
+                            />
+                          ) : (
+                            <div 
+                              onClick={() => {
+                                setEditingDateId(expense.id)
+                                const d = new Date(expense.date)
+                                const yyyy = d.getFullYear()
+                                const mm = String(d.getMonth() + 1).padStart(2, '0')
+                                const dd = String(d.getDate()).padStart(2, '0')
+                                setEditingDateValue(`${yyyy}-${mm}-${dd}`)
+                              }}
+                              className="flex items-center gap-1 group/date cursor-pointer w-fit py-0.5 px-1 -ml-1 rounded hover:bg-secondary/60 transition-colors"
+                              title="Click to edit date inline"
+                            >
+                              <span>
+                                {new Date(expense.date).toLocaleDateString("en-GB", {
+                                  day: "2-digit",
+                                  month: "short",
+                                  year: "numeric"
+                                })}
+                              </span>
+                              <Edit2 className="h-2.5 w-2.5 text-muted-foreground opacity-60 sm:opacity-0 sm:group-hover/date:opacity-100 transition-opacity flex-shrink-0" />
+                            </div>
+                          )}
                         </TableCell>
                         <TableCell className="font-medium text-[11px] sm:text-xs md:text-sm max-w-[90px] sm:max-w-none truncate px-1 sm:px-2" onClick={(e) => e.stopPropagation()}>
                           {editingMerchantId === expense.id ? (
@@ -1819,15 +1966,31 @@ export function ExpensesView({ initialExpenses, categories: initialCategories, i
                           </PrivacyValue>
                         </TableCell>
                         <TableCell className="hidden md:table-cell" onClick={(e) => e.stopPropagation()}>
-                          <Button 
-                            variant="ghost" 
-                            size="icon" 
-                            className="h-8 w-8 text-muted-foreground hover:text-destructive transition-colors md:opacity-0 group-hover:opacity-100"
-                            onClick={() => handleDeleteExpense(expense.id.toString())}
-                            aria-label="Delete transaction"
-                          >
-                            <Trash2 className="h-4 w-4" />
-                          </Button>
+                          <div className="flex items-center gap-1">
+                            <Button 
+                              variant="ghost" 
+                              size="icon" 
+                              className={cn(
+                                "h-8 w-8 transition-colors md:opacity-0 group-hover:opacity-100 cursor-pointer",
+                                expense.is_anomaly 
+                                  ? "text-amber-500 hover:text-amber-600 bg-amber-500/5 border border-amber-500/20" 
+                                  : "text-muted-foreground hover:text-amber-500"
+                              )}
+                              onClick={() => handleToggleAnomaly(expense.id, expense.is_anomaly)}
+                              title={expense.is_anomaly ? "Flagged as anomaly (excluded from burn rate)" : "Flag as anomaly"}
+                            >
+                              <AlertTriangle className="h-4 w-4" />
+                            </Button>
+                            <Button 
+                              variant="ghost" 
+                              size="icon" 
+                              className="h-8 w-8 text-muted-foreground hover:text-destructive transition-colors md:opacity-0 group-hover:opacity-100 cursor-pointer"
+                              onClick={() => handleDeleteExpense(expense.id.toString())}
+                              aria-label="Delete transaction"
+                            >
+                              <Trash2 className="h-4 w-4" />
+                            </Button>
+                          </div>
                         </TableCell>
                       </TableRow>
                     ))}
@@ -1860,8 +2023,8 @@ export function ExpensesView({ initialExpenses, categories: initialCategories, i
                             selectedIds.has(expense.id) && "bg-secondary/40 border-foreground/30"
                           )}
                         >
-                          <div className="flex items-center justify-between">
-                            <div className="flex items-center gap-3">
+                          <div className="flex items-center justify-between min-w-0 gap-3 w-full">
+                            <div className="flex items-center gap-3 min-w-0 flex-1">
                               <button
                                 type="button"
                                 onClick={(e) => {
@@ -1898,34 +2061,79 @@ export function ExpensesView({ initialExpenses, categories: initialCategories, i
                                       setEditingMerchantId(expense.id)
                                       setEditingMerchantValue(expense.merchant || "")
                                     }}
-                                    className="font-mono text-xs font-bold uppercase truncate hover:underline cursor-text flex items-center gap-1.5"
+                                    className="font-mono text-xs font-bold uppercase hover:underline cursor-text flex items-center gap-1.5 min-w-0"
                                   >
-                                    {expense.merchant}
-                                    <Edit2 className="h-3 w-3 text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity" />
+                                    <span className="truncate">{expense.merchant}</span>
+                                    <Edit2 className="h-3 w-3 text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity shrink-0" />
                                   </div>
                                 )}
-                                <div className="text-[10px] text-muted-foreground font-sans">{new Date(expense.date).toLocaleDateString("en-GB", {
-                                  day: "2-digit",
-                                  month: "short",
-                                  year: "numeric"
-                                })}</div>
+                                {editingDateId === expense.id ? (
+                                  <Input
+                                    type="date"
+                                    value={editingDateValue}
+                                    onChange={(e) => setEditingDateValue(e.target.value)}
+                                    onBlur={() => handleSaveDate(expense.id, editingDateValue)}
+                                    onKeyDown={(e) => {
+                                      if (e.key === "Enter") handleSaveDate(expense.id, editingDateValue)
+                                      if (e.key === "Escape") setEditingDateId(null)
+                                    }}
+                                    className="h-7 text-[10px] font-mono bg-background border-foreground/50 px-1.5 py-0 rounded-none w-32 shadow-sm focus-visible:ring-1 focus-visible:ring-foreground mt-1"
+                                    autoFocus
+                                    onClick={(e) => e.stopPropagation()}
+                                  />
+                                ) : (
+                                  <div 
+                                    onClick={(e) => {
+                                      e.stopPropagation()
+                                      setEditingDateId(expense.id)
+                                      const d = new Date(expense.date)
+                                      const yyyy = d.getFullYear()
+                                      const mm = String(d.getMonth() + 1).padStart(2, '0')
+                                      const dd = String(d.getDate()).padStart(2, '0')
+                                      setEditingDateValue(`${yyyy}-${mm}-${dd}`)
+                                    }}
+                                    className="text-[10px] text-muted-foreground font-mono cursor-pointer hover:underline flex items-center gap-1 mt-0.5 w-fit"
+                                    title="Click to edit date inline"
+                                  >
+                                    <span>
+                                      {new Date(expense.date).toLocaleDateString("en-GB", {
+                                        day: "2-digit",
+                                        month: "short",
+                                        year: "numeric"
+                                      })}
+                                    </span>
+                                    <Edit2 className="h-2.5 w-2.5 text-muted-foreground opacity-60 flex-shrink-0" />
+                                  </div>
+                                )}
                               </div>
                             </div>
 
-                            <div className="flex items-center gap-2">
+                            <div className="flex items-center gap-1.5 shrink-0" onClick={(e) => e.stopPropagation()}>
                               <div className={cn(
-                                "text-xs font-mono font-bold tracking-tight",
+                                "text-xs font-mono font-bold tracking-tight mr-1",
                                 isIncome ? "text-emerald-500" : "text-foreground"
                               )}>
                                 <PrivacyValue>{isIncome ? "+" : "-"}{currencySymbol}{Math.abs(parseFloat(expense.amount.toString())).toFixed(2)}</PrivacyValue>
                               </div>
+                              {!isIncome && (
+                                <button
+                                  type="button"
+                                  onClick={() => handleToggleAnomaly(expense.id, expense.is_anomaly)}
+                                  className={cn(
+                                    "h-8 w-8 flex items-center justify-center transition-colors rounded-none border border-transparent hover:border-amber-500/20 cursor-pointer",
+                                    expense.is_anomaly 
+                                      ? "text-amber-500 bg-amber-500/5 border-amber-500/20" 
+                                      : "text-muted-foreground hover:text-amber-500"
+                                  )}
+                                  title={expense.is_anomaly ? "Flagged as anomaly" : "Flag as anomaly"}
+                                >
+                                  <AlertTriangle className="h-4 w-4" />
+                                </button>
+                              )}
                               <button
                                 type="button"
-                                onClick={(e) => {
-                                  e.stopPropagation()
-                                  handleDeleteExpense(expense.id.toString())
-                                }}
-                                className="h-8 w-8 text-muted-foreground hover:text-destructive hover:bg-destructive/10 flex items-center justify-center transition-colors rounded-none border border-transparent hover:border-destructive/20"
+                                onClick={() => handleDeleteExpense(expense.id.toString())}
+                                className="h-8 w-8 text-muted-foreground hover:text-destructive hover:bg-destructive/10 flex items-center justify-center transition-colors rounded-none border border-transparent hover:border-destructive/20 cursor-pointer"
                                 aria-label="Delete transaction"
                               >
                                 <Trash2 className="h-4 w-4" />

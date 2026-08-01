@@ -1,7 +1,11 @@
 "use client"
 
 import { useState, useMemo, useEffect } from "react"
-import { motion } from "framer-motion"
+import { motion, AnimatePresence } from "framer-motion"
+import { useRouter } from "next/navigation"
+import { useCycleSwipe } from "@/hooks/useCycleSwipe"
+import { CycleMobileBar } from "@/components/ui/cycle-mobile-bar"
+import { SwipeCycleWrapper } from "@/components/ui/swipe-cycle-wrapper"
 import {
   Table,
   TableBody,
@@ -69,26 +73,49 @@ interface Expense {
   source: string
   category_id?: number | null
   raw_text?: string
+  is_anomaly?: boolean
 }
 
 interface CategoriesViewProps {
   expenses: Expense[]
   categories: Category[]
   cycles: Cycle[]
+  currentCycleId?: string
 }
 
 type DatePreset = "cycle" | "30days" | "90days" | "ytd" | "all" | "custom"
 type GraphMode = "cumulative" | "daily"
 
-export function CategoriesView({ expenses, categories, cycles }: CategoriesViewProps) {
+export function CategoriesView({ expenses, categories, cycles, currentCycleId }: CategoriesViewProps) {
+  const router = useRouter()
   const { currencySymbol, setAuditPanelOpen, setActiveTransactionId } = useSystem()
 
   // --- States ---
   const [selectedCategoryId, setSelectedCategoryId] = useState<string>("ALL")
   const [datePreset, setDatePreset] = useState<DatePreset>("cycle")
-  const [selectedCycleId, setSelectedCycleId] = useState<string>(cycles[0]?.id || "ALL")
+  const [selectedCycleId, setSelectedCycleId] = useState<string>(currentCycleId || cycles[0]?.id || "ALL")
   const [customStartDate, setCustomStartDate] = useState<string>("")
   const [customEndDate, setCustomEndDate] = useState<string>("")
+
+  const currentCycle = cycles.find(c => c.id === selectedCycleId) || cycles[0]
+  const currentIndex = cycles.findIndex(c => c.id === (currentCycle?.id || ""))
+
+  const navigateCycle = (dir: 'prev' | 'next') => {
+    if (currentIndex === -1) return
+    const targetIndex = dir === 'prev' ? currentIndex + 1 : currentIndex - 1
+    if (targetIndex >= 0 && targetIndex < cycles.length) {
+      const targetCycle = cycles[targetIndex]
+      setSelectedCycleId(targetCycle.id)
+      router.push(`/categories?cycleId=${targetCycle.id}`, { scroll: false })
+    }
+  }
+
+  useCycleSwipe({
+    cycles,
+    currentCycleId: selectedCycleId,
+    route: "/categories",
+    onCycleChange: setSelectedCycleId,
+  })
   const [typeFilter, setTypeFilter] = useState<"all" | "inflow" | "outflow">("all")
   const [searchQuery, setSearchQuery] = useState<string>("")
   const [graphMode, setGraphMode] = useState<GraphMode>("cumulative")
@@ -121,6 +148,14 @@ export function CategoriesView({ expenses, categories, cycles }: CategoriesViewP
         end = new Date()
         end.setDate(end.getDate() + 1)
       }
+    } else if (datePreset === "all") {
+      if (expenses.length > 0) {
+        const sortedAll = [...expenses].sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime())
+        start = new Date(sortedAll[0].date)
+      } else {
+        start = new Date()
+        start.setDate(today.getDate() - 30)
+      }
     } else if (datePreset === "30days") {
       start = new Date()
       start.setDate(today.getDate() - 30)
@@ -138,7 +173,7 @@ export function CategoriesView({ expenses, categories, cycles }: CategoriesViewP
     }
 
     return { start, end }
-  }, [datePreset, activeCycle, customStartDate, customEndDate])
+  }, [datePreset, activeCycle, customStartDate, customEndDate, expenses])
 
   // --- Filtered Expenses for statistics & table ---
   const filteredExpenses = useMemo(() => {
@@ -213,8 +248,10 @@ export function CategoriesView({ expenses, categories, cycles }: CategoriesViewP
 
     const totalDays = Math.ceil((dateBoundaries.end.getTime() - dateBoundaries.start.getTime()) / (1000 * 60 * 60 * 24))
 
+    let result = []
+
     // If date range is longer than 60 days, group by month to keep chart clean. Otherwise, group by day.
-    if (totalDays > 60 || datePreset === "all") {
+    if (totalDays > 60) {
       // Group by calendar month
       const monthlyBuckets: { [key: string]: { label: string; date: Date; outflow: number; inflow: number } } = {}
 
@@ -243,7 +280,7 @@ export function CategoriesView({ expenses, categories, cycles }: CategoriesViewP
       let cumOutflow = 0
       let cumInflow = 0
 
-      return sortedKeys.map(key => {
+      result = sortedKeys.map(key => {
         const item = monthlyBuckets[key]
         cumOutflow += item.outflow
         cumInflow += item.inflow
@@ -263,9 +300,8 @@ export function CategoriesView({ expenses, categories, cycles }: CategoriesViewP
       
       // Seed all days in range to show smooth continuous lines
       const tempDate = new Date(dateBoundaries.start)
-      // Cap iterations to avoid browser crashes in case of corrupt dates
       let safetyCounter = 0
-      while (tempDate <= dateBoundaries.end && safetyCounter < 100) {
+      while (tempDate <= dateBoundaries.end && safetyCounter < 120) {
         const key = tempDate.toISOString().split("T")[0]
         dailyBuckets[key] = {
           label: tempDate.toLocaleDateString("en-GB", { day: "2-digit", month: "short" }),
@@ -281,7 +317,6 @@ export function CategoriesView({ expenses, categories, cycles }: CategoriesViewP
         const key = tx.date.split("T")[0]
         const amt = Number(tx.amount) || 0
         
-        // In case transactions fall slightly outside or seed wasn't generated
         if (!dailyBuckets[key]) {
           const d = new Date(tx.date)
           dailyBuckets[key] = {
@@ -303,7 +338,7 @@ export function CategoriesView({ expenses, categories, cycles }: CategoriesViewP
       let cumOutflow = 0
       let cumInflow = 0
 
-      return sortedKeys.map(key => {
+      result = sortedKeys.map(key => {
         const item = dailyBuckets[key]
         cumOutflow += item.outflow
         cumInflow += item.inflow
@@ -318,6 +353,30 @@ export function CategoriesView({ expenses, categories, cycles }: CategoriesViewP
         }
       })
     }
+
+    // Single point fallback padding: If result array has only 1 point, prepend a 0-baseline start point
+    if (result.length === 1) {
+      const single = result[0]
+      const startDateObj = new Date(dateBoundaries.start)
+      // Prepend 1 day prior for clean horizontal axis spacing
+      startDateObj.setDate(startDateObj.getDate() - 1)
+      const startLabel = startDateObj.toLocaleDateString("en-GB", { day: "2-digit", month: "short" })
+
+      return [
+        {
+          dateLabel: startLabel !== single.dateLabel ? startLabel : "Start",
+          outflow: 0,
+          inflow: 0,
+          net: 0,
+          cumOutflow: 0,
+          cumInflow: 0,
+          cumNet: 0
+        },
+        single
+      ]
+    }
+
+    return result
   }, [expenses, selectedCategoryId, dateBoundaries, datePreset])
 
   // --- zeroOffset calculation for gradient charts ---
@@ -412,26 +471,48 @@ export function CategoriesView({ expenses, categories, cycles }: CategoriesViewP
 
   return (
     <motion.div
-      initial={{ opacity: 0 }}
-      animate={{ opacity: 1 }}
-      transition={{ duration: 0.2, ease: "easeOut" }}
+      initial={{ opacity: 0, y: 4 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.45, ease: [0.16, 1, 0.3, 1] }}
       className="mx-auto max-w-[1500px] p-4 md:p-8 space-y-10 md:space-y-12 pb-24 md:pb-8 w-full"
     >
       {/* 1. Header */}
-      <header className="space-y-4 border-b border-foreground/10 pb-6 md:pb-8 relative">
+      <header className="flex items-center justify-between gap-6 border-b border-foreground/10 pb-6 md:pb-8 relative flex-wrap sm:flex-nowrap">
         <div className="space-y-3">
           <div className="flex items-center gap-3 text-[9px] md:text-[10px] font-mono tracking-[0.2em] uppercase text-muted-foreground">
-            <Tag className="h-3 w-3" />
-            <span>Category Explorer</span>
+            <Tag className="h-3.5 w-3.5" />
+            <span>Category Explorer {currentCycle ? `[${currentCycle.label.replace('Cycle: ', '')}]` : ''}</span>
           </div>
-          <h1 className="text-4xl md:text-6xl font-bold tracking-tighter uppercase leading-none">
+          <h1 className="text-4xl md:text-5xl font-bold tracking-tighter uppercase leading-none break-words">
             Categories
           </h1>
         </div>
+
+        {cycles.length > 0 && (
+          <div className="hidden md:flex items-center border border-border ledger-border bg-card overflow-hidden shrink-0">
+            <button 
+              onClick={() => navigateCycle('prev')} 
+              disabled={currentIndex >= cycles.length - 1} 
+              className="px-3.5 py-2 hover:bg-muted transition-colors disabled:opacity-40 border-r border-border cursor-pointer disabled:cursor-not-allowed"
+              aria-label="Previous paycheck cycle"
+            >
+              <ChevronLeft className="h-4 w-4 text-foreground" />
+            </button>
+            <button 
+              onClick={() => navigateCycle('next')} 
+              disabled={currentIndex <= 0} 
+              className="px-3.5 py-2 hover:bg-muted transition-colors disabled:opacity-40 cursor-pointer disabled:cursor-not-allowed"
+              aria-label="Next paycheck cycle"
+            >
+              <ChevronRight className="h-4 w-4 text-foreground" />
+            </button>
+          </div>
+        )}
       </header>
 
-      {/* 2. Interactive Category Grid */}
-      <section className="space-y-4">
+      <div className="space-y-10 md:space-y-12">
+        {/* 2. Interactive Category Grid */}
+        <section className="space-y-4">
         <div className="flex justify-between items-center border-b border-foreground/10 pb-3">
           <h2 className="technical-label">Category Matrix</h2>
           <span className="text-[9px] font-mono text-muted-foreground uppercase tracking-widest">
@@ -510,7 +591,7 @@ export function CategoriesView({ expenses, categories, cycles }: CategoriesViewP
       {/* 3. Metrics Summary Bento Grid (Outflow, Inflow, Net) */}
       <section className="grid grid-cols-1 md:grid-cols-3 gap-6">
         {/* Net Profit/Loss Card */}
-        <Tilt rotationFactor={4} className="p-6 md:p-8 space-y-4 bg-card/20 border border-border hover:bg-secondary/35 transition-all duration-300 relative group overflow-hidden flex flex-col justify-between">
+        <Tilt rotationFactor={4} className="p-6 md:p-8 space-y-4 bg-card/20 border border-border relative group overflow-hidden flex flex-col justify-between glow-card">
           <div className="flex items-center justify-between opacity-40 group-hover:opacity-100 transition-opacity">
             <span className="technical-label text-[8px] md:text-[9px]">Net Position</span>
             <ArrowLeftRight className={cn("h-3.5 w-3.5", metrics.net >= 0 ? "text-emerald-500" : "text-destructive")} />
@@ -536,7 +617,7 @@ export function CategoriesView({ expenses, categories, cycles }: CategoriesViewP
         </Tilt>
 
         {/* Inflow Card */}
-        <Tilt rotationFactor={4} className="p-6 md:p-8 space-y-4 bg-card/20 border border-border hover:bg-secondary/35 transition-all duration-300 relative group overflow-hidden flex flex-col justify-between">
+        <Tilt rotationFactor={4} className="p-6 md:p-8 space-y-4 bg-card/20 border border-border relative group overflow-hidden flex flex-col justify-between glow-card">
           <div className="flex items-center justify-between opacity-40 group-hover:opacity-100 transition-opacity">
             <span className="technical-label text-[8px] md:text-[9px]">Inflow</span>
             <TrendingUp className="h-3.5 w-3.5 text-emerald-500" />
@@ -555,7 +636,7 @@ export function CategoriesView({ expenses, categories, cycles }: CategoriesViewP
         </Tilt>
 
         {/* Outflow Card */}
-        <Tilt rotationFactor={4} className="p-6 md:p-8 space-y-4 bg-card/20 border border-border hover:bg-secondary/35 transition-all duration-300 relative group overflow-hidden flex flex-col justify-between">
+        <Tilt rotationFactor={4} className="p-6 md:p-8 space-y-4 bg-card/20 border border-border relative group overflow-hidden flex flex-col justify-between glow-card">
           <div className="flex items-center justify-between opacity-40 group-hover:opacity-100 transition-opacity">
             <span className="technical-label text-[8px] md:text-[9px]">Outflow</span>
             <TrendingDown className="h-3.5 w-3.5 text-destructive" />
@@ -593,9 +674,9 @@ export function CategoriesView({ expenses, categories, cycles }: CategoriesViewP
                   onChange={(e) => setSelectedCategoryId(e.target.value)}
                   className="w-full h-10 px-3 pr-10 border border-border bg-card rounded-none uppercase text-foreground outline-none focus:border-foreground transition-colors appearance-none"
                 >
-                  <option value="ALL">ALL CATEGORIES</option>
+                  <option value="ALL" className="bg-[#121215] text-foreground font-mono py-1">ALL CATEGORIES</option>
                   {categories.map((cat) => (
-                    <option key={cat.id} value={cat.id}>{cat.name}</option>
+                    <option key={cat.id} value={cat.id} className="bg-[#121215] text-foreground font-mono py-1">{cat.name}</option>
                   ))}
                 </select>
                 <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground pointer-events-none" />
@@ -611,12 +692,12 @@ export function CategoriesView({ expenses, categories, cycles }: CategoriesViewP
                   onChange={(e) => setDatePreset(e.target.value as DatePreset)}
                   className="w-full h-10 px-3 pr-10 border border-border bg-card rounded-none uppercase text-foreground outline-none focus:border-foreground transition-colors appearance-none"
                 >
-                  <option value="cycle">Paycheck Cycle</option>
-                  <option value="30days">Last 30 Days</option>
-                  <option value="90days">Last 90 Days</option>
-                  <option value="ytd">Year to Date (YTD)</option>
-                  <option value="all">All Time</option>
-                  <option value="custom">Custom Range</option>
+                  <option value="cycle" className="bg-[#121215] text-foreground font-mono py-1">Paycheck Cycle</option>
+                  <option value="30days" className="bg-[#121215] text-foreground font-mono py-1">Last 30 Days</option>
+                  <option value="90days" className="bg-[#121215] text-foreground font-mono py-1">Last 90 Days</option>
+                  <option value="ytd" className="bg-[#121215] text-foreground font-mono py-1">Year to Date (YTD)</option>
+                  <option value="all" className="bg-[#121215] text-foreground font-mono py-1">All Time</option>
+                  <option value="custom" className="bg-[#121215] text-foreground font-mono py-1">Custom Range</option>
                 </select>
                 <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground pointer-events-none" />
               </div>
@@ -633,7 +714,7 @@ export function CategoriesView({ expenses, categories, cycles }: CategoriesViewP
                     className="w-full h-10 px-3 pr-10 border border-border bg-card rounded-none uppercase text-foreground outline-none focus:border-foreground transition-colors text-[10px] appearance-none"
                   >
                     {cycles.map((c) => (
-                      <option key={c.id} value={c.id}>{c.label}</option>
+                      <option key={c.id} value={c.id} className="bg-[#121215] text-foreground font-mono py-1">{c.label}</option>
                     ))}
                   </select>
                   <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground pointer-events-none" />
@@ -992,7 +1073,15 @@ export function CategoriesView({ expenses, categories, cycles }: CategoriesViewP
       </section>
 
       {/* Side Audit Panel portal */}
-      <AuditTracePanel expenses={expenses} categories={categories} />
+      </div>
+
+      {/* Mobile sticky cycle nav bar (above bottom nav) */}
+      <CycleMobileBar
+        cycles={cycles}
+        currentCycleId={selectedCycleId}
+        route="/categories"
+        onCycleChange={setSelectedCycleId}
+      />
     </motion.div>
   )
 }

@@ -1,23 +1,68 @@
-import { supabase } from "@/lib/supabase"
+import { getAdminClient } from "@/lib/supabase-admin";
 import { NextResponse } from "next/server"
+import { generateAIContent } from "@/lib/ai-bridge"
+
+const supabaseAdmin = getAdminClient();
 
 export async function POST(request: Request) {
   try {
-    const payload = await request.json()
-    const { amount, merchant, source, raw_text } = payload
+    const url = new URL(request.url)
+    const queryUserId = url.searchParams.get("userId")
 
-    if (!amount || !merchant) {
-      return NextResponse.json({ error: "Missing data" }, { status: 400 })
+    const payload = await request.json()
+    const { amount, merchant, source, raw_text, userId: payloadUserId } = payload
+    const userId = queryUserId || payloadUserId
+
+    let finalMerchant = (merchant || "").trim()
+    let finalAmountRaw = amount
+
+    // AI Ingestion logic: parse only if fields are empty
+    if ((!finalMerchant || !finalAmountRaw) && raw_text) {
+      try {
+        const aiPrompt = `
+          You are the bank transaction parsing agent of LEGER_OS.
+          Extract the merchant name and numerical amount from this push notification text: "${raw_text}"
+          
+          Format your output as a strict JSON object:
+          {
+            "merchant": string, // Extract store/merchant/recipient. Clean & short. If not found, return "Unknown Merchant".
+            "amount": number // Extract transaction amount as positive float (e.g. 15.30). If not found, return null.
+          }
+        `
+        const aiResText = await generateAIContent(aiPrompt, {
+          jsonMode: true,
+          modelType: "flash"
+        })
+        const parsed = JSON.parse(aiResText)
+        if (!finalMerchant && parsed.merchant) {
+          finalMerchant = parsed.merchant
+        }
+        if (!finalAmountRaw && parsed.amount) {
+          finalAmountRaw = parsed.amount
+        }
+      } catch (aiErr) {
+        console.error("MacroDroid AI Ingestion parsing failed:", aiErr)
+      }
     }
 
-    // Convert amount to absolute number first
-    let finalAmount = Math.abs(parseFloat(amount.toString().replace(',', '.')))
+    if (!finalAmountRaw) {
+      return NextResponse.json({ error: "Missing amount data" }, { status: 400 })
+    }
+
+    if (!finalMerchant) {
+      finalMerchant = "Unknown Merchant"
+    }
+
+    // Convert amount to float
+    let parsedAmount = parseFloat(finalAmountRaw.toString().replace(',', '.'))
+    const isExplicitlyNegative = parsedAmount < 0
+    let finalAmount = Math.abs(parsedAmount)
     
     // SMART SIGN DETECTION
     // Keywords that indicate money LEAVING the account
-    const outflowKeywords = ["saída", "débito", "compra", "pagamento", "transferência enviada", "levantamento"]
+    const outflowKeywords = ["saída", "débito", "compra", "pagamento", "transferência enviada", "levantamento", "spent", "debit", "withdrawal"]
     // Keywords that indicate money ENTERING the account
-    const inflowKeywords = ["entrada", "crédito", "recebida", "reembolso", "depósito"]
+    const inflowKeywords = ["entrada", "crédito", "recebida", "reembolso", "depósito", "refund", "credit", "received"]
 
     const lowerRaw = (raw_text || "").toLowerCase()
     
@@ -34,18 +79,19 @@ export async function POST(request: Request) {
     }
 
     // Apply sign
-    if (isOutflow) {
+    if (isOutflow || isExplicitlyNegative) {
         finalAmount = -finalAmount
     }
 
-    const { data, error } = await supabase
+    const { data, error } = await supabaseAdmin
       .from("tracker_expense")
       .insert({
         amount: finalAmount,
-        merchant: merchant,
+        merchant: finalMerchant,
         source: source || "MacroDroid",
-        raw_text: raw_text,
-        date: new Date().toISOString()
+        raw_text: raw_text || null,
+        date: new Date().toISOString(),
+        user_id: userId || undefined
       })
       .select()
 

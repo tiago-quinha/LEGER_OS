@@ -4,7 +4,12 @@ import { getCycles } from "@/lib/cycles"
 
 export const dynamic = "force-dynamic"
 
-export default async function ExpensesPage() {
+interface PageProps {
+  searchParams: Promise<{ cycleId?: string }>
+}
+
+export default async function ExpensesPage({ searchParams }: PageProps) {
+  const params = await searchParams
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) return null
@@ -31,6 +36,7 @@ export default async function ExpensesPage() {
       categories={categoriesRes.data || []} 
       initialRules={rulesRes.data || []}
       cycles={cycles || []}
+      currentCycleId={params.cycleId}
     />
   )
 }

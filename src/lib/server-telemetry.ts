@@ -1,5 +1,6 @@
 import { SupabaseClient } from "@supabase/supabase-js"
 import { getCycles } from "./cycles"
+import { cache } from "./cache"
 
 function simulateExpertDailyProjection(
   pastExpenses: any[],
@@ -186,6 +187,11 @@ function simulateExpertDailyProjection(
 
 export async function calculateServerTelemetry(supabase: SupabaseClient, userId: string, clientDateStr?: string) {
   const today = clientDateStr ? new Date(clientDateStr) : new Date();
+
+  const cacheKey = `telemetry:${userId}:${clientDateStr || 'now'}`;
+  const cached = cache.get(cacheKey);
+  if (cached) return cached;
+
   // 1. Fetch user profile
   const { data: profile, error: profileErr } = await supabase
     .from("profiles")
@@ -388,7 +394,7 @@ export async function calculateServerTelemetry(supabase: SupabaseClient, userId:
     .slice(0, 10)
     .map(e => ({ date: e.date, merchant: e.merchant, amount: parseFloat(e.amount), category_id: e.category_id }));
 
-  return {
+  const result = {
     totalIn,
     totalOut,
     currentBalance: cycleEndBalance,
@@ -403,4 +409,14 @@ export async function calculateServerTelemetry(supabase: SupabaseClient, userId:
     projectedSurplus: projectedTotalIn - projectedTotalOut,
     projectedEndBalance: estimatedFinalBalance
   }
+
+  // Cache lightweight telemetry for short TTL to reduce repeated DB work
+  try {
+    cache.set(cacheKey, result, 30 * 1000); // 30s
+  } catch (e) {
+    console.warn("Failed to set telemetry cache:", e);
+  }
+
+  return result
 }
+

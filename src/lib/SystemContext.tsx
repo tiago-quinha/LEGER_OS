@@ -160,20 +160,19 @@ export function SystemProvider({ children }: { children: React.ReactNode }) {
       return
     }
     try {
-      const { error } = await supabase
-        .from('profiles')
-        .update({ 
-          subscription_tier: 'PRO',
-          ai_quota_limit: 300,
-          ai_quota_usage: 0 
-        })
-        .eq('id', user.id)
-      if (error) throw error
+      const res = await fetch('/api/user/subscription', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'upgrade' })
+      })
+      const data = await res.json()
+      if (!res.ok) throw new Error(data.error || "Failed to upgrade")
+      
       toast.success("Welcome to LEGER_OS PRO! All advanced AI & predictive models unlocked.")
       await refreshProfile()
       refreshData()
-    } catch (err) {
-      toast.error("Failed to upgrade tier")
+    } catch (err: any) {
+      toast.error(err.message || "Failed to upgrade tier")
     }
   }
 
@@ -183,19 +182,19 @@ export function SystemProvider({ children }: { children: React.ReactNode }) {
       return
     }
     try {
-      const { error } = await supabase
-        .from('profiles')
-        .update({ 
-          subscription_tier: 'FREE',
-          ai_quota_limit: 50 
-        })
-        .eq('id', user.id)
-      if (error) throw error
+      const res = await fetch('/api/user/subscription', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'cancel' })
+      })
+      const data = await res.json()
+      if (!res.ok) throw new Error(data.error || "Failed to cancel")
+
       toast.success("LEGER_OS PRO subscription cancelled. Returned to Core Free Tier.")
       await refreshProfile()
       refreshData()
-    } catch (err) {
-      toast.error("Failed to cancel subscription")
+    } catch (err: any) {
+      toast.error(err.message || "Failed to cancel subscription")
     }
   }
 

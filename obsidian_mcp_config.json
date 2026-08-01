@@ -1,0 +1,23 @@
+{
+  "mcpServers": {
+    "leger-obsidian-vault": {
+      "command": "npx",
+      "args": [
+        "-y",
+        "@modelcontextprotocol/server-filesystem",
+        "C:\\Users\\Quinha\\Documents\\leger_os\\LEGER_OS"
+      ]
+    },
+    "leger-obsidian-rest": {
+      "command": "npx",
+      "args": [
+        "-y",
+        "mcp-obsidian"
+      ],
+      "env": {
+        "OBSIDIAN_API_KEY": "YOUR_OBSIDIAN_LOCAL_REST_API_KEY_HERE",
+        "OBSIDIAN_REST_URL": "https://127.0.0.1:27124"
+      }
+    }
+  }
+}

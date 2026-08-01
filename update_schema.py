@@ -31,6 +31,9 @@ BEGIN
     IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='tracker_expense' AND column_name='category_id') THEN
         ALTER TABLE tracker_expense ADD COLUMN category_id INTEGER REFERENCES categories(id);
     END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='tracker_expense' AND column_name='is_anomaly') THEN
+        ALTER TABLE tracker_expense ADD COLUMN is_anomaly BOOLEAN DEFAULT false;
+    END IF;
 END $$;
 
 -- Create budgets table

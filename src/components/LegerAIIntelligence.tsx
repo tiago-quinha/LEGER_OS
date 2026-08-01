@@ -214,12 +214,16 @@ export function LegerAIIntelligence({ cycleData }: LegerAIIntelligenceProps) {
                        >
                           Re-run Analysis
                        </button>
-                       <a 
-                         href="/leger-ai" 
-                         className="px-3 py-1.5 border border-border bg-foreground text-background hover:bg-foreground/90 font-sans text-[9px] uppercase font-bold tracking-wider transition-colors inline-block"
-                       >
-                          Open AI Gateway
-                       </a>
+                        <button 
+                          onClick={() => {
+                            if (typeof window !== "undefined") {
+                              window.dispatchEvent(new CustomEvent("open-leger-ai"));
+                            }
+                          }} 
+                          className="px-3 py-1.5 border border-border bg-foreground text-background hover:bg-foreground/90 font-sans text-[9px] uppercase font-bold tracking-wider transition-colors cursor-pointer select-none"
+                        >
+                           Open AI Terminal
+                        </button>
                     </div>
                  </div>
              </div>

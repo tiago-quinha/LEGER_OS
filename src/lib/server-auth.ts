@@ -1,5 +1,6 @@
 import { createClient as createSupabaseClient } from "@supabase/supabase-js";
 import { createClient as createServerCookieClient } from "./supabase-server";
+import { getAdminClient } from "./supabase-admin";
 
 export async function isUserPro(req?: Request): Promise<boolean> {
   try {
@@ -76,10 +77,7 @@ export async function verifyAndConsumeQuota(req?: Request): Promise<{
     }
 
     // 2. Fetch profile quota status using admin client to bypass anonymous RLS query restrictions on server side
-    const supabaseAdmin = createSupabaseClient(
-      process.env.NEXT_PUBLIC_SUPABASE_URL!,
-      process.env.SUPABASE_SERVICE_ROLE_KEY!
-    );
+    const supabaseAdmin = getAdminClient();
 
     const { data: profile, error: profileError } = await supabaseAdmin
       .from("profiles")
@@ -101,7 +99,11 @@ export async function verifyAndConsumeQuota(req?: Request): Promise<{
 
     // Immediate gate: Free tier does not have access to AI at all
     if (!isPro) {
-      const debugInfo = `(Debug: userId=${user.id}, profile=${JSON.stringify(profile)}, error=${JSON.stringify(profileError)}, hasServiceKey=${!!process.env.SUPABASE_SERVICE_ROLE_KEY})`;
+      const safeProfile = profile ? {
+        ...profile,
+        custom_api_key: profile.custom_api_key ? "[REDACTED]" : ""
+      } : null;
+      const debugInfo = `(Debug: userId=${user.id}, profile=${JSON.stringify(safeProfile)}, error=${JSON.stringify(profileError)}, hasServiceKey=${!!process.env.SUPABASE_SERVICE_ROLE_KEY})`;
       return { 
         allowed: false, 
         isPro: false, 

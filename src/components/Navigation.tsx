@@ -3,8 +3,8 @@
 import React, { useState, useEffect } from "react"
 import { createPortal } from "react-dom"
 import Link from "next/link"
-import { usePathname, useRouter } from "next/navigation"
-import { Home, List, PieChart, BarChart3, Landmark, Shield, ShieldOff, Cpu, Activity, Database, Brain, LogOut, User, Sun, Moon, Sliders, Menu, X, ChevronRight, Tag } from "lucide-react"
+import { usePathname, useRouter, useSearchParams } from "next/navigation"
+import { Home, List, PieChart, BarChart3, Landmark, Shield, ShieldOff, Cpu, Activity, Database, LogOut, User, Sun, Moon, Sliders, Menu, X, ChevronRight, Tag } from "lucide-react"
 import { useTheme } from "next-themes"
 import { cn } from "@/lib/utils"
 import { useSystem } from "@/lib/SystemContext"
@@ -16,12 +16,11 @@ import { SystemSettingsModal } from "@/components/SystemSettingsModal"
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog"
 
 const navigation = [
-  { name: "Dashboard", href: "/", icon: Home, id: "NODE_01", desc: "Global Overview" },
-  { name: "LEGER AI", href: "/leger-ai", icon: Brain, id: "NODE_05", desc: "Neural Strategy" },
-  { name: "Ledger", href: "/expenses", icon: List, id: "NODE_02", desc: "Transactional Audit" },
-  { name: "Categories", href: "/categories", icon: Tag, id: "NODE_06", desc: "Category Analysis" },
-  { name: "Budgets", href: "/budgets", icon: PieChart, id: "NODE_03", desc: "Constraint Matrix" },
-  { name: "Analytics", href: "/analytics", icon: BarChart3, id: "NODE_04", desc: "Trend Synthesis" },
+  { name: "Dashboard", href: "/", icon: Home, desc: "Global Overview" },
+  { name: "Ledger", href: "/expenses", icon: List, desc: "Transaction history" },
+  { name: "Categories", href: "/categories", icon: Tag, desc: "Category analysis" },
+  { name: "Budgets", href: "/budgets", icon: PieChart, desc: "Budget planning" },
+  { name: "Analytics", href: "/analytics", icon: BarChart3, desc: "Cash flow trends" },
 ]
 
 // Mobile bottom bar shows 4 core routes + 1 System/Menu trigger
@@ -36,6 +35,8 @@ const mobileNavigation = [
 export function Navigation() {
   const pathname = usePathname()
   const router = useRouter()
+  const searchParams = useSearchParams()
+  const cycleId = searchParams ? searchParams.get("cycleId") : null
   const { isPrivacyMode, setPrivacyMode, systemLatency, nodeStatus, profile, signOut, user, isPro, isSettingsOpen, setSettingsOpen, setSettingsActiveTab, setSubscriptionOnly } = useSystem()
   const [mounted, setMounted] = useState(false)
   const { theme, setTheme } = useTheme()
@@ -55,9 +56,9 @@ export function Navigation() {
         <div className="flex flex-col h-full pt-6 pb-4">
           {/* Mainframe ID */}
           <div className="px-6 mb-6 space-y-4">
-            <div className="flex items-center gap-3 group cursor-default">
-              <div className="w-9 h-9 bg-foreground flex items-center justify-center ledger-border transition-transform group-hover:rotate-90 duration-500 shrink-0">
-                <Landmark className="h-5 w-5 text-background" />
+            <div className="flex items-center gap-4 group cursor-default">
+              <div className="w-8 h-8 bg-foreground flex items-center justify-center ledger-border rotate-45 shrink-0 my-1 transition-transform group-hover:scale-105">
+                <Landmark className="h-4 w-4 text-background -rotate-45" />
               </div>
               <div>
                 <h1 className="text-base font-bold tracking-tighter uppercase leading-none text-foreground">LEGER_OS</h1>
@@ -75,7 +76,7 @@ export function Navigation() {
                     </button>
                   </div>
                   <div className="flex items-center justify-between gap-2">
-                    <p className="text-[11px] font-bold font-mono uppercase truncate text-foreground">{profile.username || "UNKNOWN_USER"}</p>
+                    <p className="text-[11px] font-bold font-mono uppercase truncate text-foreground">{profile.username || "USER"}</p>
                     {isPro ? (
                        <GlowingBadge variant="success" pulse dot className="px-1.5 py-0.5 text-[8px] uppercase font-mono">PRO</GlowingBadge>
                     ) : (
@@ -99,10 +100,11 @@ export function Navigation() {
           <nav className="flex-1 px-2 space-y-1 overflow-y-auto">
             {navigation.map((item) => {
               const isActive = pathname === item.href
+              const targetHref = cycleId ? `${item.href}?cycleId=${cycleId}` : item.href
               return (
-                <FloatingTooltipTrigger key={item.name} content={`${item.name} Node`} description={item.desc}>
+                <div key={item.name}>
                   <Link
-                    href={item.href}
+                    href={targetHref}
                     className={cn(
                       "group relative flex items-center justify-between px-4 py-3 transition-all duration-300 border border-transparent",
                       isActive ? "bg-secondary/70 border-border/50 text-foreground" : "text-muted-foreground hover:bg-muted/30 hover:text-foreground"
@@ -121,7 +123,7 @@ export function Navigation() {
                       </span>
                     </div>
                   </Link>
-                </FloatingTooltipTrigger>
+                </div>
               )
             })}
           </nav>
@@ -158,7 +160,7 @@ export function Navigation() {
               </button>
 
               <button
-                onClick={() => router.push("/system")}
+                onClick={() => router.push(cycleId ? `/system?cycleId=${cycleId}` : "/system")}
                 className="flex flex-col items-center justify-center py-2 px-1 border border-border bg-card text-muted-foreground hover:bg-secondary hover:text-foreground transition-all text-[8px] font-mono uppercase font-bold gap-1 select-none"
                 title="System Configuration Matrix"
               >
@@ -178,10 +180,11 @@ export function Navigation() {
           <div className="flex justify-around items-center h-16 w-full max-w-full">
             {mobileNavigation.map((item) => {
               const isActive = pathname === item.href
+              const targetHref = cycleId ? `${item.href}?cycleId=${cycleId}` : item.href
               return (
                 <Link
                   key={item.name}
-                  href={item.href}
+                  href={targetHref}
                   className={cn(
                     "flex flex-col items-center justify-center grow h-full transition-all relative min-w-0 px-2 py-1 select-none",
                     isActive ? "text-foreground font-bold" : "text-muted-foreground hover:text-foreground"
@@ -220,8 +223,11 @@ export function Navigation() {
         <DialogContent className="bg-card border border-border rounded-none p-6 font-mono text-xs max-w-sm w-[90vw] md:hidden shadow-2xl">
           <DialogHeader className="border-b border-border pb-4 mb-4">
             <div className="flex items-center justify-between">
-              <DialogTitle className="text-sm font-bold uppercase tracking-widest flex items-center gap-2 text-foreground">
-                <Landmark className="h-4 w-4" /> LEGER_OS
+              <DialogTitle className="text-sm font-bold uppercase tracking-widest flex items-center gap-3 text-foreground">
+                <div className="w-5 h-5 bg-foreground flex items-center justify-center ledger-border rotate-45 shrink-0">
+                  <Landmark className="h-2.5 w-2.5 text-background -rotate-45" />
+                </div>
+                <span>LEGER_OS</span>
               </DialogTitle>
             </div>
             <DialogDescription className="text-[10px] uppercase tracking-wider text-muted-foreground">
@@ -230,21 +236,6 @@ export function Navigation() {
           </DialogHeader>
 
           <div className="space-y-3">
-            {/* AI Link */}
-            <button
-              onClick={() => { setMobileMenuOpen(false); router.push('/leger-ai'); }}
-              className="w-full p-3 bg-secondary/30 border border-border flex items-center justify-between text-left hover:bg-secondary/60 transition-all group"
-            >
-              <div className="flex items-center gap-3">
-                <Brain className="h-4 w-4 shrink-0" />
-                <div>
-                  <div className="font-bold uppercase text-xs text-foreground">LEGER AI</div>
-                  <div className="text-[9px] text-muted-foreground font-sans">Neural Strategy & Wealth Query</div>
-                </div>
-              </div>
-              <ChevronRight className="h-4 w-4 text-muted-foreground group-hover:translate-x-1 transition-transform" />
-            </button>
-
             {/* Categories Link */}
             <button
               onClick={() => { setMobileMenuOpen(false); router.push('/categories'); }}
@@ -316,7 +307,7 @@ export function Navigation() {
             {profile && (
               <div className="pt-3 border-t border-border flex items-center justify-between">
                 <div className="text-[10px] font-mono text-muted-foreground">
-                  Node: <span className="text-foreground font-bold">{profile.username || "USER"}</span>
+                  User: <span className="text-foreground font-bold">{profile.username || "USER"}</span>
                 </div>
                 <button
                   onClick={() => { setMobileMenuOpen(false); signOut(); }}

@@ -1,0 +1,27 @@
+/* LEGER_OS Dark Tech Theme Snippet for Obsidian */
+.theme-dark {
+    --background-primary: #0a0c10;
+    --background-secondary: #12161f;
+    --background-secondary-alt: #181d29;
+    --text-normal: #e2e8f0;
+    --text-muted: #94a3b8;
+    --accent-color: #3b82f6;
+    --text-accent: #60a5fa;
+    --font-monospace: 'JetBrains Mono', 'Fira Code', 'Consolas', monospace;
+}
+
+.markdown-rendered h1 {
+    color: #60a5fa;
+    border-bottom: 2px solid #1e293b;
+    padding-bottom: 6px;
+}
+
+.markdown-rendered table {
+    border: 1px solid #1e293b;
+    border-collapse: collapse;
+}
+
+.markdown-rendered th {
+    background-color: #1e293b;
+    color: #93c5fd;
+}

@@ -1,9 +1,7 @@
-"use client"
-
-import React, { useEffect } from "react"
+import React, { useState, useEffect } from "react"
 import { useSystem } from "@/lib/SystemContext"
 import { motion, AnimatePresence } from "framer-motion"
-import { X, Search, Fingerprint, Database, Info, ExternalLink, ShieldCheck, ArrowLeftRight, Trash2 } from "lucide-react"
+import { X, Search, Fingerprint, Database, Info, ExternalLink, ShieldCheck, ArrowLeftRight, Trash2, Check, Copy, Code } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { cn } from "@/lib/utils"
@@ -18,7 +16,16 @@ interface AuditTracePanelProps {
 export function AuditTracePanel({ expenses, categories }: AuditTracePanelProps) {
   const { isAuditPanelOpen, setAuditPanelOpen, activeTransactionId, setActiveTransactionId, refreshData, currencySymbol } = useSystem()
 
+  const [isTraceViewOpen, setIsTraceViewOpen] = useState(false)
+  const [isRecategorizeOpen, setIsRecategorizeOpen] = useState(false)
+
   const activeTx = expenses.find(e => e.id === activeTransactionId)
+
+  // Reset internal states when active transaction changes
+  useEffect(() => {
+    setIsTraceViewOpen(false)
+    setIsRecategorizeOpen(false)
+  }, [activeTransactionId])
   
   const flipSign = async () => {
     if (!activeTx) return
@@ -57,9 +64,64 @@ export function AuditTracePanel({ expenses, categories }: AuditTracePanelProps) 
     refreshData()
   }
 
+  const handleViewTrace = () => {
+    if (!activeTx) return
+    const traceData = {
+      transaction_id: activeTx.id,
+      merchant: activeTx.merchant,
+      amount: activeTx.amount,
+      date: activeTx.date,
+      category: category?.name || "UNCLASSIFIED",
+      source: activeTx.source || "SANTANDER_MAIN",
+      raw_text: activeTx.raw_text || `Manual Entry: ${activeTx.merchant}`,
+      node_id: "SANTANDER_MAIN",
+      heuristic_confidence: "HIGH",
+      timestamp: new Date().toISOString()
+    }
+    try {
+      navigator.clipboard.writeText(JSON.stringify(traceData, null, 2))
+      toast.success("Forensic trace log copied to clipboard!", {
+        description: `ID: ${activeTx.id}`
+      })
+    } catch (e) {
+      toast.info("Trace log inspected below.")
+    }
+    setIsTraceViewOpen(prev => !prev)
+  }
+
+  const handleCategoryChange = async (catId: number | null) => {
+    if (!activeTx) return
+    const { error } = await supabase
+      .from("tracker_expense")
+      .update({ category_id: catId })
+      .eq("id", activeTx.id)
+
+    if (error) {
+      toast.error("Failed to update category")
+      return
+    }
+
+    toast.success("Category updated successfully!")
+    setIsRecategorizeOpen(false)
+    refreshData()
+  }
+
   if (!activeTx && isAuditPanelOpen) return null
 
   const category = categories.find(c => c.id === activeTx?.category_id)
+
+  const traceLogJSON = activeTx ? JSON.stringify({
+    transaction_id: activeTx.id,
+    merchant: activeTx.merchant,
+    amount: activeTx.amount,
+    date: activeTx.date,
+    category: category?.name || "UNCLASSIFIED",
+    source: activeTx.source || "SANTANDER_MAIN",
+    raw_text: activeTx.raw_text || `Manual Entry: ${activeTx.merchant}`,
+    node_id: "SANTANDER_MAIN",
+    heuristic_confidence: "HIGH",
+    timestamp: new Date().toISOString()
+  }, null, 2) : ""
 
   return (
     <AnimatePresence>
@@ -113,6 +175,65 @@ export function AuditTracePanel({ expenses, categories }: AuditTracePanelProps) 
 
               {/* Data Layers */}
               <div className="flex-1 p-5 sm:p-8 space-y-8 sm:space-y-12">
+                {/* Re-Categorize Selector Box */}
+                {isRecategorizeOpen && (
+                  <div className="p-4 border border-emerald-500/40 bg-emerald-500/5 space-y-3 animate-in fade-in slide-in-from-top-2">
+                    <div className="flex items-center justify-between">
+                      <span className="text-[10px] font-mono font-bold uppercase tracking-wider text-emerald-500 flex items-center gap-1.5">
+                        <ShieldCheck className="h-3 w-3" /> Select Category Target
+                      </span>
+                      <button onClick={() => setIsRecategorizeOpen(false)} className="text-[9px] font-mono text-muted-foreground uppercase hover:text-foreground">Cancel</button>
+                    </div>
+                    <div className="grid grid-cols-2 gap-2">
+                      <button
+                        onClick={() => handleCategoryChange(null)}
+                        className="p-2 border border-border bg-card hover:bg-secondary/40 text-[10px] font-mono text-left uppercase truncate font-bold"
+                      >
+                        Unclassified
+                      </button>
+                      {categories.map(c => (
+                        <button
+                          key={c.id}
+                          onClick={() => handleCategoryChange(c.id)}
+                          className={cn(
+                            "p-2 border bg-card hover:bg-secondary/40 text-[10px] font-mono text-left uppercase truncate font-bold flex items-center gap-2",
+                            c.id === activeTx?.category_id ? "border-emerald-500 text-emerald-500" : "border-border"
+                          )}
+                        >
+                          <div className="w-2 h-2 rounded-full shrink-0" style={{ backgroundColor: c.color }} />
+                          <span className="truncate">{c.name}</span>
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {/* Raw Trace Inspector Drawer Box */}
+                {isTraceViewOpen && (
+                  <div className="p-4 border border-foreground/30 bg-secondary/30 space-y-3 animate-in fade-in slide-in-from-top-2">
+                    <div className="flex items-center justify-between">
+                      <span className="text-[10px] font-mono font-bold uppercase tracking-wider text-foreground flex items-center gap-1.5">
+                        <Code className="h-3 w-3" /> Raw Trace JSON
+                      </span>
+                      <div className="flex items-center gap-2">
+                        <button 
+                          onClick={() => {
+                            navigator.clipboard.writeText(traceLogJSON)
+                            toast.success("Trace JSON copied!")
+                          }}
+                          className="text-[9px] font-mono text-muted-foreground uppercase hover:text-foreground flex items-center gap-1"
+                        >
+                          <Copy className="h-2.5 w-2.5" /> Copy
+                        </button>
+                        <button onClick={() => setIsTraceViewOpen(false)} className="text-[9px] font-mono text-muted-foreground uppercase hover:text-foreground">Close</button>
+                      </div>
+                    </div>
+                    <pre className="p-3 bg-black/60 text-emerald-400 font-mono text-[9px] leading-relaxed overflow-x-auto border border-border select-all max-h-48">
+                      {traceLogJSON}
+                    </pre>
+                  </div>
+                )}
+
                 <div className="space-y-4">
                    <div className="flex items-center gap-2 technical-label opacity-60">
                       <Database className="h-3 w-3" />
@@ -161,18 +282,25 @@ export function AuditTracePanel({ expenses, categories }: AuditTracePanelProps) 
               {/* Footer Actions */}
               <div className="p-5 sm:p-8 border-t border-border bg-secondary/10 flex flex-col gap-3">
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
-                  <Button onClick={flipSign} variant="outline" className="w-full rounded-none uppercase text-[9px] font-bold tracking-widest gap-2 border-amber-200 text-amber-700 hover:bg-amber-50">
+                  <Button onClick={flipSign} variant="outline" className="w-full rounded-none uppercase text-[9px] font-bold tracking-widest gap-2 border-amber-200 text-amber-700 hover:bg-amber-50 cursor-pointer">
                     <ArrowLeftRight className="h-3 w-3" /> Flip Sign (+/-)
                   </Button>
-                  <Button onClick={deleteTx} variant="outline" className="w-full rounded-none uppercase text-[9px] font-bold tracking-widest gap-2 border-destructive/20 text-destructive hover:bg-destructive/5">
+                  <Button onClick={deleteTx} variant="outline" className="w-full rounded-none uppercase text-[9px] font-bold tracking-widest gap-2 border-destructive/20 text-destructive hover:bg-destructive/5 cursor-pointer">
                     <Trash2 className="h-3 w-3" /> Delete Entry
                   </Button>
                 </div>
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
-                  <Button variant="outline" className="w-full rounded-none uppercase text-[9px] font-bold tracking-widest gap-2">
+                  <Button 
+                    onClick={() => setIsRecategorizeOpen(prev => !prev)} 
+                    variant="outline" 
+                    className="w-full rounded-none uppercase text-[9px] font-bold tracking-widest gap-2 cursor-pointer"
+                  >
                     <ShieldCheck className="h-3 w-3" /> Re-Categorize
                   </Button>
-                  <Button className="w-full rounded-none uppercase text-[9px] font-bold tracking-widest gap-2">
+                  <Button 
+                    onClick={handleViewTrace} 
+                    className="w-full rounded-none uppercase text-[9px] font-bold tracking-widest gap-2 cursor-pointer"
+                  >
                     <ExternalLink className="h-3 w-3" /> View Trace
                   </Button>
                 </div>

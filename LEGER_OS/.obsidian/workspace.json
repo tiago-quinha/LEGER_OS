@@ -1,0 +1,240 @@
+{
+  "main": {
+    "id": "776a47df3115e255",
+    "type": "split",
+    "children": [
+      {
+        "id": "85976897bb06dbe2",
+        "type": "tabs",
+        "children": [
+          {
+            "id": "bd2e0b670ce67935",
+            "type": "leaf",
+            "state": {
+              "type": "markdown",
+              "state": {
+                "file": "00 - System & AI/LEGER_OS Mainframe.md",
+                "mode": "source",
+                "source": false
+              },
+              "icon": "lucide-file",
+              "title": "LEGER_OS Mainframe"
+            }
+          },
+          {
+            "id": "1dff237e824dfb46",
+            "type": "leaf",
+            "state": {
+              "type": "markdown",
+              "state": {
+                "file": "00 - System & AI/Mathematical Projection Engine.md",
+                "mode": "source",
+                "source": false
+              },
+              "icon": "lucide-file",
+              "title": "Mathematical Projection Engine"
+            }
+          }
+        ],
+        "currentTab": 1
+      }
+    ],
+    "direction": "vertical"
+  },
+  "left": {
+    "id": "c5fe270de0419a41",
+    "type": "split",
+    "children": [
+      {
+        "id": "a7fc820b0e27cb51",
+        "type": "tabs",
+        "children": [
+          {
+            "id": "deaa9dc8cf3ea8ae",
+            "type": "leaf",
+            "state": {
+              "type": "file-explorer",
+              "state": {
+                "sortOrder": "alphabetical",
+                "autoReveal": false
+              },
+              "icon": "lucide-folder-closed",
+              "title": "Files"
+            }
+          },
+          {
+            "id": "28bcffb2fcecf453",
+            "type": "leaf",
+            "state": {
+              "type": "search",
+              "state": {
+                "query": "",
+                "matchingCase": false,
+                "explainSearch": false,
+                "collapseAll": false,
+                "extraContext": false,
+                "sortOrder": "alphabetical"
+              },
+              "icon": "lucide-search",
+              "title": "Search"
+            }
+          },
+          {
+            "id": "5956dc6359cd22bf",
+            "type": "leaf",
+            "state": {
+              "type": "bookmarks",
+              "state": {},
+              "icon": "lucide-bookmark",
+              "title": "Bookmarks"
+            }
+          }
+        ]
+      }
+    ],
+    "direction": "horizontal",
+    "width": 300
+  },
+  "right": {
+    "id": "ef6be75c8a8bbc26",
+    "type": "split",
+    "children": [
+      {
+        "id": "b417c7ceeab997e3",
+        "type": "tabs",
+        "children": [
+          {
+            "id": "c75ab14b660f7207",
+            "type": "leaf",
+            "state": {
+              "type": "backlink",
+              "state": {
+                "file": "00 - System & AI/Mathematical Projection Engine.md",
+                "collapseAll": false,
+                "extraContext": false,
+                "sortOrder": "alphabetical",
+                "showSearch": false,
+                "searchQuery": "",
+                "backlinkCollapsed": false,
+                "unlinkedCollapsed": true
+              },
+              "icon": "links-coming-in",
+              "title": "Backlinks for Mathematical Projection Engine"
+            }
+          },
+          {
+            "id": "276266ceab9fcfe2",
+            "type": "leaf",
+            "state": {
+              "type": "outgoing-link",
+              "state": {
+                "file": "00 - System & AI/Mathematical Projection Engine.md",
+                "linksCollapsed": false,
+                "unlinkedCollapsed": true
+              },
+              "icon": "links-going-out",
+              "title": "Outgoing links from Mathematical Projection Engine"
+            }
+          },
+          {
+            "id": "f86d771987b2c508",
+            "type": "leaf",
+            "state": {
+              "type": "tag",
+              "state": {
+                "sortOrder": "frequency",
+                "useHierarchy": true,
+                "showSearch": false,
+                "searchQuery": ""
+              },
+              "icon": "lucide-tags",
+              "title": "Tags"
+            }
+          },
+          {
+            "id": "e79a868a05c9e525",
+            "type": "leaf",
+            "state": {
+              "type": "all-properties",
+              "state": {
+                "sortOrder": "frequency",
+                "showSearch": false,
+                "searchQuery": ""
+              },
+              "icon": "lucide-archive",
+              "title": "All properties"
+            }
+          },
+          {
+            "id": "a0c79a134973027c",
+            "type": "leaf",
+            "state": {
+              "type": "outline",
+              "state": {
+                "file": "00 - System & AI/Mathematical Projection Engine.md",
+                "followCursor": false,
+                "showSearch": false,
+                "searchQuery": ""
+              },
+              "icon": "lucide-list",
+              "title": "Outline of Mathematical Projection Engine"
+            }
+          }
+        ]
+      }
+    ],
+    "direction": "horizontal",
+    "width": 300,
+    "collapsed": true
+  },
+  "left-ribbon": {
+    "hiddenItems": {
+      "switcher:Open quick switcher": false,
+      "graph:Open graph view": false,
+      "canvas:Create new canvas": false,
+      "daily-notes:Open today's daily note": false,
+      "templates:Insert template": false,
+      "command-palette:Open command palette": false,
+      "bases:Create new base": false
+    }
+  },
+  "active": "1dff237e824dfb46",
+  "lastOpenFiles": [
+    "00 - System & AI/LEGER_OS Mainframe.md",
+    "00 - System & AI/Mathematical Projection Engine.md",
+    "00 - System & AI/Multi-Provider AI Bridge & Ingestion.md",
+    "00 - System & AI/UX & Domain Principles.md",
+    "LEGER_OS.canvas",
+    "01 - Directives (SOPs)/01.02 - Paycheck Cycle Reconciliation SOP.md",
+    "01 - Directives (SOPs)/01.01 - Statement Ingestion SOP.md",
+    "01 - Directives (SOPs)/01.03 - Database Migrations & Schema Sync.md",
+    "01 - Directives (SOPs)/category_rules.md",
+    "01 - Directives (SOPs)/cycle_reconciliation.md",
+    "01 - Directives (SOPs)/statement_ingestion.md",
+    "06 - Dashboards & Kanbans/Financial Operations Kanban.md",
+    "07 - Dashboards & Kanbans/Financial Operations Kanban.md",
+    "07 - Dashboards & Kanbans/Dataview Cycle Master View.md",
+    "07 - Dashboards & Kanbans",
+    "06 - Architecture & UI Components/SystemConfigView.tsx Reference.md",
+    "06 - Architecture & UI Components/OnboardingView.tsx Reference.md",
+    "06 - Architecture & UI Components/LegerAIPageView.tsx Reference.md",
+    "06 - Architecture & UI Components/ExpensesView.tsx Reference.md",
+    "06 - Architecture & UI Components/DashboardView.tsx Reference.md",
+    "06 - Architecture & UI Components/CategoriesView.tsx Reference.md",
+    "06 - Architecture & UI Components/BudgetsView.tsx Reference.md",
+    "06 - Architecture & UI Components/AnalyticsView.tsx Reference.md",
+    "06 - Architecture & UI Components/06.00 - Frontend Architecture Index.md",
+    "06 - Architecture & UI Components",
+    "00 - System & AI/Cycle Overrides Reference.md",
+    "00 - System & AI/AI Prompts & Rules.md",
+    "02 - Paycheck Cycles/2026-07 (DELOITTE Cycle).md",
+    "07 - Templates",
+    "06 - Dashboards & Kanbans",
+    "03 - Accounts & Statements/Statements Archive",
+    "05 - Execution Tools",
+    "04 - Budgets & Categories",
+    "03 - Accounts & Statements",
+    "02 - Paycheck Cycles",
+    "01 - Directives (SOPs)"
+  ]
+}

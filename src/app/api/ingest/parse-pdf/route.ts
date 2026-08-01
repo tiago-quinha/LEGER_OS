@@ -3,6 +3,7 @@ import { NextResponse } from "next/server";
 import pdfParse from "pdf-parse";
 import { spawn } from "child_process";
 import path from "path";
+import { createClient } from "@/lib/supabase-server";
 
 // Custom page render function to reconstruct spacing and line breaks
 function renderPage(pageData: any): Promise<string> {
@@ -81,6 +82,12 @@ async function tryPythonParse(buffer: Buffer): Promise<string> {
 
 export async function POST(request: Request) {
   try {
+    const supabaseServer = await createClient();
+    const { data: { user } } = await supabaseServer.auth.getUser();
+    if (!user) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
     const arrayBuffer = await request.arrayBuffer();
     const buffer = Buffer.from(arrayBuffer);
 

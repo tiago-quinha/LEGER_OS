@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Card, CardContent, CardHeader } from "@/components/ui/card"
-import { Landmark, Terminal, Lock, Mail, ArrowRight, ShieldCheck, Zap } from "lucide-react"
+import { Landmark, Terminal, Lock, Mail, ArrowRight, ArrowUpRight, ShieldCheck, Zap } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { toast } from "sonner"
 import Link from "next/link"
@@ -47,7 +47,7 @@ export default function LoginPage() {
       <div className="absolute inset-0 bg-gradient-to-b from-transparent via-foreground/[0.02] to-transparent h-64 w-full animate-[scan_6s_linear_infinite] pointer-events-none" />
       
       {/* Left Side: Auth Form */}
-      <div className="lg:col-span-5 flex items-center justify-center p-6 sm:p-12 min-h-[100dvh] lg:min-h-0 relative z-10 border-r border-border/40 bg-background/95">
+      <div className="lg:col-span-5 flex items-center justify-center p-6 sm:p-12 min-h-[100dvh] lg:min-h-[100dvh] relative z-10 border-r border-border/40 bg-background/95">
         <div className="w-full max-w-md space-y-8 my-auto py-4">
           <div className="flex flex-col items-center text-center space-y-4">
             <div className="w-16 h-16 bg-foreground flex items-center justify-center ledger-border rotate-45 group">
@@ -144,10 +144,16 @@ export default function LoginPage() {
             </div>
           </div>
 
-          <div className="flex justify-between items-center px-4 opacity-30 italic font-mono text-[8px] uppercase tracking-tighter">
-             <span>Sys_Build: 1.0.4.A</span>
-             <span>Node: US_EAST_01</span>
-             <span>Status: SECURE</span>
+          <div className="w-full border-t border-border/40 pt-4 flex flex-col sm:flex-row justify-between items-center gap-3 sm:gap-0 px-2 opacity-50 font-mono text-[8px] uppercase tracking-wider">
+             <div className="flex gap-4 items-center">
+                <span>Sys_Build: 1.0.4.A</span>
+                <span className="opacity-30">/</span>
+                <span>Node: US_EAST_01</span>
+             </div>
+             <span className="flex items-center gap-1.5 text-muted-foreground/80">
+                <span className="h-1.5 w-1.5 bg-emerald-500 rounded-none inline-block animate-pulse" />
+                Status: SECURE NODE
+             </span>
           </div>
         </div>
       </div>

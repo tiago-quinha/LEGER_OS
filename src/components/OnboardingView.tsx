@@ -457,14 +457,14 @@ export function OnboardingView() {
          <div className="flex items-center gap-4">
             <div className="flex items-center gap-1.5">
                <Cpu className="h-3 w-3" />
-               <span>Kernel_Init: OK</span>
+               <span>System Status: Ready</span>
             </div>
             <div className="flex items-center gap-1.5">
                <Database className="h-3 w-3" />
-               <span>RLS_Policy: Active</span>
+               <span>Security: Enabled</span>
             </div>
          </div>
-         <span>LEGER_OS v4.0 // Multi-User Ready</span>
+         <span>LEGER_OS v4.0</span>
       </div>
     </div>
   )

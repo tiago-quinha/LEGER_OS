@@ -1,9 +1,10 @@
 import React from "react"
 import { Skeleton } from "@/components/ui/skeleton"
+import { Brain } from "lucide-react"
 
 export default function LegerAiLoading() {
   return (
-    <div className="mx-auto max-w-[1500px] p-4 md:p-8 space-y-8 md:space-y-12 pb-24 text-foreground w-full animate-pulse">
+    <div className="mx-auto max-w-[1500px] p-4 md:p-8 space-y-8 md:space-y-12 pb-24 text-foreground w-full animate-fade-in">
       {/* 1. Header: The Intelligence Node */}
       <header className="flex flex-col md:flex-row md:items-end justify-between gap-8 border-b border-foreground/10 pb-8 relative">
         <div className="absolute top-0 right-0 technical-label opacity-20 hidden lg:block uppercase tracking-widest text-[9px]">
@@ -11,14 +12,16 @@ export default function LegerAiLoading() {
         </div>
         <div className="space-y-4">
           <div className="flex items-center gap-3 text-[10px] font-mono tracking-[0.2em] uppercase text-muted-foreground">
-            <Skeleton className="h-4 w-4 rounded-full" />
-            <Skeleton className="h-3.5 w-32" />
+            <Brain className="h-4 w-4 animate-pulse text-foreground/80" />
+            <span>Neural Synthesis</span>
             <span className="opacity-30">/</span>
-            <Skeleton className="h-3.5 w-28" />
+            <span>STRATEGY_NODE</span>
           </div>
-          <Skeleton className="h-10 md:h-14 w-64" />
+          <h1 className="text-4xl sm:text-5xl md:text-6xl font-bold tracking-tighter uppercase leading-none">
+            Leger AI
+          </h1>
         </div>
-        <Skeleton className="h-12 w-full md:w-36 rounded-none" />
+        <Skeleton className="h-12 w-full md:w-36 rounded-none animate-pulse" />
       </header>
 
       {/* 2. Main Terminal Area (Exact 1:2 split) */}

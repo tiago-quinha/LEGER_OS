@@ -198,19 +198,19 @@ export function AnalyticsView({ expenses, categories, paychecks: initialPaycheck
 
   return (
     <motion.div
-      initial={{ opacity: 0 }}
-      animate={{ opacity: 1 }}
-      transition={{ duration: 0.2, ease: "easeOut" }}
+      initial={{ opacity: 0, y: 4 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.45, ease: [0.16, 1, 0.3, 1] }}
       className="mx-auto max-w-[1500px] p-4 md:p-8 space-y-10 md:space-y-16 pb-24 md:pb-8 w-full"
     >
       {/* 1. Header */}
       <header className="space-y-4 border-b border-foreground/10 pb-6 md:pb-8 relative">
         <div className="space-y-3">
           <div className="flex items-center gap-3 text-[9px] md:text-[10px] font-mono tracking-[0.2em] uppercase text-muted-foreground">
-            <Activity className="h-3 w-3" />
-            <span>Financial Trend Synthesis</span>
+            <BarChart3 className="h-3.5 w-3.5" />
+            <span>Financial Analytics</span>
           </div>
-          <h1 className="text-4xl md:text-6xl font-bold tracking-tighter uppercase leading-none">
+          <h1 className="text-4xl md:text-5xl font-bold tracking-tighter uppercase leading-none break-words">
             Analytics
           </h1>
         </div>
@@ -366,7 +366,7 @@ export function AnalyticsView({ expenses, categories, paychecks: initialPaycheck
           { label: "CYCLE_VELOCITY", value: Math.abs(cycleChange), prefix: cycleChange > 0 ? "+" : "-", suffix: "%", color: cycleChange > 0 ? "text-destructive" : "text-emerald-500", icon: Percent },
           { label: "LIFETIME_AVG", value: averageSpending, sub: "MEAN_CONSUMPTION", icon: ShieldCheck }
         ].map((metric, idx) => (
-          <Tilt key={idx} rotationFactor={6} className="p-6 md:p-8 space-y-4 bg-card/20 border border-border hover:bg-secondary/35 transition-all duration-300 relative group overflow-hidden flex flex-col justify-between">
+          <Tilt key={idx} rotationFactor={6} className="p-6 md:p-8 space-y-4 bg-card/20 border border-border relative group overflow-hidden flex flex-col justify-between glow-card">
             <div className="flex items-center justify-between opacity-40 group-hover:opacity-100 transition-opacity">
               <span className="technical-label text-[8px] md:text-[9px]">{metric.label}</span>
               <metric.icon className="h-3 w-3" />

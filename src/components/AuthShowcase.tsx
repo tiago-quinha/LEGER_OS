@@ -2,7 +2,7 @@
 
 import React, { useState } from "react"
 import { motion, AnimatePresence } from "framer-motion"
-import { Wallet, Sparkles, LineChart, ShieldCheck, Lock, Zap, CheckCircle2 } from "lucide-react"
+import { Wallet, Sparkles, LineChart, ShieldCheck, Lock, Zap, CheckCircle2, ArrowUpRight } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { PrivacyValue } from "@/components/ui/privacy-value"
 import { Tilt } from "@/components/unlumen-ui/tilt"
@@ -97,7 +97,7 @@ export function AuthShowcase() {
       </div>
 
       {/* Main Industrial Blueprint Showcase Container */}
-      <Tilt rotationFactor={4} className="border border-border/80 bg-card/60 hover:bg-secondary/35 transition-all duration-300 p-6 sm:p-8 relative min-h-[300px] flex flex-col justify-between rounded-none shadow-none group overflow-hidden">
+      <Tilt rotationFactor={4} className="border border-border/80 bg-card/60 hover:bg-secondary/35 transition-all duration-300 p-6 sm:p-8 relative h-[360px] flex flex-col justify-between rounded-none shadow-none group overflow-hidden">
         
         {/* Corner Crosshairs */}
         <div className="absolute top-1 left-1 text-muted-foreground/30 text-[10px] leading-none z-10">+</div>

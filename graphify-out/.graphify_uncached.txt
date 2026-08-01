@@ -1,0 +1,34 @@
+3agentprompt.md
+AGENTS.md
+ANDROID_NOTIFICATION_SERVICE.md
+CLAUDE.md
+extracto-conta-27-02.txt
+extracto-conta-29-05.txt
+extracto-conta-30-01.txt
+extracto-conta-30-04.txt
+extracto-conta-31-03.txt
+extracto-conta-31-12.txt
+GEMINI.md
+LEGER_OS_MASTER_PROMPT.md
+LLM.md
+NOTIFICATION_AUTOMATION.md
+pre_launch_audits.md
+README.md
+Transactions-26-05-ate-26-06.txt
+public\privacy.txt
+public\terms.txt
+documento (1).pdf
+documento (2).pdf
+documento (3).pdf
+documento (4).pdf
+documento (5).pdf
+documento.pdf
+Lista de movimentos-junho.pdf
+Categories 2026-07-25 122813.png
+Dashboard 2026-07-25 122653.png
+public\file.svg
+public\globe.svg
+public\next.svg
+public\vercel.svg
+public\window.svg
+src\app\icon.svg

@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { generateAIContent } from "@/lib/ai-bridge";
 import { verifyAndConsumeQuota } from "@/lib/server-auth";
-import { createClient } from "@supabase/supabase-js";
+import { getAdminClient } from "@/lib/supabase-admin";
 import { calculateServerTelemetry } from "@/lib/server-telemetry";
 
 export async function POST(request: Request) {
@@ -13,13 +13,23 @@ export async function POST(request: Request) {
     }
 
     const body = await request.json();
-    const { query, telemetry, categories, userName, clientDate } = body;
+    const { query, telemetry, categories, userName, clientDate, history } = body;
 
     const name = userName || "User";
+
+    let historyContext = "";
+    if (history && Array.isArray(history) && history.length > 0) {
+      const recentHistory = history.slice(-10);
+      historyContext = "CONVERSATION HISTORY (FOR CONTEXT):\n" + recentHistory
+        .map((msg: any) => `- ${msg.role === "user" ? "User" : "Assistant"}: ${msg.content}`)
+        .join("\n") + "\n";
+    }
 
     // --- STEP 1: Intent Analysis for Database Queries ---
     const intentPrompt = `
       You are the intent routing node of LEGER_OS, a personal finance terminal.
+      
+      ${historyContext}
       The user is asking: "${query}"
       
       Determine if this query requires retrieving database records to construct an accurate answer (e.g., historical transactions, list of categories, budgets, income logs, balance snapshots, merchant rules).
@@ -99,20 +109,58 @@ export async function POST(request: Request) {
       console.error("Failed to parse AI intent:", e);
     }
 
+    // Sanitize AI-proposed DB queries to an allowlist to prevent injection or expensive scans
+    const TABLE_ALLOWLIST: Record<string, string[]> = {
+      tracker_expense: ["date", "merchant", "amount", "category_id", "source", "user_id"],
+      categories: ["id", "name", "color", "user_id"],
+      budgets: ["category_id", "amount", "month", "year", "user_id"],
+      income: ["amount", "date", "source", "user_id"],
+      account_balance: ["balance", "recorded_at", "date", "user_id"],
+      merchant_rules: ["keyword", "category_id", "user_id"],
+      profiles: ["id", "ai_journal", "subscription_tier", "ai_yap_level", "projection_overrides"]
+    };
+
+    function sanitizeDbQuery(q: any) {
+      if (!q || !q.table) return null;
+      const table = q.table;
+      if (!TABLE_ALLOWLIST[table]) return null;
+
+      // only allow columns that are in the allowlist, or '*' when explicitly needed
+      const requested = (q.select || "*").split(",").map((s: string) => s.trim()).filter(Boolean);
+      const allowedCols = TABLE_ALLOWLIST[table];
+      const selectCols = requested.includes("*") ? allowedCols.join(",") : requested.filter((c: string) => allowedCols.includes(c));
+      if (selectCols.length === 0) return null;
+
+      // sanitize filters: only allow simple ops
+      const allowedOps = new Set(["eq", "ilike", "gte", "lte", "is_null", "is_not_null"]);
+      let filters = null;
+      if (Array.isArray(q.filter)) {
+        filters = q.filter.map((f: any) => {
+          if (!f || !f.column || !allowedCols.includes(f.column)) return null;
+          if (!allowedOps.has(f.operator)) return null;
+          return { column: f.column, operator: f.operator, value: f.value };
+        }).filter(Boolean);
+      }
+
+      const orderBy = q.orderBy && q.orderBy.column && allowedCols.includes(q.orderBy.column) ? { column: q.orderBy.column, ascending: !!q.orderBy.ascending } : null;
+      const limit = Math.min(200, Math.max(1, parseInt(q.limit) || 100));
+
+      return { table, select: selectCols.join(","), filter: filters, orderBy, limit };
+    }
+
+    const sanitizedQueries = (dbQueries || []).map(sanitizeDbQuery).filter(Boolean) as any[];
+
     // --- STEP 2: Database Retrieval ---
     let dbContextStr = "";
-    if (requiresDb && dbQueries.length > 0 && userId) {
-      const supabaseAdmin = createClient(
-        process.env.NEXT_PUBLIC_SUPABASE_URL!,
-        process.env.SUPABASE_SERVICE_ROLE_KEY!
-      );
+    if (requiresDb && sanitizedQueries.length > 0 && userId) {
+      const supabaseAdmin = getAdminClient();
 
-      for (const dbQ of dbQueries) {
+      for (const dbQ of sanitizedQueries) {
         const table = dbQ.table;
         const selectCols = dbQ.select || "*";
-        
+
         let q: any = supabaseAdmin.from(table).select(selectCols);
-        
+
         // Security constraint: always enforce tenant boundaries
         if (table === "profiles") {
           q = q.eq("id", userId);
@@ -120,7 +168,7 @@ export async function POST(request: Request) {
           q = q.eq("user_id", userId);
         }
 
-        // Apply dynamic filters
+        // Apply dynamic filters (already sanitized above)
         if (dbQ.filter && Array.isArray(dbQ.filter)) {
           for (const f of dbQ.filter) {
             const col = f.column;
@@ -179,10 +227,7 @@ export async function POST(request: Request) {
 
     if (userId) {
       try {
-        const supabaseAdmin = createClient(
-          process.env.NEXT_PUBLIC_SUPABASE_URL!,
-          process.env.SUPABASE_SERVICE_ROLE_KEY!
-        );
+        const supabaseAdmin = getAdminClient();
         const [serverDataRes, profileRes] = await Promise.all([
           calculateServerTelemetry(supabaseAdmin, userId, clientDate).catch(telErr => {
             console.error("Failed to calculate server-side telemetry:", telErr);
@@ -284,6 +329,8 @@ export async function POST(request: Request) {
 
     const prompt = `
       You are the LEGER_OS AI, a high-precision strategic wealth agent for ${name}.
+      
+      ${historyContext}
       The user is asking: "${query}"
 
       Speak directly to the user. Be helpful, concise, and clear. 
@@ -332,7 +379,7 @@ export async function POST(request: Request) {
          - "categoryName": name of the category (e.g., "Gas / Supermarket")
          - "multiplier": positive number scaling remaining daily velocity (e.g., 0.6 for 40% reduction, 1.5 for 50% increase, 1.0 for unchanged)
          - "fixedDelta": number representing a lump sum amount to add/subtract from the remaining cycle spend (default 0)
-         - "description": a short 3-6 word summary of why (e.g., "Hybrid work gas reduction")
+         - "reason": a short 3-6 word summary of why (e.g., "Hybrid work gas reduction")
       8. Determine if the user's message contains a new personal fact, situation update, or lifestyle context about themselves in this message that should be remembered in future chats (e.g., "I'm currently on vacation", "I just started hybrid work", "I'm saving for a trip to Tokyo", "I got a dog", "I have a new job").
          If yes, summarize it as a short fact string (e.g., "Currently on vacation", "Working hybrid", "Saving for a trip to Tokyo").
          Otherwise, return null.
@@ -354,7 +401,7 @@ export async function POST(request: Request) {
           "categoryName": "string" | null,
           "multiplier": number,
           "fixedDelta": number,
-          "description": "string"
+          "reason": "string"
         } | null,
         "newJournalEntry": "string" | null
       }
@@ -373,10 +420,7 @@ export async function POST(request: Request) {
       // Automatic memory journaling processing
       if (parsedRes.newJournalEntry && userId) {
         try {
-          const supabaseAdmin = createClient(
-            process.env.NEXT_PUBLIC_SUPABASE_URL!,
-            process.env.SUPABASE_SERVICE_ROLE_KEY!
-          );
+          const supabaseAdmin = getAdminClient();
           
           let existingJournal: string[] = [];
           if (profileData && Array.isArray(profileData.ai_journal)) {

@@ -66,13 +66,13 @@ export function IntelligenceHub({ isOpen, onClose, cycleData }: IntelligenceHubP
             className="fixed left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 w-full max-w-2xl bg-card border border-border ledger-border z-[70] shadow-2xl overflow-hidden"
           >
             <div className="flex flex-col h-full">
-              {/* Terminal Header */}
+              {/* Clean Header */}
               <div className="p-6 border-b border-border bg-foreground text-background flex items-center justify-between">
                 <div className="flex items-center gap-3">
-                  <div className="p-1.5 bg-background text-foreground ledger-border">
+                  <div className="p-1.5 bg-background text-foreground border border-border">
                     <Brain className="h-4 w-4" />
                   </div>
-                  <div className="font-mono text-[10px] uppercase tracking-[0.3em]">Intelligence Hub // SYNTHESIS_V1</div>
+                  <div className="font-mono text-[10px] uppercase tracking-[0.2em] font-bold">AI Strategy Insights</div>
                 </div>
                 <button onClick={onClose} className="opacity-60 hover:opacity-100 transition-opacity">
                   <X className="h-4 w-4" />
@@ -86,26 +86,28 @@ export function IntelligenceHub({ isOpen, onClose, cycleData }: IntelligenceHubP
                        <Cpu className="h-12 w-12 text-foreground animate-pulse" />
                        <div className="absolute inset-0 border-2 border-foreground/10 animate-spin rounded-full" />
                     </div>
-                    <p className="technical-label animate-pulse italic">Accessing Mainframe... Synthesizing Node Data...</p>
+                    <p className="text-[10px] font-mono uppercase tracking-wider text-muted-foreground animate-pulse">Analyzing paycheck cycle data...</p>
                   </div>
                 ) : analysis ? (
                   <>
-                    {/* Status Matrix */}
+                    {/* Status Grid */}
                     <div className="grid grid-cols-3 gap-6">
                        <div className="space-y-2 flex flex-col justify-start">
-                          <p className="technical-label">SYS_STATUS</p>
-                          <GlowingBadge 
-                            variant={analysis.status === "OPTIMAL" ? "success" : analysis.status === "CAUTION" ? "warning" : "error"} 
-                            pulse 
-                            dot
-                            className="px-3 py-1 text-[10px] text-center w-full justify-center rounded-none"
-                          >
+                          <p className="text-[9px] font-mono uppercase tracking-wider text-muted-foreground">Cycle Status</p>
+                          <span className={cn(
+                            "px-3 py-1 text-[10px] text-center w-full justify-center font-mono font-bold border",
+                            analysis.status === "OPTIMAL" 
+                              ? "text-emerald-500 bg-emerald-500/10 border-emerald-500/20" 
+                              : analysis.status === "CAUTION" 
+                                ? "text-amber-500 bg-amber-500/10 border-amber-500/20" 
+                                : "text-destructive bg-destructive/10 border-destructive/20"
+                          )}>
                             {analysis.status}
-                          </GlowingBadge>
+                          </span>
                        </div>
                        <div className="space-y-2">
-                          <p className="technical-label">THREAT_LVL</p>
-                          <div className="h-5 w-full bg-secondary ledger-border relative">
+                          <p className="text-[9px] font-mono uppercase tracking-wider text-muted-foreground">Spend velocity</p>
+                          <div className="h-5 w-full bg-secondary border border-border relative">
                              <div 
                                 className={cn("h-full transition-all duration-1000", analysis.threatLevel > 70 ? "bg-destructive" : "bg-foreground")} 
                                 style={{ width: `${analysis.threatLevel}%` }} 
@@ -113,15 +115,15 @@ export function IntelligenceHub({ isOpen, onClose, cycleData }: IntelligenceHubP
                           </div>
                        </div>
                        <div className="space-y-2 text-right">
-                          <p className="technical-label">DATA_NODES</p>
-                          <p className="font-mono text-xs font-bold uppercase">VERIFIED // 0x4A</p>
+                          <p className="text-[9px] font-mono uppercase tracking-wider text-muted-foreground">Verification</p>
+                          <p className="font-mono text-xs font-bold uppercase text-emerald-500">100% SECURE</p>
                        </div>
                     </div>
 
                     {/* Insights */}
                     <div className="space-y-8">
                        <div className="space-y-3">
-                          <div className="flex items-center gap-2 technical-label">
+                          <div className="flex items-center gap-2 text-[9px] font-mono uppercase tracking-wider text-muted-foreground">
                              <Target className="h-3 w-3" />
                              <span>Core Insight</span>
                           </div>
@@ -130,21 +132,21 @@ export function IntelligenceHub({ isOpen, onClose, cycleData }: IntelligenceHubP
                           </p>
                        </div>
 
-                       <div className="space-y-3 p-6 bg-secondary/20 border border-border ledger-border border-dashed">
-                          <div className="flex items-center gap-2 technical-label">
+                       <div className="space-y-3 p-6 bg-secondary/10 border border-border">
+                          <div className="flex items-center gap-2 text-[9px] font-mono uppercase tracking-wider text-muted-foreground">
                              <ShieldCheck className="h-3 w-3" />
                              <span>Strategic recommendation</span>
                           </div>
-                          <p className="text-sm font-mono leading-relaxed text-muted-foreground italic">
+                          <p className="text-xs leading-relaxed text-muted-foreground">
                             "{analysis.recommendation}"
                           </p>
                        </div>
                     </div>
 
                     {/* Meta Footer */}
-                    <div className="pt-8 border-t border-border flex items-center justify-between opacity-30 italic font-mono text-[8px] uppercase">
-                       <span>Processed by Gemini 2.5 Pro</span>
-                       <span>Runtime: 842ms // Session: EX-901</span>
+                    <div className="pt-8 border-t border-border flex items-center justify-between opacity-40 font-mono text-[8px] uppercase">
+                       <span>Processed by Gemini Pro</span>
+                       <span>Leger_OS Secure Node</span>
                     </div>
                   </>
                 ) : (

@@ -13,7 +13,7 @@ import { supabase } from "@/lib/supabase"
 import { toast } from "sonner"
 import { useTheme } from "next-themes"
 import { useRouter } from "next/navigation"
-import { Landmark, Sparkles, Shield, ShieldOff, Sun, Moon, Check, Plus, Trash2, Sliders, Database, Cpu, Calendar, CreditCard, RefreshCw, Terminal, Zap, Download, Rocket, Activity, FileJson, Brain, LogOut, ArrowRight, ChevronDown } from "lucide-react"
+import { Landmark, Sparkles, Shield, ShieldOff, Sun, Moon, Check, Plus, Trash2, Sliders, Database, Cpu, Calendar, CreditCard, RefreshCw, Terminal, Zap, Download, Rocket, Activity, FileJson, Brain, LogOut, ArrowRight, ChevronDown, ShieldAlert, Smartphone, Copy, ExternalLink } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { PrivacyValue } from "@/components/ui/privacy-value"
 import { GlowingBadge } from "@/components/unlumen-ui/glowing-badge"
@@ -250,6 +250,9 @@ export function SystemConfigView() {
   }
 
   const handleDeleteRule = async (id: number) => {
+    if (!window.confirm("Are you sure you want to delete this custom categorization rule? Transactions from this merchant will no longer be auto-categorized.")) {
+      return
+    }
     const previousRules = [...existingRules]
     
     // 1. Optimistic UI update
@@ -263,6 +266,39 @@ export function SystemConfigView() {
       setExistingRules(previousRules)
       toast.error("Failed to delete rule")
       return
+    }
+  }
+
+  const handleRightToErasure = async () => {
+    const doubleConfirm = window.confirm(
+      "WARNING: This will permanently delete your account and all associated transactions, budgets, limits, and configurations. This cannot be undone.\n\nAre you sure you want to proceed?"
+    )
+    if (!doubleConfirm) return
+
+    const typingConfirm = window.prompt(
+      "To confirm deletion, type 'DELETE MY DATA' below:"
+    )
+    if (typingConfirm !== "DELETE MY DATA") {
+      toast.error("Confirmation string did not match. Deletion aborted.")
+      return
+    }
+
+    const toastId = toast.loading("Purging mainframe data node...")
+    try {
+      const res = await fetch("/api/user/erase", { method: "POST" })
+      const data = await res.json()
+      if (data.success) {
+        toast.dismiss(toastId)
+        toast.success("Mainframe profile completely purged.")
+        await signOut()
+        router.push("/login")
+      } else {
+        toast.dismiss(toastId)
+        toast.error(data.error || "Failed to execute erasure request.")
+      }
+    } catch (err) {
+      toast.dismiss(toastId)
+      toast.error("Connection lost during data purge.")
     }
   }
 
@@ -325,25 +361,23 @@ export function SystemConfigView() {
 
   return (
     <motion.div
-      initial={{ opacity: 0 }}
-      animate={{ opacity: 1 }}
-      transition={{ duration: 0.2, ease: "easeOut" }}
-      className="w-full max-w-[1500px] mx-auto p-4 sm:p-8 md:p-12 space-y-8 pb-32"
+      initial={{ opacity: 0, y: 4 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.45, ease: [0.16, 1, 0.3, 1] }}
+      className="mx-auto max-w-[1500px] p-4 md:p-8 space-y-10 md:space-y-16 pb-24 md:pb-8 w-full"
     >
       {/* 1. Page Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-border pb-6">
-        <div className="space-y-1">
-          <div className="flex items-center gap-2">
-            <Sliders className="h-6 w-6 text-foreground shrink-0" />
-            <h1 className="text-2xl sm:text-4xl font-black tracking-[0.15em] uppercase font-mono text-foreground leading-none">
-              SYSTEM CONFIG MATRIX
-            </h1>
+      <header className="flex flex-col md:flex-row md:items-center justify-between gap-6 md:gap-8 border-b border-border pb-6 md:pb-8 relative">
+        <div className="space-y-3">
+          <div className="flex items-center gap-3 text-[9px] md:text-[10px] font-mono tracking-[0.2em] uppercase text-muted-foreground">
+            <Sliders className="h-3.5 w-3.5" />
+            <span>Configuration Dashboard</span>
           </div>
-          <p className="text-xs font-sans text-muted-foreground uppercase tracking-widest pl-8 font-bold">
-            Global Node Calibration & Environment Controls
-          </p>
+          <h1 className="text-4xl md:text-5xl font-bold tracking-tighter uppercase leading-none break-words">
+            System Config
+          </h1>
         </div>
-        <div className="flex items-center gap-2 self-start sm:self-center">
+        <div className="flex items-center gap-2 self-start md:self-center">
           <GlowingBadge variant="success" pulse={true} dot={true} className="text-[10px] uppercase font-mono">
             NODE_ONLINE
           </GlowingBadge>
@@ -351,10 +385,10 @@ export function SystemConfigView() {
             {profile?.role?.toUpperCase() || "SUPER_USER"}
           </span>
         </div>
-      </div>
+      </header>
 
       {/* 2. Quick Environment Controls Strip (3 Columns) */}
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         {/* Privacy Mode Card */}
         <Card className="rounded-none border-border bg-card hover:border-foreground/40 transition-colors">
           <CardContent className="p-4 flex flex-col justify-between h-full space-y-3">
@@ -443,18 +477,50 @@ export function SystemConfigView() {
             </Button>
           </CardContent>
         </Card>
+
+        {/* GDPR / FTC Right to Erasure Card */}
+        <Card className="rounded-none border-border bg-card hover:border-destructive/30 transition-colors">
+          <CardContent className="p-4 flex flex-col justify-between h-full space-y-3">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2 text-xs font-bold uppercase tracking-wider font-mono">
+                <ShieldAlert className="h-4 w-4 text-destructive" />
+                <span>Right to Erasure</span>
+              </div>
+              <span className="text-[9px] font-mono uppercase px-2 py-0.5 font-bold bg-destructive/10 text-destructive border border-destructive/30">
+                GDPR/FTC
+              </span>
+            </div>
+            <p className="text-[11px] text-muted-foreground leading-relaxed font-sans">
+              Permanently purge your profile, transactions, budgets, limits, and configurations.
+            </p>
+            <div className="pt-2 border-t border-border/50 flex items-center justify-between text-[10px] font-mono text-muted-foreground">
+              <span>Purge Cascade:</span>
+              <span className="font-bold text-destructive">DESTRUCTIVE</span>
+            </div>
+            <Button
+              onClick={handleRightToErasure}
+              variant="outline"
+              className="w-full rounded-none h-9 text-[10px] uppercase font-mono font-bold tracking-widest mt-1 bg-destructive/10 text-destructive hover:bg-destructive hover:text-background border-destructive/30 transition-all"
+            >
+              Purge All Data & Account
+            </Button>
+          </CardContent>
+        </Card>
       </div>
 
       <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full space-y-6">
         <TabsList className={cn(
           "bg-secondary/40 border border-border rounded-none p-1 sm:p-1.5 !h-auto w-full flex flex-col sm:grid gap-1 sm:gap-1.5",
-          isSuperUser ? "sm:grid-cols-4" : "sm:grid-cols-3"
+          isSuperUser ? "sm:grid-cols-5" : "sm:grid-cols-4"
         )}>
           <TabsTrigger value="paycheck" className="rounded-none h-10 sm:h-11 px-4 text-xs uppercase tracking-wider font-mono font-bold flex items-center justify-start sm:justify-center gap-2 w-full text-left sm:text-center shrink-0">
             <Calendar className="h-4 w-4 shrink-0" /> <span>Cycle & AI Engine</span>
           </TabsTrigger>
           <TabsTrigger value="habits" className="rounded-none h-10 sm:h-11 px-4 text-xs uppercase tracking-wider font-mono font-bold flex items-center justify-start sm:justify-center gap-2 w-full text-left sm:text-center shrink-0">
             <Sparkles className="h-4 w-4 shrink-0" /> <span>Habits & Merchant Rules</span>
+          </TabsTrigger>
+          <TabsTrigger value="phone" className="rounded-none h-10 sm:h-11 px-4 text-xs uppercase tracking-wider font-mono font-bold flex items-center justify-start sm:justify-center gap-2 w-full text-left sm:text-center shrink-0">
+            <Smartphone className="h-4 w-4 shrink-0" /> <span>Phone Posting</span>
           </TabsTrigger>
           <TabsTrigger value="pro" className="rounded-none h-10 sm:h-11 px-4 text-xs uppercase tracking-wider font-mono font-bold flex items-center justify-start sm:justify-center gap-2 w-full text-left sm:text-center bg-emerald-500/10 text-emerald-500 border border-emerald-500/30 shrink-0">
             <Sparkles className="h-4 w-4 shrink-0" /> <span>PRO Plan Status</span>
@@ -650,10 +716,10 @@ export function SystemConfigView() {
                             onChange={(e) => setAiProviderInput(e.target.value)}
                             className="w-full bg-background border border-input rounded-none h-11 px-3 pr-10 text-xs outline-none font-mono focus:border-foreground appearance-none"
                           >
-                            <option value="gemini">Google Gemini (Default)</option>
-                            <option value="openai">OpenAI (GPT-4o-mini)</option>
-                            <option value="groq">Groq (Llama 3.3 Fast)</option>
-                            <option value="ollama">Ollama (Local / Self-hosted)</option>
+                            <option value="gemini" className="bg-[#121215] text-foreground font-mono py-1">Google Gemini (Default)</option>
+                            <option value="openai" className="bg-[#121215] text-foreground font-mono py-1">OpenAI (GPT-4o-mini)</option>
+                            <option value="groq" className="bg-[#121215] text-foreground font-mono py-1">Groq (Llama 3.3 Fast)</option>
+                            <option value="ollama" className="bg-[#121215] text-foreground font-mono py-1">Ollama (Local / Self-hosted)</option>
                           </select>
                           <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground pointer-events-none" />
                         </div>
@@ -689,9 +755,9 @@ export function SystemConfigView() {
                           onChange={(e) => setAiYapLevelInput(e.target.value as any)}
                           className="w-full bg-background border border-input rounded-none h-11 px-3 pr-10 text-xs outline-none font-mono focus:border-foreground appearance-none"
                         >
-                          <option value="concise">Concise & Direct (Saves tokens, brief answers)</option>
-                          <option value="standard">Standard (Balanced context & suggestions)</option>
-                          <option value="verbose">Verbose & Explanatory (Thorough strategies & projections)</option>
+                          <option value="concise" className="bg-[#121215] text-foreground font-mono py-1">Concise & Direct (Saves tokens, brief answers)</option>
+                          <option value="standard" className="bg-[#121215] text-foreground font-mono py-1">Standard (Balanced context & suggestions)</option>
+                          <option value="verbose" className="bg-[#121215] text-foreground font-mono py-1">Verbose & Explanatory (Thorough strategies & projections)</option>
                         </select>
                         <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground pointer-events-none" />
                       </div>
@@ -831,6 +897,107 @@ export function SystemConfigView() {
           </Card>
         </TabsContent>
 
+        {/* TAB: SMARTPHONE MACRODROID INGESTION */}
+        <TabsContent value="phone" className="space-y-6">
+          <Card className="rounded-none border-border bg-card shadow-lg pt-0">
+            <CardHeader className="border-b border-border px-6 sm:px-8 py-6 bg-secondary/10">
+              <CardTitle className="text-base sm:text-lg font-bold uppercase tracking-wider font-mono flex items-center gap-2">
+                <Smartphone className="h-5 w-5 text-foreground" /> MacroDroid Phone Integration
+              </CardTitle>
+              <CardDescription className="text-xs font-mono uppercase tracking-wider text-muted-foreground mt-1">
+                Post transactions to your mainframe automatically from push notifications on your Android device.
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="px-6 sm:px-8 py-6 sm:py-8 space-y-6">
+              <div className="space-y-4">
+                <h4 className="font-mono text-xs font-bold uppercase tracking-wider text-foreground">1. Your Unique Posting Endpoint</h4>
+                <p className="text-xs text-muted-foreground leading-relaxed font-sans">
+                  Use this URL in your phone's automation application (like MacroDroid, Tasker, or custom HTTP clients) to post transactions securely into your profile:
+                </p>
+                <div className="flex flex-col sm:flex-row gap-2 items-stretch">
+                  <div className="bg-secondary/40 border border-border p-3 font-mono text-[9px] sm:text-[10px] break-all select-all flex-1 flex items-center text-foreground font-semibold">
+                    {typeof window !== 'undefined' 
+                      ? `${window.location.origin}/api/transactions/macrodroid?userId=${user?.id || "AUTHENTICATING"}`
+                      : `https://leger-os.vercel.app/api/transactions/macrodroid?userId=${user?.id || "AUTHENTICATING"}`
+                    }
+                  </div>
+                  <Button 
+                    variant="outline" 
+                    className="rounded-none font-mono text-[9px] uppercase tracking-widest shrink-0 cursor-pointer flex items-center gap-1.5 h-auto py-2 sm:py-0"
+                    onClick={() => {
+                      const url = typeof window !== 'undefined' 
+                        ? `${window.location.origin}/api/transactions/macrodroid?userId=${user?.id || ""}`
+                        : `https://leger-os.vercel.app/api/transactions/macrodroid?userId=${user?.id || ""}`
+                      navigator.clipboard.writeText(url)
+                      toast.success("MacroDroid endpoint copied to clipboard!")
+                    }}
+                  >
+                    <Copy className="h-3 w-3" /> Copy URL
+                  </Button>
+                </div>
+              </div>
+
+              <div className="border-t border-border/40 my-6" />
+
+              <div className="space-y-4">
+                <h4 className="font-mono text-xs font-bold uppercase tracking-wider text-foreground">2. MacroDroid Setup Instructions</h4>
+                <div className="space-y-4 font-sans text-xs text-muted-foreground leading-relaxed">
+                  <div className="space-y-2">
+                    <p className="font-mono text-[10px] font-bold text-foreground uppercase tracking-widest">Step A: Add the Notification Trigger</p>
+                    <ul className="list-disc list-inside pl-2 space-y-1">
+                      <li>Create a new Macro in MacroDroid and name it <code className="bg-secondary/40 px-1 py-0.5 font-mono text-[10px] text-foreground">LEGER_OS Ingestion</code>.</li>
+                      <li>Add a **Trigger** &rarr; **Device Events** &rarr; **Notification** &rarr; **Notification Received**.</li>
+                      <li>Select your banking app (e.g. Santander, Revolut, ActivoBank, etc.).</li>
+                      <li>Set content matches to <code className="bg-secondary/40 px-1 py-0.5 font-mono text-[10px] text-foreground">Any</code>.</li>
+                    </ul>
+                  </div>
+
+                  <div className="space-y-2">
+                    <p className="font-mono text-[10px] font-bold text-foreground uppercase tracking-widest">Step B: Create Local Variables</p>
+                    <p className="pl-2">At the bottom of the Macro edit screen, configure these local variables:</p>
+                    <ul className="list-disc list-inside pl-2 space-y-1">
+                      <li><code className="bg-secondary/40 px-1 py-0.5 font-mono text-[10px] text-foreground">raw_text</code> (String) &rarr; Set in actions using text matches from <code className="bg-secondary/40 px-1 py-0.5 font-mono text-[10px] text-foreground">[notification]</code>.</li>
+                      <li><code className="bg-secondary/40 px-1 py-0.5 font-mono text-[10px] text-foreground">amount</code> (String) &rarr; Extract numerical cash value from notification via Regex.</li>
+                      <li><code className="bg-secondary/40 px-1 py-0.5 font-mono text-[10px] text-foreground">merchant</code> (String) &rarr; Extract merchant name from notification via Regex.</li>
+                    </ul>
+                  </div>
+
+                  <div className="space-y-2">
+                    <p className="font-mono text-[10px] font-bold text-foreground uppercase tracking-widest">Step C: Setup HTTP POST Action</p>
+                    <ul className="list-disc list-inside pl-2 space-y-1">
+                      <li>Add an **Action** &rarr; **Applications** &rarr; **HTTP POST**.</li>
+                      <li>Paste the copyable endpoint URL from above into the **URL** input.</li>
+                      <li>Set **Content Type** to <code className="bg-secondary/40 px-1 py-0.5 font-mono text-[10px] text-foreground">application/json</code>.</li>
+                      <li>Paste the following JSON structure into the **Request Body**:</li>
+                    </ul>
+                    <pre className="bg-secondary/20 border border-border/60 p-4 font-mono text-[10px] text-foreground leading-normal whitespace-pre-wrap select-all max-w-lg mt-1.5 ml-2">
+{`{
+  "amount": "{lv=amount}",
+  "merchant": "{lv=merchant}",
+  "raw_text": "{lv=raw_text}",
+  "source": "MacroDroid"
+}`}
+                    </pre>
+                  </div>
+
+                  <div className="space-y-2 bg-emerald-500/5 border border-emerald-500/20 p-4 rounded-none">
+                    <p className="font-mono text-[10px] font-bold text-emerald-500 uppercase tracking-widest flex items-center gap-1.5">
+                      <Sparkles className="h-3.5 w-3.5" /> Portuguese Regex Parsing Example
+                    </p>
+                    <p className="text-[11px] leading-relaxed mt-1 text-muted-foreground">
+                      If your notification says <code className="text-foreground font-semibold font-mono bg-secondary/30 px-1">"Compra de 15,30 EUR no CONTINENTE"</code>, use MacroDroid's **Text Manipulation &rarr; Extract matching text** action:
+                    </p>
+                    <ul className="list-decimal list-inside text-[11px] pl-2 mt-1.5 space-y-1 text-muted-foreground">
+                      <li>To extract amount to <code className="font-mono bg-secondary/30 px-0.5 text-foreground">amount</code>: search for pattern <code className="font-mono bg-secondary/30 px-1 text-foreground">([0-9]+[.,][0-9]{2})</code>.</li>
+                      <li>To extract merchant to <code className="font-mono bg-secondary/30 px-0.5 text-foreground">merchant</code>: search for pattern <code className="font-mono bg-secondary/30 px-1 text-foreground">no\\s+([^\\s]+)</code> or similar keyword captures.</li>
+                    </ul>
+                  </div>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        </TabsContent>
+
         {/* TAB 3: PRO PLAN STATUS */}
         <TabsContent value="pro" className="space-y-6">
           <Card className="rounded-none border border-emerald-500/40 bg-card shadow-lg overflow-hidden pt-0">
@@ -870,17 +1037,22 @@ export function SystemConfigView() {
               </div>
 
               {!isPro && (
-                <div className="pt-4 flex flex-col sm:flex-row items-center justify-between gap-4 p-6 bg-emerald-500/10 border border-emerald-500/30">
-                  <div>
-                    <div className="font-bold uppercase text-sm font-mono text-foreground">Ready to upgrade your mainframe?</div>
-                    <div className="text-xs text-muted-foreground font-sans mt-0.5">Instant activation. Cancel anytime.</div>
+                <div className="pt-4 flex flex-col items-stretch gap-4 p-6 bg-emerald-500/10 border border-emerald-500/30">
+                  <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
+                    <div>
+                      <div className="font-bold uppercase text-sm font-mono text-foreground">Ready to upgrade your mainframe?</div>
+                      <div className="text-xs text-muted-foreground font-sans mt-0.5">Instant activation. Cancel anytime.</div>
+                    </div>
+                    <Button
+                      onClick={upgradeToPro}
+                      className="w-full sm:w-auto px-8 h-12 rounded-none bg-emerald-500 hover:bg-emerald-600 text-white font-mono text-xs uppercase font-bold tracking-widest shadow-lg transition-all"
+                    >
+                      <Sparkles className="h-4 w-4 mr-2" /> Activate PRO Tier - €4.99/mo
+                    </Button>
                   </div>
-                  <Button
-                    onClick={upgradeToPro}
-                    className="w-full sm:w-auto px-8 h-12 rounded-none bg-emerald-500 hover:bg-emerald-600 text-white font-mono text-xs uppercase font-bold tracking-widest shadow-lg transition-all"
-                  >
-                    <Sparkles className="h-4 w-4 mr-2" /> Activate PRO Tier - €4.99/mo
-                  </Button>
+                  <p className="text-[9px] text-muted-foreground font-mono text-center sm:text-left mt-1 max-w-xl leading-relaxed">
+                    By activating PRO, you authorize a recurring subscription charge of €4.99/month. Your account will be billed monthly until you cancel in this configuration panel.
+                  </p>
                 </div>
               )}
 

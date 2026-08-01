@@ -7,9 +7,39 @@ export interface AIBridgeOptions {
   modelType?: "pro" | "flash";
 }
 
+// Robust JSON extraction helper to isolate JSON structures from markdown wrappers or conversational fluff
+function extractJSON(str: string): string {
+  const trimmed = str.trim();
+  
+  // Find the first occurrence of '{' (object) or '[' (array)
+  const firstBrace = trimmed.indexOf('{');
+  const firstBracket = trimmed.indexOf('[');
+  let startIdx = -1;
+  let endChar = '';
+
+  if (firstBrace !== -1 && (firstBracket === -1 || firstBrace < firstBracket)) {
+    startIdx = firstBrace;
+    endChar = '}';
+  } else if (firstBracket !== -1) {
+    startIdx = firstBracket;
+    endChar = ']';
+  }
+
+  if (startIdx !== -1) {
+    const lastIdx = trimmed.lastIndexOf(endChar);
+    if (lastIdx !== -1 && lastIdx > startIdx) {
+      return trimmed.substring(startIdx, lastIdx + 1);
+    }
+  }
+  
+  // Fallback cleanup if structural markers are not cleanly matched
+  return trimmed.replace(/```[a-zA-Z]*|```/g, "").trim();
+}
+
 export async function generateAIContent(prompt: string, options: AIBridgeOptions = {}): Promise<string> {
   const provider = (options.provider || "gemini").toLowerCase();
   const customKey = (options.customKey || "").trim();
+  let rawContent = "";
 
   // 1. GOOGLE GEMINI (Default & Free Tier Pro)
   if (provider === "gemini") {
@@ -26,11 +56,11 @@ export async function generateAIContent(prompt: string, options: AIBridgeOptions
     });
     const result = await model.generateContent(prompt);
     const response = await result.response;
-    return response.text().trim().replace(/```json|```/g, "");
+    rawContent = response.text();
   }
 
   // 2. OPENAI (GPT-4o / GPT-4o-mini)
-  if (provider === "openai") {
+  else if (provider === "openai") {
     const apiKey = customKey || process.env.OPENAI_API_KEY || "";
     if (!apiKey) {
       throw new Error("OpenAI API key is required when using the OpenAI provider.");
@@ -53,12 +83,11 @@ export async function generateAIContent(prompt: string, options: AIBridgeOptions
       throw new Error(`OpenAI API error: ${res.status} ${err}`);
     }
     const data = await res.json();
-    const content = data.choices?.[0]?.message?.content || "";
-    return content.trim().replace(/```json|```/g, "");
+    rawContent = data.choices?.[0]?.message?.content || "";
   }
 
   // 3. GROQ (Llama 3.3 70B Fast)
-  if (provider === "groq") {
+  else if (provider === "groq") {
     const apiKey = customKey || process.env.GROQ_API_KEY || "";
     if (!apiKey) {
       throw new Error("Groq API key is required when using the Groq provider.");
@@ -80,12 +109,11 @@ export async function generateAIContent(prompt: string, options: AIBridgeOptions
       throw new Error(`Groq API error: ${res.status} ${err}`);
     }
     const data = await res.json();
-    const content = data.choices?.[0]?.message?.content || "";
-    return content.trim().replace(/```json|```/g, "");
+    rawContent = data.choices?.[0]?.message?.content || "";
   }
 
   // 4. OLLAMA (Local Server / Self-Hosted LLM)
-  if (provider === "ollama") {
+  else if (provider === "ollama") {
     const endpoint = customKey || "http://localhost:11434";
     const res = await fetch(`${endpoint.replace(/\/$/, "")}/api/generate`, {
       method: "POST",
@@ -102,9 +130,13 @@ export async function generateAIContent(prompt: string, options: AIBridgeOptions
       throw new Error(`Ollama server error (${endpoint}): ${res.status} ${err}`);
     }
     const data = await res.json();
-    const content = data.response || "";
-    return content.trim().replace(/```json|```/g, "");
+    rawContent = data.response || "";
   }
 
-  throw new Error(`Unsupported AI provider: ${provider}`);
+  else {
+    throw new Error(`Unsupported AI provider: ${provider}`);
+  }
+
+  // Apply robust post-processing JSON cleaning if jsonMode is requested
+  return options.jsonMode ? extractJSON(rawContent) : rawContent.trim();
 }

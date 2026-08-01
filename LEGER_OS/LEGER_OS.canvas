@@ -1,0 +1,14 @@
+{
+	"nodes":[
+		{"id":"node-mainframe","x":-200,"y":-300,"width":400,"height":200,"type":"group","label":"LEGER_OS Mainframe Hub"},
+		{"id":"node-mainframe-text","x":-180,"y":-260,"width":360,"height":140,"type":"text","text":"# LEGER_OS Personal Finance Mainframe\n\n- **Active Cycle:** [[02 - Paycheck Cycles/Cycle 2026-07 (DELOITTE)|2026-07 DELOITTE Cycle]]\n- **Primary Bank:** [[03 - Accounts & Statements/Santander Primary Checking Account|Santander Checking]]\n- **Math Engine:** Recency Decay (λ=0.12)"},
+		{"id":"node-directives","x":-600,"y":0,"width":350,"height":240,"type":"text","text":"### 📜 Operating Directives (SOPs)\n\n1. [[01 - Directives (SOPs)/01.01 - Statement Ingestion SOP|Statement Ingestion SOP]]\n2. [[01 - Directives (SOPs)/01.02 - Paycheck Cycle Reconciliation SOP|Cycle Reconciliation SOP]]\n3. [[01 - Directives (SOPs)/01.03 - Database Migrations & Schema Sync|Database Schema Sync SOP]]"},
+		{"id":"node-tools","x":200,"y":0,"width":350,"height":240,"type":"text","text":"### 🛠️ Execution Tools (Layer 3)\n\n- `import_transactions.py` - Ingest statements\n- `audit_balances.py` - Snapshot reconciliation\n- `update_schema.py` - Postgres schema migrations\n- `build_full_vault.py` - Vault auto-sync"},
+		{"id":"node-kanban","x":-200,"y":300,"width":400,"height":220,"type":"text","text":"### 📋 Financial Tasks & Kanban\n\n- [[07 - Dashboards & Kanbans/Financial Operations Kanban|Financial Operations Kanban]]\n- [[07 - Dashboards & Kanbans/Dataview Cycle Master View|Master Dataview Dashboard]]"}
+	],
+	"edges":[
+		{"id":"edge-1","fromNode":"node-mainframe-text","toNode":"node-directives","label":"Governed by SOPs","fromSide":"bottom","toSide":"top"},
+		{"id":"edge-2","fromNode":"node-mainframe-text","toNode":"node-tools","label":"Executed via Scripts","fromSide":"bottom","toSide":"top"},
+		{"id":"edge-3","fromNode":"node-mainframe-text","toNode":"node-kanban","label":"Tracked in Kanban","fromSide":"bottom","toSide":"top"}
+	]
+}

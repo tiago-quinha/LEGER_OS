@@ -1,0 +1,3291 @@
+{
+  "nodes": [
+    {
+      "id": "inspect_db",
+      "label": "inspect_db.py",
+      "file_type": "code",
+      "source_file": "C:\\Users\\Quinha\\.gemini\\antigravity-cli\\brain\\03356edf-2097-4111-ae73-003e2966641e\\scratch\\inspect_db.py",
+      "source_location": "L1"
+    },
+    {
+      "id": "parse_pdf_stdin",
+      "label": "parse_pdf_stdin.py",
+      "file_type": "code",
+      "source_file": "C:\\Users\\Quinha\\.gemini\\antigravity-cli\\brain\\03356edf-2097-4111-ae73-003e2966641e\\scratch\\parse_pdf_stdin.py",
+      "source_location": "L1"
+    },
+    {
+      "id": "parse_pdf_stdin_main",
+      "label": "main()",
+      "file_type": "code",
+      "source_file": "C:\\Users\\Quinha\\.gemini\\antigravity-cli\\brain\\03356edf-2097-4111-ae73-003e2966641e\\scratch\\parse_pdf_stdin.py",
+      "source_location": "L5"
+    },
+    {
+      "id": "read_pdf_text",
+      "label": "read_pdf_text.py",
+      "file_type": "code",
+      "source_file": "C:\\Users\\Quinha\\.gemini\\antigravity-cli\\brain\\03356edf-2097-4111-ae73-003e2966641e\\scratch\\read_pdf_text.py",
+      "source_location": "L1"
+    },
+    {
+      "id": "read_pdf_text_get_pdf_bytes",
+      "label": "get_pdf_bytes()",
+      "file_type": "code",
+      "source_file": "C:\\Users\\Quinha\\.gemini\\antigravity-cli\\brain\\03356edf-2097-4111-ae73-003e2966641e\\scratch\\read_pdf_text.py",
+      "source_location": "L5"
+    },
+    {
+      "id": "read_pdf_text_parse_portuguese_month",
+      "label": "parse_portuguese_month()",
+      "file_type": "code",
+      "source_file": "C:\\Users\\Quinha\\.gemini\\antigravity-cli\\brain\\03356edf-2097-4111-ae73-003e2966641e\\scratch\\read_pdf_text.py",
+      "source_location": "L17"
+    },
+    {
+      "id": "read_pdf_text_parse_statement_text",
+      "label": "parse_statement_text()",
+      "file_type": "code",
+      "source_file": "C:\\Users\\Quinha\\.gemini\\antigravity-cli\\brain\\03356edf-2097-4111-ae73-003e2966641e\\scratch\\read_pdf_text.py",
+      "source_location": "L21"
+    },
+    {
+      "id": "regex_debug",
+      "label": "regex_debug.py",
+      "file_type": "code",
+      "source_file": "C:\\Users\\Quinha\\.gemini\\antigravity-cli\\brain\\03356edf-2097-4111-ae73-003e2966641e\\scratch\\regex_debug.py",
+      "source_location": "L1"
+    },
+    {
+      "id": "regex_explicit",
+      "label": "regex_explicit.py",
+      "file_type": "code",
+      "source_file": "C:\\Users\\Quinha\\.gemini\\antigravity-cli\\brain\\03356edf-2097-4111-ae73-003e2966641e\\scratch\\regex_explicit.py",
+      "source_location": "L1"
+    },
+    {
+      "id": "run_migration",
+      "label": "run_migration.py",
+      "file_type": "code",
+      "source_file": "C:\\Users\\Quinha\\.gemini\\antigravity-cli\\brain\\03356edf-2097-4111-ae73-003e2966641e\\scratch\\run_migration.py",
+      "source_location": "L1"
+    },
+    {
+      "id": "test_pdf_parse",
+      "label": "test_pdf_parse.js",
+      "file_type": "code",
+      "source_file": "C:\\Users\\Quinha\\.gemini\\antigravity-cli\\brain\\03356edf-2097-4111-ae73-003e2966641e\\scratch\\test_pdf_parse.js",
+      "source_location": "L1"
+    },
+    {
+      "id": "test_pdf_parse_getpdfbuffer",
+      "label": "getPdfBuffer()",
+      "file_type": "code",
+      "source_file": "C:\\Users\\Quinha\\.gemini\\antigravity-cli\\brain\\03356edf-2097-4111-ae73-003e2966641e\\scratch\\test_pdf_parse.js",
+      "source_location": "L4"
+    },
+    {
+      "id": "test_pdf_parse_testparse",
+      "label": "testParse()",
+      "file_type": "code",
+      "source_file": "C:\\Users\\Quinha\\.gemini\\antigravity-cli\\brain\\03356edf-2097-4111-ae73-003e2966641e\\scratch\\test_pdf_parse.js",
+      "source_location": "L14"
+    },
+    {
+      "id": "test_pdf_parse_run",
+      "label": "run()",
+      "file_type": "code",
+      "source_file": "C:\\Users\\Quinha\\.gemini\\antigravity-cli\\brain\\03356edf-2097-4111-ae73-003e2966641e\\scratch\\test_pdf_parse.js",
+      "source_location": "L32"
+    },
+    {
+      "id": "create_test_user",
+      "label": "create_test_user.py",
+      "file_type": "code",
+      "source_file": "C:\\Users\\Quinha\\.gemini\\antigravity-cli\\brain\\0c589a86-d325-4720-bb4b-3f75e54da641\\scratch\\create_test_user.py",
+      "source_location": "L1"
+    },
+    {
+      "id": "run_detect",
+      "label": "run_detect.py",
+      "file_type": "code",
+      "source_file": "C:\\Users\\Quinha\\.gemini\\antigravity-cli\\brain\\1bdb9f81-a24c-484e-8cbe-9f904b31cf02\\scratch\\run_detect.py",
+      "source_location": "L1"
+    },
+    {
+      "id": "generate_docx",
+      "label": "generate_docx.py",
+      "file_type": "code",
+      "source_file": "C:\\Users\\Quinha\\.gemini\\antigravity-cli\\brain\\2ad45c8e-fa70-4d25-b907-1481499deba8\\scratch\\generate_docx.py",
+      "source_location": "L1"
+    },
+    {
+      "id": "generate_docx_create_docx",
+      "label": "create_docx()",
+      "file_type": "code",
+      "source_file": "C:\\Users\\Quinha\\.gemini\\antigravity-cli\\brain\\2ad45c8e-fa70-4d25-b907-1481499deba8\\scratch\\generate_docx.py",
+      "source_location": "L6"
+    },
+    {
+      "id": "generate_pdf",
+      "label": "generate_pdf.py",
+      "file_type": "code",
+      "source_file": "C:\\Users\\Quinha\\.gemini\\antigravity-cli\\brain\\2ad45c8e-fa70-4d25-b907-1481499deba8\\scratch\\generate_pdf.py",
+      "source_location": "L1"
+    },
+    {
+      "id": "generate_pdf_declaracaopdf",
+      "label": "DeclaracaoPDF",
+      "file_type": "code",
+      "source_file": "C:\\Users\\Quinha\\.gemini\\antigravity-cli\\brain\\2ad45c8e-fa70-4d25-b907-1481499deba8\\scratch\\generate_pdf.py",
+      "source_location": "L5"
+    },
+    {
+      "id": "fpdf",
+      "label": "FPDF",
+      "file_type": "code",
+      "source_file": "",
+      "source_location": ""
+    },
+    {
+      "id": "generate_pdf_declaracaopdf_header",
+      "label": ".header()",
+      "file_type": "code",
+      "source_file": "C:\\Users\\Quinha\\.gemini\\antigravity-cli\\brain\\2ad45c8e-fa70-4d25-b907-1481499deba8\\scratch\\generate_pdf.py",
+      "source_location": "L6"
+    },
+    {
+      "id": "generate_pdf_declaracaopdf_footer",
+      "label": ".footer()",
+      "file_type": "code",
+      "source_file": "C:\\Users\\Quinha\\.gemini\\antigravity-cli\\brain\\2ad45c8e-fa70-4d25-b907-1481499deba8\\scratch\\generate_pdf.py",
+      "source_location": "L11"
+    },
+    {
+      "id": "generate_pdf_create_pdf",
+      "label": "create_pdf()",
+      "file_type": "code",
+      "source_file": "C:\\Users\\Quinha\\.gemini\\antigravity-cli\\brain\\2ad45c8e-fa70-4d25-b907-1481499deba8\\scratch\\generate_pdf.py",
+      "source_location": "L17"
+    },
+    {
+      "id": "render_pdf",
+      "label": "render_pdf.py",
+      "file_type": "code",
+      "source_file": "C:\\Users\\Quinha\\.gemini\\antigravity-cli\\brain\\2ad45c8e-fa70-4d25-b907-1481499deba8\\scratch\\render_pdf.py",
+      "source_location": "L1"
+    },
+    {
+      "id": "render_pdf_render_pages",
+      "label": "render_pages()",
+      "file_type": "code",
+      "source_file": "C:\\Users\\Quinha\\.gemini\\antigravity-cli\\brain\\2ad45c8e-fa70-4d25-b907-1481499deba8\\scratch\\render_pdf.py",
+      "source_location": "L7"
+    },
+    {
+      "id": "check_columns",
+      "label": "check_columns.py",
+      "file_type": "code",
+      "source_file": "C:\\Users\\Quinha\\.gemini\\antigravity-cli\\brain\\2b93c521-afbb-4a4b-86aa-48f1bb5e8cc1\\scratch\\check_columns.py",
+      "source_location": "L1"
+    },
+    {
+      "id": "check_more",
+      "label": "check_more.py",
+      "file_type": "code",
+      "source_file": "C:\\Users\\Quinha\\.gemini\\antigravity-cli\\brain\\2b93c521-afbb-4a4b-86aa-48f1bb5e8cc1\\scratch\\check_more.py",
+      "source_location": "L1"
+    },
+    {
+      "id": "check_policies",
+      "label": "check_policies.py",
+      "file_type": "code",
+      "source_file": "C:\\Users\\Quinha\\.gemini\\antigravity-cli\\brain\\2b93c521-afbb-4a4b-86aa-48f1bb5e8cc1\\scratch\\check_policies.py",
+      "source_location": "L1"
+    },
+    {
+      "id": "import_junho",
+      "label": "import_junho.py",
+      "file_type": "code",
+      "source_file": "C:\\Users\\Quinha\\.gemini\\antigravity-cli\\brain\\2b93c521-afbb-4a4b-86aa-48f1bb5e8cc1\\scratch\\import_junho.py",
+      "source_location": "L1"
+    },
+    {
+      "id": "import_junho_run_import",
+      "label": "run_import()",
+      "file_type": "code",
+      "source_file": "C:\\Users\\Quinha\\.gemini\\antigravity-cli\\brain\\2b93c521-afbb-4a4b-86aa-48f1bb5e8cc1\\scratch\\import_junho.py",
+      "source_location": "L34"
+    },
+    {
+      "id": "parse_and_compare",
+      "label": "parse_and_compare.py",
+      "file_type": "code",
+      "source_file": "C:\\Users\\Quinha\\.gemini\\antigravity-cli\\brain\\2b93c521-afbb-4a4b-86aa-48f1bb5e8cc1\\scratch\\parse_and_compare.py",
+      "source_location": "L1"
+    },
+    {
+      "id": "scratch_read_pdf",
+      "label": "scratch_read_pdf.py",
+      "file_type": "code",
+      "source_file": "C:\\Users\\Quinha\\.gemini\\antigravity-cli\\brain\\2b93c521-afbb-4a4b-86aa-48f1bb5e8cc1\\scratch\\scratch_read_pdf.py",
+      "source_location": "L1"
+    },
+    {
+      "id": "inspect_db",
+      "label": "inspect_db.py",
+      "file_type": "code",
+      "source_file": "C:\\Users\\Quinha\\.gemini\\antigravity-cli\\brain\\4feb9833-945d-421e-868c-48b003c96528\\scratch\\inspect_db.py",
+      "source_location": "L1"
+    },
+    {
+      "id": "parse_lh",
+      "label": "parse_lh.py",
+      "file_type": "code",
+      "source_file": "C:\\Users\\Quinha\\.gemini\\antigravity-cli\\brain\\93810cfd-e78f-4cfc-8647-e9faa933db65\\scratch\\parse_lh.py",
+      "source_location": "L1"
+    },
+    {
+      "id": "check_db_cycles",
+      "label": "check_db_cycles.js",
+      "file_type": "code",
+      "source_file": "C:\\Users\\Quinha\\.gemini\\antigravity-cli\\brain\\9dcbec59-2df0-4480-9065-3b2c832bd740\\scratch\\check_db_cycles.js",
+      "source_location": "L1"
+    },
+    {
+      "id": "check_db_cycles_run",
+      "label": "run()",
+      "file_type": "code",
+      "source_file": "C:\\Users\\Quinha\\.gemini\\antigravity-cli\\brain\\9dcbec59-2df0-4480-9065-3b2c832bd740\\scratch\\check_db_cycles.js",
+      "source_location": "L8"
+    },
+    {
+      "id": "decode_dashboard_view",
+      "label": "decode_dashboard_view.js",
+      "file_type": "code",
+      "source_file": "C:\\Users\\Quinha\\.gemini\\antigravity-cli\\brain\\9dcbec59-2df0-4480-9065-3b2c832bd740\\scratch\\decode_dashboard_view.js",
+      "source_location": "L1"
+    },
+    {
+      "id": "decode_dashboard_view_run",
+      "label": "run()",
+      "file_type": "code",
+      "source_file": "C:\\Users\\Quinha\\.gemini\\antigravity-cli\\brain\\9dcbec59-2df0-4480-9065-3b2c832bd740\\scratch\\decode_dashboard_view.js",
+      "source_location": "L5"
+    },
+    {
+      "id": "download_file_by_uid",
+      "label": "download_file_by_uid.js",
+      "file_type": "code",
+      "source_file": "C:\\Users\\Quinha\\.gemini\\antigravity-cli\\brain\\9dcbec59-2df0-4480-9065-3b2c832bd740\\scratch\\download_file_by_uid.js",
+      "source_location": "L1"
+    },
+    {
+      "id": "download_file_by_uid_run",
+      "label": "run()",
+      "file_type": "code",
+      "source_file": "C:\\Users\\Quinha\\.gemini\\antigravity-cli\\brain\\9dcbec59-2df0-4480-9065-3b2c832bd740\\scratch\\download_file_by_uid.js",
+      "source_location": "L8"
+    },
+    {
+      "id": "download_revert",
+      "label": "download_revert.js",
+      "file_type": "code",
+      "source_file": "C:\\Users\\Quinha\\.gemini\\antigravity-cli\\brain\\9dcbec59-2df0-4480-9065-3b2c832bd740\\scratch\\download_revert.js",
+      "source_location": "L1"
+    },
+    {
+      "id": "download_revert_findfile",
+      "label": "findFile()",
+      "file_type": "code",
+      "source_file": "C:\\Users\\Quinha\\.gemini\\antigravity-cli\\brain\\9dcbec59-2df0-4480-9065-3b2c832bd740\\scratch\\download_revert.js",
+      "source_location": "L6"
+    },
+    {
+      "id": "download_revert_run",
+      "label": "run()",
+      "file_type": "code",
+      "source_file": "C:\\Users\\Quinha\\.gemini\\antigravity-cli\\brain\\9dcbec59-2df0-4480-9065-3b2c832bd740\\scratch\\download_revert.js",
+      "source_location": "L19"
+    },
+    {
+      "id": "download_vercel_file",
+      "label": "download_vercel_file.js",
+      "file_type": "code",
+      "source_file": "C:\\Users\\Quinha\\.gemini\\antigravity-cli\\brain\\9dcbec59-2df0-4480-9065-3b2c832bd740\\scratch\\download_vercel_file.js",
+      "source_location": "L1"
+    },
+    {
+      "id": "download_vercel_file_run",
+      "label": "run()",
+      "file_type": "code",
+      "source_file": "C:\\Users\\Quinha\\.gemini\\antigravity-cli\\brain\\9dcbec59-2df0-4480-9065-3b2c832bd740\\scratch\\download_vercel_file.js",
+      "source_location": "L6"
+    },
+    {
+      "id": "find_dashboard_view",
+      "label": "find_dashboard_view.js",
+      "file_type": "code",
+      "source_file": "C:\\Users\\Quinha\\.gemini\\antigravity-cli\\brain\\9dcbec59-2df0-4480-9065-3b2c832bd740\\scratch\\find_dashboard_view.js",
+      "source_location": "L1"
+    },
+    {
+      "id": "find_dashboard_view_findfile",
+      "label": "findFile()",
+      "file_type": "code",
+      "source_file": "C:\\Users\\Quinha\\.gemini\\antigravity-cli\\brain\\9dcbec59-2df0-4480-9065-3b2c832bd740\\scratch\\find_dashboard_view.js",
+      "source_location": "L5"
+    },
+    {
+      "id": "audit_gambling",
+      "label": "audit_gambling.py",
+      "file_type": "code",
+      "source_file": "C:\\Users\\Quinha\\.gemini\\antigravity-cli\\brain\\a1d8feff-07f9-4b81-8517-0bdfb2521c50\\scratch\\audit_gambling.py",
+      "source_location": "L1"
+    },
+    {
+      "id": "audit_gambling_ytd",
+      "label": "audit_gambling_ytd.py",
+      "file_type": "code",
+      "source_file": "C:\\Users\\Quinha\\.gemini\\antigravity-cli\\brain\\a1d8feff-07f9-4b81-8517-0bdfb2521c50\\scratch\\audit_gambling_ytd.py",
+      "source_location": "L1"
+    },
+    {
+      "id": "audit_pdfs_vs_db",
+      "label": "audit_pdfs_vs_db.py",
+      "file_type": "code",
+      "source_file": "C:\\Users\\Quinha\\.gemini\\antigravity-cli\\brain\\a1d8feff-07f9-4b81-8517-0bdfb2521c50\\scratch\\audit_pdfs_vs_db.py",
+      "source_location": "L1"
+    },
+    {
+      "id": "audit_record_counts",
+      "label": "audit_record_counts.py",
+      "file_type": "code",
+      "source_file": "C:\\Users\\Quinha\\.gemini\\antigravity-cli\\brain\\a1d8feff-07f9-4b81-8517-0bdfb2521c50\\scratch\\audit_record_counts.py",
+      "source_location": "L1"
+    },
+    {
+      "id": "check_category_counts",
+      "label": "check_category_counts.py",
+      "file_type": "code",
+      "source_file": "C:\\Users\\Quinha\\.gemini\\antigravity-cli\\brain\\a1d8feff-07f9-4b81-8517-0bdfb2521c50\\scratch\\check_category_counts.py",
+      "source_location": "L1"
+    },
+    {
+      "id": "check_current_user_profile",
+      "label": "check_current_user_profile.py",
+      "file_type": "code",
+      "source_file": "C:\\Users\\Quinha\\.gemini\\antigravity-cli\\brain\\a1d8feff-07f9-4b81-8517-0bdfb2521c50\\scratch\\check_current_user_profile.py",
+      "source_location": "L1"
+    },
+    {
+      "id": "check_cycles_and_counts",
+      "label": "check_cycles_and_counts.py",
+      "file_type": "code",
+      "source_file": "C:\\Users\\Quinha\\.gemini\\antigravity-cli\\brain\\a1d8feff-07f9-4b81-8517-0bdfb2521c50\\scratch\\check_cycles_and_counts.py",
+      "source_location": "L1"
+    },
+    {
+      "id": "check_db",
+      "label": "check_db.py",
+      "file_type": "code",
+      "source_file": "C:\\Users\\Quinha\\.gemini\\antigravity-cli\\brain\\a1d8feff-07f9-4b81-8517-0bdfb2521c50\\scratch\\check_db.py",
+      "source_location": "L1"
+    },
+    {
+      "id": "check_db_dates",
+      "label": "check_db_dates.py",
+      "file_type": "code",
+      "source_file": "C:\\Users\\Quinha\\.gemini\\antigravity-cli\\brain\\a1d8feff-07f9-4b81-8517-0bdfb2521c50\\scratch\\check_db_dates.py",
+      "source_location": "L1"
+    },
+    {
+      "id": "check_different_ranges",
+      "label": "check_different_ranges.py",
+      "file_type": "code",
+      "source_file": "C:\\Users\\Quinha\\.gemini\\antigravity-cli\\brain\\a1d8feff-07f9-4b81-8517-0bdfb2521c50\\scratch\\check_different_ranges.py",
+      "source_location": "L1"
+    },
+    {
+      "id": "check_dynamic_cycles",
+      "label": "check_dynamic_cycles.py",
+      "file_type": "code",
+      "source_file": "C:\\Users\\Quinha\\.gemini\\antigravity-cli\\brain\\a1d8feff-07f9-4b81-8517-0bdfb2521c50\\scratch\\check_dynamic_cycles.py",
+      "source_location": "L1"
+    },
+    {
+      "id": "check_filtered_expenses",
+      "label": "check_filtered_expenses.py",
+      "file_type": "code",
+      "source_file": "C:\\Users\\Quinha\\.gemini\\antigravity-cli\\brain\\a1d8feff-07f9-4b81-8517-0bdfb2521c50\\scratch\\check_filtered_expenses.py",
+      "source_location": "L1"
+    },
+    {
+      "id": "check_junho_imports",
+      "label": "check_junho_imports.py",
+      "file_type": "code",
+      "source_file": "C:\\Users\\Quinha\\.gemini\\antigravity-cli\\brain\\a1d8feff-07f9-4b81-8517-0bdfb2521c50\\scratch\\check_junho_imports.py",
+      "source_location": "L1"
+    },
+    {
+      "id": "check_null_users",
+      "label": "check_null_users.py",
+      "file_type": "code",
+      "source_file": "C:\\Users\\Quinha\\.gemini\\antigravity-cli\\brain\\a1d8feff-07f9-4b81-8517-0bdfb2521c50\\scratch\\check_null_users.py",
+      "source_location": "L1"
+    },
+    {
+      "id": "check_rls_policies",
+      "label": "check_rls_policies.py",
+      "file_type": "code",
+      "source_file": "C:\\Users\\Quinha\\.gemini\\antigravity-cli\\brain\\a1d8feff-07f9-4b81-8517-0bdfb2521c50\\scratch\\check_rls_policies.py",
+      "source_location": "L1"
+    },
+    {
+      "id": "check_rules",
+      "label": "check_rules.py",
+      "file_type": "code",
+      "source_file": "C:\\Users\\Quinha\\.gemini\\antigravity-cli\\brain\\a1d8feff-07f9-4b81-8517-0bdfb2521c50\\scratch\\check_rules.py",
+      "source_location": "L1"
+    },
+    {
+      "id": "check_uncategorized",
+      "label": "check_uncategorized.py",
+      "file_type": "code",
+      "source_file": "C:\\Users\\Quinha\\.gemini\\antigravity-cli\\brain\\a1d8feff-07f9-4b81-8517-0bdfb2521c50\\scratch\\check_uncategorized.py",
+      "source_location": "L1"
+    },
+    {
+      "id": "check_user_expenses",
+      "label": "check_user_expenses.py",
+      "file_type": "code",
+      "source_file": "C:\\Users\\Quinha\\.gemini\\antigravity-cli\\brain\\a1d8feff-07f9-4b81-8517-0bdfb2521c50\\scratch\\check_user_expenses.py",
+      "source_location": "L1"
+    },
+    {
+      "id": "count_by_user",
+      "label": "count_by_user.py",
+      "file_type": "code",
+      "source_file": "C:\\Users\\Quinha\\.gemini\\antigravity-cli\\brain\\a1d8feff-07f9-4b81-8517-0bdfb2521c50\\scratch\\count_by_user.py",
+      "source_location": "L1"
+    },
+    {
+      "id": "inspect_file",
+      "label": "inspect_file.py",
+      "file_type": "code",
+      "source_file": "C:\\Users\\Quinha\\.gemini\\antigravity-cli\\brain\\a1d8feff-07f9-4b81-8517-0bdfb2521c50\\scratch\\inspect_file.py",
+      "source_location": "L1"
+    },
+    {
+      "id": "inspect_junho_pdf",
+      "label": "inspect_junho_pdf.py",
+      "file_type": "code",
+      "source_file": "C:\\Users\\Quinha\\.gemini\\antigravity-cli\\brain\\a1d8feff-07f9-4b81-8517-0bdfb2521c50\\scratch\\inspect_junho_pdf.py",
+      "source_location": "L1"
+    },
+    {
+      "id": "inspect_pdf_dates",
+      "label": "inspect_pdf_dates.py",
+      "file_type": "code",
+      "source_file": "C:\\Users\\Quinha\\.gemini\\antigravity-cli\\brain\\a1d8feff-07f9-4b81-8517-0bdfb2521c50\\scratch\\inspect_pdf_dates.py",
+      "source_location": "L1"
+    },
+    {
+      "id": "print_db_years",
+      "label": "print_db_years.py",
+      "file_type": "code",
+      "source_file": "C:\\Users\\Quinha\\.gemini\\antigravity-cli\\brain\\a1d8feff-07f9-4b81-8517-0bdfb2521c50\\scratch\\print_db_years.py",
+      "source_location": "L1"
+    },
+    {
+      "id": "print_eupago_merchants",
+      "label": "print_eupago_merchants.py",
+      "file_type": "code",
+      "source_file": "C:\\Users\\Quinha\\.gemini\\antigravity-cli\\brain\\a1d8feff-07f9-4b81-8517-0bdfb2521c50\\scratch\\print_eupago_merchants.py",
+      "source_location": "L1"
+    },
+    {
+      "id": "test_consolidation",
+      "label": "test_consolidation.js",
+      "file_type": "code",
+      "source_file": "C:\\Users\\Quinha\\.gemini\\antigravity-cli\\brain\\a1d8feff-07f9-4b81-8517-0bdfb2521c50\\scratch\\test_consolidation.js",
+      "source_location": "L1"
+    },
+    {
+      "id": "test_consolidation_2",
+      "label": "test_consolidation_2.js",
+      "file_type": "code",
+      "source_file": "C:\\Users\\Quinha\\.gemini\\antigravity-cli\\brain\\a1d8feff-07f9-4b81-8517-0bdfb2521c50\\scratch\\test_consolidation_2.js",
+      "source_location": "L1"
+    },
+    {
+      "id": "test_consolidation_2_isheaderorfooter",
+      "label": "isHeaderOrFooter()",
+      "file_type": "code",
+      "source_file": "C:\\Users\\Quinha\\.gemini\\antigravity-cli\\brain\\a1d8feff-07f9-4b81-8517-0bdfb2521c50\\scratch\\test_consolidation_2.js",
+      "source_location": "L8"
+    },
+    {
+      "id": "test_consolidation_3",
+      "label": "test_consolidation_3.js",
+      "file_type": "code",
+      "source_file": "C:\\Users\\Quinha\\.gemini\\antigravity-cli\\brain\\a1d8feff-07f9-4b81-8517-0bdfb2521c50\\scratch\\test_consolidation_3.js",
+      "source_location": "L1"
+    },
+    {
+      "id": "test_new_regex",
+      "label": "test_new_regex.js",
+      "file_type": "code",
+      "source_file": "C:\\Users\\Quinha\\.gemini\\antigravity-cli\\brain\\a1d8feff-07f9-4b81-8517-0bdfb2521c50\\scratch\\test_new_regex.js",
+      "source_location": "L1"
+    },
+    {
+      "id": "test_pdf_parse",
+      "label": "test_pdf_parse.js",
+      "file_type": "code",
+      "source_file": "C:\\Users\\Quinha\\.gemini\\antigravity-cli\\brain\\a1d8feff-07f9-4b81-8517-0bdfb2521c50\\scratch\\test_pdf_parse.js",
+      "source_location": "L1"
+    },
+    {
+      "id": "test_pdf_parse_renderpage",
+      "label": "renderPage()",
+      "file_type": "code",
+      "source_file": "C:\\Users\\Quinha\\.gemini\\antigravity-cli\\brain\\a1d8feff-07f9-4b81-8517-0bdfb2521c50\\scratch\\test_pdf_parse.js",
+      "source_location": "L7"
+    },
+    {
+      "id": "test_regex",
+      "label": "test_regex.js",
+      "file_type": "code",
+      "source_file": "C:\\Users\\Quinha\\.gemini\\antigravity-cli\\brain\\a1d8feff-07f9-4b81-8517-0bdfb2521c50\\scratch\\test_regex.js",
+      "source_location": "L1"
+    },
+    {
+      "id": "update_rules",
+      "label": "update_rules.py",
+      "file_type": "code",
+      "source_file": "C:\\Users\\Quinha\\.gemini\\antigravity-cli\\brain\\a1d8feff-07f9-4b81-8517-0bdfb2521c50\\scratch\\update_rules.py",
+      "source_location": "L1"
+    },
+    {
+      "id": "analyze_history",
+      "label": "analyze_history.py",
+      "file_type": "code",
+      "source_file": "C:\\Users\\Quinha\\.gemini\\antigravity-cli\\brain\\acfe7971-dc86-458e-80bc-07ef8573e70e\\scratch\\analyze_history.py",
+      "source_location": "L1"
+    },
+    {
+      "id": "check_all_tables_rls",
+      "label": "check_all_tables_rls.py",
+      "file_type": "code",
+      "source_file": "C:\\Users\\Quinha\\.gemini\\antigravity-cli\\brain\\acfe7971-dc86-458e-80bc-07ef8573e70e\\scratch\\check_all_tables_rls.py",
+      "source_location": "L1"
+    },
+    {
+      "id": "check_billing_dates",
+      "label": "check_billing_dates.py",
+      "file_type": "code",
+      "source_file": "C:\\Users\\Quinha\\.gemini\\antigravity-cli\\brain\\acfe7971-dc86-458e-80bc-07ef8573e70e\\scratch\\check_billing_dates.py",
+      "source_location": "L1"
+    },
+    {
+      "id": "check_budgets",
+      "label": "check_budgets.py",
+      "file_type": "code",
+      "source_file": "C:\\Users\\Quinha\\.gemini\\antigravity-cli\\brain\\acfe7971-dc86-458e-80bc-07ef8573e70e\\scratch\\check_budgets.py",
+      "source_location": "L1"
+    },
+    {
+      "id": "check_dates",
+      "label": "check_dates.py",
+      "file_type": "code",
+      "source_file": "C:\\Users\\Quinha\\.gemini\\antigravity-cli\\brain\\acfe7971-dc86-458e-80bc-07ef8573e70e\\scratch\\check_dates.py",
+      "source_location": "L1"
+    },
+    {
+      "id": "check_field_lengths",
+      "label": "check_field_lengths.py",
+      "file_type": "code",
+      "source_file": "C:\\Users\\Quinha\\.gemini\\antigravity-cli\\brain\\acfe7971-dc86-458e-80bc-07ef8573e70e\\scratch\\check_field_lengths.py",
+      "source_location": "L1"
+    },
+    {
+      "id": "check_gas_pattern",
+      "label": "check_gas_pattern.py",
+      "file_type": "code",
+      "source_file": "C:\\Users\\Quinha\\.gemini\\antigravity-cli\\brain\\acfe7971-dc86-458e-80bc-07ef8573e70e\\scratch\\check_gas_pattern.py",
+      "source_location": "L1"
+    },
+    {
+      "id": "check_policies",
+      "label": "check_policies.py",
+      "file_type": "code",
+      "source_file": "C:\\Users\\Quinha\\.gemini\\antigravity-cli\\brain\\acfe7971-dc86-458e-80bc-07ef8573e70e\\scratch\\check_policies.py",
+      "source_location": "L1"
+    },
+    {
+      "id": "check_port",
+      "label": "check_port.py",
+      "file_type": "code",
+      "source_file": "C:\\Users\\Quinha\\.gemini\\antigravity-cli\\brain\\acfe7971-dc86-458e-80bc-07ef8573e70e\\scratch\\check_port.py",
+      "source_location": "L1"
+    },
+    {
+      "id": "check_range_user",
+      "label": "check_range_user.py",
+      "file_type": "code",
+      "source_file": "C:\\Users\\Quinha\\.gemini\\antigravity-cli\\brain\\acfe7971-dc86-458e-80bc-07ef8573e70e\\scratch\\check_range_user.py",
+      "source_location": "L1"
+    },
+    {
+      "id": "check_recurring_large",
+      "label": "check_recurring_large.py",
+      "file_type": "code",
+      "source_file": "C:\\Users\\Quinha\\.gemini\\antigravity-cli\\brain\\acfe7971-dc86-458e-80bc-07ef8573e70e\\scratch\\check_recurring_large.py",
+      "source_location": "L1"
+    },
+    {
+      "id": "check_table_constraints",
+      "label": "check_table_constraints.py",
+      "file_type": "code",
+      "source_file": "C:\\Users\\Quinha\\.gemini\\antigravity-cli\\brain\\acfe7971-dc86-458e-80bc-07ef8573e70e\\scratch\\check_table_constraints.py",
+      "source_location": "L1"
+    },
+    {
+      "id": "check_total_transactions",
+      "label": "check_total_transactions.py",
+      "file_type": "code",
+      "source_file": "C:\\Users\\Quinha\\.gemini\\antigravity-cli\\brain\\acfe7971-dc86-458e-80bc-07ef8573e70e\\scratch\\check_total_transactions.py",
+      "source_location": "L1"
+    },
+    {
+      "id": "check_user_balances",
+      "label": "check_user_balances.py",
+      "file_type": "code",
+      "source_file": "C:\\Users\\Quinha\\.gemini\\antigravity-cli\\brain\\acfe7971-dc86-458e-80bc-07ef8573e70e\\scratch\\check_user_balances.py",
+      "source_location": "L1"
+    },
+    {
+      "id": "check_user_id",
+      "label": "check_user_id.py",
+      "file_type": "code",
+      "source_file": "C:\\Users\\Quinha\\.gemini\\antigravity-cli\\brain\\acfe7971-dc86-458e-80bc-07ef8573e70e\\scratch\\check_user_id.py",
+      "source_location": "L1"
+    },
+    {
+      "id": "clear_cache",
+      "label": "clear_cache.py",
+      "file_type": "code",
+      "source_file": "C:\\Users\\Quinha\\.gemini\\antigravity-cli\\brain\\acfe7971-dc86-458e-80bc-07ef8573e70e\\scratch\\clear_cache.py",
+      "source_location": "L1"
+    },
+    {
+      "id": "execute_import",
+      "label": "execute_import.py",
+      "file_type": "code",
+      "source_file": "C:\\Users\\Quinha\\.gemini\\antigravity-cli\\brain\\acfe7971-dc86-458e-80bc-07ef8573e70e\\scratch\\execute_import.py",
+      "source_location": "L1"
+    },
+    {
+      "id": "fetch_hybrid_data",
+      "label": "fetch_hybrid_data.js",
+      "file_type": "code",
+      "source_file": "C:\\Users\\Quinha\\.gemini\\antigravity-cli\\brain\\acfe7971-dc86-458e-80bc-07ef8573e70e\\scratch\\fetch_hybrid_data.js",
+      "source_location": "L1"
+    },
+    {
+      "id": "fetch_hybrid_data_gethistoricalcurves",
+      "label": "getHistoricalCurves()",
+      "file_type": "code",
+      "source_file": "C:\\Users\\Quinha\\.gemini\\antigravity-cli\\brain\\acfe7971-dc86-458e-80bc-07ef8573e70e\\scratch\\fetch_hybrid_data.js",
+      "source_location": "L9"
+    },
+    {
+      "id": "fetch_hybrid_data_run",
+      "label": "run()",
+      "file_type": "code",
+      "source_file": "C:\\Users\\Quinha\\.gemini\\antigravity-cli\\brain\\acfe7971-dc86-458e-80bc-07ef8573e70e\\scratch\\fetch_hybrid_data.js",
+      "source_location": "L79"
+    },
+    {
+      "id": "find_long_merchant",
+      "label": "find_long_merchant.py",
+      "file_type": "code",
+      "source_file": "C:\\Users\\Quinha\\.gemini\\antigravity-cli\\brain\\acfe7971-dc86-458e-80bc-07ef8573e70e\\scratch\\find_long_merchant.py",
+      "source_location": "L1"
+    },
+    {
+      "id": "parse_tx",
+      "label": "parse_tx.py",
+      "file_type": "code",
+      "source_file": "C:\\Users\\Quinha\\.gemini\\antigravity-cli\\brain\\acfe7971-dc86-458e-80bc-07ef8573e70e\\scratch\\parse_tx.py",
+      "source_location": "L1"
+    },
+    {
+      "id": "query_db",
+      "label": "query_db.py",
+      "file_type": "code",
+      "source_file": "C:\\Users\\Quinha\\.gemini\\antigravity-cli\\brain\\acfe7971-dc86-458e-80bc-07ef8573e70e\\scratch\\query_db.py",
+      "source_location": "L1"
+    },
+    {
+      "id": "query_other_tables",
+      "label": "query_other_tables.py",
+      "file_type": "code",
+      "source_file": "C:\\Users\\Quinha\\.gemini\\antigravity-cli\\brain\\acfe7971-dc86-458e-80bc-07ef8573e70e\\scratch\\query_other_tables.py",
+      "source_location": "L1"
+    },
+    {
+      "id": "request_page",
+      "label": "request_page.py",
+      "file_type": "code",
+      "source_file": "C:\\Users\\Quinha\\.gemini\\antigravity-cli\\brain\\acfe7971-dc86-458e-80bc-07ef8573e70e\\scratch\\request_page.py",
+      "source_location": "L1"
+    },
+    {
+      "id": "test_logic",
+      "label": "test_logic.js",
+      "file_type": "code",
+      "source_file": "C:\\Users\\Quinha\\.gemini\\antigravity-cli\\brain\\acfe7971-dc86-458e-80bc-07ef8573e70e\\scratch\\test_logic.js",
+      "source_location": "L1"
+    },
+    {
+      "id": "test_logic_gethistoricalcurves",
+      "label": "getHistoricalCurves()",
+      "file_type": "code",
+      "source_file": "C:\\Users\\Quinha\\.gemini\\antigravity-cli\\brain\\acfe7971-dc86-458e-80bc-07ef8573e70e\\scratch\\test_logic.js",
+      "source_location": "L9"
+    },
+    {
+      "id": "test_logic_run",
+      "label": "run()",
+      "file_type": "code",
+      "source_file": "C:\\Users\\Quinha\\.gemini\\antigravity-cli\\brain\\acfe7971-dc86-458e-80bc-07ef8573e70e\\scratch\\test_logic.js",
+      "source_location": "L79"
+    },
+    {
+      "id": "test_new_projection",
+      "label": "test_new_projection.py",
+      "file_type": "code",
+      "source_file": "C:\\Users\\Quinha\\.gemini\\antigravity-cli\\brain\\acfe7971-dc86-458e-80bc-07ef8573e70e\\scratch\\test_new_projection.py",
+      "source_location": "L1"
+    },
+    {
+      "id": "verify_import",
+      "label": "verify_import.py",
+      "file_type": "code",
+      "source_file": "C:\\Users\\Quinha\\.gemini\\antigravity-cli\\brain\\acfe7971-dc86-458e-80bc-07ef8573e70e\\scratch\\verify_import.py",
+      "source_location": "L1"
+    },
+    {
+      "id": "extract",
+      "label": "extract.py",
+      "file_type": "code",
+      "source_file": "C:\\Users\\Quinha\\.gemini\\antigravity-cli\\brain\\e4b127dc-31da-463a-8a58-63fe47531be4\\scratch\\extract.py",
+      "source_location": "L1"
+    },
+    {
+      "id": "extract_report",
+      "label": "extract_report.py",
+      "file_type": "code",
+      "source_file": "C:\\Users\\Quinha\\.gemini\\antigravity-cli\\brain\\e4b127dc-31da-463a-8a58-63fe47531be4\\scratch\\extract_report.py",
+      "source_location": "L1"
+    },
+    {
+      "id": "extract_report_2",
+      "label": "extract_report_2.py",
+      "file_type": "code",
+      "source_file": "C:\\Users\\Quinha\\.gemini\\antigravity-cli\\brain\\e4b127dc-31da-463a-8a58-63fe47531be4\\scratch\\extract_report_2.py",
+      "source_location": "L1"
+    },
+    {
+      "id": "read_tiago_martins",
+      "label": "read_tiago_martins.py",
+      "file_type": "code",
+      "source_file": "C:\\Users\\Quinha\\.gemini\\antigravity-cli\\brain\\e4b127dc-31da-463a-8a58-63fe47531be4\\scratch\\read_tiago_martins.py",
+      "source_location": "L1"
+    },
+    {
+      "id": "inspect_db",
+      "label": "inspect_db.py",
+      "file_type": "code",
+      "source_file": "C:\\Users\\Quinha\\.gemini\\antigravity-cli\\brain\\ea1d55f5-00f2-4786-b518-78e4563a9496\\scratch\\inspect_db.py",
+      "source_location": "L1"
+    },
+    {
+      "id": "query_db",
+      "label": "query_db.py",
+      "file_type": "code",
+      "source_file": "C:\\Users\\Quinha\\.gemini\\antigravity-cli\\brain\\f0109fad-2b89-46cc-b38d-adb6ac2a30a9\\scratch\\query_db.py",
+      "source_location": "L1"
+    },
+    {
+      "id": "run_migration",
+      "label": "run_migration.py",
+      "file_type": "code",
+      "source_file": "C:\\Users\\Quinha\\.gemini\\antigravity-cli\\brain\\f0109fad-2b89-46cc-b38d-adb6ac2a30a9\\scratch\\run_migration.py",
+      "source_location": "L1"
+    }
+  ],
+  "edges": [
+    {
+      "source": "inspect_db",
+      "target": "os",
+      "relation": "imports",
+      "confidence": "EXTRACTED",
+      "source_file": "C:\\Users\\Quinha\\.gemini\\antigravity-cli\\brain\\03356edf-2097-4111-ae73-003e2966641e\\scratch\\inspect_db.py",
+      "source_location": "L1",
+      "weight": 1.0
+    },
+    {
+      "source": "inspect_db",
+      "target": "psycopg2",
+      "relation": "imports",
+      "confidence": "EXTRACTED",
+      "source_file": "C:\\Users\\Quinha\\.gemini\\antigravity-cli\\brain\\03356edf-2097-4111-ae73-003e2966641e\\scratch\\inspect_db.py",
+      "source_location": "L2",
+      "weight": 1.0
+    },
+    {
+      "source": "inspect_db",
+      "target": "dotenv",
+      "relation": "imports_from",
+      "confidence": "EXTRACTED",
+      "source_file": "C:\\Users\\Quinha\\.gemini\\antigravity-cli\\brain\\03356edf-2097-4111-ae73-003e2966641e\\scratch\\inspect_db.py",
+      "source_location": "L3",
+      "weight": 1.0
+    },
+    {
+      "source": "parse_pdf_stdin",
+      "target": "sys",
+      "relation": "imports",
+      "confidence": "EXTRACTED",
+      "source_file": "C:\\Users\\Quinha\\.gemini\\antigravity-cli\\brain\\03356edf-2097-4111-ae73-003e2966641e\\scratch\\parse_pdf_stdin.py",
+      "source_location": "L1",
+      "weight": 1.0
+    },
+    {
+      "source": "parse_pdf_stdin",
+      "target": "pypdf",
+      "relation": "imports",
+      "confidence": "EXTRACTED",
+      "source_file": "C:\\Users\\Quinha\\.gemini\\antigravity-cli\\brain\\03356edf-2097-4111-ae73-003e2966641e\\scratch\\parse_pdf_stdin.py",
+      "source_location": "L2",
+      "weight": 1.0
+    },
+    {
+      "source": "parse_pdf_stdin",
+      "target": "io",
+      "relation": "imports",
+      "confidence": "EXTRACTED",
+      "source_file": "C:\\Users\\Quinha\\.gemini\\antigravity-cli\\brain\\03356edf-2097-4111-ae73-003e2966641e\\scratch\\parse_pdf_stdin.py",
+      "source_location": "L3",
+      "weight": 1.0
+    },
+    {
+      "source": "parse_pdf_stdin",
+      "target": "parse_pdf_stdin_main",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "C:\\Users\\Quinha\\.gemini\\antigravity-cli\\brain\\03356edf-2097-4111-ae73-003e2966641e\\scratch\\parse_pdf_stdin.py",
+      "source_location": "L5",
+      "weight": 1.0
+    },
+    {
+      "source": "read_pdf_text",
+      "target": "pypdf",
+      "relation": "imports",
+      "confidence": "EXTRACTED",
+      "source_file": "C:\\Users\\Quinha\\.gemini\\antigravity-cli\\brain\\03356edf-2097-4111-ae73-003e2966641e\\scratch\\read_pdf_text.py",
+      "source_location": "L1",
+      "weight": 1.0
+    },
+    {
+      "source": "read_pdf_text",
+      "target": "io",
+      "relation": "imports",
+      "confidence": "EXTRACTED",
+      "source_file": "C:\\Users\\Quinha\\.gemini\\antigravity-cli\\brain\\03356edf-2097-4111-ae73-003e2966641e\\scratch\\read_pdf_text.py",
+      "source_location": "L2",
+      "weight": 1.0
+    },
+    {
+      "source": "read_pdf_text",
+      "target": "re",
+      "relation": "imports",
+      "confidence": "EXTRACTED",
+      "source_file": "C:\\Users\\Quinha\\.gemini\\antigravity-cli\\brain\\03356edf-2097-4111-ae73-003e2966641e\\scratch\\read_pdf_text.py",
+      "source_location": "L3",
+      "weight": 1.0
+    },
+    {
+      "source": "read_pdf_text",
+      "target": "read_pdf_text_get_pdf_bytes",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "C:\\Users\\Quinha\\.gemini\\antigravity-cli\\brain\\03356edf-2097-4111-ae73-003e2966641e\\scratch\\read_pdf_text.py",
+      "source_location": "L5",
+      "weight": 1.0
+    },
+    {
+      "source": "read_pdf_text",
+      "target": "read_pdf_text_parse_portuguese_month",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "C:\\Users\\Quinha\\.gemini\\antigravity-cli\\brain\\03356edf-2097-4111-ae73-003e2966641e\\scratch\\read_pdf_text.py",
+      "source_location": "L17",
+      "weight": 1.0
+    },
+    {
+      "source": "read_pdf_text",
+      "target": "read_pdf_text_parse_statement_text",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "C:\\Users\\Quinha\\.gemini\\antigravity-cli\\brain\\03356edf-2097-4111-ae73-003e2966641e\\scratch\\read_pdf_text.py",
+      "source_location": "L21",
+      "weight": 1.0
+    },
+    {
+      "source": "read_pdf_text_parse_statement_text",
+      "target": "read_pdf_text_parse_portuguese_month",
+      "relation": "calls",
+      "confidence": "EXTRACTED",
+      "source_file": "C:\\Users\\Quinha\\.gemini\\antigravity-cli\\brain\\03356edf-2097-4111-ae73-003e2966641e\\scratch\\read_pdf_text.py",
+      "source_location": "L95",
+      "weight": 1.0
+    },
+    {
+      "source": "regex_debug",
+      "target": "re",
+      "relation": "imports",
+      "confidence": "EXTRACTED",
+      "source_file": "C:\\Users\\Quinha\\.gemini\\antigravity-cli\\brain\\03356edf-2097-4111-ae73-003e2966641e\\scratch\\regex_debug.py",
+      "source_location": "L1",
+      "weight": 1.0
+    },
+    {
+      "source": "regex_explicit",
+      "target": "re",
+      "relation": "imports",
+      "confidence": "EXTRACTED",
+      "source_file": "C:\\Users\\Quinha\\.gemini\\antigravity-cli\\brain\\03356edf-2097-4111-ae73-003e2966641e\\scratch\\regex_explicit.py",
+      "source_location": "L1",
+      "weight": 1.0
+    },
+    {
+      "source": "run_migration",
+      "target": "os",
+      "relation": "imports",
+      "confidence": "EXTRACTED",
+      "source_file": "C:\\Users\\Quinha\\.gemini\\antigravity-cli\\brain\\03356edf-2097-4111-ae73-003e2966641e\\scratch\\run_migration.py",
+      "source_location": "L1",
+      "weight": 1.0
+    },
+    {
+      "source": "run_migration",
+      "target": "psycopg2",
+      "relation": "imports",
+      "confidence": "EXTRACTED",
+      "source_file": "C:\\Users\\Quinha\\.gemini\\antigravity-cli\\brain\\03356edf-2097-4111-ae73-003e2966641e\\scratch\\run_migration.py",
+      "source_location": "L2",
+      "weight": 1.0
+    },
+    {
+      "source": "run_migration",
+      "target": "dotenv",
+      "relation": "imports_from",
+      "confidence": "EXTRACTED",
+      "source_file": "C:\\Users\\Quinha\\.gemini\\antigravity-cli\\brain\\03356edf-2097-4111-ae73-003e2966641e\\scratch\\run_migration.py",
+      "source_location": "L3",
+      "weight": 1.0
+    },
+    {
+      "source": "test_pdf_parse",
+      "target": "test_pdf_parse_getpdfbuffer",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "C:\\Users\\Quinha\\.gemini\\antigravity-cli\\brain\\03356edf-2097-4111-ae73-003e2966641e\\scratch\\test_pdf_parse.js",
+      "source_location": "L4",
+      "weight": 1.0
+    },
+    {
+      "source": "test_pdf_parse",
+      "target": "test_pdf_parse_testparse",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "C:\\Users\\Quinha\\.gemini\\antigravity-cli\\brain\\03356edf-2097-4111-ae73-003e2966641e\\scratch\\test_pdf_parse.js",
+      "source_location": "L14",
+      "weight": 1.0
+    },
+    {
+      "source": "test_pdf_parse",
+      "target": "test_pdf_parse_run",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "C:\\Users\\Quinha\\.gemini\\antigravity-cli\\brain\\03356edf-2097-4111-ae73-003e2966641e\\scratch\\test_pdf_parse.js",
+      "source_location": "L32",
+      "weight": 1.0
+    },
+    {
+      "source": "test_pdf_parse_testparse",
+      "target": "test_pdf_parse_getpdfbuffer",
+      "relation": "calls",
+      "confidence": "EXTRACTED",
+      "source_file": "C:\\Users\\Quinha\\.gemini\\antigravity-cli\\brain\\03356edf-2097-4111-ae73-003e2966641e\\scratch\\test_pdf_parse.js",
+      "source_location": "L16",
+      "weight": 1.0
+    },
+    {
+      "source": "test_pdf_parse_run",
+      "target": "test_pdf_parse_testparse",
+      "relation": "calls",
+      "confidence": "EXTRACTED",
+      "source_file": "C:\\Users\\Quinha\\.gemini\\antigravity-cli\\brain\\03356edf-2097-4111-ae73-003e2966641e\\scratch\\test_pdf_parse.js",
+      "source_location": "L33",
+      "weight": 1.0
+    },
+    {
+      "source": "create_test_user",
+      "target": "os",
+      "relation": "imports",
+      "confidence": "EXTRACTED",
+      "source_file": "C:\\Users\\Quinha\\.gemini\\antigravity-cli\\brain\\0c589a86-d325-4720-bb4b-3f75e54da641\\scratch\\create_test_user.py",
+      "source_location": "L1",
+      "weight": 1.0
+    },
+    {
+      "source": "create_test_user",
+      "target": "sys",
+      "relation": "imports",
+      "confidence": "EXTRACTED",
+      "source_file": "C:\\Users\\Quinha\\.gemini\\antigravity-cli\\brain\\0c589a86-d325-4720-bb4b-3f75e54da641\\scratch\\create_test_user.py",
+      "source_location": "L2",
+      "weight": 1.0
+    },
+    {
+      "source": "create_test_user",
+      "target": "supabase",
+      "relation": "imports_from",
+      "confidence": "EXTRACTED",
+      "source_file": "C:\\Users\\Quinha\\.gemini\\antigravity-cli\\brain\\0c589a86-d325-4720-bb4b-3f75e54da641\\scratch\\create_test_user.py",
+      "source_location": "L3",
+      "weight": 1.0
+    },
+    {
+      "source": "create_test_user",
+      "target": "dotenv",
+      "relation": "imports_from",
+      "confidence": "EXTRACTED",
+      "source_file": "C:\\Users\\Quinha\\.gemini\\antigravity-cli\\brain\\0c589a86-d325-4720-bb4b-3f75e54da641\\scratch\\create_test_user.py",
+      "source_location": "L4",
+      "weight": 1.0
+    },
+    {
+      "source": "run_detect",
+      "target": "json",
+      "relation": "imports",
+      "confidence": "EXTRACTED",
+      "source_file": "C:\\Users\\Quinha\\.gemini\\antigravity-cli\\brain\\1bdb9f81-a24c-484e-8cbe-9f904b31cf02\\scratch\\run_detect.py",
+      "source_location": "L1",
+      "weight": 1.0
+    },
+    {
+      "source": "run_detect",
+      "target": "graphify_detect",
+      "relation": "imports_from",
+      "confidence": "EXTRACTED",
+      "source_file": "C:\\Users\\Quinha\\.gemini\\antigravity-cli\\brain\\1bdb9f81-a24c-484e-8cbe-9f904b31cf02\\scratch\\run_detect.py",
+      "source_location": "L2",
+      "weight": 1.0
+    },
+    {
+      "source": "run_detect",
+      "target": "pathlib",
+      "relation": "imports_from",
+      "confidence": "EXTRACTED",
+      "source_file": "C:\\Users\\Quinha\\.gemini\\antigravity-cli\\brain\\1bdb9f81-a24c-484e-8cbe-9f904b31cf02\\scratch\\run_detect.py",
+      "source_location": "L3",
+      "weight": 1.0
+    },
+    {
+      "source": "generate_docx",
+      "target": "os",
+      "relation": "imports",
+      "confidence": "EXTRACTED",
+      "source_file": "C:\\Users\\Quinha\\.gemini\\antigravity-cli\\brain\\2ad45c8e-fa70-4d25-b907-1481499deba8\\scratch\\generate_docx.py",
+      "source_location": "L1",
+      "weight": 1.0
+    },
+    {
+      "source": "generate_docx",
+      "target": "docx",
+      "relation": "imports_from",
+      "confidence": "EXTRACTED",
+      "source_file": "C:\\Users\\Quinha\\.gemini\\antigravity-cli\\brain\\2ad45c8e-fa70-4d25-b907-1481499deba8\\scratch\\generate_docx.py",
+      "source_location": "L2",
+      "weight": 1.0
+    },
+    {
+      "source": "generate_docx",
+      "target": "docx_shared",
+      "relation": "imports_from",
+      "confidence": "EXTRACTED",
+      "source_file": "C:\\Users\\Quinha\\.gemini\\antigravity-cli\\brain\\2ad45c8e-fa70-4d25-b907-1481499deba8\\scratch\\generate_docx.py",
+      "source_location": "L3",
+      "weight": 1.0
+    },
+    {
+      "source": "generate_docx",
+      "target": "docx_enum_text",
+      "relation": "imports_from",
+      "confidence": "EXTRACTED",
+      "source_file": "C:\\Users\\Quinha\\.gemini\\antigravity-cli\\brain\\2ad45c8e-fa70-4d25-b907-1481499deba8\\scratch\\generate_docx.py",
+      "source_location": "L4",
+      "weight": 1.0
+    },
+    {
+      "source": "generate_docx",
+      "target": "generate_docx_create_docx",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "C:\\Users\\Quinha\\.gemini\\antigravity-cli\\brain\\2ad45c8e-fa70-4d25-b907-1481499deba8\\scratch\\generate_docx.py",
+      "source_location": "L6",
+      "weight": 1.0
+    },
+    {
+      "source": "generate_pdf",
+      "target": "os",
+      "relation": "imports",
+      "confidence": "EXTRACTED",
+      "source_file": "C:\\Users\\Quinha\\.gemini\\antigravity-cli\\brain\\2ad45c8e-fa70-4d25-b907-1481499deba8\\scratch\\generate_pdf.py",
+      "source_location": "L1",
+      "weight": 1.0
+    },
+    {
+      "source": "generate_pdf",
+      "target": "fpdf",
+      "relation": "imports_from",
+      "confidence": "EXTRACTED",
+      "source_file": "C:\\Users\\Quinha\\.gemini\\antigravity-cli\\brain\\2ad45c8e-fa70-4d25-b907-1481499deba8\\scratch\\generate_pdf.py",
+      "source_location": "L2",
+      "weight": 1.0
+    },
+    {
+      "source": "generate_pdf",
+      "target": "fpdf_enums",
+      "relation": "imports_from",
+      "confidence": "EXTRACTED",
+      "source_file": "C:\\Users\\Quinha\\.gemini\\antigravity-cli\\brain\\2ad45c8e-fa70-4d25-b907-1481499deba8\\scratch\\generate_pdf.py",
+      "source_location": "L3",
+      "weight": 1.0
+    },
+    {
+      "source": "generate_pdf",
+      "target": "generate_pdf_declaracaopdf",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "C:\\Users\\Quinha\\.gemini\\antigravity-cli\\brain\\2ad45c8e-fa70-4d25-b907-1481499deba8\\scratch\\generate_pdf.py",
+      "source_location": "L5",
+      "weight": 1.0
+    },
+    {
+      "source": "generate_pdf_declaracaopdf",
+      "target": "fpdf",
+      "relation": "inherits",
+      "confidence": "EXTRACTED",
+      "source_file": "C:\\Users\\Quinha\\.gemini\\antigravity-cli\\brain\\2ad45c8e-fa70-4d25-b907-1481499deba8\\scratch\\generate_pdf.py",
+      "source_location": "L5",
+      "weight": 1.0
+    },
+    {
+      "source": "generate_pdf_declaracaopdf",
+      "target": "generate_pdf_declaracaopdf_header",
+      "relation": "method",
+      "confidence": "EXTRACTED",
+      "source_file": "C:\\Users\\Quinha\\.gemini\\antigravity-cli\\brain\\2ad45c8e-fa70-4d25-b907-1481499deba8\\scratch\\generate_pdf.py",
+      "source_location": "L6",
+      "weight": 1.0
+    },
+    {
+      "source": "generate_pdf_declaracaopdf",
+      "target": "generate_pdf_declaracaopdf_footer",
+      "relation": "method",
+      "confidence": "EXTRACTED",
+      "source_file": "C:\\Users\\Quinha\\.gemini\\antigravity-cli\\brain\\2ad45c8e-fa70-4d25-b907-1481499deba8\\scratch\\generate_pdf.py",
+      "source_location": "L11",
+      "weight": 1.0
+    },
+    {
+      "source": "generate_pdf",
+      "target": "generate_pdf_create_pdf",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "C:\\Users\\Quinha\\.gemini\\antigravity-cli\\brain\\2ad45c8e-fa70-4d25-b907-1481499deba8\\scratch\\generate_pdf.py",
+      "source_location": "L17",
+      "weight": 1.0
+    },
+    {
+      "source": "generate_pdf_create_pdf",
+      "target": "generate_pdf_declaracaopdf",
+      "relation": "calls",
+      "confidence": "EXTRACTED",
+      "source_file": "C:\\Users\\Quinha\\.gemini\\antigravity-cli\\brain\\2ad45c8e-fa70-4d25-b907-1481499deba8\\scratch\\generate_pdf.py",
+      "source_location": "L18",
+      "weight": 1.0
+    },
+    {
+      "source": "render_pdf",
+      "target": "fitz",
+      "relation": "imports",
+      "confidence": "EXTRACTED",
+      "source_file": "C:\\Users\\Quinha\\.gemini\\antigravity-cli\\brain\\2ad45c8e-fa70-4d25-b907-1481499deba8\\scratch\\render_pdf.py",
+      "source_location": "L1",
+      "weight": 1.0
+    },
+    {
+      "source": "render_pdf",
+      "target": "os",
+      "relation": "imports",
+      "confidence": "EXTRACTED",
+      "source_file": "C:\\Users\\Quinha\\.gemini\\antigravity-cli\\brain\\2ad45c8e-fa70-4d25-b907-1481499deba8\\scratch\\render_pdf.py",
+      "source_location": "L2",
+      "weight": 1.0
+    },
+    {
+      "source": "render_pdf",
+      "target": "render_pdf_render_pages",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "C:\\Users\\Quinha\\.gemini\\antigravity-cli\\brain\\2ad45c8e-fa70-4d25-b907-1481499deba8\\scratch\\render_pdf.py",
+      "source_location": "L7",
+      "weight": 1.0
+    },
+    {
+      "source": "check_columns",
+      "target": "os",
+      "relation": "imports",
+      "confidence": "EXTRACTED",
+      "source_file": "C:\\Users\\Quinha\\.gemini\\antigravity-cli\\brain\\2b93c521-afbb-4a4b-86aa-48f1bb5e8cc1\\scratch\\check_columns.py",
+      "source_location": "L1",
+      "weight": 1.0
+    },
+    {
+      "source": "check_columns",
+      "target": "psycopg2",
+      "relation": "imports",
+      "confidence": "EXTRACTED",
+      "source_file": "C:\\Users\\Quinha\\.gemini\\antigravity-cli\\brain\\2b93c521-afbb-4a4b-86aa-48f1bb5e8cc1\\scratch\\check_columns.py",
+      "source_location": "L2",
+      "weight": 1.0
+    },
+    {
+      "source": "check_columns",
+      "target": "dotenv",
+      "relation": "imports_from",
+      "confidence": "EXTRACTED",
+      "source_file": "C:\\Users\\Quinha\\.gemini\\antigravity-cli\\brain\\2b93c521-afbb-4a4b-86aa-48f1bb5e8cc1\\scratch\\check_columns.py",
+      "source_location": "L3",
+      "weight": 1.0
+    },
+    {
+      "source": "check_more",
+      "target": "os",
+      "relation": "imports",
+      "confidence": "EXTRACTED",
+      "source_file": "C:\\Users\\Quinha\\.gemini\\antigravity-cli\\brain\\2b93c521-afbb-4a4b-86aa-48f1bb5e8cc1\\scratch\\check_more.py",
+      "source_location": "L1",
+      "weight": 1.0
+    },
+    {
+      "source": "check_more",
+      "target": "psycopg2",
+      "relation": "imports",
+      "confidence": "EXTRACTED",
+      "source_file": "C:\\Users\\Quinha\\.gemini\\antigravity-cli\\brain\\2b93c521-afbb-4a4b-86aa-48f1bb5e8cc1\\scratch\\check_more.py",
+      "source_location": "L2",
+      "weight": 1.0
+    },
+    {
+      "source": "check_more",
+      "target": "dotenv",
+      "relation": "imports_from",
+      "confidence": "EXTRACTED",
+      "source_file": "C:\\Users\\Quinha\\.gemini\\antigravity-cli\\brain\\2b93c521-afbb-4a4b-86aa-48f1bb5e8cc1\\scratch\\check_more.py",
+      "source_location": "L3",
+      "weight": 1.0
+    },
+    {
+      "source": "check_policies",
+      "target": "os",
+      "relation": "imports",
+      "confidence": "EXTRACTED",
+      "source_file": "C:\\Users\\Quinha\\.gemini\\antigravity-cli\\brain\\2b93c521-afbb-4a4b-86aa-48f1bb5e8cc1\\scratch\\check_policies.py",
+      "source_location": "L1",
+      "weight": 1.0
+    },
+    {
+      "source": "check_policies",
+      "target": "psycopg2",
+      "relation": "imports",
+      "confidence": "EXTRACTED",
+      "source_file": "C:\\Users\\Quinha\\.gemini\\antigravity-cli\\brain\\2b93c521-afbb-4a4b-86aa-48f1bb5e8cc1\\scratch\\check_policies.py",
+      "source_location": "L2",
+      "weight": 1.0
+    },
+    {
+      "source": "check_policies",
+      "target": "dotenv",
+      "relation": "imports_from",
+      "confidence": "EXTRACTED",
+      "source_file": "C:\\Users\\Quinha\\.gemini\\antigravity-cli\\brain\\2b93c521-afbb-4a4b-86aa-48f1bb5e8cc1\\scratch\\check_policies.py",
+      "source_location": "L3",
+      "weight": 1.0
+    },
+    {
+      "source": "import_junho",
+      "target": "os",
+      "relation": "imports",
+      "confidence": "EXTRACTED",
+      "source_file": "C:\\Users\\Quinha\\.gemini\\antigravity-cli\\brain\\2b93c521-afbb-4a4b-86aa-48f1bb5e8cc1\\scratch\\import_junho.py",
+      "source_location": "L1",
+      "weight": 1.0
+    },
+    {
+      "source": "import_junho",
+      "target": "re",
+      "relation": "imports",
+      "confidence": "EXTRACTED",
+      "source_file": "C:\\Users\\Quinha\\.gemini\\antigravity-cli\\brain\\2b93c521-afbb-4a4b-86aa-48f1bb5e8cc1\\scratch\\import_junho.py",
+      "source_location": "L2",
+      "weight": 1.0
+    },
+    {
+      "source": "import_junho",
+      "target": "decimal",
+      "relation": "imports_from",
+      "confidence": "EXTRACTED",
+      "source_file": "C:\\Users\\Quinha\\.gemini\\antigravity-cli\\brain\\2b93c521-afbb-4a4b-86aa-48f1bb5e8cc1\\scratch\\import_junho.py",
+      "source_location": "L3",
+      "weight": 1.0
+    },
+    {
+      "source": "import_junho",
+      "target": "psycopg2",
+      "relation": "imports",
+      "confidence": "EXTRACTED",
+      "source_file": "C:\\Users\\Quinha\\.gemini\\antigravity-cli\\brain\\2b93c521-afbb-4a4b-86aa-48f1bb5e8cc1\\scratch\\import_junho.py",
+      "source_location": "L4",
+      "weight": 1.0
+    },
+    {
+      "source": "import_junho",
+      "target": "dotenv",
+      "relation": "imports_from",
+      "confidence": "EXTRACTED",
+      "source_file": "C:\\Users\\Quinha\\.gemini\\antigravity-cli\\brain\\2b93c521-afbb-4a4b-86aa-48f1bb5e8cc1\\scratch\\import_junho.py",
+      "source_location": "L5",
+      "weight": 1.0
+    },
+    {
+      "source": "import_junho",
+      "target": "datetime",
+      "relation": "imports_from",
+      "confidence": "EXTRACTED",
+      "source_file": "C:\\Users\\Quinha\\.gemini\\antigravity-cli\\brain\\2b93c521-afbb-4a4b-86aa-48f1bb5e8cc1\\scratch\\import_junho.py",
+      "source_location": "L6",
+      "weight": 1.0
+    },
+    {
+      "source": "import_junho",
+      "target": "pdfplumber",
+      "relation": "imports",
+      "confidence": "EXTRACTED",
+      "source_file": "C:\\Users\\Quinha\\.gemini\\antigravity-cli\\brain\\2b93c521-afbb-4a4b-86aa-48f1bb5e8cc1\\scratch\\import_junho.py",
+      "source_location": "L7",
+      "weight": 1.0
+    },
+    {
+      "source": "import_junho",
+      "target": "import_junho_run_import",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "C:\\Users\\Quinha\\.gemini\\antigravity-cli\\brain\\2b93c521-afbb-4a4b-86aa-48f1bb5e8cc1\\scratch\\import_junho.py",
+      "source_location": "L34",
+      "weight": 1.0
+    },
+    {
+      "source": "parse_and_compare",
+      "target": "os",
+      "relation": "imports",
+      "confidence": "EXTRACTED",
+      "source_file": "C:\\Users\\Quinha\\.gemini\\antigravity-cli\\brain\\2b93c521-afbb-4a4b-86aa-48f1bb5e8cc1\\scratch\\parse_and_compare.py",
+      "source_location": "L1",
+      "weight": 1.0
+    },
+    {
+      "source": "parse_and_compare",
+      "target": "re",
+      "relation": "imports",
+      "confidence": "EXTRACTED",
+      "source_file": "C:\\Users\\Quinha\\.gemini\\antigravity-cli\\brain\\2b93c521-afbb-4a4b-86aa-48f1bb5e8cc1\\scratch\\parse_and_compare.py",
+      "source_location": "L2",
+      "weight": 1.0
+    },
+    {
+      "source": "parse_and_compare",
+      "target": "decimal",
+      "relation": "imports_from",
+      "confidence": "EXTRACTED",
+      "source_file": "C:\\Users\\Quinha\\.gemini\\antigravity-cli\\brain\\2b93c521-afbb-4a4b-86aa-48f1bb5e8cc1\\scratch\\parse_and_compare.py",
+      "source_location": "L3",
+      "weight": 1.0
+    },
+    {
+      "source": "parse_and_compare",
+      "target": "psycopg2",
+      "relation": "imports",
+      "confidence": "EXTRACTED",
+      "source_file": "C:\\Users\\Quinha\\.gemini\\antigravity-cli\\brain\\2b93c521-afbb-4a4b-86aa-48f1bb5e8cc1\\scratch\\parse_and_compare.py",
+      "source_location": "L4",
+      "weight": 1.0
+    },
+    {
+      "source": "parse_and_compare",
+      "target": "dotenv",
+      "relation": "imports_from",
+      "confidence": "EXTRACTED",
+      "source_file": "C:\\Users\\Quinha\\.gemini\\antigravity-cli\\brain\\2b93c521-afbb-4a4b-86aa-48f1bb5e8cc1\\scratch\\parse_and_compare.py",
+      "source_location": "L5",
+      "weight": 1.0
+    },
+    {
+      "source": "parse_and_compare",
+      "target": "datetime",
+      "relation": "imports_from",
+      "confidence": "EXTRACTED",
+      "source_file": "C:\\Users\\Quinha\\.gemini\\antigravity-cli\\brain\\2b93c521-afbb-4a4b-86aa-48f1bb5e8cc1\\scratch\\parse_and_compare.py",
+      "source_location": "L6",
+      "weight": 1.0
+    },
+    {
+      "source": "parse_and_compare",
+      "target": "pdfplumber",
+      "relation": "imports",
+      "confidence": "EXTRACTED",
+      "source_file": "C:\\Users\\Quinha\\.gemini\\antigravity-cli\\brain\\2b93c521-afbb-4a4b-86aa-48f1bb5e8cc1\\scratch\\parse_and_compare.py",
+      "source_location": "L7",
+      "weight": 1.0
+    },
+    {
+      "source": "scratch_read_pdf",
+      "target": "os",
+      "relation": "imports",
+      "confidence": "EXTRACTED",
+      "source_file": "C:\\Users\\Quinha\\.gemini\\antigravity-cli\\brain\\2b93c521-afbb-4a4b-86aa-48f1bb5e8cc1\\scratch\\scratch_read_pdf.py",
+      "source_location": "L1",
+      "weight": 1.0
+    },
+    {
+      "source": "scratch_read_pdf",
+      "target": "pypdf",
+      "relation": "imports",
+      "confidence": "EXTRACTED",
+      "source_file": "C:\\Users\\Quinha\\.gemini\\antigravity-cli\\brain\\2b93c521-afbb-4a4b-86aa-48f1bb5e8cc1\\scratch\\scratch_read_pdf.py",
+      "source_location": "L7",
+      "weight": 1.0
+    },
+    {
+      "source": "scratch_read_pdf",
+      "target": "pdfplumber",
+      "relation": "imports",
+      "confidence": "EXTRACTED",
+      "source_file": "C:\\Users\\Quinha\\.gemini\\antigravity-cli\\brain\\2b93c521-afbb-4a4b-86aa-48f1bb5e8cc1\\scratch\\scratch_read_pdf.py",
+      "source_location": "L22",
+      "weight": 1.0
+    },
+    {
+      "source": "scratch_read_pdf",
+      "target": "fitz",
+      "relation": "imports",
+      "confidence": "EXTRACTED",
+      "source_file": "C:\\Users\\Quinha\\.gemini\\antigravity-cli\\brain\\2b93c521-afbb-4a4b-86aa-48f1bb5e8cc1\\scratch\\scratch_read_pdf.py",
+      "source_location": "L37",
+      "weight": 1.0
+    },
+    {
+      "source": "inspect_db",
+      "target": "os",
+      "relation": "imports",
+      "confidence": "EXTRACTED",
+      "source_file": "C:\\Users\\Quinha\\.gemini\\antigravity-cli\\brain\\4feb9833-945d-421e-868c-48b003c96528\\scratch\\inspect_db.py",
+      "source_location": "L1",
+      "weight": 1.0
+    },
+    {
+      "source": "inspect_db",
+      "target": "psycopg2",
+      "relation": "imports",
+      "confidence": "EXTRACTED",
+      "source_file": "C:\\Users\\Quinha\\.gemini\\antigravity-cli\\brain\\4feb9833-945d-421e-868c-48b003c96528\\scratch\\inspect_db.py",
+      "source_location": "L2",
+      "weight": 1.0
+    },
+    {
+      "source": "inspect_db",
+      "target": "dotenv",
+      "relation": "imports_from",
+      "confidence": "EXTRACTED",
+      "source_file": "C:\\Users\\Quinha\\.gemini\\antigravity-cli\\brain\\4feb9833-945d-421e-868c-48b003c96528\\scratch\\inspect_db.py",
+      "source_location": "L3",
+      "weight": 1.0
+    },
+    {
+      "source": "parse_lh",
+      "target": "json",
+      "relation": "imports",
+      "confidence": "EXTRACTED",
+      "source_file": "C:\\Users\\Quinha\\.gemini\\antigravity-cli\\brain\\93810cfd-e78f-4cfc-8647-e9faa933db65\\scratch\\parse_lh.py",
+      "source_location": "L1",
+      "weight": 1.0
+    },
+    {
+      "source": "parse_lh",
+      "target": "os",
+      "relation": "imports",
+      "confidence": "EXTRACTED",
+      "source_file": "C:\\Users\\Quinha\\.gemini\\antigravity-cli\\brain\\93810cfd-e78f-4cfc-8647-e9faa933db65\\scratch\\parse_lh.py",
+      "source_location": "L2",
+      "weight": 1.0
+    },
+    {
+      "source": "check_db_cycles",
+      "target": "check_db_cycles_run",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "C:\\Users\\Quinha\\.gemini\\antigravity-cli\\brain\\9dcbec59-2df0-4480-9065-3b2c832bd740\\scratch\\check_db_cycles.js",
+      "source_location": "L8",
+      "weight": 1.0
+    },
+    {
+      "source": "decode_dashboard_view",
+      "target": "decode_dashboard_view_run",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "C:\\Users\\Quinha\\.gemini\\antigravity-cli\\brain\\9dcbec59-2df0-4480-9065-3b2c832bd740\\scratch\\decode_dashboard_view.js",
+      "source_location": "L5",
+      "weight": 1.0
+    },
+    {
+      "source": "download_file_by_uid",
+      "target": "download_file_by_uid_run",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "C:\\Users\\Quinha\\.gemini\\antigravity-cli\\brain\\9dcbec59-2df0-4480-9065-3b2c832bd740\\scratch\\download_file_by_uid.js",
+      "source_location": "L8",
+      "weight": 1.0
+    },
+    {
+      "source": "download_revert",
+      "target": "download_revert_findfile",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "C:\\Users\\Quinha\\.gemini\\antigravity-cli\\brain\\9dcbec59-2df0-4480-9065-3b2c832bd740\\scratch\\download_revert.js",
+      "source_location": "L6",
+      "weight": 1.0
+    },
+    {
+      "source": "download_revert",
+      "target": "download_revert_run",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "C:\\Users\\Quinha\\.gemini\\antigravity-cli\\brain\\9dcbec59-2df0-4480-9065-3b2c832bd740\\scratch\\download_revert.js",
+      "source_location": "L19",
+      "weight": 1.0
+    },
+    {
+      "source": "download_revert_run",
+      "target": "download_revert_findfile",
+      "relation": "calls",
+      "confidence": "EXTRACTED",
+      "source_file": "C:\\Users\\Quinha\\.gemini\\antigravity-cli\\brain\\9dcbec59-2df0-4480-9065-3b2c832bd740\\scratch\\download_revert.js",
+      "source_location": "L39",
+      "weight": 1.0
+    },
+    {
+      "source": "download_vercel_file",
+      "target": "download_vercel_file_run",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "C:\\Users\\Quinha\\.gemini\\antigravity-cli\\brain\\9dcbec59-2df0-4480-9065-3b2c832bd740\\scratch\\download_vercel_file.js",
+      "source_location": "L6",
+      "weight": 1.0
+    },
+    {
+      "source": "find_dashboard_view",
+      "target": "find_dashboard_view_findfile",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "C:\\Users\\Quinha\\.gemini\\antigravity-cli\\brain\\9dcbec59-2df0-4480-9065-3b2c832bd740\\scratch\\find_dashboard_view.js",
+      "source_location": "L5",
+      "weight": 1.0
+    },
+    {
+      "source": "audit_gambling",
+      "target": "os",
+      "relation": "imports",
+      "confidence": "EXTRACTED",
+      "source_file": "C:\\Users\\Quinha\\.gemini\\antigravity-cli\\brain\\a1d8feff-07f9-4b81-8517-0bdfb2521c50\\scratch\\audit_gambling.py",
+      "source_location": "L1",
+      "weight": 1.0
+    },
+    {
+      "source": "audit_gambling",
+      "target": "psycopg2",
+      "relation": "imports",
+      "confidence": "EXTRACTED",
+      "source_file": "C:\\Users\\Quinha\\.gemini\\antigravity-cli\\brain\\a1d8feff-07f9-4b81-8517-0bdfb2521c50\\scratch\\audit_gambling.py",
+      "source_location": "L2",
+      "weight": 1.0
+    },
+    {
+      "source": "audit_gambling",
+      "target": "dotenv",
+      "relation": "imports_from",
+      "confidence": "EXTRACTED",
+      "source_file": "C:\\Users\\Quinha\\.gemini\\antigravity-cli\\brain\\a1d8feff-07f9-4b81-8517-0bdfb2521c50\\scratch\\audit_gambling.py",
+      "source_location": "L3",
+      "weight": 1.0
+    },
+    {
+      "source": "audit_gambling_ytd",
+      "target": "os",
+      "relation": "imports",
+      "confidence": "EXTRACTED",
+      "source_file": "C:\\Users\\Quinha\\.gemini\\antigravity-cli\\brain\\a1d8feff-07f9-4b81-8517-0bdfb2521c50\\scratch\\audit_gambling_ytd.py",
+      "source_location": "L1",
+      "weight": 1.0
+    },
+    {
+      "source": "audit_gambling_ytd",
+      "target": "psycopg2",
+      "relation": "imports",
+      "confidence": "EXTRACTED",
+      "source_file": "C:\\Users\\Quinha\\.gemini\\antigravity-cli\\brain\\a1d8feff-07f9-4b81-8517-0bdfb2521c50\\scratch\\audit_gambling_ytd.py",
+      "source_location": "L2",
+      "weight": 1.0
+    },
+    {
+      "source": "audit_gambling_ytd",
+      "target": "dotenv",
+      "relation": "imports_from",
+      "confidence": "EXTRACTED",
+      "source_file": "C:\\Users\\Quinha\\.gemini\\antigravity-cli\\brain\\a1d8feff-07f9-4b81-8517-0bdfb2521c50\\scratch\\audit_gambling_ytd.py",
+      "source_location": "L3",
+      "weight": 1.0
+    },
+    {
+      "source": "audit_gambling_ytd",
+      "target": "datetime",
+      "relation": "imports_from",
+      "confidence": "EXTRACTED",
+      "source_file": "C:\\Users\\Quinha\\.gemini\\antigravity-cli\\brain\\a1d8feff-07f9-4b81-8517-0bdfb2521c50\\scratch\\audit_gambling_ytd.py",
+      "source_location": "L4",
+      "weight": 1.0
+    },
+    {
+      "source": "audit_pdfs_vs_db",
+      "target": "os",
+      "relation": "imports",
+      "confidence": "EXTRACTED",
+      "source_file": "C:\\Users\\Quinha\\.gemini\\antigravity-cli\\brain\\a1d8feff-07f9-4b81-8517-0bdfb2521c50\\scratch\\audit_pdfs_vs_db.py",
+      "source_location": "L1",
+      "weight": 1.0
+    },
+    {
+      "source": "audit_pdfs_vs_db",
+      "target": "re",
+      "relation": "imports",
+      "confidence": "EXTRACTED",
+      "source_file": "C:\\Users\\Quinha\\.gemini\\antigravity-cli\\brain\\a1d8feff-07f9-4b81-8517-0bdfb2521c50\\scratch\\audit_pdfs_vs_db.py",
+      "source_location": "L2",
+      "weight": 1.0
+    },
+    {
+      "source": "audit_pdfs_vs_db",
+      "target": "pypdf",
+      "relation": "imports",
+      "confidence": "EXTRACTED",
+      "source_file": "C:\\Users\\Quinha\\.gemini\\antigravity-cli\\brain\\a1d8feff-07f9-4b81-8517-0bdfb2521c50\\scratch\\audit_pdfs_vs_db.py",
+      "source_location": "L3",
+      "weight": 1.0
+    },
+    {
+      "source": "audit_pdfs_vs_db",
+      "target": "io",
+      "relation": "imports",
+      "confidence": "EXTRACTED",
+      "source_file": "C:\\Users\\Quinha\\.gemini\\antigravity-cli\\brain\\a1d8feff-07f9-4b81-8517-0bdfb2521c50\\scratch\\audit_pdfs_vs_db.py",
+      "source_location": "L4",
+      "weight": 1.0
+    },
+    {
+      "source": "audit_pdfs_vs_db",
+      "target": "decimal",
+      "relation": "imports_from",
+      "confidence": "EXTRACTED",
+      "source_file": "C:\\Users\\Quinha\\.gemini\\antigravity-cli\\brain\\a1d8feff-07f9-4b81-8517-0bdfb2521c50\\scratch\\audit_pdfs_vs_db.py",
+      "source_location": "L5",
+      "weight": 1.0
+    },
+    {
+      "source": "audit_record_counts",
+      "target": "os",
+      "relation": "imports",
+      "confidence": "EXTRACTED",
+      "source_file": "C:\\Users\\Quinha\\.gemini\\antigravity-cli\\brain\\a1d8feff-07f9-4b81-8517-0bdfb2521c50\\scratch\\audit_record_counts.py",
+      "source_location": "L1",
+      "weight": 1.0
+    },
+    {
+      "source": "audit_record_counts",
+      "target": "psycopg2",
+      "relation": "imports",
+      "confidence": "EXTRACTED",
+      "source_file": "C:\\Users\\Quinha\\.gemini\\antigravity-cli\\brain\\a1d8feff-07f9-4b81-8517-0bdfb2521c50\\scratch\\audit_record_counts.py",
+      "source_location": "L2",
+      "weight": 1.0
+    },
+    {
+      "source": "audit_record_counts",
+      "target": "dotenv",
+      "relation": "imports_from",
+      "confidence": "EXTRACTED",
+      "source_file": "C:\\Users\\Quinha\\.gemini\\antigravity-cli\\brain\\a1d8feff-07f9-4b81-8517-0bdfb2521c50\\scratch\\audit_record_counts.py",
+      "source_location": "L3",
+      "weight": 1.0
+    },
+    {
+      "source": "check_category_counts",
+      "target": "os",
+      "relation": "imports",
+      "confidence": "EXTRACTED",
+      "source_file": "C:\\Users\\Quinha\\.gemini\\antigravity-cli\\brain\\a1d8feff-07f9-4b81-8517-0bdfb2521c50\\scratch\\check_category_counts.py",
+      "source_location": "L1",
+      "weight": 1.0
+    },
+    {
+      "source": "check_category_counts",
+      "target": "psycopg2",
+      "relation": "imports",
+      "confidence": "EXTRACTED",
+      "source_file": "C:\\Users\\Quinha\\.gemini\\antigravity-cli\\brain\\a1d8feff-07f9-4b81-8517-0bdfb2521c50\\scratch\\check_category_counts.py",
+      "source_location": "L2",
+      "weight": 1.0
+    },
+    {
+      "source": "check_category_counts",
+      "target": "dotenv",
+      "relation": "imports_from",
+      "confidence": "EXTRACTED",
+      "source_file": "C:\\Users\\Quinha\\.gemini\\antigravity-cli\\brain\\a1d8feff-07f9-4b81-8517-0bdfb2521c50\\scratch\\check_category_counts.py",
+      "source_location": "L3",
+      "weight": 1.0
+    },
+    {
+      "source": "check_current_user_profile",
+      "target": "os",
+      "relation": "imports",
+      "confidence": "EXTRACTED",
+      "source_file": "C:\\Users\\Quinha\\.gemini\\antigravity-cli\\brain\\a1d8feff-07f9-4b81-8517-0bdfb2521c50\\scratch\\check_current_user_profile.py",
+      "source_location": "L1",
+      "weight": 1.0
+    },
+    {
+      "source": "check_current_user_profile",
+      "target": "psycopg2",
+      "relation": "imports",
+      "confidence": "EXTRACTED",
+      "source_file": "C:\\Users\\Quinha\\.gemini\\antigravity-cli\\brain\\a1d8feff-07f9-4b81-8517-0bdfb2521c50\\scratch\\check_current_user_profile.py",
+      "source_location": "L2",
+      "weight": 1.0
+    },
+    {
+      "source": "check_current_user_profile",
+      "target": "dotenv",
+      "relation": "imports_from",
+      "confidence": "EXTRACTED",
+      "source_file": "C:\\Users\\Quinha\\.gemini\\antigravity-cli\\brain\\a1d8feff-07f9-4b81-8517-0bdfb2521c50\\scratch\\check_current_user_profile.py",
+      "source_location": "L3",
+      "weight": 1.0
+    },
+    {
+      "source": "check_cycles_and_counts",
+      "target": "os",
+      "relation": "imports",
+      "confidence": "EXTRACTED",
+      "source_file": "C:\\Users\\Quinha\\.gemini\\antigravity-cli\\brain\\a1d8feff-07f9-4b81-8517-0bdfb2521c50\\scratch\\check_cycles_and_counts.py",
+      "source_location": "L1",
+      "weight": 1.0
+    },
+    {
+      "source": "check_cycles_and_counts",
+      "target": "psycopg2",
+      "relation": "imports",
+      "confidence": "EXTRACTED",
+      "source_file": "C:\\Users\\Quinha\\.gemini\\antigravity-cli\\brain\\a1d8feff-07f9-4b81-8517-0bdfb2521c50\\scratch\\check_cycles_and_counts.py",
+      "source_location": "L2",
+      "weight": 1.0
+    },
+    {
+      "source": "check_cycles_and_counts",
+      "target": "dotenv",
+      "relation": "imports_from",
+      "confidence": "EXTRACTED",
+      "source_file": "C:\\Users\\Quinha\\.gemini\\antigravity-cli\\brain\\a1d8feff-07f9-4b81-8517-0bdfb2521c50\\scratch\\check_cycles_and_counts.py",
+      "source_location": "L3",
+      "weight": 1.0
+    },
+    {
+      "source": "check_db",
+      "target": "os",
+      "relation": "imports",
+      "confidence": "EXTRACTED",
+      "source_file": "C:\\Users\\Quinha\\.gemini\\antigravity-cli\\brain\\a1d8feff-07f9-4b81-8517-0bdfb2521c50\\scratch\\check_db.py",
+      "source_location": "L1",
+      "weight": 1.0
+    },
+    {
+      "source": "check_db",
+      "target": "supabase",
+      "relation": "imports_from",
+      "confidence": "EXTRACTED",
+      "source_file": "C:\\Users\\Quinha\\.gemini\\antigravity-cli\\brain\\a1d8feff-07f9-4b81-8517-0bdfb2521c50\\scratch\\check_db.py",
+      "source_location": "L2",
+      "weight": 1.0
+    },
+    {
+      "source": "check_db",
+      "target": "dotenv",
+      "relation": "imports_from",
+      "confidence": "EXTRACTED",
+      "source_file": "C:\\Users\\Quinha\\.gemini\\antigravity-cli\\brain\\a1d8feff-07f9-4b81-8517-0bdfb2521c50\\scratch\\check_db.py",
+      "source_location": "L3",
+      "weight": 1.0
+    },
+    {
+      "source": "check_db_dates",
+      "target": "os",
+      "relation": "imports",
+      "confidence": "EXTRACTED",
+      "source_file": "C:\\Users\\Quinha\\.gemini\\antigravity-cli\\brain\\a1d8feff-07f9-4b81-8517-0bdfb2521c50\\scratch\\check_db_dates.py",
+      "source_location": "L1",
+      "weight": 1.0
+    },
+    {
+      "source": "check_db_dates",
+      "target": "psycopg2",
+      "relation": "imports",
+      "confidence": "EXTRACTED",
+      "source_file": "C:\\Users\\Quinha\\.gemini\\antigravity-cli\\brain\\a1d8feff-07f9-4b81-8517-0bdfb2521c50\\scratch\\check_db_dates.py",
+      "source_location": "L2",
+      "weight": 1.0
+    },
+    {
+      "source": "check_db_dates",
+      "target": "dotenv",
+      "relation": "imports_from",
+      "confidence": "EXTRACTED",
+      "source_file": "C:\\Users\\Quinha\\.gemini\\antigravity-cli\\brain\\a1d8feff-07f9-4b81-8517-0bdfb2521c50\\scratch\\check_db_dates.py",
+      "source_location": "L3",
+      "weight": 1.0
+    },
+    {
+      "source": "check_db_dates",
+      "target": "datetime",
+      "relation": "imports_from",
+      "confidence": "EXTRACTED",
+      "source_file": "C:\\Users\\Quinha\\.gemini\\antigravity-cli\\brain\\a1d8feff-07f9-4b81-8517-0bdfb2521c50\\scratch\\check_db_dates.py",
+      "source_location": "L4",
+      "weight": 1.0
+    },
+    {
+      "source": "check_different_ranges",
+      "target": "os",
+      "relation": "imports",
+      "confidence": "EXTRACTED",
+      "source_file": "C:\\Users\\Quinha\\.gemini\\antigravity-cli\\brain\\a1d8feff-07f9-4b81-8517-0bdfb2521c50\\scratch\\check_different_ranges.py",
+      "source_location": "L1",
+      "weight": 1.0
+    },
+    {
+      "source": "check_different_ranges",
+      "target": "psycopg2",
+      "relation": "imports",
+      "confidence": "EXTRACTED",
+      "source_file": "C:\\Users\\Quinha\\.gemini\\antigravity-cli\\brain\\a1d8feff-07f9-4b81-8517-0bdfb2521c50\\scratch\\check_different_ranges.py",
+      "source_location": "L2",
+      "weight": 1.0
+    },
+    {
+      "source": "check_different_ranges",
+      "target": "dotenv",
+      "relation": "imports_from",
+      "confidence": "EXTRACTED",
+      "source_file": "C:\\Users\\Quinha\\.gemini\\antigravity-cli\\brain\\a1d8feff-07f9-4b81-8517-0bdfb2521c50\\scratch\\check_different_ranges.py",
+      "source_location": "L3",
+      "weight": 1.0
+    },
+    {
+      "source": "check_different_ranges",
+      "target": "datetime",
+      "relation": "imports_from",
+      "confidence": "EXTRACTED",
+      "source_file": "C:\\Users\\Quinha\\.gemini\\antigravity-cli\\brain\\a1d8feff-07f9-4b81-8517-0bdfb2521c50\\scratch\\check_different_ranges.py",
+      "source_location": "L4",
+      "weight": 1.0
+    },
+    {
+      "source": "check_dynamic_cycles",
+      "target": "os",
+      "relation": "imports",
+      "confidence": "EXTRACTED",
+      "source_file": "C:\\Users\\Quinha\\.gemini\\antigravity-cli\\brain\\a1d8feff-07f9-4b81-8517-0bdfb2521c50\\scratch\\check_dynamic_cycles.py",
+      "source_location": "L1",
+      "weight": 1.0
+    },
+    {
+      "source": "check_dynamic_cycles",
+      "target": "psycopg2",
+      "relation": "imports",
+      "confidence": "EXTRACTED",
+      "source_file": "C:\\Users\\Quinha\\.gemini\\antigravity-cli\\brain\\a1d8feff-07f9-4b81-8517-0bdfb2521c50\\scratch\\check_dynamic_cycles.py",
+      "source_location": "L2",
+      "weight": 1.0
+    },
+    {
+      "source": "check_dynamic_cycles",
+      "target": "dotenv",
+      "relation": "imports_from",
+      "confidence": "EXTRACTED",
+      "source_file": "C:\\Users\\Quinha\\.gemini\\antigravity-cli\\brain\\a1d8feff-07f9-4b81-8517-0bdfb2521c50\\scratch\\check_dynamic_cycles.py",
+      "source_location": "L3",
+      "weight": 1.0
+    },
+    {
+      "source": "check_filtered_expenses",
+      "target": "os",
+      "relation": "imports",
+      "confidence": "EXTRACTED",
+      "source_file": "C:\\Users\\Quinha\\.gemini\\antigravity-cli\\brain\\a1d8feff-07f9-4b81-8517-0bdfb2521c50\\scratch\\check_filtered_expenses.py",
+      "source_location": "L1",
+      "weight": 1.0
+    },
+    {
+      "source": "check_filtered_expenses",
+      "target": "psycopg2",
+      "relation": "imports",
+      "confidence": "EXTRACTED",
+      "source_file": "C:\\Users\\Quinha\\.gemini\\antigravity-cli\\brain\\a1d8feff-07f9-4b81-8517-0bdfb2521c50\\scratch\\check_filtered_expenses.py",
+      "source_location": "L2",
+      "weight": 1.0
+    },
+    {
+      "source": "check_filtered_expenses",
+      "target": "dotenv",
+      "relation": "imports_from",
+      "confidence": "EXTRACTED",
+      "source_file": "C:\\Users\\Quinha\\.gemini\\antigravity-cli\\brain\\a1d8feff-07f9-4b81-8517-0bdfb2521c50\\scratch\\check_filtered_expenses.py",
+      "source_location": "L3",
+      "weight": 1.0
+    },
+    {
+      "source": "check_filtered_expenses",
+      "target": "datetime",
+      "relation": "imports_from",
+      "confidence": "EXTRACTED",
+      "source_file": "C:\\Users\\Quinha\\.gemini\\antigravity-cli\\brain\\a1d8feff-07f9-4b81-8517-0bdfb2521c50\\scratch\\check_filtered_expenses.py",
+      "source_location": "L4",
+      "weight": 1.0
+    },
+    {
+      "source": "check_junho_imports",
+      "target": "os",
+      "relation": "imports",
+      "confidence": "EXTRACTED",
+      "source_file": "C:\\Users\\Quinha\\.gemini\\antigravity-cli\\brain\\a1d8feff-07f9-4b81-8517-0bdfb2521c50\\scratch\\check_junho_imports.py",
+      "source_location": "L1",
+      "weight": 1.0
+    },
+    {
+      "source": "check_junho_imports",
+      "target": "psycopg2",
+      "relation": "imports",
+      "confidence": "EXTRACTED",
+      "source_file": "C:\\Users\\Quinha\\.gemini\\antigravity-cli\\brain\\a1d8feff-07f9-4b81-8517-0bdfb2521c50\\scratch\\check_junho_imports.py",
+      "source_location": "L2",
+      "weight": 1.0
+    },
+    {
+      "source": "check_junho_imports",
+      "target": "dotenv",
+      "relation": "imports_from",
+      "confidence": "EXTRACTED",
+      "source_file": "C:\\Users\\Quinha\\.gemini\\antigravity-cli\\brain\\a1d8feff-07f9-4b81-8517-0bdfb2521c50\\scratch\\check_junho_imports.py",
+      "source_location": "L3",
+      "weight": 1.0
+    },
+    {
+      "source": "check_null_users",
+      "target": "os",
+      "relation": "imports",
+      "confidence": "EXTRACTED",
+      "source_file": "C:\\Users\\Quinha\\.gemini\\antigravity-cli\\brain\\a1d8feff-07f9-4b81-8517-0bdfb2521c50\\scratch\\check_null_users.py",
+      "source_location": "L1",
+      "weight": 1.0
+    },
+    {
+      "source": "check_null_users",
+      "target": "psycopg2",
+      "relation": "imports",
+      "confidence": "EXTRACTED",
+      "source_file": "C:\\Users\\Quinha\\.gemini\\antigravity-cli\\brain\\a1d8feff-07f9-4b81-8517-0bdfb2521c50\\scratch\\check_null_users.py",
+      "source_location": "L2",
+      "weight": 1.0
+    },
+    {
+      "source": "check_null_users",
+      "target": "dotenv",
+      "relation": "imports_from",
+      "confidence": "EXTRACTED",
+      "source_file": "C:\\Users\\Quinha\\.gemini\\antigravity-cli\\brain\\a1d8feff-07f9-4b81-8517-0bdfb2521c50\\scratch\\check_null_users.py",
+      "source_location": "L3",
+      "weight": 1.0
+    },
+    {
+      "source": "check_rls_policies",
+      "target": "os",
+      "relation": "imports",
+      "confidence": "EXTRACTED",
+      "source_file": "C:\\Users\\Quinha\\.gemini\\antigravity-cli\\brain\\a1d8feff-07f9-4b81-8517-0bdfb2521c50\\scratch\\check_rls_policies.py",
+      "source_location": "L1",
+      "weight": 1.0
+    },
+    {
+      "source": "check_rls_policies",
+      "target": "psycopg2",
+      "relation": "imports",
+      "confidence": "EXTRACTED",
+      "source_file": "C:\\Users\\Quinha\\.gemini\\antigravity-cli\\brain\\a1d8feff-07f9-4b81-8517-0bdfb2521c50\\scratch\\check_rls_policies.py",
+      "source_location": "L2",
+      "weight": 1.0
+    },
+    {
+      "source": "check_rls_policies",
+      "target": "dotenv",
+      "relation": "imports_from",
+      "confidence": "EXTRACTED",
+      "source_file": "C:\\Users\\Quinha\\.gemini\\antigravity-cli\\brain\\a1d8feff-07f9-4b81-8517-0bdfb2521c50\\scratch\\check_rls_policies.py",
+      "source_location": "L3",
+      "weight": 1.0
+    },
+    {
+      "source": "check_rules",
+      "target": "os",
+      "relation": "imports",
+      "confidence": "EXTRACTED",
+      "source_file": "C:\\Users\\Quinha\\.gemini\\antigravity-cli\\brain\\a1d8feff-07f9-4b81-8517-0bdfb2521c50\\scratch\\check_rules.py",
+      "source_location": "L1",
+      "weight": 1.0
+    },
+    {
+      "source": "check_rules",
+      "target": "psycopg2",
+      "relation": "imports",
+      "confidence": "EXTRACTED",
+      "source_file": "C:\\Users\\Quinha\\.gemini\\antigravity-cli\\brain\\a1d8feff-07f9-4b81-8517-0bdfb2521c50\\scratch\\check_rules.py",
+      "source_location": "L2",
+      "weight": 1.0
+    },
+    {
+      "source": "check_rules",
+      "target": "dotenv",
+      "relation": "imports_from",
+      "confidence": "EXTRACTED",
+      "source_file": "C:\\Users\\Quinha\\.gemini\\antigravity-cli\\brain\\a1d8feff-07f9-4b81-8517-0bdfb2521c50\\scratch\\check_rules.py",
+      "source_location": "L3",
+      "weight": 1.0
+    },
+    {
+      "source": "check_uncategorized",
+      "target": "os",
+      "relation": "imports",
+      "confidence": "EXTRACTED",
+      "source_file": "C:\\Users\\Quinha\\.gemini\\antigravity-cli\\brain\\a1d8feff-07f9-4b81-8517-0bdfb2521c50\\scratch\\check_uncategorized.py",
+      "source_location": "L1",
+      "weight": 1.0
+    },
+    {
+      "source": "check_uncategorized",
+      "target": "psycopg2",
+      "relation": "imports",
+      "confidence": "EXTRACTED",
+      "source_file": "C:\\Users\\Quinha\\.gemini\\antigravity-cli\\brain\\a1d8feff-07f9-4b81-8517-0bdfb2521c50\\scratch\\check_uncategorized.py",
+      "source_location": "L2",
+      "weight": 1.0
+    },
+    {
+      "source": "check_uncategorized",
+      "target": "dotenv",
+      "relation": "imports_from",
+      "confidence": "EXTRACTED",
+      "source_file": "C:\\Users\\Quinha\\.gemini\\antigravity-cli\\brain\\a1d8feff-07f9-4b81-8517-0bdfb2521c50\\scratch\\check_uncategorized.py",
+      "source_location": "L3",
+      "weight": 1.0
+    },
+    {
+      "source": "check_user_expenses",
+      "target": "os",
+      "relation": "imports",
+      "confidence": "EXTRACTED",
+      "source_file": "C:\\Users\\Quinha\\.gemini\\antigravity-cli\\brain\\a1d8feff-07f9-4b81-8517-0bdfb2521c50\\scratch\\check_user_expenses.py",
+      "source_location": "L1",
+      "weight": 1.0
+    },
+    {
+      "source": "check_user_expenses",
+      "target": "psycopg2",
+      "relation": "imports",
+      "confidence": "EXTRACTED",
+      "source_file": "C:\\Users\\Quinha\\.gemini\\antigravity-cli\\brain\\a1d8feff-07f9-4b81-8517-0bdfb2521c50\\scratch\\check_user_expenses.py",
+      "source_location": "L2",
+      "weight": 1.0
+    },
+    {
+      "source": "check_user_expenses",
+      "target": "dotenv",
+      "relation": "imports_from",
+      "confidence": "EXTRACTED",
+      "source_file": "C:\\Users\\Quinha\\.gemini\\antigravity-cli\\brain\\a1d8feff-07f9-4b81-8517-0bdfb2521c50\\scratch\\check_user_expenses.py",
+      "source_location": "L3",
+      "weight": 1.0
+    },
+    {
+      "source": "count_by_user",
+      "target": "os",
+      "relation": "imports",
+      "confidence": "EXTRACTED",
+      "source_file": "C:\\Users\\Quinha\\.gemini\\antigravity-cli\\brain\\a1d8feff-07f9-4b81-8517-0bdfb2521c50\\scratch\\count_by_user.py",
+      "source_location": "L1",
+      "weight": 1.0
+    },
+    {
+      "source": "count_by_user",
+      "target": "psycopg2",
+      "relation": "imports",
+      "confidence": "EXTRACTED",
+      "source_file": "C:\\Users\\Quinha\\.gemini\\antigravity-cli\\brain\\a1d8feff-07f9-4b81-8517-0bdfb2521c50\\scratch\\count_by_user.py",
+      "source_location": "L2",
+      "weight": 1.0
+    },
+    {
+      "source": "count_by_user",
+      "target": "dotenv",
+      "relation": "imports_from",
+      "confidence": "EXTRACTED",
+      "source_file": "C:\\Users\\Quinha\\.gemini\\antigravity-cli\\brain\\a1d8feff-07f9-4b81-8517-0bdfb2521c50\\scratch\\count_by_user.py",
+      "source_location": "L3",
+      "weight": 1.0
+    },
+    {
+      "source": "inspect_file",
+      "target": "re",
+      "relation": "imports",
+      "confidence": "EXTRACTED",
+      "source_file": "C:\\Users\\Quinha\\.gemini\\antigravity-cli\\brain\\a1d8feff-07f9-4b81-8517-0bdfb2521c50\\scratch\\inspect_file.py",
+      "source_location": "L1",
+      "weight": 1.0
+    },
+    {
+      "source": "inspect_junho_pdf",
+      "target": "os",
+      "relation": "imports",
+      "confidence": "EXTRACTED",
+      "source_file": "C:\\Users\\Quinha\\.gemini\\antigravity-cli\\brain\\a1d8feff-07f9-4b81-8517-0bdfb2521c50\\scratch\\inspect_junho_pdf.py",
+      "source_location": "L1",
+      "weight": 1.0
+    },
+    {
+      "source": "inspect_junho_pdf",
+      "target": "pypdf",
+      "relation": "imports",
+      "confidence": "EXTRACTED",
+      "source_file": "C:\\Users\\Quinha\\.gemini\\antigravity-cli\\brain\\a1d8feff-07f9-4b81-8517-0bdfb2521c50\\scratch\\inspect_junho_pdf.py",
+      "source_location": "L2",
+      "weight": 1.0
+    },
+    {
+      "source": "inspect_junho_pdf",
+      "target": "io",
+      "relation": "imports",
+      "confidence": "EXTRACTED",
+      "source_file": "C:\\Users\\Quinha\\.gemini\\antigravity-cli\\brain\\a1d8feff-07f9-4b81-8517-0bdfb2521c50\\scratch\\inspect_junho_pdf.py",
+      "source_location": "L3",
+      "weight": 1.0
+    },
+    {
+      "source": "inspect_pdf_dates",
+      "target": "os",
+      "relation": "imports",
+      "confidence": "EXTRACTED",
+      "source_file": "C:\\Users\\Quinha\\.gemini\\antigravity-cli\\brain\\a1d8feff-07f9-4b81-8517-0bdfb2521c50\\scratch\\inspect_pdf_dates.py",
+      "source_location": "L1",
+      "weight": 1.0
+    },
+    {
+      "source": "inspect_pdf_dates",
+      "target": "re",
+      "relation": "imports",
+      "confidence": "EXTRACTED",
+      "source_file": "C:\\Users\\Quinha\\.gemini\\antigravity-cli\\brain\\a1d8feff-07f9-4b81-8517-0bdfb2521c50\\scratch\\inspect_pdf_dates.py",
+      "source_location": "L2",
+      "weight": 1.0
+    },
+    {
+      "source": "inspect_pdf_dates",
+      "target": "pypdf",
+      "relation": "imports",
+      "confidence": "EXTRACTED",
+      "source_file": "C:\\Users\\Quinha\\.gemini\\antigravity-cli\\brain\\a1d8feff-07f9-4b81-8517-0bdfb2521c50\\scratch\\inspect_pdf_dates.py",
+      "source_location": "L3",
+      "weight": 1.0
+    },
+    {
+      "source": "inspect_pdf_dates",
+      "target": "io",
+      "relation": "imports",
+      "confidence": "EXTRACTED",
+      "source_file": "C:\\Users\\Quinha\\.gemini\\antigravity-cli\\brain\\a1d8feff-07f9-4b81-8517-0bdfb2521c50\\scratch\\inspect_pdf_dates.py",
+      "source_location": "L4",
+      "weight": 1.0
+    },
+    {
+      "source": "print_db_years",
+      "target": "os",
+      "relation": "imports",
+      "confidence": "EXTRACTED",
+      "source_file": "C:\\Users\\Quinha\\.gemini\\antigravity-cli\\brain\\a1d8feff-07f9-4b81-8517-0bdfb2521c50\\scratch\\print_db_years.py",
+      "source_location": "L1",
+      "weight": 1.0
+    },
+    {
+      "source": "print_db_years",
+      "target": "psycopg2",
+      "relation": "imports",
+      "confidence": "EXTRACTED",
+      "source_file": "C:\\Users\\Quinha\\.gemini\\antigravity-cli\\brain\\a1d8feff-07f9-4b81-8517-0bdfb2521c50\\scratch\\print_db_years.py",
+      "source_location": "L2",
+      "weight": 1.0
+    },
+    {
+      "source": "print_db_years",
+      "target": "dotenv",
+      "relation": "imports_from",
+      "confidence": "EXTRACTED",
+      "source_file": "C:\\Users\\Quinha\\.gemini\\antigravity-cli\\brain\\a1d8feff-07f9-4b81-8517-0bdfb2521c50\\scratch\\print_db_years.py",
+      "source_location": "L3",
+      "weight": 1.0
+    },
+    {
+      "source": "print_eupago_merchants",
+      "target": "os",
+      "relation": "imports",
+      "confidence": "EXTRACTED",
+      "source_file": "C:\\Users\\Quinha\\.gemini\\antigravity-cli\\brain\\a1d8feff-07f9-4b81-8517-0bdfb2521c50\\scratch\\print_eupago_merchants.py",
+      "source_location": "L1",
+      "weight": 1.0
+    },
+    {
+      "source": "print_eupago_merchants",
+      "target": "psycopg2",
+      "relation": "imports",
+      "confidence": "EXTRACTED",
+      "source_file": "C:\\Users\\Quinha\\.gemini\\antigravity-cli\\brain\\a1d8feff-07f9-4b81-8517-0bdfb2521c50\\scratch\\print_eupago_merchants.py",
+      "source_location": "L2",
+      "weight": 1.0
+    },
+    {
+      "source": "print_eupago_merchants",
+      "target": "dotenv",
+      "relation": "imports_from",
+      "confidence": "EXTRACTED",
+      "source_file": "C:\\Users\\Quinha\\.gemini\\antigravity-cli\\brain\\a1d8feff-07f9-4b81-8517-0bdfb2521c50\\scratch\\print_eupago_merchants.py",
+      "source_location": "L3",
+      "weight": 1.0
+    },
+    {
+      "source": "test_consolidation_2",
+      "target": "test_consolidation_2_isheaderorfooter",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "C:\\Users\\Quinha\\.gemini\\antigravity-cli\\brain\\a1d8feff-07f9-4b81-8517-0bdfb2521c50\\scratch\\test_consolidation_2.js",
+      "source_location": "L8",
+      "weight": 1.0
+    },
+    {
+      "source": "test_pdf_parse",
+      "target": "test_pdf_parse_renderpage",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "C:\\Users\\Quinha\\.gemini\\antigravity-cli\\brain\\a1d8feff-07f9-4b81-8517-0bdfb2521c50\\scratch\\test_pdf_parse.js",
+      "source_location": "L7",
+      "weight": 1.0
+    },
+    {
+      "source": "update_rules",
+      "target": "os",
+      "relation": "imports",
+      "confidence": "EXTRACTED",
+      "source_file": "C:\\Users\\Quinha\\.gemini\\antigravity-cli\\brain\\a1d8feff-07f9-4b81-8517-0bdfb2521c50\\scratch\\update_rules.py",
+      "source_location": "L1",
+      "weight": 1.0
+    },
+    {
+      "source": "update_rules",
+      "target": "psycopg2",
+      "relation": "imports",
+      "confidence": "EXTRACTED",
+      "source_file": "C:\\Users\\Quinha\\.gemini\\antigravity-cli\\brain\\a1d8feff-07f9-4b81-8517-0bdfb2521c50\\scratch\\update_rules.py",
+      "source_location": "L2",
+      "weight": 1.0
+    },
+    {
+      "source": "update_rules",
+      "target": "dotenv",
+      "relation": "imports_from",
+      "confidence": "EXTRACTED",
+      "source_file": "C:\\Users\\Quinha\\.gemini\\antigravity-cli\\brain\\a1d8feff-07f9-4b81-8517-0bdfb2521c50\\scratch\\update_rules.py",
+      "source_location": "L3",
+      "weight": 1.0
+    },
+    {
+      "source": "analyze_history",
+      "target": "os",
+      "relation": "imports",
+      "confidence": "EXTRACTED",
+      "source_file": "C:\\Users\\Quinha\\.gemini\\antigravity-cli\\brain\\acfe7971-dc86-458e-80bc-07ef8573e70e\\scratch\\analyze_history.py",
+      "source_location": "L1",
+      "weight": 1.0
+    },
+    {
+      "source": "analyze_history",
+      "target": "psycopg2",
+      "relation": "imports",
+      "confidence": "EXTRACTED",
+      "source_file": "C:\\Users\\Quinha\\.gemini\\antigravity-cli\\brain\\acfe7971-dc86-458e-80bc-07ef8573e70e\\scratch\\analyze_history.py",
+      "source_location": "L2",
+      "weight": 1.0
+    },
+    {
+      "source": "analyze_history",
+      "target": "collections",
+      "relation": "imports_from",
+      "confidence": "EXTRACTED",
+      "source_file": "C:\\Users\\Quinha\\.gemini\\antigravity-cli\\brain\\acfe7971-dc86-458e-80bc-07ef8573e70e\\scratch\\analyze_history.py",
+      "source_location": "L3",
+      "weight": 1.0
+    },
+    {
+      "source": "analyze_history",
+      "target": "decimal",
+      "relation": "imports_from",
+      "confidence": "EXTRACTED",
+      "source_file": "C:\\Users\\Quinha\\.gemini\\antigravity-cli\\brain\\acfe7971-dc86-458e-80bc-07ef8573e70e\\scratch\\analyze_history.py",
+      "source_location": "L4",
+      "weight": 1.0
+    },
+    {
+      "source": "analyze_history",
+      "target": "datetime",
+      "relation": "imports_from",
+      "confidence": "EXTRACTED",
+      "source_file": "C:\\Users\\Quinha\\.gemini\\antigravity-cli\\brain\\acfe7971-dc86-458e-80bc-07ef8573e70e\\scratch\\analyze_history.py",
+      "source_location": "L5",
+      "weight": 1.0
+    },
+    {
+      "source": "analyze_history",
+      "target": "dotenv",
+      "relation": "imports_from",
+      "confidence": "EXTRACTED",
+      "source_file": "C:\\Users\\Quinha\\.gemini\\antigravity-cli\\brain\\acfe7971-dc86-458e-80bc-07ef8573e70e\\scratch\\analyze_history.py",
+      "source_location": "L6",
+      "weight": 1.0
+    },
+    {
+      "source": "check_all_tables_rls",
+      "target": "os",
+      "relation": "imports",
+      "confidence": "EXTRACTED",
+      "source_file": "C:\\Users\\Quinha\\.gemini\\antigravity-cli\\brain\\acfe7971-dc86-458e-80bc-07ef8573e70e\\scratch\\check_all_tables_rls.py",
+      "source_location": "L1",
+      "weight": 1.0
+    },
+    {
+      "source": "check_all_tables_rls",
+      "target": "psycopg2",
+      "relation": "imports",
+      "confidence": "EXTRACTED",
+      "source_file": "C:\\Users\\Quinha\\.gemini\\antigravity-cli\\brain\\acfe7971-dc86-458e-80bc-07ef8573e70e\\scratch\\check_all_tables_rls.py",
+      "source_location": "L2",
+      "weight": 1.0
+    },
+    {
+      "source": "check_all_tables_rls",
+      "target": "dotenv",
+      "relation": "imports_from",
+      "confidence": "EXTRACTED",
+      "source_file": "C:\\Users\\Quinha\\.gemini\\antigravity-cli\\brain\\acfe7971-dc86-458e-80bc-07ef8573e70e\\scratch\\check_all_tables_rls.py",
+      "source_location": "L3",
+      "weight": 1.0
+    },
+    {
+      "source": "check_billing_dates",
+      "target": "os",
+      "relation": "imports",
+      "confidence": "EXTRACTED",
+      "source_file": "C:\\Users\\Quinha\\.gemini\\antigravity-cli\\brain\\acfe7971-dc86-458e-80bc-07ef8573e70e\\scratch\\check_billing_dates.py",
+      "source_location": "L1",
+      "weight": 1.0
+    },
+    {
+      "source": "check_billing_dates",
+      "target": "psycopg2",
+      "relation": "imports",
+      "confidence": "EXTRACTED",
+      "source_file": "C:\\Users\\Quinha\\.gemini\\antigravity-cli\\brain\\acfe7971-dc86-458e-80bc-07ef8573e70e\\scratch\\check_billing_dates.py",
+      "source_location": "L2",
+      "weight": 1.0
+    },
+    {
+      "source": "check_billing_dates",
+      "target": "dotenv",
+      "relation": "imports_from",
+      "confidence": "EXTRACTED",
+      "source_file": "C:\\Users\\Quinha\\.gemini\\antigravity-cli\\brain\\acfe7971-dc86-458e-80bc-07ef8573e70e\\scratch\\check_billing_dates.py",
+      "source_location": "L3",
+      "weight": 1.0
+    },
+    {
+      "source": "check_budgets",
+      "target": "os",
+      "relation": "imports",
+      "confidence": "EXTRACTED",
+      "source_file": "C:\\Users\\Quinha\\.gemini\\antigravity-cli\\brain\\acfe7971-dc86-458e-80bc-07ef8573e70e\\scratch\\check_budgets.py",
+      "source_location": "L1",
+      "weight": 1.0
+    },
+    {
+      "source": "check_budgets",
+      "target": "psycopg2",
+      "relation": "imports",
+      "confidence": "EXTRACTED",
+      "source_file": "C:\\Users\\Quinha\\.gemini\\antigravity-cli\\brain\\acfe7971-dc86-458e-80bc-07ef8573e70e\\scratch\\check_budgets.py",
+      "source_location": "L2",
+      "weight": 1.0
+    },
+    {
+      "source": "check_budgets",
+      "target": "dotenv",
+      "relation": "imports_from",
+      "confidence": "EXTRACTED",
+      "source_file": "C:\\Users\\Quinha\\.gemini\\antigravity-cli\\brain\\acfe7971-dc86-458e-80bc-07ef8573e70e\\scratch\\check_budgets.py",
+      "source_location": "L3",
+      "weight": 1.0
+    },
+    {
+      "source": "check_dates",
+      "target": "re",
+      "relation": "imports",
+      "confidence": "EXTRACTED",
+      "source_file": "C:\\Users\\Quinha\\.gemini\\antigravity-cli\\brain\\acfe7971-dc86-458e-80bc-07ef8573e70e\\scratch\\check_dates.py",
+      "source_location": "L1",
+      "weight": 1.0
+    },
+    {
+      "source": "check_dates",
+      "target": "datetime",
+      "relation": "imports_from",
+      "confidence": "EXTRACTED",
+      "source_file": "C:\\Users\\Quinha\\.gemini\\antigravity-cli\\brain\\acfe7971-dc86-458e-80bc-07ef8573e70e\\scratch\\check_dates.py",
+      "source_location": "L2",
+      "weight": 1.0
+    },
+    {
+      "source": "check_field_lengths",
+      "target": "re",
+      "relation": "imports",
+      "confidence": "EXTRACTED",
+      "source_file": "C:\\Users\\Quinha\\.gemini\\antigravity-cli\\brain\\acfe7971-dc86-458e-80bc-07ef8573e70e\\scratch\\check_field_lengths.py",
+      "source_location": "L1",
+      "weight": 1.0
+    },
+    {
+      "source": "check_field_lengths",
+      "target": "datetime",
+      "relation": "imports_from",
+      "confidence": "EXTRACTED",
+      "source_file": "C:\\Users\\Quinha\\.gemini\\antigravity-cli\\brain\\acfe7971-dc86-458e-80bc-07ef8573e70e\\scratch\\check_field_lengths.py",
+      "source_location": "L2",
+      "weight": 1.0
+    },
+    {
+      "source": "check_gas_pattern",
+      "target": "os",
+      "relation": "imports",
+      "confidence": "EXTRACTED",
+      "source_file": "C:\\Users\\Quinha\\.gemini\\antigravity-cli\\brain\\acfe7971-dc86-458e-80bc-07ef8573e70e\\scratch\\check_gas_pattern.py",
+      "source_location": "L1",
+      "weight": 1.0
+    },
+    {
+      "source": "check_gas_pattern",
+      "target": "psycopg2",
+      "relation": "imports",
+      "confidence": "EXTRACTED",
+      "source_file": "C:\\Users\\Quinha\\.gemini\\antigravity-cli\\brain\\acfe7971-dc86-458e-80bc-07ef8573e70e\\scratch\\check_gas_pattern.py",
+      "source_location": "L2",
+      "weight": 1.0
+    },
+    {
+      "source": "check_gas_pattern",
+      "target": "dotenv",
+      "relation": "imports_from",
+      "confidence": "EXTRACTED",
+      "source_file": "C:\\Users\\Quinha\\.gemini\\antigravity-cli\\brain\\acfe7971-dc86-458e-80bc-07ef8573e70e\\scratch\\check_gas_pattern.py",
+      "source_location": "L3",
+      "weight": 1.0
+    },
+    {
+      "source": "check_policies",
+      "target": "os",
+      "relation": "imports",
+      "confidence": "EXTRACTED",
+      "source_file": "C:\\Users\\Quinha\\.gemini\\antigravity-cli\\brain\\acfe7971-dc86-458e-80bc-07ef8573e70e\\scratch\\check_policies.py",
+      "source_location": "L1",
+      "weight": 1.0
+    },
+    {
+      "source": "check_policies",
+      "target": "psycopg2",
+      "relation": "imports",
+      "confidence": "EXTRACTED",
+      "source_file": "C:\\Users\\Quinha\\.gemini\\antigravity-cli\\brain\\acfe7971-dc86-458e-80bc-07ef8573e70e\\scratch\\check_policies.py",
+      "source_location": "L2",
+      "weight": 1.0
+    },
+    {
+      "source": "check_policies",
+      "target": "dotenv",
+      "relation": "imports_from",
+      "confidence": "EXTRACTED",
+      "source_file": "C:\\Users\\Quinha\\.gemini\\antigravity-cli\\brain\\acfe7971-dc86-458e-80bc-07ef8573e70e\\scratch\\check_policies.py",
+      "source_location": "L3",
+      "weight": 1.0
+    },
+    {
+      "source": "check_port",
+      "target": "urllib_request",
+      "relation": "imports",
+      "confidence": "EXTRACTED",
+      "source_file": "C:\\Users\\Quinha\\.gemini\\antigravity-cli\\brain\\acfe7971-dc86-458e-80bc-07ef8573e70e\\scratch\\check_port.py",
+      "source_location": "L1",
+      "weight": 1.0
+    },
+    {
+      "source": "check_range_user",
+      "target": "os",
+      "relation": "imports",
+      "confidence": "EXTRACTED",
+      "source_file": "C:\\Users\\Quinha\\.gemini\\antigravity-cli\\brain\\acfe7971-dc86-458e-80bc-07ef8573e70e\\scratch\\check_range_user.py",
+      "source_location": "L1",
+      "weight": 1.0
+    },
+    {
+      "source": "check_range_user",
+      "target": "psycopg2",
+      "relation": "imports",
+      "confidence": "EXTRACTED",
+      "source_file": "C:\\Users\\Quinha\\.gemini\\antigravity-cli\\brain\\acfe7971-dc86-458e-80bc-07ef8573e70e\\scratch\\check_range_user.py",
+      "source_location": "L2",
+      "weight": 1.0
+    },
+    {
+      "source": "check_range_user",
+      "target": "dotenv",
+      "relation": "imports_from",
+      "confidence": "EXTRACTED",
+      "source_file": "C:\\Users\\Quinha\\.gemini\\antigravity-cli\\brain\\acfe7971-dc86-458e-80bc-07ef8573e70e\\scratch\\check_range_user.py",
+      "source_location": "L3",
+      "weight": 1.0
+    },
+    {
+      "source": "check_recurring_large",
+      "target": "os",
+      "relation": "imports",
+      "confidence": "EXTRACTED",
+      "source_file": "C:\\Users\\Quinha\\.gemini\\antigravity-cli\\brain\\acfe7971-dc86-458e-80bc-07ef8573e70e\\scratch\\check_recurring_large.py",
+      "source_location": "L1",
+      "weight": 1.0
+    },
+    {
+      "source": "check_recurring_large",
+      "target": "psycopg2",
+      "relation": "imports",
+      "confidence": "EXTRACTED",
+      "source_file": "C:\\Users\\Quinha\\.gemini\\antigravity-cli\\brain\\acfe7971-dc86-458e-80bc-07ef8573e70e\\scratch\\check_recurring_large.py",
+      "source_location": "L2",
+      "weight": 1.0
+    },
+    {
+      "source": "check_recurring_large",
+      "target": "collections",
+      "relation": "imports_from",
+      "confidence": "EXTRACTED",
+      "source_file": "C:\\Users\\Quinha\\.gemini\\antigravity-cli\\brain\\acfe7971-dc86-458e-80bc-07ef8573e70e\\scratch\\check_recurring_large.py",
+      "source_location": "L3",
+      "weight": 1.0
+    },
+    {
+      "source": "check_recurring_large",
+      "target": "dotenv",
+      "relation": "imports_from",
+      "confidence": "EXTRACTED",
+      "source_file": "C:\\Users\\Quinha\\.gemini\\antigravity-cli\\brain\\acfe7971-dc86-458e-80bc-07ef8573e70e\\scratch\\check_recurring_large.py",
+      "source_location": "L4",
+      "weight": 1.0
+    },
+    {
+      "source": "check_table_constraints",
+      "target": "os",
+      "relation": "imports",
+      "confidence": "EXTRACTED",
+      "source_file": "C:\\Users\\Quinha\\.gemini\\antigravity-cli\\brain\\acfe7971-dc86-458e-80bc-07ef8573e70e\\scratch\\check_table_constraints.py",
+      "source_location": "L1",
+      "weight": 1.0
+    },
+    {
+      "source": "check_table_constraints",
+      "target": "psycopg2",
+      "relation": "imports",
+      "confidence": "EXTRACTED",
+      "source_file": "C:\\Users\\Quinha\\.gemini\\antigravity-cli\\brain\\acfe7971-dc86-458e-80bc-07ef8573e70e\\scratch\\check_table_constraints.py",
+      "source_location": "L2",
+      "weight": 1.0
+    },
+    {
+      "source": "check_table_constraints",
+      "target": "dotenv",
+      "relation": "imports_from",
+      "confidence": "EXTRACTED",
+      "source_file": "C:\\Users\\Quinha\\.gemini\\antigravity-cli\\brain\\acfe7971-dc86-458e-80bc-07ef8573e70e\\scratch\\check_table_constraints.py",
+      "source_location": "L3",
+      "weight": 1.0
+    },
+    {
+      "source": "check_total_transactions",
+      "target": "os",
+      "relation": "imports",
+      "confidence": "EXTRACTED",
+      "source_file": "C:\\Users\\Quinha\\.gemini\\antigravity-cli\\brain\\acfe7971-dc86-458e-80bc-07ef8573e70e\\scratch\\check_total_transactions.py",
+      "source_location": "L1",
+      "weight": 1.0
+    },
+    {
+      "source": "check_total_transactions",
+      "target": "psycopg2",
+      "relation": "imports",
+      "confidence": "EXTRACTED",
+      "source_file": "C:\\Users\\Quinha\\.gemini\\antigravity-cli\\brain\\acfe7971-dc86-458e-80bc-07ef8573e70e\\scratch\\check_total_transactions.py",
+      "source_location": "L2",
+      "weight": 1.0
+    },
+    {
+      "source": "check_total_transactions",
+      "target": "dotenv",
+      "relation": "imports_from",
+      "confidence": "EXTRACTED",
+      "source_file": "C:\\Users\\Quinha\\.gemini\\antigravity-cli\\brain\\acfe7971-dc86-458e-80bc-07ef8573e70e\\scratch\\check_total_transactions.py",
+      "source_location": "L3",
+      "weight": 1.0
+    },
+    {
+      "source": "check_user_balances",
+      "target": "os",
+      "relation": "imports",
+      "confidence": "EXTRACTED",
+      "source_file": "C:\\Users\\Quinha\\.gemini\\antigravity-cli\\brain\\acfe7971-dc86-458e-80bc-07ef8573e70e\\scratch\\check_user_balances.py",
+      "source_location": "L1",
+      "weight": 1.0
+    },
+    {
+      "source": "check_user_balances",
+      "target": "psycopg2",
+      "relation": "imports",
+      "confidence": "EXTRACTED",
+      "source_file": "C:\\Users\\Quinha\\.gemini\\antigravity-cli\\brain\\acfe7971-dc86-458e-80bc-07ef8573e70e\\scratch\\check_user_balances.py",
+      "source_location": "L2",
+      "weight": 1.0
+    },
+    {
+      "source": "check_user_balances",
+      "target": "dotenv",
+      "relation": "imports_from",
+      "confidence": "EXTRACTED",
+      "source_file": "C:\\Users\\Quinha\\.gemini\\antigravity-cli\\brain\\acfe7971-dc86-458e-80bc-07ef8573e70e\\scratch\\check_user_balances.py",
+      "source_location": "L3",
+      "weight": 1.0
+    },
+    {
+      "source": "check_user_id",
+      "target": "os",
+      "relation": "imports",
+      "confidence": "EXTRACTED",
+      "source_file": "C:\\Users\\Quinha\\.gemini\\antigravity-cli\\brain\\acfe7971-dc86-458e-80bc-07ef8573e70e\\scratch\\check_user_id.py",
+      "source_location": "L1",
+      "weight": 1.0
+    },
+    {
+      "source": "check_user_id",
+      "target": "psycopg2",
+      "relation": "imports",
+      "confidence": "EXTRACTED",
+      "source_file": "C:\\Users\\Quinha\\.gemini\\antigravity-cli\\brain\\acfe7971-dc86-458e-80bc-07ef8573e70e\\scratch\\check_user_id.py",
+      "source_location": "L2",
+      "weight": 1.0
+    },
+    {
+      "source": "check_user_id",
+      "target": "dotenv",
+      "relation": "imports_from",
+      "confidence": "EXTRACTED",
+      "source_file": "C:\\Users\\Quinha\\.gemini\\antigravity-cli\\brain\\acfe7971-dc86-458e-80bc-07ef8573e70e\\scratch\\check_user_id.py",
+      "source_location": "L3",
+      "weight": 1.0
+    },
+    {
+      "source": "clear_cache",
+      "target": "shutil",
+      "relation": "imports",
+      "confidence": "EXTRACTED",
+      "source_file": "C:\\Users\\Quinha\\.gemini\\antigravity-cli\\brain\\acfe7971-dc86-458e-80bc-07ef8573e70e\\scratch\\clear_cache.py",
+      "source_location": "L1",
+      "weight": 1.0
+    },
+    {
+      "source": "clear_cache",
+      "target": "os",
+      "relation": "imports",
+      "confidence": "EXTRACTED",
+      "source_file": "C:\\Users\\Quinha\\.gemini\\antigravity-cli\\brain\\acfe7971-dc86-458e-80bc-07ef8573e70e\\scratch\\clear_cache.py",
+      "source_location": "L2",
+      "weight": 1.0
+    },
+    {
+      "source": "execute_import",
+      "target": "os",
+      "relation": "imports",
+      "confidence": "EXTRACTED",
+      "source_file": "C:\\Users\\Quinha\\.gemini\\antigravity-cli\\brain\\acfe7971-dc86-458e-80bc-07ef8573e70e\\scratch\\execute_import.py",
+      "source_location": "L1",
+      "weight": 1.0
+    },
+    {
+      "source": "execute_import",
+      "target": "re",
+      "relation": "imports",
+      "confidence": "EXTRACTED",
+      "source_file": "C:\\Users\\Quinha\\.gemini\\antigravity-cli\\brain\\acfe7971-dc86-458e-80bc-07ef8573e70e\\scratch\\execute_import.py",
+      "source_location": "L2",
+      "weight": 1.0
+    },
+    {
+      "source": "execute_import",
+      "target": "psycopg2",
+      "relation": "imports",
+      "confidence": "EXTRACTED",
+      "source_file": "C:\\Users\\Quinha\\.gemini\\antigravity-cli\\brain\\acfe7971-dc86-458e-80bc-07ef8573e70e\\scratch\\execute_import.py",
+      "source_location": "L3",
+      "weight": 1.0
+    },
+    {
+      "source": "execute_import",
+      "target": "decimal",
+      "relation": "imports_from",
+      "confidence": "EXTRACTED",
+      "source_file": "C:\\Users\\Quinha\\.gemini\\antigravity-cli\\brain\\acfe7971-dc86-458e-80bc-07ef8573e70e\\scratch\\execute_import.py",
+      "source_location": "L4",
+      "weight": 1.0
+    },
+    {
+      "source": "execute_import",
+      "target": "datetime",
+      "relation": "imports_from",
+      "confidence": "EXTRACTED",
+      "source_file": "C:\\Users\\Quinha\\.gemini\\antigravity-cli\\brain\\acfe7971-dc86-458e-80bc-07ef8573e70e\\scratch\\execute_import.py",
+      "source_location": "L5",
+      "weight": 1.0
+    },
+    {
+      "source": "execute_import",
+      "target": "dotenv",
+      "relation": "imports_from",
+      "confidence": "EXTRACTED",
+      "source_file": "C:\\Users\\Quinha\\.gemini\\antigravity-cli\\brain\\acfe7971-dc86-458e-80bc-07ef8573e70e\\scratch\\execute_import.py",
+      "source_location": "L6",
+      "weight": 1.0
+    },
+    {
+      "source": "fetch_hybrid_data",
+      "target": "fetch_hybrid_data_gethistoricalcurves",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "C:\\Users\\Quinha\\.gemini\\antigravity-cli\\brain\\acfe7971-dc86-458e-80bc-07ef8573e70e\\scratch\\fetch_hybrid_data.js",
+      "source_location": "L9",
+      "weight": 1.0
+    },
+    {
+      "source": "fetch_hybrid_data",
+      "target": "fetch_hybrid_data_run",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "C:\\Users\\Quinha\\.gemini\\antigravity-cli\\brain\\acfe7971-dc86-458e-80bc-07ef8573e70e\\scratch\\fetch_hybrid_data.js",
+      "source_location": "L79",
+      "weight": 1.0
+    },
+    {
+      "source": "fetch_hybrid_data_run",
+      "target": "fetch_hybrid_data_gethistoricalcurves",
+      "relation": "calls",
+      "confidence": "EXTRACTED",
+      "source_file": "C:\\Users\\Quinha\\.gemini\\antigravity-cli\\brain\\acfe7971-dc86-458e-80bc-07ef8573e70e\\scratch\\fetch_hybrid_data.js",
+      "source_location": "L152",
+      "weight": 1.0
+    },
+    {
+      "source": "find_long_merchant",
+      "target": "re",
+      "relation": "imports",
+      "confidence": "EXTRACTED",
+      "source_file": "C:\\Users\\Quinha\\.gemini\\antigravity-cli\\brain\\acfe7971-dc86-458e-80bc-07ef8573e70e\\scratch\\find_long_merchant.py",
+      "source_location": "L1",
+      "weight": 1.0
+    },
+    {
+      "source": "parse_tx",
+      "target": "re",
+      "relation": "imports",
+      "confidence": "EXTRACTED",
+      "source_file": "C:\\Users\\Quinha\\.gemini\\antigravity-cli\\brain\\acfe7971-dc86-458e-80bc-07ef8573e70e\\scratch\\parse_tx.py",
+      "source_location": "L1",
+      "weight": 1.0
+    },
+    {
+      "source": "parse_tx",
+      "target": "decimal",
+      "relation": "imports_from",
+      "confidence": "EXTRACTED",
+      "source_file": "C:\\Users\\Quinha\\.gemini\\antigravity-cli\\brain\\acfe7971-dc86-458e-80bc-07ef8573e70e\\scratch\\parse_tx.py",
+      "source_location": "L2",
+      "weight": 1.0
+    },
+    {
+      "source": "parse_tx",
+      "target": "datetime",
+      "relation": "imports_from",
+      "confidence": "EXTRACTED",
+      "source_file": "C:\\Users\\Quinha\\.gemini\\antigravity-cli\\brain\\acfe7971-dc86-458e-80bc-07ef8573e70e\\scratch\\parse_tx.py",
+      "source_location": "L3",
+      "weight": 1.0
+    },
+    {
+      "source": "query_db",
+      "target": "os",
+      "relation": "imports",
+      "confidence": "EXTRACTED",
+      "source_file": "C:\\Users\\Quinha\\.gemini\\antigravity-cli\\brain\\acfe7971-dc86-458e-80bc-07ef8573e70e\\scratch\\query_db.py",
+      "source_location": "L1",
+      "weight": 1.0
+    },
+    {
+      "source": "query_db",
+      "target": "psycopg2",
+      "relation": "imports",
+      "confidence": "EXTRACTED",
+      "source_file": "C:\\Users\\Quinha\\.gemini\\antigravity-cli\\brain\\acfe7971-dc86-458e-80bc-07ef8573e70e\\scratch\\query_db.py",
+      "source_location": "L2",
+      "weight": 1.0
+    },
+    {
+      "source": "query_db",
+      "target": "dotenv",
+      "relation": "imports_from",
+      "confidence": "EXTRACTED",
+      "source_file": "C:\\Users\\Quinha\\.gemini\\antigravity-cli\\brain\\acfe7971-dc86-458e-80bc-07ef8573e70e\\scratch\\query_db.py",
+      "source_location": "L3",
+      "weight": 1.0
+    },
+    {
+      "source": "query_other_tables",
+      "target": "os",
+      "relation": "imports",
+      "confidence": "EXTRACTED",
+      "source_file": "C:\\Users\\Quinha\\.gemini\\antigravity-cli\\brain\\acfe7971-dc86-458e-80bc-07ef8573e70e\\scratch\\query_other_tables.py",
+      "source_location": "L1",
+      "weight": 1.0
+    },
+    {
+      "source": "query_other_tables",
+      "target": "psycopg2",
+      "relation": "imports",
+      "confidence": "EXTRACTED",
+      "source_file": "C:\\Users\\Quinha\\.gemini\\antigravity-cli\\brain\\acfe7971-dc86-458e-80bc-07ef8573e70e\\scratch\\query_other_tables.py",
+      "source_location": "L2",
+      "weight": 1.0
+    },
+    {
+      "source": "query_other_tables",
+      "target": "dotenv",
+      "relation": "imports_from",
+      "confidence": "EXTRACTED",
+      "source_file": "C:\\Users\\Quinha\\.gemini\\antigravity-cli\\brain\\acfe7971-dc86-458e-80bc-07ef8573e70e\\scratch\\query_other_tables.py",
+      "source_location": "L3",
+      "weight": 1.0
+    },
+    {
+      "source": "request_page",
+      "target": "urllib_request",
+      "relation": "imports",
+      "confidence": "EXTRACTED",
+      "source_file": "C:\\Users\\Quinha\\.gemini\\antigravity-cli\\brain\\acfe7971-dc86-458e-80bc-07ef8573e70e\\scratch\\request_page.py",
+      "source_location": "L1",
+      "weight": 1.0
+    },
+    {
+      "source": "test_logic",
+      "target": "test_logic_gethistoricalcurves",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "C:\\Users\\Quinha\\.gemini\\antigravity-cli\\brain\\acfe7971-dc86-458e-80bc-07ef8573e70e\\scratch\\test_logic.js",
+      "source_location": "L9",
+      "weight": 1.0
+    },
+    {
+      "source": "test_logic",
+      "target": "test_logic_run",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "C:\\Users\\Quinha\\.gemini\\antigravity-cli\\brain\\acfe7971-dc86-458e-80bc-07ef8573e70e\\scratch\\test_logic.js",
+      "source_location": "L79",
+      "weight": 1.0
+    },
+    {
+      "source": "test_logic_run",
+      "target": "test_logic_gethistoricalcurves",
+      "relation": "calls",
+      "confidence": "EXTRACTED",
+      "source_file": "C:\\Users\\Quinha\\.gemini\\antigravity-cli\\brain\\acfe7971-dc86-458e-80bc-07ef8573e70e\\scratch\\test_logic.js",
+      "source_location": "L159",
+      "weight": 1.0
+    },
+    {
+      "source": "test_new_projection",
+      "target": "os",
+      "relation": "imports",
+      "confidence": "EXTRACTED",
+      "source_file": "C:\\Users\\Quinha\\.gemini\\antigravity-cli\\brain\\acfe7971-dc86-458e-80bc-07ef8573e70e\\scratch\\test_new_projection.py",
+      "source_location": "L1",
+      "weight": 1.0
+    },
+    {
+      "source": "test_new_projection",
+      "target": "psycopg2",
+      "relation": "imports",
+      "confidence": "EXTRACTED",
+      "source_file": "C:\\Users\\Quinha\\.gemini\\antigravity-cli\\brain\\acfe7971-dc86-458e-80bc-07ef8573e70e\\scratch\\test_new_projection.py",
+      "source_location": "L2",
+      "weight": 1.0
+    },
+    {
+      "source": "test_new_projection",
+      "target": "collections",
+      "relation": "imports_from",
+      "confidence": "EXTRACTED",
+      "source_file": "C:\\Users\\Quinha\\.gemini\\antigravity-cli\\brain\\acfe7971-dc86-458e-80bc-07ef8573e70e\\scratch\\test_new_projection.py",
+      "source_location": "L3",
+      "weight": 1.0
+    },
+    {
+      "source": "test_new_projection",
+      "target": "decimal",
+      "relation": "imports_from",
+      "confidence": "EXTRACTED",
+      "source_file": "C:\\Users\\Quinha\\.gemini\\antigravity-cli\\brain\\acfe7971-dc86-458e-80bc-07ef8573e70e\\scratch\\test_new_projection.py",
+      "source_location": "L4",
+      "weight": 1.0
+    },
+    {
+      "source": "test_new_projection",
+      "target": "datetime",
+      "relation": "imports_from",
+      "confidence": "EXTRACTED",
+      "source_file": "C:\\Users\\Quinha\\.gemini\\antigravity-cli\\brain\\acfe7971-dc86-458e-80bc-07ef8573e70e\\scratch\\test_new_projection.py",
+      "source_location": "L5",
+      "weight": 1.0
+    },
+    {
+      "source": "test_new_projection",
+      "target": "dotenv",
+      "relation": "imports_from",
+      "confidence": "EXTRACTED",
+      "source_file": "C:\\Users\\Quinha\\.gemini\\antigravity-cli\\brain\\acfe7971-dc86-458e-80bc-07ef8573e70e\\scratch\\test_new_projection.py",
+      "source_location": "L6",
+      "weight": 1.0
+    },
+    {
+      "source": "verify_import",
+      "target": "os",
+      "relation": "imports",
+      "confidence": "EXTRACTED",
+      "source_file": "C:\\Users\\Quinha\\.gemini\\antigravity-cli\\brain\\acfe7971-dc86-458e-80bc-07ef8573e70e\\scratch\\verify_import.py",
+      "source_location": "L1",
+      "weight": 1.0
+    },
+    {
+      "source": "verify_import",
+      "target": "psycopg2",
+      "relation": "imports",
+      "confidence": "EXTRACTED",
+      "source_file": "C:\\Users\\Quinha\\.gemini\\antigravity-cli\\brain\\acfe7971-dc86-458e-80bc-07ef8573e70e\\scratch\\verify_import.py",
+      "source_location": "L2",
+      "weight": 1.0
+    },
+    {
+      "source": "verify_import",
+      "target": "dotenv",
+      "relation": "imports_from",
+      "confidence": "EXTRACTED",
+      "source_file": "C:\\Users\\Quinha\\.gemini\\antigravity-cli\\brain\\acfe7971-dc86-458e-80bc-07ef8573e70e\\scratch\\verify_import.py",
+      "source_location": "L3",
+      "weight": 1.0
+    },
+    {
+      "source": "extract",
+      "target": "sys",
+      "relation": "imports",
+      "confidence": "EXTRACTED",
+      "source_file": "C:\\Users\\Quinha\\.gemini\\antigravity-cli\\brain\\e4b127dc-31da-463a-8a58-63fe47531be4\\scratch\\extract.py",
+      "source_location": "L1",
+      "weight": 1.0
+    },
+    {
+      "source": "extract",
+      "target": "os",
+      "relation": "imports",
+      "confidence": "EXTRACTED",
+      "source_file": "C:\\Users\\Quinha\\.gemini\\antigravity-cli\\brain\\e4b127dc-31da-463a-8a58-63fe47531be4\\scratch\\extract.py",
+      "source_location": "L2",
+      "weight": 1.0
+    },
+    {
+      "source": "extract",
+      "target": "pypdf",
+      "relation": "imports_from",
+      "confidence": "EXTRACTED",
+      "source_file": "C:\\Users\\Quinha\\.gemini\\antigravity-cli\\brain\\e4b127dc-31da-463a-8a58-63fe47531be4\\scratch\\extract.py",
+      "source_location": "L7",
+      "weight": 1.0
+    },
+    {
+      "source": "extract",
+      "target": "subprocess",
+      "relation": "imports",
+      "confidence": "EXTRACTED",
+      "source_file": "C:\\Users\\Quinha\\.gemini\\antigravity-cli\\brain\\e4b127dc-31da-463a-8a58-63fe47531be4\\scratch\\extract.py",
+      "source_location": "L9",
+      "weight": 1.0
+    },
+    {
+      "source": "extract",
+      "target": "pypdf",
+      "relation": "imports_from",
+      "confidence": "EXTRACTED",
+      "source_file": "C:\\Users\\Quinha\\.gemini\\antigravity-cli\\brain\\e4b127dc-31da-463a-8a58-63fe47531be4\\scratch\\extract.py",
+      "source_location": "L11",
+      "weight": 1.0
+    },
+    {
+      "source": "extract_report",
+      "target": "sys",
+      "relation": "imports",
+      "confidence": "EXTRACTED",
+      "source_file": "C:\\Users\\Quinha\\.gemini\\antigravity-cli\\brain\\e4b127dc-31da-463a-8a58-63fe47531be4\\scratch\\extract_report.py",
+      "source_location": "L1",
+      "weight": 1.0
+    },
+    {
+      "source": "extract_report",
+      "target": "os",
+      "relation": "imports",
+      "confidence": "EXTRACTED",
+      "source_file": "C:\\Users\\Quinha\\.gemini\\antigravity-cli\\brain\\e4b127dc-31da-463a-8a58-63fe47531be4\\scratch\\extract_report.py",
+      "source_location": "L2",
+      "weight": 1.0
+    },
+    {
+      "source": "extract_report",
+      "target": "pypdf",
+      "relation": "imports_from",
+      "confidence": "EXTRACTED",
+      "source_file": "C:\\Users\\Quinha\\.gemini\\antigravity-cli\\brain\\e4b127dc-31da-463a-8a58-63fe47531be4\\scratch\\extract_report.py",
+      "source_location": "L4",
+      "weight": 1.0
+    },
+    {
+      "source": "extract_report_2",
+      "target": "sys",
+      "relation": "imports",
+      "confidence": "EXTRACTED",
+      "source_file": "C:\\Users\\Quinha\\.gemini\\antigravity-cli\\brain\\e4b127dc-31da-463a-8a58-63fe47531be4\\scratch\\extract_report_2.py",
+      "source_location": "L1",
+      "weight": 1.0
+    },
+    {
+      "source": "extract_report_2",
+      "target": "os",
+      "relation": "imports",
+      "confidence": "EXTRACTED",
+      "source_file": "C:\\Users\\Quinha\\.gemini\\antigravity-cli\\brain\\e4b127dc-31da-463a-8a58-63fe47531be4\\scratch\\extract_report_2.py",
+      "source_location": "L2",
+      "weight": 1.0
+    },
+    {
+      "source": "extract_report_2",
+      "target": "pypdf",
+      "relation": "imports_from",
+      "confidence": "EXTRACTED",
+      "source_file": "C:\\Users\\Quinha\\.gemini\\antigravity-cli\\brain\\e4b127dc-31da-463a-8a58-63fe47531be4\\scratch\\extract_report_2.py",
+      "source_location": "L4",
+      "weight": 1.0
+    },
+    {
+      "source": "read_tiago_martins",
+      "target": "sys",
+      "relation": "imports",
+      "confidence": "EXTRACTED",
+      "source_file": "C:\\Users\\Quinha\\.gemini\\antigravity-cli\\brain\\e4b127dc-31da-463a-8a58-63fe47531be4\\scratch\\read_tiago_martins.py",
+      "source_location": "L1",
+      "weight": 1.0
+    },
+    {
+      "source": "read_tiago_martins",
+      "target": "os",
+      "relation": "imports",
+      "confidence": "EXTRACTED",
+      "source_file": "C:\\Users\\Quinha\\.gemini\\antigravity-cli\\brain\\e4b127dc-31da-463a-8a58-63fe47531be4\\scratch\\read_tiago_martins.py",
+      "source_location": "L2",
+      "weight": 1.0
+    },
+    {
+      "source": "read_tiago_martins",
+      "target": "pypdf",
+      "relation": "imports_from",
+      "confidence": "EXTRACTED",
+      "source_file": "C:\\Users\\Quinha\\.gemini\\antigravity-cli\\brain\\e4b127dc-31da-463a-8a58-63fe47531be4\\scratch\\read_tiago_martins.py",
+      "source_location": "L6",
+      "weight": 1.0
+    },
+    {
+      "source": "inspect_db",
+      "target": "os",
+      "relation": "imports",
+      "confidence": "EXTRACTED",
+      "source_file": "C:\\Users\\Quinha\\.gemini\\antigravity-cli\\brain\\ea1d55f5-00f2-4786-b518-78e4563a9496\\scratch\\inspect_db.py",
+      "source_location": "L1",
+      "weight": 1.0
+    },
+    {
+      "source": "inspect_db",
+      "target": "psycopg2",
+      "relation": "imports",
+      "confidence": "EXTRACTED",
+      "source_file": "C:\\Users\\Quinha\\.gemini\\antigravity-cli\\brain\\ea1d55f5-00f2-4786-b518-78e4563a9496\\scratch\\inspect_db.py",
+      "source_location": "L2",
+      "weight": 1.0
+    },
+    {
+      "source": "inspect_db",
+      "target": "dotenv",
+      "relation": "imports_from",
+      "confidence": "EXTRACTED",
+      "source_file": "C:\\Users\\Quinha\\.gemini\\antigravity-cli\\brain\\ea1d55f5-00f2-4786-b518-78e4563a9496\\scratch\\inspect_db.py",
+      "source_location": "L3",
+      "weight": 1.0
+    },
+    {
+      "source": "query_db",
+      "target": "os",
+      "relation": "imports",
+      "confidence": "EXTRACTED",
+      "source_file": "C:\\Users\\Quinha\\.gemini\\antigravity-cli\\brain\\f0109fad-2b89-46cc-b38d-adb6ac2a30a9\\scratch\\query_db.py",
+      "source_location": "L1",
+      "weight": 1.0
+    },
+    {
+      "source": "query_db",
+      "target": "psycopg2",
+      "relation": "imports",
+      "confidence": "EXTRACTED",
+      "source_file": "C:\\Users\\Quinha\\.gemini\\antigravity-cli\\brain\\f0109fad-2b89-46cc-b38d-adb6ac2a30a9\\scratch\\query_db.py",
+      "source_location": "L2",
+      "weight": 1.0
+    },
+    {
+      "source": "query_db",
+      "target": "dotenv",
+      "relation": "imports_from",
+      "confidence": "EXTRACTED",
+      "source_file": "C:\\Users\\Quinha\\.gemini\\antigravity-cli\\brain\\f0109fad-2b89-46cc-b38d-adb6ac2a30a9\\scratch\\query_db.py",
+      "source_location": "L3",
+      "weight": 1.0
+    },
+    {
+      "source": "run_migration",
+      "target": "os",
+      "relation": "imports",
+      "confidence": "EXTRACTED",
+      "source_file": "C:\\Users\\Quinha\\.gemini\\antigravity-cli\\brain\\f0109fad-2b89-46cc-b38d-adb6ac2a30a9\\scratch\\run_migration.py",
+      "source_location": "L1",
+      "weight": 1.0
+    },
+    {
+      "source": "run_migration",
+      "target": "psycopg2",
+      "relation": "imports",
+      "confidence": "EXTRACTED",
+      "source_file": "C:\\Users\\Quinha\\.gemini\\antigravity-cli\\brain\\f0109fad-2b89-46cc-b38d-adb6ac2a30a9\\scratch\\run_migration.py",
+      "source_location": "L2",
+      "weight": 1.0
+    },
+    {
+      "source": "run_migration",
+      "target": "dotenv",
+      "relation": "imports_from",
+      "confidence": "EXTRACTED",
+      "source_file": "C:\\Users\\Quinha\\.gemini\\antigravity-cli\\brain\\f0109fad-2b89-46cc-b38d-adb6ac2a30a9\\scratch\\run_migration.py",
+      "source_location": "L3",
+      "weight": 1.0
+    }
+  ],
+  "input_tokens": 0,
+  "output_tokens": 0
+}

@@ -1,15 +1,18 @@
 "use client"
 
 import { useState, useEffect } from "react"
-import { motion } from "framer-motion"
+import { motion, AnimatePresence } from "framer-motion"
 import { useRouter } from "next/navigation"
 import { supabase } from "@/lib/supabase"
+import { useCycleSwipe } from "@/hooks/useCycleSwipe"
+import { CycleMobileBar } from "@/components/ui/cycle-mobile-bar"
+import { SwipeCycleWrapper } from "@/components/ui/swipe-cycle-wrapper"
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { Button } from "@/components/ui/button"
 import { Label } from "@/components/ui/label"
 import { toast } from "sonner"
-import { Save, ChevronLeft, ChevronRight, Landmark, Plus, Edit2, Check, X } from "lucide-react"
+import { Save, ChevronLeft, ChevronRight, Landmark, Plus, Edit2, Check, X, PiggyBank } from "lucide-react"
 import { cn } from "@/lib/utils"
 
 import { Tilt } from "@/components/unlumen-ui/tilt"
@@ -30,6 +33,7 @@ interface BudgetsViewProps {
 export function BudgetsView({ categories, budgets: initialBudgets, expenses, cycles, currentCycleId }: BudgetsViewProps) {
   const router = useRouter()
   const { currencySymbol } = useSystem()
+
   const [budgets, setBudgets] = useState(initialBudgets)
   const [editingBudgets, setEditingBudgets] = useState<{ [key: string]: string }>(
     categories.reduce((acc, cat) => {
@@ -68,6 +72,10 @@ export function BudgetsView({ categories, budgets: initialBudgets, expenses, cyc
     const limit = parseFloat(newCatLimit) || 0
     if (limit <= 0) {
       toast.error("Please specify a budget limit greater than 0.")
+      return
+    }
+    if (limit > 1000000) {
+      toast.error("Budget limit exceeds realistic limits (max €1,000,000).")
       return
     }
 
@@ -118,8 +126,10 @@ export function BudgetsView({ categories, budgets: initialBudgets, expenses, cyc
     }
   }
 
-  const currentCycle = cycles.find(c => c.id === currentCycleId) || cycles[0]
-  const currentIndex = cycles.findIndex(c => c.id === currentCycleId)
+  const [selectedCycleId, setSelectedCycleId] = useState<string>(currentCycleId || cycles[0]?.id || "")
+
+  const currentCycle = cycles.find(c => c.id === selectedCycleId) || cycles[0]
+  const currentIndex = cycles.findIndex(c => c.id === (currentCycle?.id || ""))
   
   // Calculate month and year for budget savings
   const startDate = currentCycle ? new Date(currentCycle.startDate) : new Date()
@@ -129,9 +139,17 @@ export function BudgetsView({ categories, budgets: initialBudgets, expenses, cyc
   const navigateCycle = (direction: 'prev' | 'next') => {
     const nextIndex = direction === 'prev' ? currentIndex + 1 : currentIndex - 1
     if (cycles[nextIndex]) {
-      router.push(`/budgets?cycleId=${cycles[nextIndex].id}`)
+      setSelectedCycleId(cycles[nextIndex].id)
+      router.push(`/budgets?cycleId=${cycles[nextIndex].id}`, { scroll: false })
     }
   }
+
+  useCycleSwipe({
+    cycles,
+    currentCycleId: selectedCycleId,
+    route: "/budgets",
+    onCycleChange: setSelectedCycleId,
+  })
 
   const handleBudgetChange = (categoryId: string, value: string) => {
     setEditingBudgets(prev => ({ ...prev, [categoryId]: value }))
@@ -139,6 +157,14 @@ export function BudgetsView({ categories, budgets: initialBudgets, expenses, cyc
 
   const handleSaveBudget = async (categoryId: string) => {
     const amount = parseFloat(editingBudgets[categoryId]) || 0
+    if (amount < 0) {
+      toast.error("Budget must be a non-negative number.")
+      return
+    }
+    if (amount > 1000000) {
+      toast.error("Budget amount exceeds realistic limits (max €1,000,000).")
+      return
+    }
     const existingBudget = budgets.find(b => b.category_id === categoryId)
 
     // Save previous state to revert on failure
@@ -186,22 +212,44 @@ export function BudgetsView({ categories, budgets: initialBudgets, expenses, cyc
 
   return (
     <motion.div
-      initial={{ opacity: 0 }}
-      animate={{ opacity: 1 }}
-      transition={{ duration: 0.2, ease: "easeOut" }}
+      initial={{ opacity: 0, y: 4 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.45, ease: [0.16, 1, 0.3, 1] }}
       className="mx-auto max-w-[1500px] p-4 md:p-8 space-y-6 w-full pb-20"
     >
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-foreground/10 pb-6">
-        <div className="space-y-1">
-          <div className="flex items-center gap-2 text-[9px] font-mono tracking-[0.2em] uppercase text-muted-foreground">
-            <Landmark className="h-3 w-3" />
-            <span>Budget Allocation</span>
+      {/* 1. Header */}
+      <header className="flex items-center justify-between gap-6 border-b border-foreground/10 pb-6 md:pb-8 relative flex-wrap sm:flex-nowrap">
+        <div className="space-y-3">
+          <div className="flex items-center gap-3 text-[9px] md:text-[10px] font-mono tracking-[0.2em] uppercase text-muted-foreground">
+            <PiggyBank className="h-3.5 w-3.5" />
+            <span>Budget Management {currentCycle ? `[${currentCycle.label.replace('Cycle: ', '')}]` : ''}</span>
           </div>
-          <h1 className="text-3xl md:text-4xl font-bold tracking-tighter uppercase leading-none">
-            Monthly Budgets
+          <h1 className="text-4xl md:text-5xl font-bold tracking-tighter uppercase leading-none break-words">
+            Budgets
           </h1>
         </div>
-      </div>
+
+        {cycles.length > 0 && (
+          <div className="hidden md:flex items-center border border-border ledger-border bg-card overflow-hidden shrink-0">
+            <button 
+              onClick={() => navigateCycle('prev')} 
+              disabled={currentIndex >= cycles.length - 1} 
+              className="px-3.5 py-2 hover:bg-muted transition-colors disabled:opacity-40 border-r border-border cursor-pointer disabled:cursor-not-allowed"
+              aria-label="Previous paycheck cycle"
+            >
+              <ChevronLeft className="h-4 w-4 text-foreground" />
+            </button>
+            <button 
+              onClick={() => navigateCycle('next')} 
+              disabled={currentIndex <= 0} 
+              className="px-3.5 py-2 hover:bg-muted transition-colors disabled:opacity-40 cursor-pointer disabled:cursor-not-allowed"
+              aria-label="Next paycheck cycle"
+            >
+              <ChevronRight className="h-4 w-4 text-foreground" />
+            </button>
+          </div>
+        )}
+      </header>
 
       <div className="grid gap-4 md:gap-6 grid-cols-1 md:grid-cols-2 lg:grid-cols-3 pb-10">
         {/* Create Target Vector Card */}
@@ -442,6 +490,14 @@ export function BudgetsView({ categories, budgets: initialBudgets, expenses, cyc
           )
         })}
       </div>
+
+      {/* Mobile sticky cycle nav bar (above bottom nav) */}
+      <CycleMobileBar
+        cycles={cycles}
+        currentCycleId={selectedCycleId}
+        route="/budgets"
+        onCycleChange={setSelectedCycleId}
+      />
     </motion.div>
   )
 }

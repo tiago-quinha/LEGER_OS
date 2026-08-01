@@ -4,13 +4,22 @@ import { getCycles } from "@/lib/cycles"
 
 export const dynamic = "force-dynamic"
 
-export default async function CategoriesPage() {
+interface PageProps {
+  searchParams: Promise<{ cycleId?: string }>
+}
+
+export default async function CategoriesPage({ searchParams }: PageProps) {
+  const params = await searchParams
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) return null
 
-  // Parallel fetches for standard metadata & cycles
-  const [expensesRes, categoriesRes, cycles] = await Promise.all([
+  const cycles = await getCycles(supabase, user.id)
+  const selectedCycle = params.cycleId 
+    ? (cycles.find(c => c.id === params.cycleId) || cycles[0]) 
+    : cycles[0]
+
+  const [expensesRes, categoriesRes] = await Promise.all([
     supabase
       .from("tracker_expense")
       .select("*")
@@ -18,15 +27,16 @@ export default async function CategoriesPage() {
     supabase
       .from("categories")
       .select("*")
-      .order("name"),
-    getCycles(supabase, user.id)
+      .order("name")
   ])
 
   return (
     <CategoriesView 
+      key={selectedCycle?.id || "default"}
       expenses={expensesRes.data || []} 
       categories={categoriesRes.data || []}
       cycles={cycles || []}
+      currentCycleId={selectedCycle?.id || ""}
     />
   )
 }

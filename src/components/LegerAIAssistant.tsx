@@ -236,7 +236,7 @@ export function LegerAIAssistant() {
   const userName = profile?.username || profile?.full_name || "User"
   const historyKey = `leger_chat_history_${profile?.id || "guest"}`
 
-  // 1. Initialise reactive global telemetry listener
+  // 1. Initialise reactive global telemetry & open-event listeners
   useEffect(() => {
     if (typeof window !== "undefined") {
       if ((window as any).__leger_cycle_telemetry) {
@@ -246,8 +246,14 @@ export function LegerAIAssistant() {
       const handleTelemetryUpdate = () => {
         setTelemetry((window as any).__leger_cycle_telemetry)
       }
+      const handleOpenAi = () => setIsOpen(true)
+
       window.addEventListener("leger_telemetry_updated", handleTelemetryUpdate)
-      return () => window.removeEventListener("leger_telemetry_updated", handleTelemetryUpdate)
+      window.addEventListener("open-leger-ai", handleOpenAi)
+      return () => {
+        window.removeEventListener("leger_telemetry_updated", handleTelemetryUpdate)
+        window.removeEventListener("open-leger-ai", handleOpenAi)
+      }
     }
   }, [])
 
@@ -474,7 +480,11 @@ export function LegerAIAssistant() {
           telemetry: statsPayload,
           categories: categoriesData || [],
           userName,
-          clientDate: new Date().toISOString()
+          clientDate: new Date().toISOString(),
+          history: messages.map(m => ({
+            role: m.sender === "user" ? "user" : "assistant",
+            content: m.text
+          }))
         })
       })
 
@@ -581,7 +591,7 @@ export function LegerAIAssistant() {
               animate={isMobile ? { y: 0, opacity: 1 } : { opacity: 1, scale: 1, y: 0 }}
               exit={isMobile ? { y: "100%", opacity: 0.95 } : { opacity: 0, scale: 0.95, y: 30 }}
               transition={{ duration: 0.25, ease: "easeOut" }}
-              className="absolute pointer-events-auto bottom-0 left-0 right-0 sm:bottom-20 sm:left-auto sm:right-6 w-full sm:w-[380px] h-[72vh] sm:h-[520px] max-h-[85vh] sm:max-h-[calc(100vh-140px)] border-t border-x sm:border border-border bg-card/95 backdrop-blur-md shadow-2xl flex flex-col overflow-hidden rounded-t-2xl sm:rounded-xl font-sans z-[100000]"
+              className="absolute pointer-events-auto bottom-16 left-0 right-0 sm:bottom-20 sm:left-auto sm:right-6 w-full sm:w-[380px] h-[72vh] sm:h-[520px] max-h-[85vh] sm:max-h-[calc(100vh-140px)] border-t border-x sm:border border-border bg-card/95 backdrop-blur-md shadow-2xl flex flex-col overflow-hidden rounded-t-2xl sm:rounded-xl font-sans z-[100000]"
             >
               {isMobile && (
                 <div 
@@ -623,8 +633,9 @@ export function LegerAIAssistant() {
               {/* Message Feed */}
               <div className="flex-1 overflow-y-auto p-4 space-y-4 z-10 scrollbar-thin">
                 {messages.map((msg, i) => {
-                  // Only run typewriter typing animation on the latest incoming assistant message
-                  const isNewAssistantMessage = i === messages.length - 1 && msg.sender === "assistant" && (Date.now() - msg.timestamp < 15000);
+                  // Only run typewriter typing animation on the latest incoming assistant message if it does not contain complex structural formatting (tables, lists, headers) to prevent layout jitters and parser glitches.
+                  const hasComplexFormatting = msg.text.includes("|") || msg.text.includes("- ") || msg.text.includes("* ") || msg.text.includes("###") || msg.text.includes("##");
+                  const isNewAssistantMessage = i === messages.length - 1 && msg.sender === "assistant" && (Date.now() - msg.timestamp < 15000) && !hasComplexFormatting;
                   
                   return (
                     <motion.div 
@@ -773,7 +784,7 @@ export function LegerAIAssistant() {
             
             // Initial positioning offsets depending on breakpoint
             const isMobile = screenWidth < 768
-            const bottomOffset = isMobile ? 80 : 24
+            const bottomOffset = isMobile ? 144 : 24
             const rightOffset = 24
             
             // Current relative translation values
@@ -799,7 +810,7 @@ export function LegerAIAssistant() {
             })
           }}
           className={cn(
-            "absolute pointer-events-auto bottom-20 md:bottom-6 right-6 z-[9999] cursor-grab active:cursor-grabbing",
+            "absolute pointer-events-auto bottom-36 md:bottom-6 right-6 z-[9999] cursor-grab active:cursor-grabbing",
             isOpen && "hidden sm:block"
           )}
           whileHover={{ scale: 1.05 }}

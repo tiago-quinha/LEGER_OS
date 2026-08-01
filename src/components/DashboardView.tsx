@@ -32,12 +32,13 @@ const DashboardChart = dynamic(() => import("@/components/DashboardChart").then(
   )
 })
 import { Button } from "@/components/ui/button"
-import { Download, TrendingUp, TrendingDown, Wallet, ArrowUpRight, Banknote, ChevronLeft, CalendarDays, ChevronRight, Landmark, Target, AlertTriangle, CheckCircle2, Zap, Brain, Sparkles, ChevronDown, Loader2 } from "lucide-react"
+import { Download, TrendingUp, TrendingDown, Wallet, ArrowUpRight, Banknote, ChevronLeft, CalendarDays, ChevronRight, Landmark, Target, AlertTriangle, CheckCircle2, Zap, Brain, Sparkles, ChevronDown, Loader2, CalendarRange, CreditCard, Tag, Sliders, Smartphone, Shield, Cpu, LayoutDashboard, PiggyBank } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { useRouter } from "next/navigation"
 import { NumberTicker } from "@/components/ui/number-ticker"
 import { PrivacyValue } from "@/components/ui/privacy-value"
 import { useSystem } from "@/lib/SystemContext"
+import { CycleMobileBar } from "@/components/ui/cycle-mobile-bar"
 
 import { Tilt } from "@/components/unlumen-ui/tilt"
 import { ClippedCircle } from "@/components/unlumen-ui/clipped-circle"
@@ -133,6 +134,10 @@ function simulateExpertDailyProjection(
   const currentRecurringSpent = currentExpenses
     .filter((e: any) => new Date(e.date) <= today && parseFloat(e.amount) < 0 && recurringNames.has((e.merchant || "").trim().toUpperCase()))
     .reduce((sum: number, e: any) => sum + Math.abs(parseFloat(e.amount)), 0)
+
+  const currentAnomaliesSpent = currentExpenses
+    .filter((e: any) => new Date(e.date) <= today && parseFloat(e.amount) < 0 && e.is_anomaly)
+    .reduce((sum: number, e: any) => sum + Math.abs(parseFloat(e.amount)), 0)
     
   const effectiveElapsed = Math.max(1, Math.min(daysElapsed, totalDaysInCycle))
   const todayTime = today.getTime()
@@ -142,7 +147,7 @@ function simulateExpertDailyProjection(
   let totalWeight = 0
   currentExpenses.forEach((e: any) => {
     const amt = parseFloat(e.amount)
-    if (amt < 0 && new Date(e.date) <= today && !recurringNames.has((e.merchant || "").trim().toUpperCase())) {
+    if (amt < 0 && new Date(e.date) <= today && !recurringNames.has((e.merchant || "").trim().toUpperCase()) && !e.is_anomaly) {
       const daysAgo = Math.floor(Math.max(0, (todayTime - new Date(e.date).getTime()) / (1000 * 60 * 60 * 24)))
       if (daysAgo <= effectiveElapsed) {
         const w = Math.exp(-decayRate * daysAgo) // Lambda decayRate = user configured decay weighting
@@ -151,12 +156,12 @@ function simulateExpertDailyProjection(
       }
     }
   })
-  const unweightedVariableSpend = Math.max(0, currentActualOut - currentRecurringSpent)
+  const unweightedVariableSpend = Math.max(0, currentActualOut - currentRecurringSpent - currentAnomaliesSpent)
   const standardDailyBurn = unweightedVariableSpend / effectiveElapsed
   const currentDailyVariableBurn = totalWeight > 0 ? (weightedSpend / totalWeight) : standardDailyBurn
 
   const pastVariableTotal = pastExpenses
-    .filter((e: any) => parseFloat(e.amount) < 0 && !recurringNames.has((e.merchant || "").trim().toUpperCase()))
+    .filter((e: any) => parseFloat(e.amount) < 0 && !recurringNames.has((e.merchant || "").trim().toUpperCase()) && !e.is_anomaly)
     .reduce((sum: number, e: any) => sum + Math.abs(parseFloat(e.amount)), 0)
   const histDailyVariableBurn = pastExpenses.length > 0 ? (pastVariableTotal / Math.max(1, pastExpenses.length)) * 1.5 : currentDailyVariableBurn || 20
 
@@ -176,7 +181,7 @@ function simulateExpertDailyProjection(
         let catTotalWeight = 0
         currentExpenses.forEach((e: any) => {
           const amt = parseFloat(e.amount)
-          if (amt < 0 && new Date(e.date) <= today && (ov.categoryId ? e.category_id === ov.categoryId : true)) {
+          if (amt < 0 && new Date(e.date) <= today && (ov.categoryId ? e.category_id?.toString() === ov.categoryId?.toString() : true)) {
             const daysAgo = Math.floor(Math.max(0, (todayTime - new Date(e.date).getTime()) / (1000 * 60 * 60 * 24)))
             if (daysAgo <= effectiveElapsed) {
               const w = Math.exp(-decayRate * daysAgo)
@@ -186,12 +191,12 @@ function simulateExpertDailyProjection(
           }
         })
         const catSpentCurrent = currentExpenses
-          .filter((e: any) => new Date(e.date) <= today && parseFloat(e.amount) < 0 && (ov.categoryId ? e.category_id === ov.categoryId : true))
+          .filter((e: any) => new Date(e.date) <= today && parseFloat(e.amount) < 0 && (ov.categoryId ? e.category_id?.toString() === ov.categoryId?.toString() : true))
           .reduce((sum: number, e: any) => sum + Math.abs(parseFloat(e.amount)), 0)
         const catDailyCurrent = catTotalWeight > 0 ? (catWeightedSpend / catTotalWeight) : (catSpentCurrent / effectiveElapsed)
 
         const catSpentPast = pastExpenses
-          .filter((e: any) => parseFloat(e.amount) < 0 && (ov.categoryId ? e.category_id === ov.categoryId : true))
+          .filter((e: any) => parseFloat(e.amount) < 0 && (ov.categoryId ? e.category_id?.toString() === ov.categoryId?.toString() : true))
           .reduce((sum: number, e: any) => sum + Math.abs(parseFloat(e.amount)), 0)
         const catDailyPast = pastExpenses.length > 0 ? (catSpentPast / Math.max(1, pastExpenses.length)) * 1.5 : catDailyCurrent || 5
         const catBlendedBurn = alpha * catDailyCurrent + (1 - alpha) * catDailyPast
@@ -278,16 +283,16 @@ interface DashboardViewProps {
 }
 
 export function DashboardView({ 
-  expenses, 
-  categories, 
-  budgets, 
-  balances, 
-  cycles, 
+  expenses = [], 
+  categories = [], 
+  budgets = [], 
+  balances = [], 
+  cycles = [], 
   currentCycleId, 
-  injectedStartBalance, 
-  previousExpenses, 
-  previousStartBalance,
-  allPastExpenses,
+  injectedStartBalance = 0, 
+  previousExpenses = [], 
+  previousStartBalance = 0,
+  allPastExpenses = [],
   paycheckKeyword,
   targetMonthlyIncome = 2500,
   targetMonthlySpend = 1500
@@ -303,6 +308,12 @@ export function DashboardView({
   const totalOut = expenses
     .filter(exp => parseFloat(exp.amount) < 0)
     .reduce((sum, exp) => sum + Math.abs(parseFloat(exp.amount) || 0), 0)
+
+  const totalAnomalies = expenses
+    .filter(exp => parseFloat(exp.amount) < 0 && exp.is_anomaly)
+    .reduce((sum, exp) => sum + Math.abs(parseFloat(exp.amount) || 0), 0)
+
+  const cleanTotalOut = totalOut - totalAnomalies
 
   const totalIn = expenses
     .filter(exp => parseFloat(exp.amount) > 0)
@@ -324,11 +335,15 @@ export function DashboardView({
   const daysElapsed = calculateDaysElapsed()
 
   const calculateTotalDays = () => {
-    if (!currentCycle || !currentCycle.endDate) return 30
+    if (!currentCycle) return 30
+    if (!currentCycle.endDate) {
+      return Math.max(30, daysElapsed)
+    }
     const start = new Date(currentCycle.startDate)
     const end = new Date(currentCycle.endDate)
     const diffTime = Math.abs(end.getTime() - start.getTime())
-    return Math.max(1, Math.ceil(diffTime / (1000 * 60 * 60 * 24)))
+    const diffDays = Math.round(diffTime / (1000 * 60 * 60 * 24))
+    return Math.max(1, diffDays - 1)
   }
 
   const totalDaysInCycle = calculateTotalDays()
@@ -441,19 +456,48 @@ export function DashboardView({
     saveOverrides([])
   }
 
-  const deleteOverride = (categoryId: string | number) => {
+  const deleteOverride = (targetIndexOrId: number | string) => {
     const existing = profile?.projection_overrides || JSON.parse(localStorage.getItem("leger_cycle_overrides") || "[]")
-    const updated = existing.filter((o: any) => o.categoryId !== categoryId)
+    const updated = existing.filter((o: any, idx: number) => {
+      if (typeof targetIndexOrId === "number") {
+        return idx !== targetIndexOrId
+      }
+      if (o.id && typeof targetIndexOrId === "string" && !targetIndexOrId.startsWith("cat_")) {
+        return o.id !== targetIndexOrId
+      }
+      const num = parseInt(String(targetIndexOrId), 10)
+      if (!isNaN(num) && String(num) === String(targetIndexOrId)) {
+        return idx !== num
+      }
+      return o.categoryId !== targetIndexOrId
+    })
     saveOverrides(updated)
   }
 
   const handleAddManualOverride = (e: React.FormEvent) => {
     e.preventDefault()
-    const pct = parseFloat(manualPercent)
-    if (isNaN(pct) || pct <= 0) return
+    let multiplier: number | null = 1.0
+    let fixedDelta: number | null = null
+    const val = parseFloat(manualPercent)
 
-    const multiplier = manualDirection === "increase" ? (1 + pct / 100) : Math.max(0, 1 - pct / 100)
-    
+    if (manualDirection === "decrease") {
+      if (isNaN(val) || val <= 0) return
+      multiplier = Math.max(0, 1 - val / 100)
+    } else if (manualDirection === "increase") {
+      if (isNaN(val) || val <= 0) return
+      multiplier = 1 + val / 100
+    } else if (manualDirection === "fixed_reduction") {
+      if (isNaN(val) || val <= 0) return
+      fixedDelta = -Math.abs(val)
+      multiplier = 1.0
+    } else if (manualDirection === "fixed_increase") {
+      if (isNaN(val) || val <= 0) return
+      fixedDelta = Math.abs(val)
+      multiplier = 1.0
+    } else if (manualDirection === "freeze_category") {
+      multiplier = 0.0
+    }
+
     let categoryName = "Global"
     let categoryId: string | null = null
 
@@ -466,16 +510,16 @@ export function DashboardView({
     }
 
     const newOverride = {
+      id: `ov_${Date.now()}_${Math.random().toString(36).substring(2, 6)}`,
       categoryId,
       categoryName,
       multiplier,
-      reason: manualReason.trim() || "Manual adjustment",
-      fixedDelta: null
+      fixedDelta,
+      reason: manualReason.trim() || (fixedDelta !== null ? (fixedDelta < 0 ? "Fixed Spend Reduction" : "Fixed Extra Spend") : manualDirection === "freeze_category" ? "Freeze Category Spend" : "Manual adjustment")
     }
 
     const existing = profile?.projection_overrides || JSON.parse(localStorage.getItem("leger_cycle_overrides") || "[]")
-    const updated = existing.filter((o: any) => o.categoryId !== categoryId)
-    updated.push(newOverride)
+    const updated = [...existing, newOverride]
 
     saveOverrides(updated)
 
@@ -501,14 +545,14 @@ export function DashboardView({
       const dateEnd = new Date(date)
       dateEnd.setHours(23, 59, 59, 999)
       
-      const dayTx = expenses.filter(e => 
+      const dayTx = expenses.filter((e: any) => 
         e.category_id?.toString() === selectedCategoryForGraph.id?.toString() &&
         new Date(e.date) <= dateEnd && 
         new Date(e.date) > (i > 0 ? new Date(new Date(cycleStart).setDate(new Date(cycleStart).getDate() + i - 1)) : new Date(0))
       )
       
-      const dayOut = dayTx.filter(e => parseFloat(e.amount) < 0).reduce((sum, e) => sum + Math.abs(parseFloat(e.amount)), 0)
-      const dayIn = dayTx.filter(e => parseFloat(e.amount) > 0).reduce((sum, e) => sum + parseFloat(e.amount), 0)
+      const dayOut = dayTx.filter((e: any) => parseFloat(e.amount) < 0).reduce((sum: number, e: any) => sum + Math.abs(parseFloat(e.amount)), 0)
+      const dayIn = dayTx.filter((e: any) => parseFloat(e.amount) > 0).reduce((sum: number, e: any) => sum + parseFloat(e.amount), 0)
       cumulativeSpend += dayOut
       cumulativeInflow += dayIn
       
@@ -527,7 +571,7 @@ export function DashboardView({
     if (!selectedCategoryForGraph) return []
     return expenses
       .filter((exp: any) => exp.category_id?.toString() === selectedCategoryForGraph.id?.toString())
-      .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
+      .sort((a: any, b: any) => new Date(b.date).getTime() - new Date(a.date).getTime())
   }, [selectedCategoryForGraph, expenses])
 
   const zeroOffset = useMemo(() => {
@@ -781,61 +825,21 @@ export function DashboardView({
 
   return (
     <motion.div
-      initial={{ opacity: 0 }}
-      animate={{ opacity: 1 }}
-      transition={{ duration: 0.2, ease: "easeOut" }}
+      initial={{ opacity: 0, y: 4 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.45, ease: [0.16, 1, 0.3, 1] }}
       className="mx-auto max-w-[1500px] p-4 md:p-8 space-y-10 md:space-y-16 w-full"
     >
       {/* 1. Header */}
-      <header className="flex flex-col md:flex-row md:items-center justify-between gap-6 md:gap-8 border-b border-foreground/10 pb-6 md:pb-8 relative">
-        <div className="space-y-3 md:space-y-4">
+      <header className="flex items-center justify-between gap-6 pb-4 md:pb-6 relative border-b border-border">
+        <div className="space-y-1.5">
           <div className="flex items-center gap-3 text-[9px] md:text-[10px] font-sans font-bold tracking-[0.2em] uppercase text-muted-foreground">
-            <Landmark className="h-3 w-3" />
-            <span>Financial Statement</span>
+            <CalendarRange className="h-3.5 w-3.5" />
+            <span>Active Paycheck Cycle</span>
           </div>
-          <h1 className="text-4xl md:text-6xl font-bold tracking-tighter uppercase leading-none break-words">
+          <h1 className="text-4xl md:text-5xl font-bold tracking-tighter uppercase leading-none break-words">
             {currentCycle.label.replace('Cycle: ', '')}
           </h1>
-        </div>
-
-        <div className="flex items-center justify-between md:justify-end gap-4 md:gap-8 w-full md:w-auto">
-          {/* Velocity Meter */}
-          <div className="flex flex-col items-start md:items-end gap-1.5">
-             <FloatingTooltipTrigger content="Spend velocity ratio" description="A value > 1.1 means spending is faster than time progress in this cycle.">
-                <span className="technical-label text-[8px] md:text-[9px] cursor-help border-b border-dotted border-muted-foreground/50">Cycle Velocity</span>
-             </FloatingTooltipTrigger>
-             <div className="flex items-center gap-3">
-                <div className="w-24 md:w-32 h-1 bg-secondary relative overflow-hidden ledger-border">
-                    <div className={cn("h-full transition-all duration-1000", velocity > 1.1 ? "bg-destructive" : "bg-foreground")} style={{ width: `${Math.min(100, velocity * 50)}%` }} />
-                </div>
-                <Zap className={cn("h-3 w-3 md:h-3.5 md:w-3.5", velocity > 1.1 ? "text-destructive" : "text-foreground")} />
-             </div>
-          </div>
-
-          <div className="flex border border-border ledger-border bg-card overflow-hidden">
-            <MagneticButton 
-              variant="ghost" 
-              size="icon" 
-              onClick={() => navigateCycle('prev')} 
-              disabled={isPending || currentIndex >= cycles.length - 1} 
-              className="h-10 w-10 md:h-12 md:w-12 border-r border-border rounded-none hover:bg-secondary flex items-center justify-center" 
-              strength={0.35} 
-              aria-label="Previous paycheck cycle"
-            >
-              <ChevronLeft className="h-4 w-4 md:h-5 md:w-5" />
-            </MagneticButton>
-            <MagneticButton 
-              variant="ghost" 
-              size="icon" 
-              onClick={() => navigateCycle('next')} 
-              disabled={isPending || currentIndex <= 0} 
-              className="h-10 w-10 md:h-12 md:w-12 rounded-none hover:bg-secondary flex items-center justify-center" 
-              strength={0.35} 
-              aria-label="Next paycheck cycle"
-            >
-              <ChevronRight className="h-4 w-4 md:h-5 md:w-5" />
-            </MagneticButton>
-          </div>
         </div>
       </header>
 
@@ -846,14 +850,14 @@ export function DashboardView({
         <div className="lg:col-span-8 space-y-10 md:space-y-16">
           
           {/* 2. Trajectories */}
-          <section className="space-y-6">
+          <section className="space-y-6 pt-2 sm:pt-0">
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-6">
-              <div className="flex items-center gap-3 md:gap-4 overflow-x-auto pb-2 sm:pb-0 scrollbar-hide">
+              <div className="flex items-center gap-3 md:gap-4 overflow-x-auto pb-2 sm:pb-0 scrollbar-hide w-full">
                 <div className="flex items-center border border-border ledger-border bg-card overflow-hidden shrink-0">
                   <button 
                     onClick={() => setActiveTab('liquidity')}
                     className={cn(
-                      "px-4 md:px-6 py-2 text-[9px] md:text-[10px] font-sans font-bold uppercase tracking-widest transition-all",
+                      "px-4 md:px-6 py-2 text-[9px] md:text-[10px] font-sans font-bold uppercase tracking-widest transition-all cursor-pointer",
                       activeTab === 'liquidity' ? "bg-foreground text-background" : "hover:bg-muted"
                     )}
                   >
@@ -862,7 +866,7 @@ export function DashboardView({
                   <button 
                     onClick={() => setActiveTab('burn')}
                     className={cn(
-                      "px-4 md:px-6 py-2 text-[9px] md:text-[10px] font-sans font-bold uppercase tracking-widest transition-all border-l border-border",
+                      "px-4 md:px-6 py-2 text-[9px] md:text-[10px] font-sans font-bold uppercase tracking-widest transition-all border-l border-border cursor-pointer",
                       activeTab === 'burn' ? "bg-foreground text-background" : "hover:bg-muted"
                     )}
                   >
@@ -877,41 +881,63 @@ export function DashboardView({
                       localStorage.removeItem('leger_pro_graph_dismissed_until')
                     }}
                     className={cn(
-                      "px-4 py-2 transition-all",
+                      "px-4 py-2 transition-all cursor-pointer",
                       viewMode === 'graph' ? "bg-foreground text-background" : "hover:bg-muted"
                     )}
+                    aria-label="Graph view"
                   >
                     <TrendingUp className="h-3.5 w-3.5" />
                   </button>
                   <button 
                     onClick={() => setViewMode('calendar')}
                     className={cn(
-                      "px-4 py-2 transition-all border-l border-border",
+                      "px-4 py-2 transition-all border-l border-border cursor-pointer",
                       viewMode === 'calendar' ? "bg-foreground text-background" : "hover:bg-muted"
                     )}
+                    aria-label="Calendar view"
                   >
                     <CalendarDays className="h-3.5 w-3.5" />
                   </button>
                 </div>
+
+                {/* Mobile-Friendly Cycle Navigation Chevrons inside Toolbar */}
+                <div className="flex items-center border border-border ledger-border bg-card overflow-hidden shrink-0">
+                  <button 
+                    onClick={() => navigateCycle('prev')} 
+                    disabled={isPending || currentIndex >= cycles.length - 1} 
+                    className="px-3.5 py-2 hover:bg-muted transition-colors disabled:opacity-40 border-r border-border cursor-pointer disabled:cursor-not-allowed"
+                    aria-label="Previous paycheck cycle"
+                  >
+                    <ChevronLeft className="h-3.5 w-3.5 text-foreground" />
+                  </button>
+                  <button 
+                    onClick={() => navigateCycle('next')} 
+                    disabled={isPending || currentIndex <= 0} 
+                    className="px-3.5 py-2 hover:bg-muted transition-colors disabled:opacity-40 cursor-pointer disabled:cursor-not-allowed"
+                    aria-label="Next paycheck cycle"
+                  >
+                    <ChevronRight className="h-3.5 w-3.5 text-foreground" />
+                  </button>
+                </div>
               </div>
-              
-              <div className="flex items-center justify-between sm:justify-end gap-4 text-[9px] md:text-[10px] font-mono w-full sm:w-auto">
-                 <div className="flex items-center justify-center grow sm:grow-0">
-                    {activeTab === 'burn' ? (
-                      <GlowingBadge variant={onTrack ? "success" : "error"} pulse dot className="px-4 py-2 border-border/40 flex items-center gap-2 font-mono">
-                        <span>{onTrack ? "STATUS: OPTIMAL" : "STATUS: CRITICAL"}</span>
-                        <span className="opacity-40">•</span>
-                        <span>BURN: <PrivacyValue>{currencySymbol}{(totalOut / Math.max(1, daysElapsed)).toFixed(2)}/d</PrivacyValue></span>
-                      </GlowingBadge>
-                    ) : (
-                      <GlowingBadge variant={delta >= 0 ? "success" : "error"} pulse dot className="px-4 py-2 border-border/40 flex items-center gap-2 font-mono">
-                        <span>DELTA: <PrivacyValue><NumberTicker value={Math.abs(delta)} prefix={delta >= 0 ? "+" : `-${currencySymbol}`} /></PrivacyValue></span>
-                        <span className="opacity-40">•</span>
-                        <span>BURN: <PrivacyValue>{currencySymbol}{(totalOut / Math.max(1, daysElapsed)).toFixed(2)}/d</PrivacyValue></span>
-                      </GlowingBadge>
-                    )}
-                 </div>
-              </div>
+            </div>
+
+            {/* Full-width statistics bar matching graph width */}
+            <div className="flex items-center justify-between gap-4 py-2 px-4 border border-border ledger-border bg-card text-[10px] font-mono w-full">
+               <div className="flex items-center gap-1.5">
+                 <span className={cn("h-2 w-2 rounded-full", delta >= 0 ? "bg-emerald-500" : "bg-destructive")} />
+                 <span className="text-muted-foreground uppercase tracking-wider">Net Cash Flow:</span>
+                 <span className={cn("font-bold", delta >= 0 ? "text-emerald-500" : "text-destructive")}>
+                   <PrivacyValue>{delta >= 0 ? "+" : ""}{currencySymbol}{delta.toFixed(2)}</PrivacyValue>
+                 </span>
+               </div>
+               <span className="text-muted-foreground/30 font-light select-none">|</span>
+               <div className="flex items-center gap-1.5">
+                  <span className="text-muted-foreground uppercase tracking-wider">Daily Burn:</span>
+                  <span className="font-bold text-foreground">
+                    <PrivacyValue>{currencySymbol}{(cleanTotalOut / Math.max(1, daysElapsed)).toFixed(2)}/d</PrivacyValue>
+                  </span>
+               </div>
             </div>
             
             <div className="min-h-[300px] md:min-h-[400px] h-fit w-full border border-border ledger-border p-4 md:p-10 bg-card/40 relative overflow-hidden flex flex-col justify-center">
@@ -966,7 +992,7 @@ export function DashboardView({
                 <div className="w-full mt-6">
                   <div className="w-full grid grid-cols-7 border-t border-l border-border ledger-border bg-card/20">
                     {['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'].map(day => (
-                      <div key={day} className="p-2 border-r border-b border-border technical-label text-center bg-secondary/20 font-bold text-[9px]">{day}</div>
+                      <div key={day} className="p-2 border-r border-b border-border text-center bg-secondary/20 font-mono font-bold text-[9px] uppercase tracking-wider text-muted-foreground">{day}</div>
                     ))}
                     {Array.from({ length: totalDaysInCycle + 1 }, (_, i) => {
                       const date = new Date(startDate)
@@ -1029,7 +1055,7 @@ export function DashboardView({
           </section>
 
           {/* 3. Metric cards grid */}
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+          <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
             {[
               { 
                 label: "Liquidity Position", 
@@ -1038,7 +1064,7 @@ export function DashboardView({
                 tooltip: "Est. End Balance",
                 tooltipDesc: "Aggregated balance of all active accounts sync'ed up to the end of the current cycle, reflecting all inputs.",
                 footerLeft: `vs PREV CYCLE: ${delta >= 0 ? '+' : ''}${currencySymbol}${Math.abs(delta).toFixed(2)}`,
-                footerRight: `BURN: ${currencySymbol}${(totalOut / Math.max(1, daysElapsed)).toFixed(2)}/d`,
+                footerRight: `BURN: ${currencySymbol}${(cleanTotalOut / Math.max(1, daysElapsed)).toFixed(2)}/d`,
                 progressWidth: Math.min(100, Math.max(0, (cycleEndBalance / Math.max(1, previousCycleEndBalance)) * 100)),
                 progressColor: delta >= 0 ? "bg-emerald-500" : "bg-destructive",
                 isDelta: true,
@@ -1079,7 +1105,8 @@ export function DashboardView({
                   }
                 }}
                 className={cn(
-                  "relative h-full flex flex-col justify-stretch min-w-0 w-full md:col-span-1",
+                  "relative h-full flex flex-col justify-stretch min-w-0 w-full",
+                  idx === 0 ? "col-span-2 md:col-span-1" : "col-span-1",
                   (!isPro && idx === 0) ? "cursor-pointer" : ""
                 )}
               >
@@ -1089,30 +1116,28 @@ export function DashboardView({
                     "p-6 md:p-8 space-y-4 bg-card/20 border border-border relative group overflow-hidden flex flex-col justify-between grow w-full h-full min-w-0 glow-card"
                   )}
                 >
-                  <div className="flex items-center justify-between z-10 w-full min-w-0">
-                    <FloatingTooltipTrigger content={metric.tooltip} description={metric.tooltipDesc}>
-                      <span className="technical-label text-[9px] uppercase tracking-wider cursor-help border-b border-dotted border-muted-foreground/30 whitespace-nowrap">{metric.label}</span>
-                    </FloatingTooltipTrigger>
-                    <span className="text-[9px] font-mono text-muted-foreground uppercase tracking-tighter shrink-0">
+                  <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-1 z-10 w-full min-w-0">
+                    <span className="text-[10px] font-mono uppercase tracking-wider text-muted-foreground whitespace-nowrap">{metric.label}</span>
+                    <span className="text-[9px] font-mono text-muted-foreground/60 uppercase tracking-tighter shrink-0 hidden sm:inline-block">
                       {metric.sub}
                     </span>
                   </div>
 
-                  <div className={cn("text-2xl lg:text-3xl font-mono font-bold tracking-tighter z-10 w-full flex items-baseline gap-1 py-1 whitespace-nowrap", idx === 1 ? "text-emerald-600 dark:text-emerald-400" : "")}>
+                  <div className={cn("text-2xl lg:text-3xl font-sans font-bold tracking-tight z-10 w-full flex items-baseline gap-1 py-1 whitespace-nowrap", idx === 1 ? "text-emerald-500" : "")}>
                     <PrivacyValue>
                       <NumberTicker value={metric.value} prefix={currencySymbol} />
                     </PrivacyValue>
                   </div>
 
                   <div className="z-10 w-full min-w-0 space-y-2 mt-auto">
-                    <div className="flex items-center justify-between text-[9px] font-mono w-full min-w-0">
+                    <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-1 text-[9px] font-mono w-full min-w-0">
                       <span className={cn(
                         metric.isDelta ? (metric.deltaSign ? "text-emerald-500 font-medium" : "text-destructive font-medium") : "text-muted-foreground",
                         "whitespace-nowrap"
                       )}>
                         {metric.footerLeft}
                       </span>
-                      <span className="text-foreground font-semibold shrink-0">{metric.footerRight}</span>
+                      <span className="text-foreground font-bold shrink-0">{metric.footerRight}</span>
                     </div>
                     <div className="w-full h-1 bg-secondary/30 rounded-none border border-border/40 overflow-hidden">
                       <div className={cn("h-full transition-all duration-500", metric.progressColor)} style={{ width: `${metric.progressWidth}%` }} />
@@ -1126,7 +1151,7 @@ export function DashboardView({
           {/* 4. Budgets Performance */}
           <section className="space-y-8">
             <div className="flex items-center justify-between border-b border-foreground/10 pb-4">
-              <h2 className="technical-label">Budget Performance</h2>
+              <h2 className="text-[10px] font-mono uppercase tracking-wider text-foreground font-bold">Budget Limits</h2>
               <span className="text-[10px] font-mono text-muted-foreground">{activeBudgets.length} ACTIVE LIMITS</span>
             </div>
             
@@ -1135,7 +1160,6 @@ export function DashboardView({
                 const netBalance = cat.netBalance !== undefined ? cat.netBalance : -cat.value
                 const isProfitable = netBalance > 0
                 const netSpent = netBalance < 0 ? Math.abs(netBalance) : 0
-                const netProfit = isProfitable ? netBalance : 0
 
                 const percentage = cat.limit > 0 ? (Math.abs(netBalance) / cat.limit) * 100 : 0
                 const isOver = !isProfitable && netSpent > cat.limit && cat.limit > 0
@@ -1143,39 +1167,49 @@ export function DashboardView({
                 return (
                   <div 
                     key={cat.name} 
-                    className="space-y-3 group cursor-pointer" 
+                    className="space-y-3 group cursor-pointer hover:bg-secondary/20 p-2.5 -mx-2.5 rounded-none transition-colors border border-transparent hover:border-border/40" 
                     onClick={() => {
                       setSelectedCategoryForGraph(cat)
                       setBudgetGraphOpen(true)
                     }}
                   >
                     <div className="flex justify-between items-end">
-                      <div className="space-y-1">
-                        <p className="text-xs font-bold uppercase tracking-tight group-hover:text-foreground transition-colors">{cat.name}</p>
-                        <p className="text-[9px] font-mono text-muted-foreground uppercase">
-                          {isProfitable ? `+${currencySymbol}${netProfit.toFixed(2)} NET SURPLUS` : isOver ? "THRESHOLD EXCEEDED" : `${currencySymbol}${(cat.limit - netSpent).toFixed(2)} REMAINING`}
-                        </p>
+                      <div className="space-y-0.5">
+                        <span className="text-xs font-bold uppercase tracking-tight block">{cat.name}</span>
+                        <span className="text-[9px] font-mono text-muted-foreground uppercase">
+                          {isProfitable 
+                            ? `+${currencySymbol}${netBalance.toFixed(0)} surplus` 
+                            : isOver 
+                              ? "limit exceeded" 
+                              : `${currencySymbol}${(cat.limit - netSpent).toFixed(0)} remaining`
+                          }
+                        </span>
                       </div>
-                      <div className="text-right space-y-1">
-                        <div className={cn("text-xs font-mono font-bold", isProfitable ? "text-emerald-600 dark:text-emerald-400" : "")}>
-                          <PrivacyValue><NumberTicker value={isProfitable ? netProfit : netSpent} prefix={isProfitable ? `+${currencySymbol}` : currencySymbol} /></PrivacyValue> 
-                          <span className="text-muted-foreground font-normal opacity-40"> / {currencySymbol}{cat.limit.toFixed(2)}</span>
+                      <div className="text-right space-y-0.5">
+                        <div className={cn("text-xs font-mono font-bold", isProfitable ? "text-emerald-500" : "")}>
+                          <PrivacyValue>
+                            {isProfitable ? "+" : ""}{currencySymbol}{isProfitable ? Math.round(netBalance) : Math.round(netSpent)}
+                          </PrivacyValue>
+                          <span className="text-muted-foreground/60 font-normal"> / {currencySymbol}{cat.limit.toFixed(0)}</span>
                         </div>
-                        <p className={cn("text-[9px] font-mono font-bold uppercase tracking-tighter", isProfitable ? "text-emerald-600 dark:text-emerald-400" : isOver ? "text-destructive" : "text-muted-foreground")}>
-                          {isProfitable ? `+${percentage.toFixed(1)}% (+${currencySymbol}${netProfit.toFixed(2)}) SURPLUS →` : `← ${percentage.toFixed(1)}% (${currencySymbol}${netSpent.toFixed(2)}) USED`}
+                        <p className="text-[9px] font-mono text-muted-foreground uppercase">
+                          {isProfitable 
+                            ? `+${percentage.toFixed(0)}% surplus` 
+                            : `${percentage.toFixed(0)}% used`
+                          }
                         </p>
                       </div>
                     </div>
-                    <div className="relative w-full h-2.5 bg-secondary/60 rounded-none border border-border/40 flex items-center">
-                      <div className="absolute left-1/2 -top-1 -bottom-1 -translate-x-1/2 w-0.5 bg-foreground dark:bg-white z-20 shadow-[0_0_6px_rgba(0,0,0,0.3)] dark:shadow-[0_0_6px_rgba(255,255,255,0.4)] flex items-center justify-center">
-                        <div className="w-1.5 h-1.5 rounded-full bg-foreground dark:bg-white" />
-                      </div>
+                    
+                    <div className="relative w-full h-2 bg-secondary/30 rounded-none border border-border/40 flex items-center">
+                      {/* Zero center-line indicator */}
+                      <div className="absolute left-1/2 -top-0.5 -bottom-0.5 -translate-x-1/2 w-[1px] bg-foreground/50 z-20" />
 
                       <div className="absolute inset-0 overflow-hidden">
                         {isProfitable && (
                           <div 
-                            className="absolute left-1/2 top-0 bottom-0 bg-emerald-600 dark:bg-emerald-400 transition-all duration-1000"
-                            style={{ width: `${Math.min(50, (netProfit / (cat.limit || 100)) * 50)}%` }}
+                            className="absolute left-1/2 top-0 bottom-0 bg-emerald-500 transition-all duration-1000"
+                            style={{ width: `${Math.min(50, (netBalance / (cat.limit || 100)) * 50)}%` }}
                           />
                         )}
 
@@ -1196,7 +1230,7 @@ export function DashboardView({
           {/* 5. Logs & Archive Grid */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-12 pb-10">
             <div className="space-y-6">
-              <h3 className="technical-label border-b border-border pb-4 uppercase">Classification Log</h3>
+              <h3 className="text-[10px] font-mono uppercase tracking-wider text-foreground font-bold border-b border-border pb-4">Category Breakdown</h3>
               <div className="space-y-6">
                 {spendingByCategory.map((cat) => (
                   <div key={cat.name} className="group cursor-default">
@@ -1214,7 +1248,7 @@ export function DashboardView({
 
             <div className="space-y-6">
               <div className="flex items-center justify-between border-b border-border pb-4">
-                <h3 className="technical-label uppercase">Transaction Archive</h3>
+                <h3 className="text-[10px] font-mono uppercase tracking-wider text-foreground font-bold">Recent Transactions</h3>
                 <span className="text-[10px] font-mono text-muted-foreground uppercase">{expenses.length} Entries</span>
               </div>
               <div className="space-y-0">
@@ -1256,15 +1290,15 @@ export function DashboardView({
           {/* Active Paycheck Cycle HUD & Smart Forecasts */}
           <div className="space-y-6">
             {/* Paycheck Cycle Card */}
-            <Tilt rotationFactor={4} className="p-6 md:p-8 space-y-4 bg-card/20 border border-border hover:bg-secondary/35 transition-all duration-300 relative group overflow-hidden flex flex-col justify-between w-full">
+            <Tilt rotationFactor={4} className="p-6 md:p-8 space-y-4 bg-card/20 border border-border relative group overflow-hidden flex flex-col justify-between w-full glow-card">
               <div className="flex justify-between items-center text-xs font-mono z-10">
                 <span className="text-muted-foreground font-semibold flex items-center gap-1.5 uppercase tracking-wider text-[10px]">
-                  <span className="h-2 w-2 rounded-full bg-emerald-500 animate-pulse" />
-                  Active Paycheck Cycle
+                  <span className="h-1.5 w-1.5 rounded-full bg-emerald-500" />
+                  Active Cycle
                 </span>
                 <span className={cn("font-bold px-2.5 py-0.5 text-[10px] uppercase font-mono border", (totalIn - totalOut) >= 0 ? "text-emerald-500 bg-emerald-500/10 border-emerald-500/20" : "text-destructive bg-destructive/10 border-destructive/20")}>
                   <PrivacyValue>
-                    {(totalIn - totalOut) >= 0 ? "+" : ""}{currencySymbol}{(totalIn - totalOut).toFixed(2)} Net Surplus
+                    {(totalIn - totalOut) >= 0 ? "+" : ""}{currencySymbol}{(totalIn - totalOut).toFixed(2)} Surplus
                   </PrivacyValue>
                 </span>
               </div>
@@ -1272,22 +1306,18 @@ export function DashboardView({
               <div className="space-y-2 z-10">
                 <div className="flex justify-between text-[11px] font-mono">
                   <span className="text-muted-foreground"><PrivacyValue>Inflow: {currencySymbol}{totalIn.toFixed(0)}</PrivacyValue></span>
-                  <span className="text-foreground font-semibold">Remaining Power: {Math.max(0, 100 - Math.round((totalOut / (totalIn || 1)) * 100))}%</span>
+                  <span className="text-foreground font-semibold">Available Budget: {Math.max(0, 100 - Math.round((totalOut / (totalIn || 1)) * 100))}%</span>
                   <span className="text-muted-foreground"><PrivacyValue>Outflow: {currencySymbol}{totalOut.toFixed(0)}</PrivacyValue></span>
                 </div>
-                <div className="h-3 w-full bg-secondary rounded-none overflow-hidden border border-border/80 relative">
-                  <div className="absolute left-1/2 top-0 bottom-0 w-0.5 bg-foreground/40 z-10 -translate-x-1/2" />
+                <div className="h-1.5 w-full bg-secondary rounded-none overflow-hidden border border-border/80 relative">
                   <div
-                    className={cn("absolute top-0 bottom-0 left-1/2 transition-all duration-500", (totalIn - totalOut) >= 0 ? "bg-emerald-500/85" : "bg-destructive/85")}
-                    style={{
-                      width: `${Math.min(50, (Math.abs(totalIn - totalOut) / (totalIn || 1)) * 50)}%`,
-                      transform: (totalIn - totalOut) >= 0 ? 'translateX(0)' : 'translateX(-100%)'
-                    }}
+                    className={cn("h-full transition-all duration-500", (totalOut / (totalIn || 1)) > 0.9 ? "bg-destructive" : "bg-emerald-500")}
+                    style={{ width: `${Math.min(100, (totalOut / (totalIn || 1)) * 100)}%` }}
                   />
                 </div>
               </div>
-              <p className="text-[11px] text-muted-foreground font-mono z-10">
-                Tracks real spending power from payday to payday, eliminating calendar reset friction.
+              <p className="text-[11px] text-muted-foreground font-sans z-10 leading-relaxed">
+                Tracks spending capacity from payday to payday, eliminating calendar-reset distortion.
               </p>
             </Tilt>
 
@@ -1308,13 +1338,12 @@ export function DashboardView({
               <Tilt 
                 rotationFactor={4} 
                 className={cn(
-                  "p-6 md:p-8 space-y-4 bg-card/20 border border-border transition-all duration-300 relative group overflow-hidden flex flex-col justify-between grow w-full",
-                  "hover:bg-secondary/35"
+                  "p-6 md:p-8 space-y-4 bg-card/20 border border-border relative group overflow-hidden flex flex-col justify-between grow w-full glow-card"
                 )}
               >
                 <div className="flex justify-between items-center text-xs font-mono z-10">
                   <span className="text-muted-foreground uppercase tracking-wider flex items-center gap-1.5 font-semibold text-[10px]">
-                    <span className={cn("h-2 w-2 rounded-full", isPro ? "bg-emerald-500" : "bg-emerald-500 animate-pulse")} /> Smart Forecasting
+                    <span className="h-1.5 w-1.5 rounded-full bg-emerald-500" /> Cycle Forecast
                   </span>
                   <span className="font-bold text-foreground bg-secondary px-2.5 py-0.5 text-[10px] uppercase font-mono border border-border">
                     {isPro ? (
@@ -1327,26 +1356,29 @@ export function DashboardView({
 
                 <div className="space-y-2 z-10">
                   <div className="flex justify-between items-baseline">
-                    <span className="text-xs text-muted-foreground font-mono">End-of-Cycle Surplus</span>
-                    <span className="text-xl md:text-2xl font-mono font-bold tracking-tight text-foreground">
+                    <span className="text-xs text-muted-foreground font-mono">Projected Surplus</span>
+                    <span className={cn(
+                      "text-xl md:text-2xl font-mono font-bold tracking-tight",
+                      estimatedFinalBalance >= 0 ? "text-emerald-500" : "text-destructive"
+                    )}>
                       {isPro ? (
                         <PrivacyValue>{currencySymbol}{estimatedFinalBalance.toFixed(2)}</PrivacyValue>
                       ) : (
-                        <span className="text-emerald-500 font-extrabold tracking-widest text-lg animate-pulse">PRO REQUIRED</span>
+                        <span className="text-emerald-500 font-extrabold tracking-widest text-sm uppercase">PRO Subscription Required</span>
                       )}
                     </span>
                   </div>
                   <div className="flex items-center justify-between text-[11px] text-muted-foreground pt-2 border-t border-border/40 font-mono">
                     <span>{isPro ? "Based on 7-day velocity decay" : "Velocity analysis gated"}</span>
-                    <span className={cn("font-semibold flex items-center gap-1", isPro ? (onTrack ? "text-emerald-500" : "text-amber-500") : "text-emerald-500 animate-pulse")}>
-                      {isPro ? (onTrack ? "Optimal" : "High Burn") : "Activate"}
+                    <span className={cn("font-semibold flex items-center gap-1", isPro ? (onTrack ? "text-emerald-500" : "text-amber-500") : "text-emerald-500/80")}>
+                      {isPro ? (onTrack ? "Optimal" : "High Burn") : "Upgrade"}
                     </span>
                   </div>
                 </div>
-                <p className="text-[11px] text-muted-foreground font-mono z-10">
+                <p className="text-[11px] text-muted-foreground font-sans z-10 leading-relaxed">
                   {isPro 
-                    ? "Learns from daily spending shifts to forecast your exact cash position before cycle close." 
-                    : "Upgrade to PRO to unlock advanced machine-learned velocity forecasting."}
+                    ? "Forecasts your exact cash position before cycle close based on spending pattern decay." 
+                    : "Unlock advanced cash flow forecasting models based on daily velocity changes."}
                 </p>
               </Tilt>
             </div>
@@ -1370,8 +1402,8 @@ export function DashboardView({
           <section className="space-y-4">
             <div className="flex items-center justify-between border-b border-foreground/10 pb-2 flex-wrap gap-4">
               <div className="space-y-0.5">
-                <span className="technical-label">AI Projection Overrides</span>
-                <p className="text-[8px] uppercase font-mono text-muted-foreground opacity-60">Manage spending velocity overrides</p>
+                <span className="text-[10px] font-mono uppercase tracking-wider text-foreground font-bold">Forecast Overrides</span>
+                <p className="text-[9px] font-mono text-muted-foreground opacity-60">Adjust velocity calculation parameters</p>
               </div>
               {isPro && overrides.length > 0 && (
                 <button 
@@ -1387,11 +1419,11 @@ export function DashboardView({
               <div className="border border-border p-6 bg-card/10 relative overflow-hidden flex flex-col items-center justify-center text-center backdrop-blur-sm">
                 <div className="space-y-3">
                   <div className="inline-flex items-center gap-1.5 px-2 py-0.5 text-[8px] font-mono font-bold bg-emerald-500/10 text-emerald-500 border border-emerald-500/20 uppercase tracking-widest">
-                    <Sparkles className="h-2.5 w-2.5 animate-pulse" /> PRO Locked
+                    <Sparkles className="h-2.5 w-2.5" /> PRO Locked
                   </div>
-                  <h4 className="font-mono text-[10px] font-bold uppercase tracking-wider text-foreground">AI Scenario Override Dashboard Locked</h4>
+                  <h4 className="font-mono text-[10px] font-bold uppercase tracking-wider text-foreground">Scenario Overrides Console Locked</h4>
                   <p className="text-[10px] text-muted-foreground leading-relaxed font-sans font-medium">
-                    Upgrade to LEGER_OS PRO to manage your custom natural language projection overrides.
+                    Upgrade to LEGER_OS PRO to manage your custom projection overrides.
                   </p>
                   <Button 
                     onClick={() => {
@@ -1401,7 +1433,7 @@ export function DashboardView({
                     }}
                     className="h-7 rounded-none bg-emerald-500 text-black hover:bg-emerald-400 font-mono text-[9px] uppercase font-bold tracking-wider px-4"
                   >
-                    Unlock AI Engine
+                    Unlock Forecast Overrides
                   </Button>
                 </div>
               </div>
@@ -1409,7 +1441,7 @@ export function DashboardView({
               <div className="space-y-4">
                 {/* Manual Adjuster Form */}
                 <form onSubmit={handleAddManualOverride} className="border border-border p-4 bg-card/25 space-y-4">
-                  <div className="technical-label text-[8px] opacity-40 uppercase">Manual Adjuster Input</div>
+                  <div className="text-[9px] font-mono text-muted-foreground/60 uppercase">Adjust projection parameters</div>
                   <div className="grid grid-cols-1 gap-3">
                     <div className="space-y-1">
                       <label className="text-[8px] font-mono uppercase text-muted-foreground block font-bold tracking-wider">Select Target</label>
@@ -1417,11 +1449,13 @@ export function DashboardView({
                         <select 
                           value={manualCategory} 
                           onChange={(e) => setManualCategory(e.target.value)}
-                          className="w-full bg-secondary/35 border border-border/30 px-3 py-2 pr-8 text-[10px] font-mono outline-none focus:border-border/80 focus:bg-secondary/50 transition-all text-foreground appearance-none"
+                          className="w-full bg-secondary/35 border border-border/30 px-3 py-2 pr-8 text-[10px] font-mono outline-none focus:border-border/80 focus:bg-secondary/50 transition-all text-foreground appearance-none uppercase"
                         >
-                          <option value="global">GLOBAL VELOCITY</option>
+                          <option value="global" className="bg-[#121215] text-foreground font-mono py-1 uppercase">GLOBAL VELOCITY (ALL CATEGORIES)</option>
                           {categories.map((c) => (
-                            <option key={c.id} value={c.id.toString()}>{c.name.toUpperCase()}</option>
+                            <option key={c.id} value={c.id.toString()} className="bg-[#121215] text-foreground font-mono py-1 uppercase">
+                              CATEGORY: {c.name.toUpperCase()}
+                            </option>
                           ))}
                         </select>
                         <ChevronDown className="absolute right-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground pointer-events-none" />
@@ -1429,15 +1463,18 @@ export function DashboardView({
                     </div>
 
                     <div className="space-y-1">
-                      <label className="text-[8px] font-mono uppercase text-muted-foreground block font-bold tracking-wider">Direction</label>
+                      <label className="text-[8px] font-mono uppercase text-muted-foreground block font-bold tracking-wider">Adjustment Mode</label>
                       <div className="relative">
                         <select 
                           value={manualDirection} 
                           onChange={(e) => setManualDirection(e.target.value)}
-                          className="w-full bg-secondary/35 border border-border/30 px-3 py-2 pr-8 text-[10px] font-mono outline-none focus:border-border/80 focus:bg-secondary/50 transition-all text-foreground appearance-none"
+                          className="w-full bg-secondary/35 border border-border/30 px-3 py-2 pr-8 text-[10px] font-mono outline-none focus:border-border/80 focus:bg-secondary/50 transition-all text-foreground appearance-none uppercase"
                         >
-                          <option value="decrease">DECREASE SPEND</option>
-                          <option value="increase">INCREASE SPEND</option>
+                          <option value="decrease" className="bg-[#121215] text-foreground font-mono py-1 uppercase">DECREASE VELOCITY (%)</option>
+                          <option value="increase" className="bg-[#121215] text-foreground font-mono py-1 uppercase">INCREASE VELOCITY (%)</option>
+                          <option value="fixed_reduction" className="bg-[#121215] text-foreground font-mono py-1 uppercase">FIXED SPEND REDUCTION ({currencySymbol} / AMOUNT)</option>
+                          <option value="fixed_increase" className="bg-[#121215] text-foreground font-mono py-1 uppercase">FIXED EXTRA SPEND ({currencySymbol} / AMOUNT)</option>
+                          <option value="freeze_category" className="bg-[#121215] text-foreground font-mono py-1 uppercase">FREEZE / ZERO SPEND (0% VELOCITY)</option>
                         </select>
                         <ChevronDown className="absolute right-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground pointer-events-none" />
                       </div>
@@ -1445,31 +1482,31 @@ export function DashboardView({
                   </div>
 
                   <div className="flex items-start gap-3">
-                    <div className="space-y-1 w-20 shrink-0">
-                      <label className="text-[8px] font-mono uppercase text-muted-foreground block font-bold tracking-wider">Percentage</label>
+                    <div className="space-y-1 w-28 shrink-0">
+                      <label className="text-[8px] font-mono uppercase text-muted-foreground block font-bold tracking-wider">
+                        {manualDirection.startsWith("fixed_") ? `Amount (${currencySymbol})` : manualDirection === "freeze_category" ? "Value" : "Percentage"}
+                      </label>
                       <input 
                         type="number" 
                         min="1" 
-                        max="999" 
-                        required 
-                        placeholder="%" 
-                        value={manualPercent}
-                        onChange={(e) => {
-                          const val = e.target.value.slice(0, 3)
-                          setManualPercent(val)
-                        }}
-                        className="w-full bg-secondary/35 border border-border/30 px-2 py-2 text-[10px] font-mono outline-none focus:border-border/80 focus:bg-secondary/50 transition-all text-foreground text-center"
+                        max={manualDirection.startsWith("fixed_") ? "99999" : "999"}
+                        required={manualDirection !== "freeze_category"}
+                        disabled={manualDirection === "freeze_category"}
+                        placeholder={manualDirection.startsWith("fixed_") ? currencySymbol : manualDirection === "freeze_category" ? "0%" : "%"} 
+                        value={manualDirection === "freeze_category" ? "0" : manualPercent}
+                        onChange={(e) => setManualPercent(e.target.value)}
+                        className="w-full bg-secondary/35 border border-border/30 px-2 py-2 text-[10px] font-mono outline-none focus:border-border/80 focus:bg-secondary/50 transition-all text-foreground text-center disabled:opacity-50 uppercase"
                       />
                     </div>
 
                     <div className="space-y-1 flex-1">
-                      <label className="text-[8px] font-mono uppercase text-muted-foreground block font-bold tracking-wider">Reason</label>
+                      <label className="text-[8px] font-mono uppercase text-muted-foreground block font-bold tracking-wider">Reason / Description</label>
                       <input 
                         type="text" 
-                        placeholder="e.g. Hybrid work" 
+                        placeholder="E.G. HYBRID WORK / SUBSCRIPTION CANCEL" 
                         value={manualReason}
-                        onChange={(e) => setManualReason(e.target.value)}
-                        className="w-full bg-secondary/35 border border-border/30 px-3 py-2 text-[10px] font-mono outline-none focus:border-border/80 focus:bg-secondary/50 transition-all text-foreground"
+                        onChange={(e) => setManualReason(e.target.value.toUpperCase())}
+                        className="w-full bg-secondary/35 border border-border/30 px-3 py-2 text-[10px] font-mono outline-none focus:border-border/80 focus:bg-secondary/50 transition-all text-foreground uppercase"
                       />
                     </div>
                   </div>
@@ -1492,19 +1529,38 @@ export function DashboardView({
                     {overrides.map((ov: any, idx: number) => {
                       const direction = (ov.multiplier ?? 1.0) >= 1.0 ? "UP" : "DOWN"
                       const percent = Math.abs(Math.round(((ov.multiplier ?? 1.0) - 1.0) * 100))
+                      const hasVelocity = percent > 0
+                      const hasFixedDelta = ov.fixedDelta !== undefined && ov.fixedDelta !== null && parseFloat(ov.fixedDelta) !== 0
+                      
                       return (
-                        <div key={idx} className="border border-border ledger-border p-3.5 bg-card/20 flex flex-col justify-between space-y-2.5 font-mono">
+                        <div key={ov.id || idx} className="border border-border ledger-border p-3.5 bg-card/20 flex flex-col justify-between space-y-2.5 font-mono">
                           <div className="flex items-start justify-between">
                             <div className="space-y-0.5">
                               <span className="text-[8px] font-bold text-muted-foreground uppercase tracking-widest">
                                 {ov.categoryName ? `Category: ${ov.categoryName}` : "Global Adjusted Mode"}
                               </span>
-                              <p className="text-[10px] font-bold uppercase tracking-tight text-foreground">
-                                {direction === "UP" ? `+${percent}%` : `-${percent}%`} Velocity
-                              </p>
+                              <div className="text-[10px] font-bold uppercase tracking-tight text-foreground flex flex-wrap gap-x-1.5 items-center">
+                                {hasVelocity && (
+                                  <span>{direction === "UP" ? `+${percent}%` : `-${percent}%`} Velocity</span>
+                                )}
+                                {hasVelocity && hasFixedDelta && (
+                                  <span className="text-muted-foreground/30 font-light text-[8px]">|</span>
+                                )}
+                                {hasFixedDelta && (
+                                  <span>
+                                    {parseFloat(ov.fixedDelta) > 0 
+                                      ? `+${currencySymbol}${Math.abs(parseFloat(ov.fixedDelta)).toFixed(2)} Extra Spend` 
+                                      : `-${currencySymbol}${Math.abs(parseFloat(ov.fixedDelta)).toFixed(2)} Spend Reduction`}
+                                  </span>
+                                )}
+                                {!hasVelocity && !hasFixedDelta && (
+                                  <span>Adjusted Mode</span>
+                                )}
+                              </div>
                             </div>
                             <button 
-                              onClick={() => deleteOverride(ov.categoryId || "")}
+                              type="button"
+                              onClick={() => deleteOverride(ov.id ? ov.id : idx)}
                               className="text-[8px] text-muted-foreground hover:text-destructive hover:border-destructive/40 border border-border px-1.5 py-0.5 transition-colors cursor-pointer uppercase select-none font-bold"
                             >
                               Disable
@@ -1512,7 +1568,7 @@ export function DashboardView({
                           </div>
                           <div className="border-t border-border/40 pt-1.5 opacity-75">
                             <p className="text-[8px] text-muted-foreground leading-relaxed uppercase">
-                              Reason: "{ov.reason || "Applied via overrides console."}"
+                              Reason: "{ov.reason || ov.description || "Applied via overrides console."}"
                             </p>
                           </div>
                         </div>
@@ -1524,12 +1580,12 @@ export function DashboardView({
             )}
           </section>
 
-          {/* Mainframe System Logs Telemetry Feed */}
+          {/* Activity Logs */}
           <section className="space-y-4">
             <div className="flex items-center gap-2 border-b border-foreground/10 pb-2 flex-wrap justify-between">
-               <span className="technical-label">System Activity Log</span>
+               <span className="text-[10px] font-mono uppercase tracking-wider text-foreground font-bold">Activity Log</span>
                {!isPro && (
-                 <span className="text-[8px] font-mono text-emerald-500 font-bold uppercase tracking-wider animate-pulse">PRO GATED</span>
+                 <span className="text-[8px] font-mono text-muted-foreground/60 font-bold uppercase tracking-wider">PRO</span>
                )}
             </div>
             <div className="relative border border-border bg-card/20 p-4 font-mono text-[9px] md:text-[10px] space-y-2 min-h-[11rem] max-h-[500px] overflow-y-auto scrollbar-hide">
@@ -1561,8 +1617,29 @@ export function DashboardView({
           </section>
 
         </div>
+        </div>
 
-      </div>
+      {/* Clean Minimal App Footer */}
+      <footer className="w-full border-t border-border/40 py-6 mt-16 relative z-10 font-mono text-[10px] text-muted-foreground">
+        <div className="mx-auto max-w-[1500px] px-4 md:px-8 flex flex-col sm:flex-row items-center justify-between gap-3">
+          <div className="flex items-center gap-2 text-foreground/80">
+            <span className="font-bold uppercase tracking-wider text-foreground">LEGER_OS</span>
+            <span className="opacity-40">•</span>
+            <span className="uppercase tracking-widest text-[9px]">Personal Finance Mainframe</span>
+          </div>
+
+          <div className="flex items-center gap-4 uppercase tracking-wider text-[9px]">
+            <a href="/terms.txt" target="_blank" rel="noopener noreferrer" className="hover:text-foreground transition-colors">
+              Terms of Service
+            </a>
+            <span className="opacity-40">•</span>
+            <a href="/privacy.txt" target="_blank" rel="noopener noreferrer" className="hover:text-foreground transition-colors">
+              Privacy Policy
+            </a>
+          </div>
+        </div>
+      </footer>
+
       <Dialog open={modalOpen} onOpenChange={setModalOpen}>
         <DialogContent className="bg-card border border-border rounded-none p-6 font-mono text-xs w-[95vw] md:max-w-3xl max-h-[85dvh] overflow-y-auto">
           <DialogHeader className="border-b border-border pb-4 mb-4">
@@ -1749,6 +1826,13 @@ export function DashboardView({
           </div>
         </DialogContent>
       </Dialog>
+
+      {/* Mobile sticky cycle nav bar (above bottom nav) */}
+      <CycleMobileBar
+        cycles={cycles}
+        currentCycleId={currentCycleId}
+        route="/"
+      />
     </motion.div>
   )
 }

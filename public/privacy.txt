@@ -1,0 +1,22 @@
+LEGER_OS // PRIVACY POLICY
+Last Updated: July 2026
+
+This Privacy Policy explains how LEGER_OS (the "Mainframe") collects, protects, and handles your financial transaction data.
+
+1. COLLECTED DATA
+To provide cash flow forecasting and tracking, LEGER_OS processes:
+- Account authentication identifiers (username, email, hash keys).
+- User preferences (currencies, language, target limits, and AI credentials).
+- Transaction details (merchant names, amounts, categories, and raw bank extract lines).
+
+2. AI PROFILING & PROCESSING
+LEGER_OS integrates with third-party neural providers (Google Gemini, OpenAI, Groq, or local Ollama) for text extraction and cycle velocity assessments. 
+If you choose to use personal custom API keys, they are stored securely in the profiles table. If you are on the Free Mainframe tier, your AI requests are metered using shared mainframe API tokens.
+
+3. RIGHT TO ERASURE (GDPR / RIGHT TO BE FORGOTTEN)
+LEGER_OS strictly respects your Right to Erasure. You can permanently purge your global authentication credentials, preferences, transaction logs, and all historical records instantly by selecting "Erase Mainframe Profile" inside your System Settings. This calls the backend delete purge cascading trigger, completely removing your footprint from our databases.
+
+4. COOKIES & LOCAL STORAGE
+We utilize secure session cookies to handle your auth state, and localStorage to maintain client-side projection overrides.
+
+Your financial data is protected.

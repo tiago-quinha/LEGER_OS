@@ -10,6 +10,7 @@ import { useSystem } from "@/lib/SystemContext"
 import { supabase } from "@/lib/supabase"
 import { getAIHeaders } from "@/lib/ai-client"
 import { toast } from "sonner"
+import { renderFormattedText } from "./LegerAIAssistant"
 
 interface LegerAIPageViewProps {
   cycleData: any
@@ -41,17 +42,6 @@ export function LegerAIPageView({ cycleData, expenses, categories }: LegerAIPage
     .reduce((sum, e) => sum + parseFloat(e.amount), 0), [expenses])
 
   const spendingLimit = profile?.target_monthly_spend || 1500
-
-  const renderFormattedText = (text: string) => {
-    if (!text) return null;
-    const parts = text.split(/(\*\*.*?\*\*)/g);
-    return parts.map((part, i) => {
-      if (part.startsWith("**") && part.endsWith("**")) {
-        return <strong key={i} className="text-foreground font-extrabold">{part.slice(2, -2)}</strong>;
-      }
-      return part;
-    });
-  };
 
   // Cache Key grounded in a stable data fingerprint (v3 forces cache-busting for the new prompt format)
   const fingerprint = `${Math.round(cycleData.currentBalance)}_${cycleData.categories.length}_${profile?.id || 'guest'}`
@@ -282,9 +272,9 @@ export function LegerAIPageView({ cycleData, expenses, categories }: LegerAIPage
 
   return (
     <motion.div
-      initial={{ opacity: 0 }}
-      animate={{ opacity: 1 }}
-      transition={{ duration: 0.2, ease: "easeOut" }}
+      initial={{ opacity: 0, y: 4 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.45, ease: [0.16, 1, 0.3, 1] }}
       className="mx-auto max-w-[1500px] p-4 md:p-8 space-y-8 md:space-y-12 pb-24 text-foreground w-full"
     >
       {/* 1. Header: The Intelligence Node */}
@@ -319,37 +309,36 @@ export function LegerAIPageView({ cycleData, expenses, categories }: LegerAIPage
       {/* 2. Main Terminal Area */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 lg:gap-12">
         
-        {/* Left Column: Data Telemetry */}
+        {/* Left Column: Cycle Metrics */}
         <div className="lg:col-span-1 space-y-6 lg:space-y-12">
            <div className="space-y-6">
                <div className="flex justify-between items-center border-b border-border pb-2">
-                  <h3 className="technical-label text-foreground/70">Cycle Telemetry</h3>
+                  <h3 className="technical-label text-foreground/70">Cycle Performance</h3>
                </div>
                <div className="space-y-4">
                   <div className="space-y-1.5 py-2 border-b border-border/50">
                      <div className="flex justify-between items-center">
-                        <span className="text-[10px] font-mono text-muted-foreground uppercase tracking-tighter">Threat Vector</span>
+                        <span className="text-[10px] font-mono text-muted-foreground uppercase tracking-tighter">Spend Ratio</span>
                         <span className={cn("font-mono text-xs font-bold", (analysis?.threatLevel > 70) ? "text-destructive" : "text-foreground")}>
                            {analysis?.threatLevel || 0}%
                         </span>
                      </div>
-                     <div className="w-full h-1.5 bg-secondary/50 ledger-border overflow-hidden relative">
+                     <div className="w-full h-1.5 bg-secondary/50 border border-border/40 overflow-hidden relative">
                         <div className={cn("h-full transition-all duration-1000", (analysis?.threatLevel > 70) ? "bg-destructive" : "bg-foreground")} style={{ width: `${analysis?.threatLevel || 0}%` }} />
-                        <div className="absolute inset-0 bg-[linear-gradient(to_right,transparent_4px,var(--background)_4px,var(--background)_6px)] bg-[size:6px_100%]" />
                      </div>
                   </div>
-                 <div className="flex justify-between items-center py-2 border-b border-border/50">
-                    <span className="text-[10px] font-mono text-muted-foreground uppercase tracking-tighter">Cycle Velocity</span>
-                    <span className="font-mono text-xs font-bold">{cycleData.velocity.toFixed(2)}x</span>
-                 </div>
-                 <div className="flex justify-between items-center py-2 border-b border-border/50">
-                    <span className="text-[10px] font-mono text-muted-foreground uppercase tracking-tighter">Last Sync</span>
-                    <span className="font-mono text-[9px] font-bold text-muted-foreground uppercase">{lastUpdated || "WAITING..."}</span>
-                 </div>
-              </div>
-           </div>
+                  <div className="flex justify-between items-center py-2 border-b border-border/50">
+                     <span className="text-[10px] font-mono text-muted-foreground uppercase tracking-tighter">Cycle Velocity</span>
+                     <span className="font-mono text-xs font-bold">{cycleData.velocity.toFixed(2)}x</span>
+                  </div>
+                  <div className="flex justify-between items-center py-2 border-b border-border/50">
+                     <span className="text-[10px] font-mono text-muted-foreground uppercase tracking-tighter">Last Sync</span>
+                     <span className="font-mono text-[9px] font-bold text-muted-foreground uppercase">{lastUpdated || "WAITING..."}</span>
+                  </div>
+               </div>
+            </div>
 
-            <div className="p-6 bg-secondary/5 border border-border ledger-border space-y-4 shadow-sm">
+            <div className="p-6 bg-secondary/5 border border-border space-y-4 shadow-sm">
                <div className="flex items-center gap-2 technical-label text-muted-foreground opacity-60">
                   <History className="h-3 w-3" />
                   <span>Cycle Timeline</span>
@@ -365,10 +354,10 @@ export function LegerAIPageView({ cycleData, expenses, categories }: LegerAIPage
                </div>
             </div>
 
-            <div className="p-6 bg-secondary/5 border border-border ledger-border space-y-4 shadow-sm">
+            <div className="p-6 bg-secondary/5 border border-border space-y-4 shadow-sm">
                <div className="flex items-center gap-2 technical-label text-muted-foreground opacity-60">
                   <Zap className="h-3 w-3" />
-                  <span>Burn Telemetry</span>
+                  <span>Burn Rate Details</span>
                </div>
                <div className="space-y-2.5 font-mono text-[10px]">
                   <div className="flex justify-between items-center py-1 border-b border-border/20">
@@ -385,26 +374,25 @@ export function LegerAIPageView({ cycleData, expenses, categories }: LegerAIPage
 
          {/* Right Column: Leger Feed */}
          <div className="lg:col-span-2 space-y-8">
-            <div className="min-h-[400px] border border-border ledger-border bg-card relative p-6 md:p-12 pt-14 md:pt-14 flex flex-col justify-between overflow-hidden text-left shadow-xl backdrop-blur-md">
-               {/* Cyber OS background grid */}
+            <div className="min-h-[400px] border border-border bg-card relative p-6 md:p-12 pt-14 md:pt-14 flex flex-col justify-between overflow-hidden text-left shadow-xl backdrop-blur-md">
+               {/* background grid */}
                <div className="absolute inset-0 bg-[linear-gradient(to_right,rgba(128,128,128,0.06)_1px,transparent_1px),linear-gradient(to_bottom,rgba(128,128,128,0.06)_1px,transparent_1px)] bg-[size:24px_24px] pointer-events-none" />
                
-               {/* Terminal glowing aura */}
+               {/* glowing aura */}
                <div className="absolute -top-40 -left-40 w-80 h-80 bg-foreground/[0.015] dark:bg-emerald-500/[0.015] blur-3xl rounded-full pointer-events-none" />
                
-               <div className="absolute top-6 left-6 technical-label opacity-15 uppercase tracking-[0.4em] z-10">Leger_Output_v1.0</div>
+               <div className="absolute top-6 left-6 technical-label opacity-15 uppercase tracking-[0.4em] z-10">AI Analysis Output</div>
                
-               {/* Terminal Query Input Form */}
+               {/* Query Input Form */}
                <form onSubmit={handleQuerySubmit} className="mt-4 mb-8 border-b border-border pb-6 flex flex-col sm:flex-row gap-3 sm:gap-4 items-stretch sm:items-center z-10">
                   <div className="flex-1 relative">
-                     <span className="absolute left-3 top-2.5 text-[9px] font-mono text-muted-foreground uppercase">{`> query`}</span>
                      <input 
                        type="text"
                        value={userQuery}
                        onChange={(e) => setUserQuery(e.target.value)}
                        placeholder="Ask Leger AI about your cycle spending..."
                        disabled={isQuerying || isLoading}
-                       className="w-full pl-16 pr-4 py-2 border border-border bg-secondary/10 font-mono text-xs uppercase tracking-tighter outline-none focus:border-foreground/45 transition-colors h-10 rounded-none text-foreground placeholder:text-muted-foreground/30"
+                       className="w-full px-4 py-2 border border-border bg-secondary/10 font-mono text-xs uppercase tracking-tighter outline-none focus:border-foreground/45 transition-colors h-10 rounded-none text-foreground placeholder:text-muted-foreground/30"
                      />
                   </div>
                   <MagneticButton 
