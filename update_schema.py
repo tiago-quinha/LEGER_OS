@@ -141,7 +141,12 @@ ON CONFLICT (id) DO UPDATE SET paycheck_keyword = 'SALARY' WHERE profiles.payche
 
 
 
--- Reload PostgREST schema cache in Supabase so new columns are immediately recognized by the API
+-- Add performance indexes for tracker_expense (ensure pg_trgm extension exists)
+CREATE EXTENSION IF NOT EXISTS pg_trgm;
+CREATE INDEX IF NOT EXISTS idx_tracker_expense_user_date_category ON tracker_expense (user_id, date, category_id);
+CREATE INDEX IF NOT EXISTS idx_tracker_expense_merchant_trgm ON tracker_expense USING gin (merchant gin_trgm_ops);
+
+-- Reload PostgREST schema cache in Supabase so new columns and indexes are immediately recognized by the API
 NOTIFY pgrst, 'reload schema';
 """
 
