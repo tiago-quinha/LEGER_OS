@@ -17,8 +17,8 @@ export default function BudgetsLoading() {
           </h1>
         </div>
 
-        {/* Cycle Nav Controls */}
-        <div className="flex items-center border border-border ledger-border bg-card overflow-hidden shrink-0">
+        {/* Cycle Nav Controls (Desktop only) */}
+        <div className="hidden md:flex items-center border border-border ledger-border bg-card overflow-hidden shrink-0">
           <div className="px-3.5 py-2 border-r border-border"><ChevronLeft className="h-4 w-4 text-muted-foreground/40" /></div>
           <div className="px-3.5 py-2"><ChevronRight className="h-4 w-4 text-muted-foreground/40" /></div>
         </div>

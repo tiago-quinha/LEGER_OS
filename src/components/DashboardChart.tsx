@@ -24,7 +24,7 @@ export function DashboardChart({ hybridData, activeTab, onDayClick, isPro }: Das
   }, [])
 
   return (
-    <div className="h-[280px] md:h-[320px] w-full mt-4 md:mt-0 cursor-pointer">
+    <div className="h-[280px] md:h-[320px] w-full mt-4 md:mt-0 cursor-pointer" data-no-swipe="true">
       <ResponsiveContainer width="100%" height="100%">
         <AreaChart 
           data={hybridData} 

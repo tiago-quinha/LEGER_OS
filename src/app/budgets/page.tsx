@@ -118,7 +118,6 @@ export default async function BudgetsPage({ searchParams }: PageProps) {
 
   return (
     <BudgetsView 
-      key={selectedCycle.id}
       categories={categoriesRes.data || []}
       budgets={budgets}
       expenses={expensesRes.data || []}

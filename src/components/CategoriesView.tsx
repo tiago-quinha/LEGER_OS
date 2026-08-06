@@ -1,11 +1,13 @@
 "use client"
 
-import { useState, useMemo, useEffect } from "react"
+import { useState, useMemo, useEffect, useTransition } from "react"
 import { motion, AnimatePresence } from "framer-motion"
 import { useRouter } from "next/navigation"
 import { useCycleSwipe } from "@/hooks/useCycleSwipe"
 import { CycleMobileBar } from "@/components/ui/cycle-mobile-bar"
 import { SwipeCycleWrapper } from "@/components/ui/swipe-cycle-wrapper"
+import { Skeleton } from "@/components/ui/skeleton"
+import CategoriesLoading from "@/app/categories/loading"
 import {
   Table,
   TableBody,
@@ -91,22 +93,34 @@ export function CategoriesView({ expenses, categories, cycles, currentCycleId }:
   const { currencySymbol, setAuditPanelOpen, setActiveTransactionId } = useSystem()
 
   // --- States ---
+  const [isPending, startTransition] = useTransition()
   const [selectedCategoryId, setSelectedCategoryId] = useState<string>("ALL")
   const [datePreset, setDatePreset] = useState<DatePreset>("cycle")
   const [selectedCycleId, setSelectedCycleId] = useState<string>(currentCycleId || cycles[0]?.id || "ALL")
+
+  useEffect(() => {
+    if (currentCycleId) {
+      setSelectedCycleId(currentCycleId)
+    }
+  }, [currentCycleId])
   const [customStartDate, setCustomStartDate] = useState<string>("")
   const [customEndDate, setCustomEndDate] = useState<string>("")
 
   const currentCycle = cycles.find(c => c.id === selectedCycleId) || cycles[0]
   const currentIndex = cycles.findIndex(c => c.id === (currentCycle?.id || ""))
 
+  const handleCycleSelect = (newCycleId: string) => {
+    setSelectedCycleId(newCycleId)
+    startTransition(() => {
+      router.replace(`/categories?cycleId=${newCycleId}`, { scroll: false })
+    })
+  }
+
   const navigateCycle = (dir: 'prev' | 'next') => {
     if (currentIndex === -1) return
     const targetIndex = dir === 'prev' ? currentIndex + 1 : currentIndex - 1
     if (targetIndex >= 0 && targetIndex < cycles.length) {
-      const targetCycle = cycles[targetIndex]
-      setSelectedCycleId(targetCycle.id)
-      router.push(`/categories?cycleId=${targetCycle.id}`, { scroll: false })
+      handleCycleSelect(cycles[targetIndex].id)
     }
   }
 
@@ -114,7 +128,7 @@ export function CategoriesView({ expenses, categories, cycles, currentCycleId }:
     cycles,
     currentCycleId: selectedCycleId,
     route: "/categories",
-    onCycleChange: setSelectedCycleId,
+    onCycleChange: handleCycleSelect,
   })
   const [typeFilter, setTypeFilter] = useState<"all" | "inflow" | "outflow">("all")
   const [searchQuery, setSearchQuery] = useState<string>("")
@@ -470,13 +484,22 @@ export function CategoriesView({ expenses, categories, cycles, currentCycleId }:
   const activeColor = selectedCategoryDetails?.color || "var(--foreground)"
 
   return (
-    <motion.div
-      initial={{ opacity: 0, y: 4 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.45, ease: [0.16, 1, 0.3, 1] }}
-      className="mx-auto max-w-[1500px] p-4 md:p-8 space-y-10 md:space-y-12 pb-24 md:pb-8 w-full"
+    <SwipeCycleWrapper
+      cycles={cycles}
+      currentCycleId={selectedCycleId}
+      route="/categories"
+      onCycleChange={handleCycleSelect}
     >
-      {/* 1. Header */}
+      {isPending ? (
+        <CategoriesLoading />
+      ) : (
+        <motion.div
+          initial={{ opacity: 0, y: 4 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.45, ease: [0.16, 1, 0.3, 1] }}
+          className="mx-auto max-w-[1500px] p-4 md:p-8 space-y-10 md:space-y-12 pb-24 md:pb-8 w-full"
+        >
+        {/* 1. Header */}
       <header className="flex items-center justify-between gap-6 border-b border-foreground/10 pb-6 md:pb-8 relative flex-wrap sm:flex-nowrap">
         <div className="space-y-3">
           <div className="flex items-center gap-3 text-[9px] md:text-[10px] font-mono tracking-[0.2em] uppercase text-muted-foreground">
@@ -1075,13 +1098,16 @@ export function CategoriesView({ expenses, categories, cycles, currentCycleId }:
       {/* Side Audit Panel portal */}
       </div>
 
+        </motion.div>
+      )}
+
       {/* Mobile sticky cycle nav bar (above bottom nav) */}
       <CycleMobileBar
         cycles={cycles}
         currentCycleId={selectedCycleId}
         route="/categories"
-        onCycleChange={setSelectedCycleId}
+        onCycleChange={handleCycleSelect}
       />
-    </motion.div>
+    </SwipeCycleWrapper>
   )
 }

@@ -39,7 +39,7 @@ export default function DashboardLoading() {
                   <div className="px-4 py-2"><Skeleton className="h-3.5 w-3.5" /></div>
                 </div>
                 {/* Cycle Navigation Chevrons */}
-                <div className="flex items-center border border-border ledger-border bg-card overflow-hidden shrink-0">
+                <div className="hidden md:flex items-center border border-border ledger-border bg-card overflow-hidden shrink-0">
                   <div className="px-3.5 py-2 border-r border-border"><ChevronLeft className="h-3.5 w-3.5 text-muted-foreground/40" /></div>
                   <div className="px-3.5 py-2"><ChevronRight className="h-3.5 w-3.5 text-muted-foreground/40" /></div>
                 </div>

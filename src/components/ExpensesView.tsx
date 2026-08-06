@@ -1,8 +1,9 @@
 "use client"
 
-import { useState, useMemo, useEffect } from "react"
+import { useState, useMemo, useEffect, useTransition } from "react"
 import { motion, AnimatePresence } from "framer-motion"
 import { supabase } from "@/lib/supabase"
+import { Skeleton } from "@/components/ui/skeleton"
 import {
   Table,
   TableBody,
@@ -120,13 +121,22 @@ export function ExpensesView({ initialExpenses, categories: initialCategories, i
     setRules(initialRules)
   }, [initialRules])
 
+  const [selectedCycleId, setSelectedCycleId] = useState<string>(currentCycleId || cycles?.[0]?.id || "")
+
+  useEffect(() => {
+    if (currentCycleId) {
+      setSelectedCycleId(currentCycleId)
+    }
+  }, [currentCycleId])
+
   const currentCycle = useMemo(() => {
     if (!cycles || cycles.length === 0) return null
-    if (currentCycleId) {
-      return cycles.find(c => c.id === currentCycleId) || cycles[0]
+    const activeId = selectedCycleId || currentCycleId
+    if (activeId) {
+      return cycles.find(c => c.id === activeId) || cycles[0]
     }
     return cycles[0]
-  }, [cycles, currentCycleId])
+  }, [cycles, currentCycleId, selectedCycleId])
 
   const cycleExpenses = useMemo(() => {
     if (!currentCycle) return []
@@ -2583,6 +2593,7 @@ export function ExpensesView({ initialExpenses, categories: initialCategories, i
           </div>
         </DialogContent>
       </Dialog>
+
     </>
   )
 }

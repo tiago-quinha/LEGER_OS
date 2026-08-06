@@ -1,7 +1,9 @@
 "use client"
 
-import React, { useRef } from "react"
-import { motion, useMotionValue } from "framer-motion"
+import React, { useRef, useTransition } from "react"
+import { motion, useMotionValue, animate } from "framer-motion"
+import { useRouter } from "next/navigation"
+import { shouldPreventSwipe } from "@/hooks/useCycleSwipe"
 
 interface SwipeCycleWrapperProps {
   children: React.ReactNode
@@ -13,9 +15,8 @@ interface SwipeCycleWrapperProps {
 }
 
 /**
- * Clean optimistic swipe wrapper.
- * Provides touch drag tracking and optimistic state switching without
- * DOM component unmounting, blur filters, or page flashes.
+ * High-performance interactive swipe wrapper with Framer Motion spring physics.
+ * Provides live touch drag animation on main content while keeping CycleMobileBar stationary.
  */
 export function SwipeCycleWrapper({
   children,
@@ -25,13 +26,18 @@ export function SwipeCycleWrapper({
   onCycleChange,
   className = "",
 }: SwipeCycleWrapperProps) {
+  const router = useRouter()
+  const [_, startTransition] = useTransition()
   const x = useMotionValue(0)
 
   const touchStartX = useRef<number | null>(null)
   const touchStartY = useRef<number | null>(null)
-  const isEdgeSwipe = useRef<boolean>(false)
   const isHorizontal = useRef<boolean>(false)
   const isTracking = useRef<boolean>(false)
+
+  if (!cycles || cycles.length < 2) {
+    return <div className={className}>{children}</div>
+  }
 
   const currentIndex = cycles.findIndex((c) => c.id === currentCycleId)
   const canPrev = currentIndex < cycles.length - 1 // Older cycle (swipe right)
@@ -42,21 +48,26 @@ export function SwipeCycleWrapper({
       try {
         navigator.vibrate(10)
       } catch {
-        // Fallback
+        // Safe fallback
       }
     }
   }
 
   const handleTouchStart = (e: React.TouchEvent) => {
     if (e.touches.length > 1) return
-    const startX = e.touches[0].clientX
-    touchStartX.current = startX
+
+    const target = e.target as HTMLElement | Element | null
+    if (shouldPreventSwipe(target)) {
+      isTracking.current = false
+      touchStartX.current = null
+      touchStartY.current = null
+      return
+    }
+
+    touchStartX.current = e.touches[0].clientX
     touchStartY.current = e.touches[0].clientY
     isHorizontal.current = false
     isTracking.current = true
-
-    const screenWidth = typeof window !== "undefined" ? window.innerWidth : 375
-    isEdgeSwipe.current = startX < 35 || startX > screenWidth - 35
   }
 
   const handleTouchMove = (e: React.TouchEvent) => {
@@ -72,7 +83,7 @@ export function SwipeCycleWrapper({
         isTracking.current = false
         touchStartX.current = null
         touchStartY.current = null
-        x.set(0)
+        animate(x, 0, { type: "spring", stiffness: 500, damping: 40 })
         return
       }
     }
@@ -80,7 +91,7 @@ export function SwipeCycleWrapper({
     if (isHorizontal.current) {
       let offset = dx
       if ((dx > 0 && !canPrev) || (dx < 0 && !canNext)) {
-        offset = dx * 0.2
+        offset = dx * 0.25 // Resistance at boundaries
       }
       x.set(offset)
     }
@@ -90,32 +101,48 @@ export function SwipeCycleWrapper({
     if (!isTracking.current) return
 
     const currentX = x.get()
-    const threshold = isEdgeSwipe.current ? 85 : 35
+    const threshold = 45
 
     if (Math.abs(currentX) >= threshold) {
       if (currentX < 0 && canNext) {
         triggerHaptic()
         const targetCycle = cycles[currentIndex - 1]
         if (onCycleChange) onCycleChange(targetCycle.id)
-        if (typeof window !== "undefined") {
-          window.history.replaceState(null, "", `${route}?cycleId=${targetCycle.id}`)
-        }
+        startTransition(() => {
+          router.replace(`${route}?cycleId=${targetCycle.id}`, { scroll: false })
+        })
       } else if (currentX > 0 && canPrev) {
         triggerHaptic()
         const targetCycle = cycles[currentIndex + 1]
         if (onCycleChange) onCycleChange(targetCycle.id)
-        if (typeof window !== "undefined") {
-          window.history.replaceState(null, "", `${route}?cycleId=${targetCycle.id}`)
-        }
+        startTransition(() => {
+          router.replace(`${route}?cycleId=${targetCycle.id}`, { scroll: false })
+        })
       }
     }
 
-    x.set(0)
+    // Smooth spring reset animation
+    animate(x, 0, { type: "spring", stiffness: 450, damping: 35 })
     touchStartX.current = null
     touchStartY.current = null
     isHorizontal.current = false
     isTracking.current = false
   }
+
+  const contentChildren: React.ReactNode[] = []
+  const fixedChildren: React.ReactNode[] = []
+
+  React.Children.forEach(children, (child) => {
+    if (
+      React.isValidElement(child) &&
+      ((child.type as any)?.displayName === "CycleMobileBar" ||
+        (typeof child.type === "function" && ((child.type as any).name === "CycleMobileBar" || (child.type as any).displayName === "CycleMobileBar")))
+    ) {
+      fixedChildren.push(child)
+    } else {
+      contentChildren.push(child)
+    }
+  })
 
   return (
     <div
@@ -124,9 +151,11 @@ export function SwipeCycleWrapper({
       onTouchEnd={handleTouchEnd}
       className={`relative w-full touch-pan-y ${className}`}
     >
-      <motion.div style={{ x }} transition={{ type: "spring", stiffness: 400, damping: 35 }} className="w-full">
-        {children}
+      <motion.div style={{ x }} className="w-full will-change-transform">
+        {contentChildren}
       </motion.div>
+      {fixedChildren}
     </div>
   )
 }
+

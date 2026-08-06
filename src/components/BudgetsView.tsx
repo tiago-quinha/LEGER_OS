@@ -1,12 +1,14 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, useTransition } from "react"
 import { motion, AnimatePresence } from "framer-motion"
 import { useRouter } from "next/navigation"
 import { supabase } from "@/lib/supabase"
 import { useCycleSwipe } from "@/hooks/useCycleSwipe"
 import { CycleMobileBar } from "@/components/ui/cycle-mobile-bar"
 import { SwipeCycleWrapper } from "@/components/ui/swipe-cycle-wrapper"
+import { Skeleton } from "@/components/ui/skeleton"
+import BudgetsLoading from "@/app/budgets/loading"
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { Button } from "@/components/ui/button"
@@ -126,7 +128,14 @@ export function BudgetsView({ categories, budgets: initialBudgets, expenses, cyc
     }
   }
 
+  const [isPending, startTransition] = useTransition()
   const [selectedCycleId, setSelectedCycleId] = useState<string>(currentCycleId || cycles[0]?.id || "")
+
+  useEffect(() => {
+    if (currentCycleId) {
+      setSelectedCycleId(currentCycleId)
+    }
+  }, [currentCycleId])
 
   const currentCycle = cycles.find(c => c.id === selectedCycleId) || cycles[0]
   const currentIndex = cycles.findIndex(c => c.id === (currentCycle?.id || ""))
@@ -136,11 +145,17 @@ export function BudgetsView({ categories, budgets: initialBudgets, expenses, cyc
   const cycleMonth = startDate.getMonth() // 0-indexed
   const cycleYear = startDate.getFullYear()
 
+  const handleCycleSelect = (newCycleId: string) => {
+    setSelectedCycleId(newCycleId)
+    startTransition(() => {
+      router.replace(`/budgets?cycleId=${newCycleId}`, { scroll: false })
+    })
+  }
+
   const navigateCycle = (direction: 'prev' | 'next') => {
     const nextIndex = direction === 'prev' ? currentIndex + 1 : currentIndex - 1
     if (cycles[nextIndex]) {
-      setSelectedCycleId(cycles[nextIndex].id)
-      router.push(`/budgets?cycleId=${cycles[nextIndex].id}`, { scroll: false })
+      handleCycleSelect(cycles[nextIndex].id)
     }
   }
 
@@ -148,7 +163,7 @@ export function BudgetsView({ categories, budgets: initialBudgets, expenses, cyc
     cycles,
     currentCycleId: selectedCycleId,
     route: "/budgets",
-    onCycleChange: setSelectedCycleId,
+    onCycleChange: handleCycleSelect,
   })
 
   const handleBudgetChange = (categoryId: string, value: string) => {
@@ -211,13 +226,22 @@ export function BudgetsView({ categories, budgets: initialBudgets, expenses, cyc
   }
 
   return (
-    <motion.div
-      initial={{ opacity: 0, y: 4 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.45, ease: [0.16, 1, 0.3, 1] }}
-      className="mx-auto max-w-[1500px] p-4 md:p-8 space-y-6 w-full pb-20"
+    <SwipeCycleWrapper
+      cycles={cycles}
+      currentCycleId={selectedCycleId}
+      route="/budgets"
+      onCycleChange={handleCycleSelect}
     >
-      {/* 1. Header */}
+      {isPending ? (
+        <BudgetsLoading />
+      ) : (
+        <motion.div
+          initial={{ opacity: 0, y: 4 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.45, ease: [0.16, 1, 0.3, 1] }}
+          className="mx-auto max-w-[1500px] p-4 md:p-8 space-y-6 w-full pb-24 md:pb-8"
+        >
+        {/* 1. Header */}
       <header className="flex items-center justify-between gap-6 border-b border-foreground/10 pb-6 md:pb-8 relative flex-wrap sm:flex-nowrap">
         <div className="space-y-3">
           <div className="flex items-center gap-3 text-[9px] md:text-[10px] font-mono tracking-[0.2em] uppercase text-muted-foreground">
@@ -491,13 +515,16 @@ export function BudgetsView({ categories, budgets: initialBudgets, expenses, cyc
         })}
       </div>
 
+        </motion.div>
+      )}
+
       {/* Mobile sticky cycle nav bar (above bottom nav) */}
       <CycleMobileBar
         cycles={cycles}
         currentCycleId={selectedCycleId}
         route="/budgets"
-        onCycleChange={setSelectedCycleId}
+        onCycleChange={handleCycleSelect}
       />
-    </motion.div>
+    </SwipeCycleWrapper>
   )
 }

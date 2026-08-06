@@ -39,6 +39,9 @@ import { NumberTicker } from "@/components/ui/number-ticker"
 import { PrivacyValue } from "@/components/ui/privacy-value"
 import { useSystem } from "@/lib/SystemContext"
 import { CycleMobileBar } from "@/components/ui/cycle-mobile-bar"
+import { useCycleSwipe } from "@/hooks/useCycleSwipe"
+import { SwipeCycleWrapper } from "@/components/ui/swipe-cycle-wrapper"
+import DashboardLoading from "@/app/loading"
 
 import { Tilt } from "@/components/unlumen-ui/tilt"
 import { ClippedCircle } from "@/components/unlumen-ui/clipped-circle"
@@ -410,15 +413,29 @@ export function DashboardView({
 
   const delta = cycleEndBalance - previousCycleEndBalance
 
+  const handleCycleSelect = (newCycleId: string) => {
+    const targetIdx = cycles.findIndex(c => c.id === newCycleId)
+    if (targetIdx !== -1 && targetIdx !== currentIndex) {
+      setNavigationDirection(targetIdx > currentIndex ? 'prev' : 'next')
+    }
+    startTransition(() => {
+      router.replace(`/?cycleId=${newCycleId}`, { scroll: false })
+    })
+  }
+
   const navigateCycle = (direction: 'prev' | 'next') => {
     const nextIndex = direction === 'prev' ? currentIndex + 1 : currentIndex - 1
     if (cycles[nextIndex]) {
-      setNavigationDirection(direction)
-      startTransition(() => {
-        router.push(`/?cycleId=${cycles[nextIndex].id}`)
-      })
+      handleCycleSelect(cycles[nextIndex].id)
     }
   }
+
+  useCycleSwipe({
+    cycles,
+    currentCycleId,
+    route: "/",
+    onCycleChange: handleCycleSelect,
+  })
 
   const openAudit = (id: string) => {
     setActiveTransactionId(id)
@@ -824,13 +841,22 @@ export function DashboardView({
   const activeBudgets = spendingByCategory.filter(c => c.limit > 0)
 
   return (
-    <motion.div
-      initial={{ opacity: 0, y: 4 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.45, ease: [0.16, 1, 0.3, 1] }}
-      className="mx-auto max-w-[1500px] p-4 md:p-8 space-y-10 md:space-y-16 w-full"
+    <SwipeCycleWrapper
+      cycles={cycles}
+      currentCycleId={currentCycleId}
+      route="/"
+      onCycleChange={handleCycleSelect}
     >
-      {/* 1. Header */}
+      {isPending ? (
+        <DashboardLoading />
+      ) : (
+        <motion.div
+          initial={{ opacity: 0, y: 4 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.45, ease: [0.16, 1, 0.3, 1] }}
+          className="mx-auto max-w-[1500px] p-4 md:p-8 space-y-10 md:space-y-16 w-full"
+        >
+        {/* 1. Header */}
       <header className="flex items-center justify-between gap-6 pb-4 md:pb-6 relative border-b border-border">
         <div className="space-y-1.5">
           <div className="flex items-center gap-3 text-[9px] md:text-[10px] font-sans font-bold tracking-[0.2em] uppercase text-muted-foreground">
@@ -838,7 +864,11 @@ export function DashboardView({
             <span>Active Paycheck Cycle</span>
           </div>
           <h1 className="text-4xl md:text-5xl font-bold tracking-tighter uppercase leading-none break-words">
-            {currentCycle.label.replace('Cycle: ', '')}
+            {isPending ? (
+              <Skeleton className="h-10 w-64 rounded-none" />
+            ) : (
+              currentCycle.label.replace('Cycle: ', '')
+            )}
           </h1>
         </div>
       </header>
@@ -900,8 +930,8 @@ export function DashboardView({
                   </button>
                 </div>
 
-                {/* Mobile-Friendly Cycle Navigation Chevrons inside Toolbar */}
-                <div className="flex items-center border border-border ledger-border bg-card overflow-hidden shrink-0">
+                {/* Cycle Navigation Chevrons (Desktop only; on mobile, sticky bottom bar is used) */}
+                <div className="hidden md:flex items-center border border-border ledger-border bg-card overflow-hidden shrink-0">
                   <button 
                     onClick={() => navigateCycle('prev')} 
                     disabled={isPending || currentIndex >= cycles.length - 1} 
@@ -1827,12 +1857,16 @@ export function DashboardView({
         </DialogContent>
       </Dialog>
 
+        </motion.div>
+      )}
+
       {/* Mobile sticky cycle nav bar (above bottom nav) */}
       <CycleMobileBar
         cycles={cycles}
         currentCycleId={currentCycleId}
         route="/"
+        onCycleChange={handleCycleSelect}
       />
-    </motion.div>
+    </SwipeCycleWrapper>
   )
 }

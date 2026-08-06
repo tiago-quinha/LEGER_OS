@@ -32,7 +32,6 @@ export default async function CategoriesPage({ searchParams }: PageProps) {
 
   return (
     <CategoriesView 
-      key={selectedCycle?.id || "default"}
       expenses={expensesRes.data || []} 
       categories={categoriesRes.data || []}
       cycles={cycles || []}
