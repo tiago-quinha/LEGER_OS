@@ -29,7 +29,8 @@ interface SystemContextType {
   decayWeight: number
   paycheckKeyword: string
   upgradeToPro: () => Promise<void>
-  cancelPro: () => Promise<void>
+  cancelPro: (surveyData?: { reason?: string; feedback?: string }) => Promise<void>
+  claimProDiscount: () => Promise<void>
   
   // UI State
   isPrivacyMode: boolean
@@ -176,7 +177,7 @@ export function SystemProvider({ children }: { children: React.ReactNode }) {
     }
   }
 
-  const cancelPro = async () => {
+  const cancelPro = async (surveyData?: { reason?: string; feedback?: string }) => {
     if (!user) {
       toast.error("Please log in to manage your subscription")
       return
@@ -185,16 +186,42 @@ export function SystemProvider({ children }: { children: React.ReactNode }) {
       const res = await fetch('/api/user/subscription', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ action: 'cancel' })
+        body: JSON.stringify({ 
+          action: 'cancel',
+          reason: surveyData?.reason,
+          feedback: surveyData?.feedback
+        })
       })
       const data = await res.json()
       if (!res.ok) throw new Error(data.error || "Failed to cancel")
 
-      toast.success("LEGER_OS PRO subscription cancelled. Returned to Core Free Tier.")
+      toast.success("LEGER_OS PRO subscription cancelled. Returned to Core Base Tier.")
       await refreshProfile()
       refreshData()
     } catch (err: any) {
       toast.error(err.message || "Failed to cancel subscription")
+    }
+  }
+
+  const claimProDiscount = async () => {
+    if (!user) {
+      toast.error("Please log in to manage your subscription")
+      return
+    }
+    try {
+      const res = await fetch('/api/user/subscription', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'claim_discount' })
+      })
+      const data = await res.json()
+      if (!res.ok) throw new Error(data.error || "Failed to apply discount")
+
+      toast.success("Exclusive 50% discount applied! You retain full PRO access.")
+      await refreshProfile()
+      refreshData()
+    } catch (err: any) {
+      toast.error(err.message || "Failed to apply discount")
     }
   }
 
@@ -225,6 +252,7 @@ export function SystemProvider({ children }: { children: React.ReactNode }) {
       paycheckKeyword,
       upgradeToPro,
       cancelPro,
+      claimProDiscount,
       isPrivacyMode, 
       setPrivacyMode, 
       isAuditPanelOpen, 

@@ -11,7 +11,7 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
     }
 
-    const { action } = await request.json()
+    const { action, reason, feedback, discountCode } = await request.json()
 
     const supabaseAdmin = getAdminClient();
 
@@ -28,7 +28,44 @@ export async function POST(request: Request) {
       if (error) throw error
 
       return NextResponse.json({ success: true, message: "Welcome to LEGER_OS PRO!" })
+    } else if (action === "claim_discount") {
+      const { error } = await supabaseAdmin
+        .from("profiles")
+        .update({
+          subscription_tier: "PRO",
+          ai_quota_limit: 300,
+          ai_quota_usage: 0
+        })
+        .eq("id", user.id)
+
+      if (error) throw error
+
+      return NextResponse.json({ success: true, message: "Retention discount applied! You retain full PRO access at €2.49/mo." })
     } else if (action === "cancel") {
+      // Save survey feedback if provided
+      if (reason || feedback) {
+        const { data: profile } = await supabaseAdmin
+          .from("profiles")
+          .select("ai_journal")
+          .eq("id", user.id)
+          .single()
+
+        const existingJournal = profile?.ai_journal || {}
+        const updatedJournal = {
+          ...existingJournal,
+          churn_survey: {
+            reason: reason || "unspecified",
+            feedback: feedback || "",
+            cancelled_at: new Date().toISOString()
+          }
+        }
+
+        await supabaseAdmin
+          .from("profiles")
+          .update({ ai_journal: updatedJournal })
+          .eq("id", user.id)
+      }
+
       const { error } = await supabaseAdmin
         .from("profiles")
         .update({

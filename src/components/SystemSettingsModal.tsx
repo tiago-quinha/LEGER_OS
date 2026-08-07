@@ -20,6 +20,7 @@ import {
 import { cn } from "@/lib/utils"
 import { GlowingBadge } from "@/components/unlumen-ui/glowing-badge"
 import { ProLockOverlay } from "@/components/ProLockOverlay"
+import { CancelProModal } from "@/components/CancelProModal"
 import { SUPPORTED_CURRENCIES, SUPPORTED_LANGUAGES, getProPrice } from "@/lib/format"
 
 const HABIT_PRESETS = [
@@ -113,6 +114,7 @@ export function SystemSettingsModal({ open, onOpenChange }: SystemSettingsModalP
   const [aiYapLevelInput, setAiYapLevelInput] = useState<"concise" | "standard" | "verbose">("standard")
   const [decayInput, setDecayInput] = useState("0.12")
   const [isSaving, setIsSaving] = useState(false)
+  const [isCancelModalOpen, setIsCancelModalOpen] = useState(false)
 
   // Rules & Habits state
   const [selectedHabits, setSelectedHabits] = useState<string[]>(["groceries", "dining", "transport"])
@@ -1000,24 +1002,30 @@ export function SystemSettingsModal({ open, onOpenChange }: SystemSettingsModalP
               </div>
 
               {/* CORE FREE BASE PLAN */}
-              <div className="p-4 bg-card border border-border space-y-3">
+              <div className="p-3 bg-card/40 border border-border/40 opacity-70 space-y-2 select-none">
                 <div className="flex justify-between items-center">
                   <div>
-                    <h5 className="font-bold text-xs uppercase text-foreground">LEGER_OS CORE BASE</h5>
-                    <p className="text-[9px] text-muted-foreground font-mono">Manual tracking • Free forever</p>
+                    <h5 className="font-bold text-[10px] uppercase text-muted-foreground tracking-wider font-mono">LEGER_OS CORE</h5>
+                    <p className="text-[8px] text-muted-foreground/80 font-mono">Manual tracking • Standard base</p>
                   </div>
-                  <span className="text-xs font-bold font-mono text-muted-foreground">{currencySymbol}0/mo</span>
+                  <span className="text-[10px] font-mono text-muted-foreground">{currencySymbol}0/mo</span>
                 </div>
                 <Button 
                   type="button"
                   disabled={!isPro} 
-                  variant="outline" 
-                  onClick={cancelPro}
-                  className="w-full rounded-none font-mono text-[9px] uppercase h-8 border-border text-muted-foreground hover:text-destructive hover:border-destructive cursor-pointer"
+                  variant="ghost" 
+                  onClick={() => setIsCancelModalOpen(true)}
+                  className="w-full rounded-none font-mono text-[8px] uppercase h-7 text-muted-foreground/60 hover:text-destructive hover:bg-destructive/5 cursor-pointer"
                 >
                   {!isPro ? "Current Active Base Plan" : "Cancel PRO Subscription"}
                 </Button>
               </div>
+
+              {/* HIGH-FRICTION RETENTION CANCEL MODAL */}
+              <CancelProModal 
+                isOpen={isCancelModalOpen} 
+                onClose={() => setIsCancelModalOpen(false)} 
+              />
             </TabsContent>
 
             {/* TAB 6: ACCOUNT & SECURITY */}

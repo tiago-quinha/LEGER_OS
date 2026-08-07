@@ -23,6 +23,7 @@ import { cn } from "@/lib/utils"
 import { PrivacyValue } from "@/components/ui/privacy-value"
 import { GlowingBadge } from "@/components/unlumen-ui/glowing-badge"
 import { ProLockOverlay } from "@/components/ProLockOverlay"
+import { CancelProModal } from "@/components/CancelProModal"
 import { SUPPORTED_CURRENCIES, SUPPORTED_LANGUAGES } from "@/lib/format"
 
 const HABIT_PRESETS = [
@@ -111,6 +112,7 @@ export function SystemConfigView() {
   const [decayInput, setDecayInput] = useState("0.12")
   const [aiYapLevelInput, setAiYapLevelInput] = useState<"concise" | "standard" | "verbose">("standard")
   const [isSavingProfile, setIsSavingProfile] = useState(false)
+  const [isCancelModalOpen, setIsCancelModalOpen] = useState(false)
 
   // Rules & Habits state
   const [selectedHabits, setSelectedHabits] = useState<string[]>(["groceries", "dining", "transport"])
@@ -1054,7 +1056,7 @@ export function SystemConfigView() {
                     <div className="text-xs text-muted-foreground font-sans mt-0.5 uppercase font-bold">Full access to predictive analytics, neural bridge and push sync.</div>
                   </div>
                   <Button
-                    onClick={cancelPro}
+                    onClick={() => setIsCancelModalOpen(true)}
                     variant="outline"
                     className="w-full sm:w-auto px-8 h-11 rounded-none border-destructive text-destructive hover:bg-destructive/15 text-xs uppercase font-bold tracking-widest cursor-pointer"
                   >
@@ -1064,6 +1066,11 @@ export function SystemConfigView() {
               )}
             </CardContent>
           </Card>
+
+          <CancelProModal 
+            isOpen={isCancelModalOpen} 
+            onClose={() => setIsCancelModalOpen(false)} 
+          />
         </TabsContent>
 
         {/* TAB 6: DEV TOOLS (SUPER USERS ONLY) */}
