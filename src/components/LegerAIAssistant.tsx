@@ -199,7 +199,7 @@ function TypewriterText({ text, speed = 6, onComplete }: { text: string; speed?:
 }
 
 export function LegerAIAssistant() {
-  const { profile, user, refreshProfile, currencySymbol, language, aiProvider, customApiKey, isPro, setSettingsOpen, setSettingsActiveTab, setSubscriptionOnly } = useSystem()
+  const { profile, user, refreshProfile, currencySymbol, language, aiProvider, customApiKey, isPro, isSettingsOpen, setSettingsOpen, setSettingsActiveTab, setSubscriptionOnly } = useSystem()
   const pathname = usePathname()
   const sheetDragControls = useDragControls()
   
@@ -824,7 +824,7 @@ export function LegerAIAssistant() {
           }}
           className={cn(
             "absolute pointer-events-auto bottom-36 md:bottom-6 right-6 z-[9999] cursor-grab active:cursor-grabbing",
-            isOpen && "hidden sm:block"
+            (isOpen || isSettingsOpen || pathname === "/leger-ai") && "hidden"
           )}
           whileHover={{ scale: 1.05 }}
           whileTap={{ scale: 0.95 }}
