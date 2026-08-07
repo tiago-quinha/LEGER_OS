@@ -361,10 +361,10 @@ export function AnalyticsView({ expenses, categories, paychecks: initialPaycheck
       {/* 3. Key Metrics */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
         {[
-          { label: "CURRENT_BURN", value: currentCycle.spending, sub: `STARTED ${currentCycle.dateLabel}`, icon: Activity },
-          { label: "PREVIOUS_BURN", value: previousCycle?.spending || 0, sub: previousCycle ? `STARTED ${previousCycle.dateLabel}` : "INITIAL_DATA", icon: History },
-          { label: "CYCLE_VELOCITY", value: Math.abs(cycleChange), prefix: cycleChange > 0 ? "+" : "-", suffix: "%", color: cycleChange > 0 ? "text-destructive" : "text-emerald-500", icon: Percent },
-          { label: "LIFETIME_AVG", value: averageSpending, sub: "MEAN_CONSUMPTION", icon: ShieldCheck }
+          { label: "Current Spending", value: currentCycle.spending, sub: `Started ${currentCycle.dateLabel}`, icon: Activity },
+          { label: "Previous Spending", value: previousCycle?.spending || 0, sub: previousCycle ? `Started ${previousCycle.dateLabel}` : "Initial Baseline", icon: History },
+          { label: "Cycle Velocity", value: Math.abs(cycleChange), prefix: cycleChange > 0 ? "+" : "-", suffix: "%", color: cycleChange > 0 ? "text-destructive" : "text-emerald-500", icon: Percent },
+          { label: "Lifetime Average", value: averageSpending, sub: "Average Consumption", icon: ShieldCheck }
         ].map((metric, idx) => (
           <Tilt key={idx} rotationFactor={6} className="p-6 md:p-8 space-y-4 bg-card/20 border border-border relative group overflow-hidden flex flex-col justify-between glow-card">
             <div className="flex items-center justify-between opacity-40 group-hover:opacity-100 transition-opacity">
@@ -380,7 +380,7 @@ export function AnalyticsView({ expenses, categories, paychecks: initialPaycheck
                 )}
               </PrivacyValue>
             </div>
-            <p className="text-[8px] md:text-[10px] font-mono text-muted-foreground uppercase tracking-widest">{metric.sub || (cycleChange > 0 ? "VELOCITY_INCREASE" : "VELOCITY_OPTIMIZED")}</p>
+            <p className="text-[8px] md:text-[10px] font-mono text-muted-foreground uppercase tracking-widest">{metric.sub || (cycleChange > 0 ? "Spending Increase" : "Spending Optimized")}</p>
           </Tilt>
         ))}
       </div>

@@ -1214,7 +1214,7 @@ export function DashboardView({
                     {isPro ? (
                       <PrivacyValue>{currencySymbol}{estimatedFinalBalance.toFixed(2)} Est.</PrivacyValue>
                     ) : (
-                      "PRO_LOCKED"
+                      "PRO Locked"
                     )}
                   </span>
                 </div>
