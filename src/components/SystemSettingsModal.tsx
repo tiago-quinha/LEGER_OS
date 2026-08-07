@@ -351,7 +351,7 @@ export function SystemSettingsModal({ open, onOpenChange }: SystemSettingsModalP
 
   return (
     <Dialog open={open} onOpenChange={handleOpenChange}>
-      <DialogContent className="bg-card border border-border rounded-none p-4 sm:p-6 font-mono text-xs w-[96vw] sm:max-w-2xl md:max-w-3xl lg:max-w-4xl shadow-2xl overflow-hidden max-h-[92vh] flex flex-col">
+      <DialogContent className="bg-card border border-border rounded-none p-4 sm:p-6 font-mono text-xs w-[96vw] sm:max-w-2xl md:max-w-3xl lg:max-w-4xl shadow-2xl overflow-hidden h-[650px] max-h-[92vh] flex flex-col">
         {/* Modal Header */}
         <DialogHeader className="border-b border-border pb-4 pr-8 shrink-0">
           <div className="flex items-center justify-between gap-3">
@@ -369,10 +369,10 @@ export function SystemSettingsModal({ open, onOpenChange }: SystemSettingsModalP
         </DialogHeader>
 
         {/* Modal Tabs & Body */}
-        <div className="flex-1 overflow-y-auto pt-4 space-y-4 pr-1">
-          <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full space-y-4">
+        <div className="flex-1 flex flex-col min-h-0 pt-4 overflow-hidden">
+          <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full flex-1 flex flex-col min-h-0 space-y-4 overflow-hidden">
             <TabsList className={cn(
-              "bg-secondary/40 border border-border rounded-none p-1 !h-auto w-full grid gap-1",
+              "bg-secondary/40 border border-border rounded-none p-1 !h-auto w-full grid gap-1 shrink-0",
               isSuperUser ? "grid-cols-3 sm:grid-cols-7" : "grid-cols-3 sm:grid-cols-6"
             )}>
               <TabsTrigger value="preferences" className="rounded-none h-9 px-2 text-[10px] uppercase tracking-wider font-mono font-bold flex items-center justify-center gap-1">
@@ -401,7 +401,7 @@ export function SystemSettingsModal({ open, onOpenChange }: SystemSettingsModalP
             </TabsList>
 
             {/* TAB 1: GENERAL PREFERENCES */}
-            <TabsContent value="preferences" className="space-y-4">
+            <TabsContent value="preferences" className="space-y-4 flex-1 overflow-y-auto pr-1 min-h-0">
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div className="p-3 bg-card border border-border space-y-1.5">
                   <div className="flex items-center justify-between">
@@ -585,7 +585,7 @@ export function SystemSettingsModal({ open, onOpenChange }: SystemSettingsModalP
             </TabsContent>
 
             {/* TAB 2: AI ENGINE CONFIG */}
-            <TabsContent value="ai" className="space-y-4">
+            <TabsContent value="ai" className="space-y-4 flex-1 overflow-y-auto pr-1 min-h-0">
               <form onSubmit={handleSaveSettings} className="space-y-4">
                 <div className="p-4 bg-secondary/10 border border-border space-y-3">
                   <div className="space-y-1">
@@ -705,7 +705,7 @@ export function SystemSettingsModal({ open, onOpenChange }: SystemSettingsModalP
             </TabsContent>
 
             {/* TAB 3: HABITS & MERCHANT RULES */}
-            <TabsContent value="habits" className="space-y-4">
+            <TabsContent value="habits" className="space-y-4 flex-1 overflow-y-auto pr-1 min-h-0">
               <div className="p-4 bg-card border border-border space-y-4">
                 <div className="space-y-2">
                   <span className="text-[10px] font-mono uppercase font-bold text-muted-foreground block">
@@ -827,7 +827,7 @@ export function SystemSettingsModal({ open, onOpenChange }: SystemSettingsModalP
             </TabsContent>
 
             {/* TAB 4: PHONE SYNC */}
-            <TabsContent value="phone" className="space-y-4">
+            <TabsContent value="phone" className="space-y-4 flex-1 overflow-y-auto pr-1 min-h-0">
               <div className="p-4 bg-card border border-border space-y-3">
                 <div className="space-y-1">
                   <div className="flex items-center justify-between">
@@ -903,7 +903,7 @@ export function SystemSettingsModal({ open, onOpenChange }: SystemSettingsModalP
             </TabsContent>
 
             {/* TAB 5: PRO PLAN */}
-            <TabsContent value="pro" className="space-y-4">
+            <TabsContent value="pro" className="space-y-4 flex-1 overflow-y-auto pr-1 min-h-0">
               <div className="p-4 bg-emerald-500/10 border border-emerald-500/30 space-y-2">
                 <div className="flex items-center justify-between">
                   <h4 className="text-xs font-bold uppercase tracking-wider flex items-center gap-1.5 text-emerald-500 font-mono">
@@ -980,7 +980,7 @@ export function SystemSettingsModal({ open, onOpenChange }: SystemSettingsModalP
             </TabsContent>
 
             {/* TAB 6: ACCOUNT & SECURITY */}
-            <TabsContent value="account" className="space-y-4">
+            <TabsContent value="account" className="space-y-4 flex-1 overflow-y-auto pr-1 min-h-0">
               <div className="p-4 bg-card border border-border space-y-3">
                 <div className="flex items-center justify-between">
                   <div>
@@ -1041,7 +1041,7 @@ export function SystemSettingsModal({ open, onOpenChange }: SystemSettingsModalP
 
             {/* TAB 7: DEV TOOLS (SUPER USERS ONLY) */}
             {isSuperUser && (
-              <TabsContent value="devtools" className="space-y-4">
+              <TabsContent value="devtools" className="space-y-4 flex-1 overflow-y-auto pr-1 min-h-0">
                 <div className="p-4 bg-card border border-border space-y-4">
                   <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 text-[10px] uppercase border border-border p-3 bg-secondary/10">
                     <div>
