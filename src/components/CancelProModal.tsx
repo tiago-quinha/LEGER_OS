@@ -2,7 +2,7 @@
 
 import React, { useState } from "react"
 import { motion, AnimatePresence } from "framer-motion"
-import { AlertTriangle, Check, X, ShieldAlert, Sparkles, HelpCircle, ArrowRight, ArrowLeft } from "lucide-react"
+import { AlertTriangle, Check, X, ShieldAlert, Sparkles, ArrowRight, ArrowLeft } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { useSystem } from "@/lib/SystemContext"
 import { getProPrice } from "@/lib/format"
@@ -258,58 +258,36 @@ export function CancelProModal({ isOpen, onClose }: CancelProModalProps) {
                     </p>
                   </div>
 
-                  {(selectedReason === "too_expensive" || selectedReason === "not_using_enough" || !selectedReason) ? (
-                    <div className="p-5 bg-emerald-500/10 border-2 border-emerald-500/50 space-y-4 relative overflow-hidden shadow-lg">
-                      <div className="inline-block bg-emerald-500 text-black font-mono font-bold text-[9px] px-2 py-0.5 uppercase">
-                        EXCLUSIVE 50% RETENTION DISCOUNT
-                      </div>
-
-                      <div className="space-y-1">
-                        <span className="text-sm font-bold uppercase text-emerald-500 flex items-center gap-1.5 font-mono">
-                          <Sparkles className="h-4 w-4" /> We'll keep you on PRO for {halfPriceFormatted}/mo
-                        </span>
-                        <p className="text-xs text-foreground font-sans leading-relaxed">
-                          Stay with us at <strong>{halfPriceFormatted}/month</strong> (50% OFF for 3 months). You keep all your bank push notifications, statement parsing & forecasts.
-                        </p>
-                      </div>
-
-                      <div className="p-3 bg-background/80 border border-emerald-500/30 text-xs font-mono flex items-center justify-between">
-                        <span className="text-muted-foreground uppercase">Standard: <span className="line-through">{proPrice.formatted}/mo</span></span>
-                        <span className="font-bold text-emerald-500 text-base">{halfPriceFormatted} / month</span>
-                      </div>
-
-                      <Button
-                        disabled={isSubmitting}
-                        onClick={handleClaimDiscount}
-                        className="w-full h-12 rounded-none bg-emerald-500 text-black hover:bg-emerald-400 font-mono text-xs uppercase font-bold tracking-wider cursor-pointer shadow-md"
-                      >
-                        {isSubmitting ? "APPLYING..." : `Claim 50% Discount (${halfPriceFormatted}/mo)`}
-                      </Button>
+                  <div className="p-5 bg-emerald-500/10 border-2 border-emerald-500/50 space-y-4 relative overflow-hidden shadow-lg">
+                    <div className="inline-block bg-emerald-500 text-black font-mono font-bold text-[9px] px-2 py-0.5 uppercase">
+                      EXCLUSIVE 50% RETENTION DISCOUNT
                     </div>
-                  ) : (
-                    <div className="p-5 bg-primary/10 border-2 border-primary/30 space-y-4 relative overflow-hidden shadow-lg">
-                      <div className="inline-block bg-foreground text-background font-mono font-bold text-[9px] px-2 py-0.5 uppercase">
-                        VIP SUPPORT OFFER
-                      </div>
 
-                      <div className="space-y-1">
-                        <span className="text-sm font-bold uppercase text-foreground flex items-center gap-1.5 font-mono">
-                          <HelpCircle className="h-4 w-4 text-primary" /> Let us help you get set up
-                        </span>
-                        <p className="text-xs text-muted-foreground font-sans leading-relaxed">
-                          We'll give you <strong>1 month of PRO free</strong> + direct help configuring your bank push rules and custom category triggers.
-                        </p>
-                      </div>
-
-                      <Button
-                        disabled={isSubmitting}
-                        onClick={handleClaimDiscount}
-                        className="w-full h-12 rounded-none bg-foreground text-background hover:bg-foreground/90 font-mono text-xs uppercase font-bold tracking-wider cursor-pointer shadow-md"
-                      >
-                        {isSubmitting ? "APPLYING..." : "Claim 1 Month Free PRO"}
-                      </Button>
+                    <div className="space-y-1">
+                      <span className="text-sm font-bold uppercase text-emerald-500 flex items-center gap-1.5 font-mono">
+                        <Sparkles className="h-4 w-4" /> We'll keep you on PRO for {halfPriceFormatted}/mo
+                      </span>
+                      <p className="text-xs text-foreground font-sans leading-relaxed">
+                        {(selectedReason === "missing_features" || selectedReason === "technical_issues")
+                          ? <>Stay with us at <strong>{halfPriceFormatted}/month</strong> (50% OFF for 3 months) while we work on improvements. You keep all your existing features.</>
+                          : <>Stay with us at <strong>{halfPriceFormatted}/month</strong> (50% OFF for 3 months). You keep all your bank push notifications, statement parsing & forecasts.</>
+                        }
+                      </p>
                     </div>
-                  )}
+
+                    <div className="p-3 bg-background/80 border border-emerald-500/30 text-xs font-mono flex items-center justify-between">
+                      <span className="text-muted-foreground uppercase">Standard: <span className="line-through">{proPrice.formatted}/mo</span></span>
+                      <span className="font-bold text-emerald-500 text-base">{halfPriceFormatted} / month</span>
+                    </div>
+
+                    <Button
+                      disabled={isSubmitting}
+                      onClick={handleClaimDiscount}
+                      className="w-full h-12 rounded-none bg-emerald-500 text-black hover:bg-emerald-400 font-mono text-xs uppercase font-bold tracking-wider cursor-pointer shadow-md"
+                    >
+                      {isSubmitting ? "APPLYING..." : `Claim 50% Discount (${halfPriceFormatted}/mo)`}
+                    </Button>
+                  </div>
 
                   <div className="pt-4 text-center">
                     <button
