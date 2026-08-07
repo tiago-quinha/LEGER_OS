@@ -360,7 +360,7 @@ export function SystemSettingsModal({ open, onOpenChange }: SystemSettingsModalP
               <span>System Settings & Configuration</span>
             </DialogTitle>
             <GlowingBadge variant={isPro ? "success" : "neutral"} pulse={isPro} dot={true} className="text-[9px] shrink-0">
-              {isPro ? "PRO_ACTIVE" : "CORE_FREE"}
+              {isPro ? "PRO Active" : "Core Free"}
             </GlowingBadge>
           </div>
           <DialogDescription className="text-[10px] uppercase tracking-wider text-muted-foreground mt-1">
@@ -853,7 +853,7 @@ export function SystemSettingsModal({ open, onOpenChange }: SystemSettingsModalP
                     <div className="p-3 bg-emerald-500/10 border border-emerald-500/30 space-y-2">
                       <div className="font-mono text-[10px] font-bold text-emerald-500 uppercase flex items-center gap-1.5">
                         <Lock className="h-3.5 w-3.5 text-emerald-500 shrink-0" />
-                        <span>ENDPOINT LOCKED ON CORE FREE TIER</span>
+                        <span>Endpoint Locked on Core Free Tier</span>
                       </div>
                       <p className="text-[10px] text-muted-foreground font-sans leading-relaxed">
                         Automated real-time push notification posting requires a LEGER_OS PRO node. Upgrade to PRO to activate your unique phone webhook URL.
@@ -1047,7 +1047,7 @@ export function SystemSettingsModal({ open, onOpenChange }: SystemSettingsModalP
                   <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 text-[10px] uppercase border border-border p-3 bg-secondary/10">
                     <div>
                       <span className="text-muted-foreground block text-[8px]">Auth Role:</span>
-                      <span className="font-bold text-foreground">{profile?.role?.toUpperCase() || "SUPER_USER"}</span>
+                      <span className="font-bold text-foreground">{profile?.role ? profile.role.toUpperCase().replace("_", " ") : "Super User"}</span>
                     </div>
                     <div>
                       <span className="text-muted-foreground block text-[8px]">Node ID:</span>

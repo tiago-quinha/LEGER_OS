@@ -36,7 +36,7 @@ export function ProLockOverlay({
             <Lock className="h-3.5 w-3.5 text-emerald-500 shrink-0" />
             <span>{title}</span>
           </span>
-          <GlowingBadge variant="success" pulse dot className="text-[8px]">PRO_LOCKED</GlowingBadge>
+          <GlowingBadge variant="success" pulse dot className="text-[8px]">PRO Locked</GlowingBadge>
         </div>
         <p className="text-[10px] text-muted-foreground font-sans leading-relaxed">
           {description}
@@ -63,7 +63,7 @@ export function ProLockOverlay({
           <span className="font-mono text-xs font-bold text-emerald-500 uppercase tracking-widest">
             {title}
           </span>
-          <GlowingBadge variant="success" pulse dot className="text-[8px]">PRO_LOCKED</GlowingBadge>
+          <GlowingBadge variant="success" pulse dot className="text-[8px]">PRO Locked</GlowingBadge>
         </div>
         <p className="text-[10px] text-muted-foreground font-sans leading-relaxed">
           {description}

@@ -395,7 +395,7 @@ export function SystemConfigView() {
         {/* Quick Toolbar Controls */}
         <div className="flex flex-wrap items-center gap-2.5">
           <GlowingBadge variant={isPro ? "success" : "neutral"} pulse={true} dot={true} className="text-[10px] uppercase">
-            {isPro ? "PRO_ACTIVE" : "CORE_FREE"}
+            {isPro ? "PRO Active" : "Core Free"}
           </GlowingBadge>
 
           {/* Privacy Toggle */}
@@ -1028,7 +1028,7 @@ export function SystemConfigView() {
                 </h3>
               </div>
               <GlowingBadge variant={isPro ? "success" : "neutral"} pulse={true} dot={true} className="text-xs py-1 px-3">
-                {isPro ? "PRO_UNLOCKED" : "CORE_FREE_TIER"}
+                {isPro ? "PRO Unlocked" : "Core Free Tier"}
               </GlowingBadge>
             </div>
             <CardContent className="px-6 py-6 space-y-6">

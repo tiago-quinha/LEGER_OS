@@ -19,10 +19,10 @@ export default function ForbiddenPage() {
         <div className="flex items-center justify-between border-b border-border pb-4">
           <div className="flex items-center gap-2 text-[10px] text-muted-foreground uppercase tracking-widest">
             <ShieldAlert className="h-4 w-4 text-destructive" />
-            <span>SECURITY_GATEKEEPER</span>
+            <span>Security & Permissions</span>
           </div>
           <GlowingBadge variant="error" pulse dot className="text-[9px] uppercase">
-            HTTP_403_DENIED
+            Access Forbidden
           </GlowingBadge>
         </div>
 
