@@ -266,7 +266,8 @@ export function LegerAIAssistant() {
         const recognition = new SpeechRecognition()
         recognition.continuous = false
         recognition.interimResults = false
-        recognition.lang = language || "en-US"
+        const speechLang = language || "en-US"
+        recognition.lang = speechLang
 
         recognition.onstart = () => setIsListening(true)
         recognition.onend = () => setIsListening(false)
@@ -274,8 +275,18 @@ export function LegerAIAssistant() {
           const transcript = event.results[0][0].transcript
           setInputVal(prev => (prev ? `${prev} ${transcript}` : transcript))
         }
-        recognition.onerror = () => {
+        recognition.onerror = (event: any) => {
           setIsListening(false)
+          if (event?.error === "language-not-supported" && speechLang.startsWith("pt")) {
+            // Fall back to closest available Portuguese locale
+            try {
+              recognition.lang = "pt-BR"
+              recognition.start()
+              return
+            } catch (e) {
+              // Ignore fallback error
+            }
+          }
           toast.error("Voice input error. Try speaking closer to the microphone.")
         }
         recognitionRef.current = recognition

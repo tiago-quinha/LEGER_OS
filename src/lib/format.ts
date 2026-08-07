@@ -12,10 +12,16 @@ export const SUPPORTED_CURRENCIES: Record<string, { symbol: string; name: string
 export const SUPPORTED_LANGUAGES: Record<string, { name: string }> = {
   "en-US": { name: "English (US)" },
   "en-GB": { name: "English (UK)" },
+  "pt-PT": { name: "Português (Portugal)" },
   "pt-BR": { name: "Português (Brasil)" },
-  "es-ES": { name: "Español" },
-  "de-DE": { name: "Deutsch" },
-  "fr-FR": { name: "Français" },
+  "es-ES": { name: "Español (España)" },
+  "es-MX": { name: "Español (México)" },
+  "fr-FR": { name: "Français (France)" },
+  "de-DE": { name: "Deutsch (Deutschland)" },
+  "it-IT": { name: "Italiano (Italia)" },
+  "nl-NL": { name: "Nederlands (Nederland)" },
+  "ja-JP": { name: "日本語 (Japanese)" },
+  "zh-CN": { name: "简体中文 (Chinese)" },
 };
 
 export function getCurrencySymbol(currencyCode: string = "EUR"): string {
