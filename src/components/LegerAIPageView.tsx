@@ -46,7 +46,6 @@ export function LegerAIPageView({ cycleData, expenses, categories }: LegerAIPage
   const [newMemoryText, setNewMemoryText] = useState("")
   const [isLoading, setIsLoading] = useState(false)
   const [isSubmitting, setIsSubmitting] = useState(false)
-  const [showUpdatedBanner, setShowUpdatedBanner] = useState(false)
 
   // Clickable memory states (Edit Modal)
   const [selectedMemory, setSelectedMemory] = useState<Memory | null>(null)
@@ -108,13 +107,9 @@ export function LegerAIPageView({ cycleData, expenses, categories }: LegerAIPage
         const data = await response.json()
         setMemories(data.memories || [])
         setNewMemoryText("")
-        setShowUpdatedBanner(true)
         toast.success("Context applied", {
           description: `AI successfully analyzed and registered: "${data.memory.content}"`
         })
-        
-        // Hide update banner after 5 seconds
-        setTimeout(() => setShowUpdatedBanner(false), 6000)
         
         // Refresh system context profile
         await refreshProfile()
@@ -327,31 +322,7 @@ export function LegerAIPageView({ cycleData, expenses, categories }: LegerAIPage
       transition={{ duration: 0.45, ease: [0.16, 1, 0.3, 1] }}
       className="mx-auto max-w-[1500px] p-4 md:p-8 space-y-10 md:space-y-12 pb-36 md:pb-8 w-full"
     >
-      {/* Dynamic Success Notification Banner */}
-      <AnimatePresence>
-        {showUpdatedBanner && (
-          <motion.div 
-            initial={{ opacity: 0, y: -16, scale: 0.95 }}
-            animate={{ opacity: 1, y: 0, scale: 1 }}
-            exit={{ opacity: 0, y: -16, scale: 0.95 }}
-            className="flex items-center gap-3 p-4 border border-emerald-500/20 bg-emerald-500/5 shadow-[0_0_20px_rgba(16,185,129,0.05)] text-xs font-mono w-full relative mb-6"
-          >
-            <div className="w-5 h-5 rounded bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center text-emerald-500 shrink-0">
-              <ShieldCheck className="h-3.5 w-3.5" />
-            </div>
-            <div className="space-y-0.5">
-              <p className="font-bold text-emerald-500 uppercase tracking-wider">Context updated</p>
-              <p className="text-[10px] text-muted-foreground">New active lifestyle parameter applied to strategic forecasting.</p>
-            </div>
-            <button 
-              onClick={() => setShowUpdatedBanner(false)}
-              className="absolute right-4 text-muted-foreground hover:text-foreground transition-colors cursor-pointer"
-            >
-              <X className="h-3.5 w-3.5" />
-            </button>
-          </motion.div>
-        )}
-      </AnimatePresence>
+
 
       {/* 1. Header */}
       <header className="flex flex-col md:flex-row md:items-center justify-between gap-6 md:gap-8 border-b border-foreground/10 pb-6 md:pb-8 relative">
