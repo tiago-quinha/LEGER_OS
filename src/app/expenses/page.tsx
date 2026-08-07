@@ -18,8 +18,7 @@ export default async function ExpensesPage({ searchParams }: PageProps) {
     supabase
       .from("tracker_expense")
       .select("id, amount, merchant, date, source, category_id, raw_text, is_anomaly")
-      .order("date", { ascending: false })
-      .limit(500),
+      .order("date", { ascending: false }),
     supabase
       .from("categories")
       .select("*")
