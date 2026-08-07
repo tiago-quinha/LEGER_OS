@@ -641,6 +641,7 @@ export function LegerAIAssistant() {
                     title="LEGER_AI ASSISTANT (PRO)"
                     description="Conversational queries, natural language habit overrides, and dynamic projection simulation adjustments are exclusive to LEGER_OS PRO nodes."
                     className="w-full max-w-sm rounded-none shadow-xl border border-emerald-500/30"
+                    onUpgrade={() => setIsOpen(false)}
                   />
                 </div>
               ) : (

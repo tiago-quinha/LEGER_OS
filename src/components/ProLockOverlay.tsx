@@ -11,13 +11,15 @@ interface ProLockOverlayProps {
   description?: string
   className?: string
   compact?: boolean
+  onUpgrade?: () => void
 }
 
 export function ProLockOverlay({ 
   title = "PRO TIER FEATURE", 
   description = "This feature is reserved for LEGER_OS PRO nodes. Upgrade to unlock real-time neural automation and predictive simulations.", 
   className,
-  compact = false
+  compact = false,
+  onUpgrade
 }: ProLockOverlayProps) {
   const { setSettingsOpen, setSettingsActiveTab, setSubscriptionOnly } = useSystem()
 
@@ -25,6 +27,9 @@ export function ProLockOverlay({
     setSettingsActiveTab("pro")
     setSubscriptionOnly(true)
     setSettingsOpen(true)
+    if (onUpgrade) {
+      onUpgrade()
+    }
   }
 
   if (compact) {
