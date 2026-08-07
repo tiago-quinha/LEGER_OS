@@ -832,24 +832,16 @@ export function LegerAIAssistant() {
           whileTap={{ scale: 0.95 }}
         >
           <button
-            onClick={() => {
-              if (!isPro) {
-                setSettingsActiveTab("pro")
-                setSubscriptionOnly(true)
-                setSettingsOpen(true)
-              } else {
-                setIsOpen(!isOpen)
-              }
-            }}
-            className="w-12 h-12 rounded-full bg-foreground text-background flex items-center justify-center shadow-2xl relative border border-border border-white/20 select-none overflow-hidden transition-all duration-300 hover:shadow-[0_0_15px_rgba(255,255,255,0.25)] dark:hover:shadow-[0_0_15px_rgba(16,185,129,0.25)]"
+            onClick={() => setIsOpen(!isOpen)}
+            className="w-12 h-12 rounded-full bg-foreground text-background flex items-center justify-center shadow-2xl relative border border-border border-white/20 select-none overflow-hidden transition-all duration-300 hover:shadow-[0_0_15px_rgba(255,255,255,0.25)]"
           >
             {isOpen ? (
               <X className="h-5 w-5 animate-pulse" />
             ) : !isPro ? (
               <div className="relative flex items-center justify-center">
                 <Brain className="h-5 w-5 text-background/80" />
-                <span className="absolute -top-1.5 -right-1.5 w-4 h-4 bg-emerald-500 text-black rounded-full flex items-center justify-center border border-foreground shadow-sm">
-                  <Lock className="h-2.5 w-2.5 text-black" />
+                <span className="absolute -top-1.5 -right-1.5 w-4 h-4 bg-card text-foreground rounded-full flex items-center justify-center border border-border shadow-md">
+                  <Lock className="h-2.5 w-2.5 text-muted-foreground" />
                 </span>
               </div>
             ) : (
