@@ -58,11 +58,12 @@ npm run dev
 ```
 
 ### Production Deployment
-To deploy application changes directly to live production on Vercel, execute the Vercel CLI directly in the terminal:
+To deploy application changes directly to live production on Vercel, merge your feature branch into `master` and execute the Vercel CLI directly in the terminal:
 ```bash
-npx vercel --prod --yes
+git checkout master && git merge <feature-branch>
+npx vercel --prod --force --yes
 ```
-**Note:** Do NOT rely on `git push` for triggering production deployments, as the local workspace repository does not maintain a configured remote tracking destination.
+**Note:** Do NOT rely on `git push` for triggering production deployments, as the local workspace repository does not maintain a configured remote tracking destination. Always merge feature changes into `master` prior to deployment. To set or assign production domain aliases, use `npx vercel alias set <target-url> leger-os.vercel.app`.
 
 ### Python Tools
 Requires a Python environment with the following dependencies:
@@ -91,3 +92,4 @@ Most scripts rely on a `.env` file containing:
 13. **Mobile Layout Normalization Invariant:** Every subview page (e.g., `/leger-ai`, `/expenses`) must match the standard layout theme and outer wrapper spacing. The root wrapper of all subpages must use standard padding and centering options: `className="mx-auto max-w-[1500px] p-4 md:p-8 space-y-10 md:space-y-12 pb-24 md:pb-8 w-full"`. This ensures horizontal padding on mobile is never omitted, and layout width centers cleanly on desktop viewports.
 14. **Optimistic UI updates:** Make standard user modifications (e.g., configuring context, deleting items) feel instant. Optimistically update local React state arrays, close dialog overlays, and show success feedback toasts immediately while executing network queries in the background. If a background write fails, catch the error, roll back local state to the original values, and show an error toast.
 15. **Route-Specific Loading Skeletons:** To prevent visual layout shifts, do not rely on the global loading skeleton (`src/app/loading.tsx`) for distinct subpages. Define a folder-specific `loading.tsx` inside the page's subroute directory to duplicate its actual layout and components as skeleton blocks.
+16. **Viewport-Aware Render Invariant:** For tall mobile subpages and dashboard views, wrap below-the-fold layout sections in `[content-visibility:auto] [contain-intrinsic-size:1px_300px]`. This skips off-screen layout/paint rendering during horizontal swipe animations and scroll passes, maintaining 60fps gesture response.
