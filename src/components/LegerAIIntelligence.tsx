@@ -204,7 +204,7 @@ export function LegerAIIntelligence({ cycleData }: LegerAIIntelligenceProps) {
                </div>
                  <div className="flex flex-col sm:flex-row gap-3 justify-between items-stretch sm:items-center pt-4 border-t border-border/50">
                     <div className="flex items-center gap-4 text-[8px] font-mono opacity-40 italic uppercase">
-                       <span>Model: Gemini Flash Node</span>
+                       <span>Engine: AI Intelligence Node</span>
                     </div>
                     <div className="flex gap-3">
                        <button 

@@ -145,7 +145,7 @@ export function IntelligenceHub({ isOpen, onClose, cycleData }: IntelligenceHubP
 
                     {/* Meta Footer */}
                     <div className="pt-8 border-t border-border flex items-center justify-between opacity-40 font-mono text-[8px] uppercase">
-                       <span>Processed by Gemini Pro</span>
+                       <span>Processed by AI Processing Engine</span>
                        <span>Leger_OS Secure Node</span>
                     </div>
                   </>

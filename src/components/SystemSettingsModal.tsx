@@ -978,7 +978,7 @@ export function SystemSettingsModal({ open, onOpenChange }: SystemSettingsModalP
                   </div>
                   <div className="flex items-center gap-2 p-2 bg-secondary/30 border border-border/40">
                     <Check className="h-3.5 w-3.5 text-emerald-500 shrink-0" />
-                    <span className="text-foreground font-bold">Gemini 2.5 Pro Neural Ingestion</span>
+                    <span className="text-foreground font-bold">AI Neural Ingestion & Categorization</span>
                   </div>
                   <div className="flex items-center gap-2 p-2 bg-secondary/30 border border-border/40">
                     <Check className="h-3.5 w-3.5 text-emerald-500 shrink-0" />
