@@ -21,7 +21,7 @@ export default function ForbiddenPage() {
             <ShieldAlert className="h-4 w-4 text-destructive" />
             <span>SECURITY_GATEKEEPER</span>
           </div>
-          <GlowingBadge variant="danger" pulse dot className="text-[9px] uppercase">
+          <GlowingBadge variant="error" pulse dot className="text-[9px] uppercase">
             HTTP_403_DENIED
           </GlowingBadge>
         </div>
