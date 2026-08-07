@@ -1089,17 +1089,9 @@ export function DashboardView({
             ].map((metric, idx) => (
               <div
                 key={idx}
-                onClick={() => {
-                  if (idx === 0 && !isPro) {
-                    setSettingsActiveTab("pro");
-                    setSubscriptionOnly(true);
-                    setSettingsOpen(true);
-                  }
-                }}
                 className={cn(
                   "relative h-full flex flex-col justify-stretch min-w-0 w-full",
-                  idx === 0 ? "col-span-2 md:col-span-1" : "col-span-1",
-                  (!isPro && idx === 0) ? "cursor-pointer" : ""
+                  idx === 0 ? "col-span-2 md:col-span-1" : "col-span-1"
                 )}
               >
                 <Tilt 
