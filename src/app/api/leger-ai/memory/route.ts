@@ -4,19 +4,23 @@ import { verifyAndConsumeQuota } from "@/lib/server-auth";
 import { getAdminClient } from "@/lib/supabase-admin";
 import { calculateServerTelemetry } from "@/lib/server-telemetry";
 
+import { createClient } from "@/lib/supabase-server";
+
 // GET: Fetch all memories (structured and converted legacy string records)
 export async function GET(request: Request) {
   try {
-    const { allowed, reason, userId } = await verifyAndConsumeQuota(request);
-    if (!allowed || !userId) {
-      return NextResponse.json({ error: reason || "Unauthorized" }, { status: 403 });
+    const supabaseServer = await createClient();
+    const { data: { user } } = await supabaseServer.auth.getUser();
+    
+    if (!user) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
     const supabaseAdmin = getAdminClient();
     const { data: profile, error } = await supabaseAdmin
       .from("profiles")
       .select("ai_journal")
-      .eq("id", userId)
+      .eq("id", user.id)
       .single();
 
     if (error) {
@@ -139,9 +143,10 @@ export async function POST(request: Request) {
 // DELETE: Remove a memory by its unique ID
 export async function DELETE(request: Request) {
   try {
-    const { allowed, reason, userId } = await verifyAndConsumeQuota(request);
-    if (!allowed || !userId) {
-      return NextResponse.json({ error: reason || "Unauthorized" }, { status: 403 });
+    const supabaseServer = await createClient();
+    const { data: { user } } = await supabaseServer.auth.getUser();
+    if (!user) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
     const url = new URL(request.url);
@@ -155,7 +160,7 @@ export async function DELETE(request: Request) {
     const { data: profile, error: getErr } = await supabaseAdmin
       .from("profiles")
       .select("ai_journal")
-      .eq("id", userId)
+      .eq("id", user.id)
       .single();
 
     if (getErr) {
@@ -171,7 +176,7 @@ export async function DELETE(request: Request) {
     const { error: updateErr } = await supabaseAdmin
       .from("profiles")
       .update({ ai_journal: updatedJournal })
-      .eq("id", userId);
+      .eq("id", user.id);
 
     if (updateErr) {
       return NextResponse.json({ error: "Failed to update profile journal" }, { status: 500 });
@@ -189,9 +194,10 @@ export async function DELETE(request: Request) {
 // PUT: Update an existing memory (content, category, or expiration date)
 export async function PUT(request: Request) {
   try {
-    const { allowed, reason, userId } = await verifyAndConsumeQuota(request);
-    if (!allowed || !userId) {
-      return NextResponse.json({ error: reason || "Unauthorized" }, { status: 403 });
+    const supabaseServer = await createClient();
+    const { data: { user } } = await supabaseServer.auth.getUser();
+    if (!user) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
     const { id, content, category, expiresAt } = await request.json();
@@ -203,7 +209,7 @@ export async function PUT(request: Request) {
     const { data: profile, error: getErr } = await supabaseAdmin
       .from("profiles")
       .select("ai_journal")
-      .eq("id", userId)
+      .eq("id", user.id)
       .single();
 
     if (getErr) {
@@ -234,7 +240,7 @@ export async function PUT(request: Request) {
     const { error: updateErr } = await supabaseAdmin
       .from("profiles")
       .update({ ai_journal: updatedJournal })
-      .eq("id", userId);
+      .eq("id", user.id);
 
     if (updateErr) {
       return NextResponse.json({ error: "Failed to update profile journal" }, { status: 500 });

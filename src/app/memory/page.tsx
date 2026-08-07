@@ -22,9 +22,17 @@ export default async function MemoryPage({ searchParams }: PageProps) {
       .order("name")
   ])
 
-  const selectedCycle = params.cycleId
-    ? cycles.find(c => c.id === params.cycleId) || cycles[0]
-    : cycles[0]
+  const fallbackCycle = {
+    id: 'mo-current',
+    label: 'Current Cycle',
+    startDate: new Date(new Date().getFullYear(), new Date().getMonth(), 1).toISOString(),
+    endDate: null,
+    paycheckAmount: 0
+  }
+
+  const selectedCycle = (params.cycleId
+    ? cycles.find(c => c.id === params.cycleId)
+    : undefined) || cycles[0] || fallbackCycle
 
   const startDateStr = selectedCycle.startDate
   const endDateStr = selectedCycle.endDate || '9999-12-31'
