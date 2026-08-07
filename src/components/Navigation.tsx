@@ -40,7 +40,6 @@ export function Navigation() {
   const { isPrivacyMode, setPrivacyMode, systemLatency, nodeStatus, profile, signOut, user, isPro, isSettingsOpen, setSettingsOpen, setSettingsActiveTab, setSubscriptionOnly } = useSystem()
   const [mounted, setMounted] = useState(false)
   const { theme, setTheme } = useTheme()
-  const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
   const [pendingHref, setPendingHref] = useState<string | null>(null)
   const prevMobileIndexRef = useRef<number>(-1)
 
@@ -260,11 +259,12 @@ export function Navigation() {
 
             {/* System / Menu Trigger */}
             <button
-              onClick={() => setMobileMenuOpen(true)}
+              onClick={() => setSettingsOpen(true)}
               className={cn(
                 "flex flex-col items-center justify-center flex-1 w-0 h-full text-muted-foreground hover:text-foreground transition-colors min-w-0 px-2 py-1 select-none",
-                mobileMenuOpen && "text-foreground font-bold"
+                isSettingsOpen && "text-foreground font-bold"
               )}
+              title="System Settings"
             >
               <motion.div
                 className="flex items-center justify-center"
@@ -277,110 +277,6 @@ export function Navigation() {
           </div>
         </nav>
       )}
-
-
-      {/* Mobile System Menu Drawer Modal */}
-      <Dialog open={mobileMenuOpen} onOpenChange={setMobileMenuOpen}>
-        <DialogContent className="bg-card border border-border rounded-none p-6 font-mono text-xs max-w-sm w-[90vw] md:hidden shadow-2xl">
-          <DialogHeader className="border-b border-border pb-4 mb-4">
-            <div className="flex items-center justify-between">
-              <DialogTitle className="text-sm font-bold uppercase tracking-widest flex items-center gap-3 text-foreground">
-                <div className="w-5 h-5 bg-foreground flex items-center justify-center ledger-border rotate-45 shrink-0">
-                  <Landmark className="h-2.5 w-2.5 text-background -rotate-45" />
-                </div>
-                <span>LEGER_OS</span>
-              </DialogTitle>
-            </div>
-            <DialogDescription className="text-[10px] uppercase tracking-wider text-muted-foreground">
-              System settings and session actions.
-            </DialogDescription>
-          </DialogHeader>
-
-          <div className="space-y-3">
-            {/* Categories Link */}
-            <button
-              onClick={() => { setMobileMenuOpen(false); router.push('/categories'); }}
-              className="w-full p-3 bg-secondary/30 border border-border flex items-center justify-between text-left hover:bg-secondary/60 transition-all group"
-            >
-              <div className="flex items-center gap-3">
-                <Tag className="h-4 w-4 shrink-0" />
-                <div>
-                  <div className="font-bold uppercase text-xs text-foreground">Categories</div>
-                  <div className="text-[9px] text-muted-foreground font-sans">Category Explorer & Profit Analytics</div>
-                </div>
-              </div>
-              <ChevronRight className="h-4 w-4 text-muted-foreground group-hover:translate-x-1 transition-transform" />
-            </button>
-
-            {/* System Config Link */}
-            <button
-              onClick={() => { setMobileMenuOpen(false); setSettingsOpen(true); }}
-              className="w-full p-3 bg-secondary/30 border border-border flex items-center justify-between text-left hover:bg-secondary/60 transition-all group cursor-pointer"
-            >
-              <div className="flex items-center gap-3">
-                <Sliders className="h-4 w-4 shrink-0" />
-                <div>
-                  <div className="font-bold uppercase text-xs text-foreground">System Config</div>
-                  <div className="text-[9px] text-muted-foreground font-sans">Paycheck keywords, habits & rules</div>
-                </div>
-              </div>
-              <ChevronRight className="h-4 w-4 text-muted-foreground group-hover:translate-x-1 transition-transform" />
-            </button>
-
-            {/* Privacy Toggle */}
-            <button
-              onClick={() => setPrivacyMode(!isPrivacyMode)}
-              className={cn(
-                "w-full p-3 border flex items-center justify-between text-left transition-all",
-                isPrivacyMode ? "bg-foreground/10 border-foreground text-foreground" : "bg-card border-border hover:bg-secondary/40"
-              )}
-            >
-              <div className="flex items-center gap-3">
-                {isPrivacyMode ? <Shield className="h-4 w-4 shrink-0" /> : <ShieldOff className="h-4 w-4 text-muted-foreground shrink-0" />}
-                <div>
-                  <div className="font-bold uppercase text-xs text-foreground">Privacy Mode</div>
-                  <div className="text-[9px] text-muted-foreground font-sans">Obfuscate balances across screens</div>
-                </div>
-              </div>
-              <span className="font-mono text-[10px] font-bold uppercase px-2 py-0.5 bg-secondary border border-border">
-                {isPrivacyMode ? "ACTIVE" : "OFF"}
-              </span>
-            </button>
-
-            {/* Theme Toggle */}
-            <button
-              onClick={() => setTheme(theme === "dark" ? "light" : "dark")}
-              className="w-full p-3 bg-card border border-border flex items-center justify-between text-left hover:bg-secondary/40 transition-all"
-            >
-              <div className="flex items-center gap-3">
-                {theme === "dark" ? <Sun className="h-4 w-4 shrink-0" /> : <Moon className="h-4 w-4 shrink-0" />}
-                <div>
-                  <div className="font-bold uppercase text-xs text-foreground">Theme Switcher</div>
-                  <div className="text-[9px] text-muted-foreground font-sans">Toggle dark / light environment</div>
-                </div>
-              </div>
-              <span className="font-mono text-[10px] font-bold uppercase px-2 py-0.5 bg-secondary border border-border">
-                {theme === "dark" ? "DARK" : "LIGHT"}
-              </span>
-            </button>
-
-            {/* User Profile & Sign Out */}
-            {profile && (
-              <div className="pt-3 border-t border-border flex items-center justify-between">
-                <div className="text-[10px] font-mono text-muted-foreground">
-                  User: <span className="text-foreground font-bold">{profile.username || "USER"}</span>
-                </div>
-                <button
-                  onClick={() => { setMobileMenuOpen(false); signOut(); }}
-                  className="px-3 py-1.5 bg-destructive/10 border border-destructive/30 text-destructive hover:bg-destructive hover:text-background transition-all font-mono text-[10px] uppercase font-bold flex items-center gap-1.5"
-                >
-                  <LogOut className="h-3 w-3" /> Disconnect
-                </button>
-              </div>
-            )}
-          </div>
-        </DialogContent>
-      </Dialog>
 
       <SystemSettingsModal open={isSettingsOpen} onOpenChange={setSettingsOpen} />
     </>
