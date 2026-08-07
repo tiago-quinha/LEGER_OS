@@ -460,54 +460,39 @@ export function SystemSettingsModal({ open, onOpenChange }: SystemSettingsModalP
             {/* TAB 1: GENERAL PREFERENCES */}
             <TabsContent value="preferences" className="space-y-4 flex-1 overflow-y-auto pr-1 min-h-0">
               <div className="grid grid-cols-2 gap-3">
-                <div className="p-3 bg-card border border-border space-y-1.5 flex flex-col justify-between">
-                  <div className="space-y-1">
-                    <div className="flex items-center justify-between">
-                      <span className="font-bold uppercase text-[10px] font-mono flex items-center gap-1.5">
-                        {isPrivacyMode ? <Shield className="h-3.5 w-3.5 text-foreground" /> : <ShieldOff className="h-3.5 w-3.5 text-muted-foreground" />}
-                        Privacy Mode
-                      </span>
-                      <span className={cn("text-[8px] font-mono uppercase px-1.5 py-0.5 font-bold", isPrivacyMode ? "bg-foreground text-background font-bold" : "bg-secondary text-muted-foreground")}>
-                        {isPrivacyMode ? "ON" : "OFF"}
-                      </span>
+                <div 
+                  onClick={() => setPrivacyMode(!isPrivacyMode)}
+                  className={cn(
+                    "p-3 border cursor-pointer transition-all flex items-center justify-between gap-2 select-none",
+                    isPrivacyMode ? "bg-foreground/5 border-foreground ring-1 ring-foreground" : "bg-card border-border hover:bg-secondary/20 opacity-80"
+                  )}
+                >
+                  <div className="flex items-center gap-2.5 min-w-0">
+                    {isPrivacyMode ? <Shield className="h-4 w-4 text-foreground shrink-0" /> : <ShieldOff className="h-4 w-4 text-muted-foreground shrink-0" />}
+                    <div className="truncate">
+                      <span className="font-bold uppercase text-[10px] font-mono block leading-none truncate">Privacy Mode</span>
+                      <span className="text-[9px] text-muted-foreground font-mono">Hide balances</span>
                     </div>
-                    <p className="text-[10px] text-muted-foreground font-sans leading-relaxed">
-                      Obfuscates currency values across all dashboard views.
-                    </p>
                   </div>
-                  <Button 
-                    type="button"
-                    variant={isPrivacyMode ? "default" : "outline"} 
-                    onClick={() => setPrivacyMode(!isPrivacyMode)}
-                    className="w-full rounded-none h-8 text-[9px] uppercase font-mono font-bold cursor-pointer"
-                  >
-                    {isPrivacyMode ? "Disable Safe-Deposit" : "Enable Safe-Deposit"}
-                  </Button>
+                  <span className={cn("text-[9px] font-mono uppercase px-2 py-0.5 font-bold border shrink-0", isPrivacyMode ? "bg-foreground text-background border-foreground" : "bg-secondary text-muted-foreground border-border")}>
+                    {isPrivacyMode ? "ON" : "OFF"}
+                  </span>
                 </div>
 
-                <div className="p-3 bg-card border border-border space-y-1.5 flex flex-col justify-between">
-                  <div className="space-y-1">
-                    <div className="flex items-center justify-between">
-                      <span className="font-bold uppercase text-[10px] font-mono flex items-center gap-1.5">
-                        {theme === "dark" ? <Moon className="h-3.5 w-3.5 text-primary" /> : <Sun className="h-3.5 w-3.5 text-amber-500" />}
-                        Theme Mode
-                      </span>
-                      <span className="text-[8px] font-mono uppercase px-1.5 py-0.5 font-bold bg-secondary text-foreground">
-                        {theme === "dark" ? "CYBER DARK" : "LIGHT"}
-                      </span>
+                <div 
+                  onClick={() => setTheme(theme === "dark" ? "light" : "dark")}
+                  className="p-3 border border-border bg-card hover:bg-secondary/20 cursor-pointer transition-all flex items-center justify-between gap-2 select-none opacity-80"
+                >
+                  <div className="flex items-center gap-2.5 min-w-0">
+                    {theme === "dark" ? <Moon className="h-4 w-4 text-foreground shrink-0" /> : <Sun className="h-4 w-4 text-amber-500 shrink-0" />}
+                    <div className="truncate">
+                      <span className="font-bold uppercase text-[10px] font-mono block leading-none truncate">Theme Mode</span>
+                      <span className="text-[9px] text-muted-foreground font-mono capitalize">{theme === "dark" ? "Dark" : "Light"}</span>
                     </div>
-                    <p className="text-[10px] text-muted-foreground font-sans leading-relaxed">
-                      Toggle terminal theme presentation.
-                    </p>
                   </div>
-                  <Button 
-                    type="button"
-                    variant="outline" 
-                    onClick={() => setTheme(theme === "dark" ? "light" : "dark")}
-                    className="w-full rounded-none h-8 text-[9px] uppercase font-mono font-bold cursor-pointer"
-                  >
-                    Switch to {theme === "dark" ? "Mainframe Light" : "Cybermatic Dark"}
-                  </Button>
+                  <span className="text-[9px] font-mono uppercase px-2 py-0.5 font-bold bg-secondary text-foreground border border-border shrink-0">
+                    TOGGLE
+                  </span>
                 </div>
               </div>
 
