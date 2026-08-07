@@ -370,31 +370,37 @@ export function SystemSettingsModal({ open, onOpenChange }: SystemSettingsModalP
             drag="y"
             dragListener={false}
             dragControls={sheetDragControls}
-            dragConstraints={{ top: 0, bottom: 600 }}
-            dragElastic={0}
-            dragMomentum={false}
-            dragSnapToOrigin={false}
+            dragConstraints={{ top: 0, bottom: 0 }}
+            dragElastic={{ top: 0, bottom: 0.6 }}
             onDragEnd={(event, info) => {
-              if (info.offset.y > 60 || info.velocity.y > 200) {
+              if (info.offset.y > 80 || info.velocity.y > 250) {
                 handleOpenChange(false)
               }
             }}
             initial={{ y: "100%", opacity: 0.95 }}
             animate={{ y: 0, opacity: 1 }}
             exit={{ y: "100%", opacity: 0 }}
-            transition={{ duration: 0.25, ease: "easeOut" }}
+            transition={{ type: "spring", damping: 25, stiffness: 300 }}
             className="absolute pointer-events-auto bottom-0 left-0 right-0 sm:bottom-6 sm:left-auto sm:right-6 w-full sm:w-[620px] md:w-[720px] lg:w-[840px] h-[85vh] sm:h-[680px] max-h-[92vh] border-t border-x sm:border border-border bg-card/95 backdrop-blur-md shadow-2xl flex flex-col overflow-hidden rounded-t-2xl sm:rounded-xl font-mono text-xs z-[100001]"
           >
             {/* Drag Handle Bar */}
             <div 
-              className="w-full flex justify-center py-2.5 cursor-grab active:cursor-grabbing border-b border-border/40 select-none shrink-0 bg-secondary/20 hover:bg-secondary/30 transition-colors"
+              className="w-full flex justify-center py-3 cursor-grab active:cursor-grabbing border-b border-border/40 select-none shrink-0 bg-secondary/20 hover:bg-secondary/30 transition-colors touch-none"
               onPointerDown={(e) => sheetDragControls.start(e)}
             >
               <div className="w-14 h-1.5 rounded-full bg-muted-foreground/40" />
             </div>
 
             {/* Sheet Header */}
-            <div className="p-4 sm:p-5 border-b border-border shrink-0 space-y-1 relative">
+            <div 
+              className="p-4 sm:p-5 border-b border-border shrink-0 space-y-1 relative cursor-grab active:cursor-grabbing select-none touch-none"
+              onPointerDown={(e) => {
+                // Only initiate drag if clicking outside buttons/inputs
+                if (!(e.target as HTMLElement).closest('button, input, select, a')) {
+                  sheetDragControls.start(e)
+                }
+              }}
+            >
               <button 
                 type="button"
                 onClick={() => handleOpenChange(false)}

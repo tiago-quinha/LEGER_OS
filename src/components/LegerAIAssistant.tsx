@@ -581,22 +581,20 @@ export function LegerAIAssistant() {
         <AnimatePresence>
           {isOpen && (
             <motion.div
-              drag={isMobile ? "y" : false}
+              drag="y"
               dragListener={false}
               dragControls={sheetDragControls}
-              dragConstraints={{ top: 0, bottom: 600 }}
-              dragElastic={0}
-              dragMomentum={false}
-              dragSnapToOrigin={false}
+              dragConstraints={{ top: 0, bottom: 0 }}
+              dragElastic={{ top: 0, bottom: 0.6 }}
               onDragEnd={(event, info) => {
-                if (isMobile && (info.offset.y > 60 || info.velocity.y > 200)) {
+                if (info.offset.y > 80 || info.velocity.y > 250) {
                   setIsOpen(false)
                 }
               }}
-              initial={isMobile ? { y: "100%", opacity: 0.95 } : { opacity: 0, scale: 0.95, y: 30 }}
-              animate={isMobile ? { y: 0, opacity: 1 } : { opacity: 1, scale: 1, y: 0 }}
-              exit={isMobile ? { y: "100%", opacity: 0 } : { opacity: 0, scale: 0.95, y: 30 }}
-              transition={{ duration: 0.2, ease: "easeOut" }}
+              initial={{ y: "100%", opacity: 0.95 }}
+              animate={{ y: 0, opacity: 1 }}
+              exit={{ y: "100%", opacity: 0 }}
+              transition={{ type: "spring", damping: 25, stiffness: 300 }}
               className="absolute pointer-events-auto bottom-0 left-0 right-0 sm:bottom-20 sm:left-auto sm:right-6 w-full sm:w-[380px] h-[80vh] sm:h-[520px] max-h-[90vh] sm:max-h-[calc(100vh-140px)] border-t border-x sm:border border-border bg-card/95 backdrop-blur-md shadow-2xl flex flex-col overflow-hidden rounded-t-2xl sm:rounded-xl font-sans z-[100000]"
             >
               {isMobile && (
