@@ -1,10 +1,22 @@
-import { createClient } from "@/lib/supabase-server"
-import { SystemConfigView } from "@/components/SystemConfigView"
+"use client"
 
-export default async function SystemPage() {
-  const supabase = await createClient()
-  const { data: { user } } = await supabase.auth.getUser()
-  if (!user) return null
+import { useEffect } from "react"
+import { useRouter } from "next/navigation"
+import { useSystem } from "@/lib/SystemContext"
 
-  return <SystemConfigView />
+export default function SystemRedirectPage() {
+  const router = useRouter()
+  const { setSettingsOpen } = useSystem()
+
+  useEffect(() => {
+    setSettingsOpen(true)
+    router.replace("/")
+  }, [router, setSettingsOpen])
+
+  return (
+    <div className="min-h-[70vh] flex flex-col items-center justify-center font-mono text-xs text-muted-foreground space-y-2">
+      <div className="h-4 w-4 border-2 border-emerald-500 border-t-transparent rounded-full animate-spin" />
+      <p className="uppercase tracking-widest text-[10px]">Opening System Settings...</p>
+    </div>
+  )
 }

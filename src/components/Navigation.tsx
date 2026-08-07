@@ -208,8 +208,8 @@ export function Navigation() {
               </button>
 
               <button
-                onClick={() => router.push(cycleId ? `/system?cycleId=${cycleId}` : "/system")}
-                className="flex flex-col items-center justify-center py-2 px-1 border border-border bg-card text-muted-foreground hover:bg-secondary hover:text-foreground transition-all text-[8px] font-mono uppercase font-bold gap-1 select-none"
+                onClick={() => setSettingsOpen(true)}
+                className="flex flex-col items-center justify-center py-2 px-1 border border-border bg-card text-muted-foreground hover:bg-secondary hover:text-foreground transition-all text-[8px] font-mono uppercase font-bold gap-1 select-none cursor-pointer"
                 title="System Configuration Matrix"
               >
                 <Sliders className="h-3.5 w-3.5" />
@@ -314,8 +314,8 @@ export function Navigation() {
 
             {/* System Config Link */}
             <button
-              onClick={() => { setMobileMenuOpen(false); router.push('/system'); }}
-              className="w-full p-3 bg-secondary/30 border border-border flex items-center justify-between text-left hover:bg-secondary/60 transition-all group"
+              onClick={() => { setMobileMenuOpen(false); setSettingsOpen(true); }}
+              className="w-full p-3 bg-secondary/30 border border-border flex items-center justify-between text-left hover:bg-secondary/60 transition-all group cursor-pointer"
             >
               <div className="flex items-center gap-3">
                 <Sliders className="h-4 w-4 shrink-0" />
