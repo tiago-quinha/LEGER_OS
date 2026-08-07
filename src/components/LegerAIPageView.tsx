@@ -330,7 +330,7 @@ export function LegerAIPageView({ cycleData, expenses, categories }: LegerAIPage
         <div className="space-y-3">
           <div className="flex items-center gap-3 text-[9px] md:text-[10px] font-mono tracking-[0.2em] uppercase text-muted-foreground">
             <Brain className="h-3.5 w-3.5" />
-            <span>/memory</span>
+            <span>Neural Context Memory</span>
           </div>
           <h1 className="text-4xl md:text-5xl font-bold tracking-tighter uppercase leading-none break-words">
             My Memory

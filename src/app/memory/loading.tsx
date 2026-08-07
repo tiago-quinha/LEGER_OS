@@ -11,7 +11,7 @@ export default function MemoryLoading() {
         <div className="space-y-3">
           <div className="flex items-center gap-3 text-[9px] md:text-[10px] font-mono tracking-[0.2em] uppercase text-muted-foreground">
             <Brain className="h-3.5 w-3.5" />
-            <span>/memory</span>
+            <span>Neural Context Memory</span>
           </div>
           <Skeleton className="h-10 md:h-12 w-64 rounded-none" />
         </div>
