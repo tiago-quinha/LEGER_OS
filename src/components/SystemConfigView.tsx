@@ -22,6 +22,7 @@ import {
 import { cn } from "@/lib/utils"
 import { PrivacyValue } from "@/components/ui/privacy-value"
 import { GlowingBadge } from "@/components/unlumen-ui/glowing-badge"
+import { ProLockOverlay } from "@/components/ProLockOverlay"
 import { SUPPORTED_CURRENCIES, SUPPORTED_LANGUAGES } from "@/lib/format"
 
 const HABIT_PRESETS = [
@@ -931,21 +932,11 @@ export function SystemConfigView() {
                   1. Your Unique Webhook Endpoint
                 </span>
                 {!isPro ? (
-                  <div className="p-4 bg-emerald-500/10 border border-emerald-500/30 space-y-3">
-                    <div className="font-mono text-xs font-bold text-emerald-500 uppercase flex items-center gap-2">
-                      🔒 WEBHOOK ENDPOINT LOCKED ON CORE FREE TIER
-                    </div>
-                    <p className="text-xs text-muted-foreground font-sans leading-relaxed">
-                      Automated real-time push notification ingestion is exclusive to LEGER_OS PRO nodes. Upgrade to PRO to activate your copyable endpoint URL and real-time bank sync.
-                    </p>
-                    <Button
-                      type="button"
-                      onClick={() => setActiveTab("pro")}
-                      className="rounded-none h-9 px-6 bg-emerald-500 text-black hover:bg-emerald-400 font-mono text-xs uppercase font-bold tracking-widest cursor-pointer"
-                    >
-                      <Sparkles className="h-3.5 w-3.5 mr-1.5" /> Upgrade to PRO (€4.99/mo)
-                    </Button>
-                  </div>
+                  <ProLockOverlay 
+                    compact
+                    title="LEGER_PHONE PUSH SYNC (PRO)"
+                    description="Automated real-time push notification ingestion is exclusive to LEGER_OS PRO nodes. Upgrade to PRO to activate your endpoint URL."
+                  />
                 ) : (
                   <div className="flex flex-col sm:flex-row gap-2 items-stretch">
                     <div className="bg-secondary/40 border border-border p-3 text-[10px] break-all select-all flex-1 flex items-center text-foreground font-bold">

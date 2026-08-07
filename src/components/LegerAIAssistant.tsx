@@ -9,6 +9,7 @@ import { getAIHeaders } from "@/lib/ai-client"
 import { usePathname } from "next/navigation"
 import { supabase } from "@/lib/supabase"
 import { toast } from "sonner"
+import { ProLockOverlay } from "@/components/ProLockOverlay"
 
 interface Message {
   sender: "user" | "assistant"
@@ -633,69 +634,78 @@ export function LegerAIAssistant() {
                 </div>
               </div>
 
-              {/* Message Feed */}
-              <div className="flex-1 overflow-y-auto p-4 space-y-4 z-10 scrollbar-thin">
-                {messages.map((msg, i) => {
-                  // Only run typewriter typing animation on the latest incoming assistant message if it does not contain complex structural formatting (tables, lists, headers) to prevent layout jitters and parser glitches.
-                  const hasComplexFormatting = msg.text.includes("|") || msg.text.includes("- ") || msg.text.includes("* ") || msg.text.includes("###") || msg.text.includes("##");
-                  const isNewAssistantMessage = i === messages.length - 1 && msg.sender === "assistant" && (Date.now() - msg.timestamp < 15000) && !hasComplexFormatting;
-                  
-                  return (
-                    <motion.div 
-                      key={i}
-                      initial={{ opacity: 0, y: 10, scale: 0.98 }}
-                      animate={{ opacity: 1, y: 0, scale: 1 }}
-                      transition={{ duration: 0.25, ease: "easeOut" }}
-                      className={cn(
-                        "flex gap-3 max-w-[85%] items-start",
-                        msg.sender === "user" ? "ml-auto flex-row-reverse" : "mr-auto"
-                      )}
-                    >
-                      {msg.sender === "assistant" && (
-                        <div className="p-1.5 bg-foreground text-background border border-border h-fit shrink-0 rounded-md shadow-sm">
-                          <Brain className="h-3 w-3" />
-                        </div>
-                      )}
-                      <div 
+              {/* Message Feed / PRO Gate */}
+              {!isPro ? (
+                <div className="flex-1 p-4 flex items-center justify-center">
+                  <ProLockOverlay 
+                    title="LEGER_AI ASSISTANT (PRO)"
+                    description="Conversational queries, natural language habit overrides, and dynamic projection simulation adjustments are exclusive to LEGER_OS PRO nodes."
+                    className="w-full max-w-sm rounded-none shadow-xl border border-emerald-500/30"
+                  />
+                </div>
+              ) : (
+                <div className="flex-1 overflow-y-auto p-4 space-y-4 z-10 scrollbar-thin">
+                  {messages.map((msg, i) => {
+                    const hasComplexFormatting = msg.text.includes("|") || msg.text.includes("- ") || msg.text.includes("* ") || msg.text.includes("###") || msg.text.includes("##");
+                    const isNewAssistantMessage = i === messages.length - 1 && msg.sender === "assistant" && (Date.now() - msg.timestamp < 15000) && !hasComplexFormatting;
+                    
+                    return (
+                      <motion.div 
+                        key={i}
+                        initial={{ opacity: 0, y: 10, scale: 0.98 }}
+                        animate={{ opacity: 1, y: 0, scale: 1 }}
+                        transition={{ duration: 0.25, ease: "easeOut" }}
                         className={cn(
-                          "px-4 py-3 sm:p-3 rounded-2xl text-[15px] sm:text-sm leading-relaxed font-sans font-medium shadow-sm transition-all",
-                          msg.sender === "user" 
-                            ? "bg-foreground text-background border-border rounded-tr-none" 
-                            : "bg-secondary/40 text-foreground/90 border-border/40 rounded-tl-none"
+                          "flex gap-3 max-w-[85%] items-start",
+                          msg.sender === "user" ? "ml-auto flex-row-reverse" : "mr-auto"
                         )}
                       >
-                        {msg.sender === "user" ? (
-                          msg.text
-                        ) : isNewAssistantMessage ? (
-                          <TypewriterText text={msg.text} speed={6} />
-                        ) : (
-                          renderFormattedText(msg.text)
+                        {msg.sender === "assistant" && (
+                          <div className="p-1.5 bg-foreground text-background border border-border h-fit shrink-0 rounded-md shadow-sm">
+                            <Brain className="h-3 w-3" />
+                          </div>
                         )}
+                        <div 
+                          className={cn(
+                            "px-4 py-3 sm:p-3 rounded-2xl text-[15px] sm:text-sm leading-relaxed font-sans font-medium shadow-sm transition-all",
+                            msg.sender === "user" 
+                              ? "bg-foreground text-background border-border rounded-tr-none" 
+                              : "bg-secondary/40 text-foreground/90 border-border/40 rounded-tl-none"
+                          )}
+                        >
+                          {msg.sender === "user" ? (
+                            msg.text
+                          ) : isNewAssistantMessage ? (
+                            <TypewriterText text={msg.text} speed={6} />
+                          ) : (
+                            renderFormattedText(msg.text)
+                          )}
+                        </div>
+                      </motion.div>
+                    )
+                  })}
+                  {isLoading && (
+                    <motion.div 
+                      initial={{ opacity: 0, y: 10 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      className="flex gap-3 max-w-[85%] mr-auto items-start"
+                    >
+                      <div className="p-1.5 bg-foreground text-background border border-border h-fit shrink-0 rounded-md">
+                        <Cpu className="h-3 w-3 animate-spin" />
+                      </div>
+                      <div className="p-3 bg-secondary/40 text-muted-foreground border border-border/60 rounded-lg rounded-tl-none text-xs italic animate-pulse flex items-center gap-2">
+                        <span>Analyzing cycle delta variables</span>
+                        <span className="flex gap-1">
+                          <span className="w-1 h-1 bg-muted-foreground rounded-full animate-bounce [animation-delay:-0.3s]" />
+                          <span className="w-1 h-1 bg-muted-foreground rounded-full animate-bounce [animation-delay:-0.15s]" />
+                          <span className="w-1 h-1 bg-muted-foreground rounded-full animate-bounce" />
+                        </span>
                       </div>
                     </motion.div>
-                  )
-                })}
-                {isLoading && (
-                  <motion.div 
-                    initial={{ opacity: 0, y: 10 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    className="flex gap-3 max-w-[85%] mr-auto items-start"
-                  >
-                    <div className="p-1.5 bg-foreground text-background border border-border h-fit shrink-0 rounded-md">
-                      <Cpu className="h-3 w-3 animate-spin" />
-                    </div>
-                    <div className="p-3 bg-secondary/40 text-muted-foreground border border-border/60 rounded-lg rounded-tl-none text-xs italic animate-pulse flex items-center gap-2">
-                      <span>Analyzing cycle delta variables</span>
-                      <span className="flex gap-1">
-                        <span className="w-1 h-1 bg-muted-foreground rounded-full animate-bounce [animation-delay:-0.3s]" />
-                        <span className="w-1 h-1 bg-muted-foreground rounded-full animate-bounce [animation-delay:-0.15s]" />
-                        <span className="w-1 h-1 bg-muted-foreground rounded-full animate-bounce" />
-                      </span>
-                    </div>
-                  </motion.div>
-                )}
-                <div ref={chatEndRef} />
-              </div>
+                  )}
+                  <div ref={chatEndRef} />
+                </div>
+              )}
 
               {/* Suggestions Panel */}
               <AnimatePresence>

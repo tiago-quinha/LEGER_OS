@@ -19,6 +19,7 @@ import {
 } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { GlowingBadge } from "@/components/unlumen-ui/glowing-badge"
+import { ProLockOverlay } from "@/components/ProLockOverlay"
 import { SUPPORTED_CURRENCIES, SUPPORTED_LANGUAGES } from "@/lib/format"
 
 const HABIT_PRESETS = [
@@ -850,22 +851,11 @@ export function SystemSettingsModal({ open, onOpenChange }: SystemSettingsModalP
                 <div className="space-y-1.5 pt-1">
                   <span className="text-[9px] font-mono uppercase font-bold text-muted-foreground">Unique Posting Endpoint</span>
                   {!isPro ? (
-                    <div className="p-3 bg-emerald-500/10 border border-emerald-500/30 space-y-2">
-                      <div className="font-mono text-[10px] font-bold text-emerald-500 uppercase flex items-center gap-1.5">
-                        <Lock className="h-3.5 w-3.5 text-emerald-500 shrink-0" />
-                        <span>Endpoint Locked on Core Free Tier</span>
-                      </div>
-                      <p className="text-[10px] text-muted-foreground font-sans leading-relaxed">
-                        Automated real-time push notification posting requires a LEGER_OS PRO node. Upgrade to PRO to activate your unique phone webhook URL.
-                      </p>
-                      <Button
-                        type="button"
-                        onClick={() => setActiveTab("pro")}
-                        className="w-full rounded-none h-8 bg-emerald-500 text-black hover:bg-emerald-400 font-mono text-[9px] uppercase font-bold tracking-widest cursor-pointer"
-                      >
-                        <Sparkles className="h-3 w-3 mr-1" /> Upgrade to PRO (€4.99/mo)
-                      </Button>
-                    </div>
+                    <ProLockOverlay 
+                      compact
+                      title="LEGER_PHONE PUSH SYNC (PRO)"
+                      description="Automated real-time push notification posting from MacroDroid requires a LEGER_OS PRO node."
+                    />
                   ) : (
                     <div className="bg-secondary/40 border border-border p-2.5 font-mono text-[9px] break-all select-all flex items-center justify-between gap-2 text-foreground">
                       <span className="truncate">

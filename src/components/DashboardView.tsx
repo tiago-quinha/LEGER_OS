@@ -32,6 +32,7 @@ const DashboardChart = dynamic(() => import("@/components/DashboardChart").then(
   )
 })
 import { Button } from "@/components/ui/button"
+import { ProLockOverlay } from "@/components/ProLockOverlay"
 import { Download, TrendingUp, TrendingDown, Wallet, ArrowUpRight, Banknote, ChevronLeft, CalendarDays, ChevronRight, Landmark, Target, AlertTriangle, CheckCircle2, Zap, Brain, Sparkles, ChevronDown, Loader2, CalendarRange, CreditCard, Tag, Sliders, Smartphone, Shield, Cpu, LayoutDashboard, PiggyBank } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { useRouter } from "next/navigation"
@@ -957,38 +958,12 @@ export function DashboardView({
                     isPro={isPro}
                   />
                   {!isPro && showGraphLock && (
-                    <div className="absolute inset-0 bg-background/95 backdrop-blur-[12px] flex flex-col items-center justify-center p-6 text-center select-none z-10 transition-all duration-300">
-                      <div className="max-w-md space-y-4 p-6 border border-emerald-500/30 bg-background/90 shadow-[0_0_30px_rgba(16,185,129,0.08)]">
-                        <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 text-[9px] font-mono font-bold bg-emerald-500/10 text-emerald-500 border border-emerald-500/20 uppercase tracking-widest">
-                          <Sparkles className="h-3 w-3 animate-pulse" /> PRO FEATURE GATED
-                        </div>
-                        <h4 className="font-mono text-xs font-bold uppercase tracking-wider text-foreground">Advanced Projection Engine Locked</h4>
-                        <p className="text-[11px] text-muted-foreground leading-relaxed font-sans">
-                          Upgrade to LEGER_OS PRO to unlock daily recency-decay cash flow forecasting, Monte Carlo simulation paths, and custom AI overrides.
-                        </p>
-                        <div className="flex flex-col sm:flex-row gap-3 w-full">
-                          <Button 
-                            onClick={() => {
-                              setSettingsActiveTab("pro");
-                              setSubscriptionOnly(true);
-                              setSettingsOpen(true);
-                            }}
-                            className="flex-1 h-9 rounded-none bg-emerald-500 text-black hover:bg-emerald-400 font-mono text-[10px] uppercase font-bold tracking-wider"
-                          >
-                            Upgrade to PRO (€4.99/mo)
-                          </Button>
-                          <Button 
-                            onClick={() => {
-                              setViewMode('calendar')
-                              localStorage.setItem('leger_pro_graph_dismissed_until', (Date.now() + 3 * 60 * 60 * 1000).toString())
-                            }}
-                            variant="outline"
-                            className="flex-1 h-9 rounded-none border-border hover:bg-secondary/40 text-muted-foreground font-mono text-[10px] uppercase font-bold tracking-wider"
-                          >
-                            Dismiss (Calendar View)
-                          </Button>
-                        </div>
-                      </div>
+                    <div className="absolute inset-0 z-20 flex items-center justify-center p-4">
+                      <ProLockOverlay 
+                        title="ADVANCED PROJECTION ENGINE"
+                        description="Upgrade to LEGER_OS PRO to unlock daily recency-decay cash flow forecasting, Monte Carlo simulation paths, and custom AI overrides."
+                        className="max-w-md w-full rounded-none shadow-2xl border border-emerald-500/30"
+                      />
                     </div>
                   )}
                 </div>
