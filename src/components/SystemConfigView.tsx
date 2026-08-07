@@ -508,7 +508,7 @@ export function SystemConfigView() {
         </Card>
       </div>
 
-      <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full space-y-6">
+      <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full space-y-6 [content-visibility:auto] [contain-intrinsic-size:1px_400px]">
         <TabsList className={cn(
           "bg-secondary/40 border border-border rounded-none p-1 sm:p-1.5 !h-auto w-full flex flex-col sm:grid gap-1 sm:gap-1.5",
           isSuperUser ? "sm:grid-cols-5" : "sm:grid-cols-4"

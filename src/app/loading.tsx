@@ -47,14 +47,18 @@ export default function DashboardLoading() {
             </div>
 
             {/* Full-width statistics bar */}
-            <div className="flex items-center justify-between gap-4 py-2.5 px-4 border border-border ledger-border bg-card w-full">
-              <div className="flex items-center gap-2">
-                <Skeleton className="h-2 w-2 rounded-full" />
-                <Skeleton className="h-3.5 w-36" />
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 sm:gap-4 py-2 px-4 border border-border ledger-border bg-card w-full">
+              <div className="flex items-center justify-between sm:justify-start gap-1.5 w-full sm:w-auto">
+                <div className="flex items-center gap-1.5">
+                  <Skeleton className="h-2 w-2 rounded-full shrink-0" />
+                  <Skeleton className="h-3 w-28" />
+                </div>
+                <Skeleton className="h-3.5 w-16" />
               </div>
-              <span className="text-muted-foreground/30 font-light select-none">|</span>
-              <div className="flex items-center gap-2">
-                <Skeleton className="h-3.5 w-28" />
+              <span className="hidden sm:inline text-muted-foreground/30 font-light select-none">|</span>
+              <div className="flex items-center justify-between sm:justify-start gap-1.5 w-full sm:w-auto border-t border-border/30 pt-2 sm:pt-0 sm:border-0">
+                <Skeleton className="h-3 w-20" />
+                <Skeleton className="h-3.5 w-16" />
               </div>
             </div>
 

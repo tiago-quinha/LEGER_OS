@@ -275,7 +275,7 @@ export function BudgetsView({ categories, budgets: initialBudgets, expenses, cyc
         )}
       </header>
 
-      <div className="grid gap-4 md:gap-6 grid-cols-1 md:grid-cols-2 lg:grid-cols-3 pb-10">
+      <div className="grid gap-4 md:gap-6 grid-cols-1 md:grid-cols-2 lg:grid-cols-3 pb-10 [content-visibility:auto] [contain-intrinsic-size:1px_400px]">
         {/* Create Target Vector Card */}
         {!isAdding ? (
           <button 

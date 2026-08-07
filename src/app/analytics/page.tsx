@@ -18,7 +18,7 @@ export default async function Analytics() {
   // 2. Fetch all expenses
   const { data: expenses } = await supabase
     .from("tracker_expense")
-    .select("*")
+    .select("id, amount, date, category_id")
     .order("date", { ascending: false })
 
   const { data: categories } = await supabase

@@ -1,10 +1,9 @@
 "use client"
 
-import React, { useState, useEffect } from "react"
-import { createPortal } from "react-dom"
+import React, { useState, useEffect, useRef } from "react"
 import Link from "next/link"
 import { usePathname, useRouter, useSearchParams } from "next/navigation"
-import { Home, List, PieChart, BarChart3, Landmark, Shield, ShieldOff, Cpu, Activity, Database, LogOut, User, Sun, Moon, Sliders, Menu, X, ChevronRight, Tag } from "lucide-react"
+import { Home, List, PieChart, BarChart3, Landmark, Shield, ShieldOff, Cpu, Activity, Database, LogOut, User, Sun, Moon, Sliders, Menu, X, ChevronRight, Tag, Brain } from "lucide-react"
 import { useTheme } from "next-themes"
 import { cn } from "@/lib/utils"
 import { useSystem } from "@/lib/SystemContext"
@@ -21,14 +20,15 @@ const navigation = [
   { name: "Categories", href: "/categories", icon: Tag, desc: "Category analysis" },
   { name: "Budgets", href: "/budgets", icon: PieChart, desc: "Budget planning" },
   { name: "Analytics", href: "/analytics", icon: BarChart3, desc: "Cash flow trends" },
+  { name: "Memory", href: "/leger-ai", icon: Brain, desc: "AI Context Memory" },
 ]
 
-// Mobile bottom bar shows 4 core routes + 1 System/Menu trigger
+// Mobile bottom bar shows 5 core routes
 const mobileNavigation = [
   { name: "Dashboard", href: "/", icon: Home },
   { name: "Ledger", href: "/expenses", icon: List },
+  { name: "Memory", href: "/leger-ai", icon: Brain },
   { name: "Categories", href: "/categories", icon: Tag },
-  { name: "Budgets", href: "/budgets", icon: PieChart },
   { name: "Analytics", href: "/analytics", icon: BarChart3 },
 ]
 
@@ -41,10 +41,58 @@ export function Navigation() {
   const [mounted, setMounted] = useState(false)
   const { theme, setTheme } = useTheme()
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
+  const [pendingHref, setPendingHref] = useState<string | null>(null)
+  const prevMobileIndexRef = useRef<number>(-1)
+
+  const activeHref = (pendingHref?.split('?')[0]) ?? pathname
+  const mobileActiveIndex = (() => {
+    const navIdx = mobileNavigation.findIndex(i => i.href === activeHref);
+    if (navIdx >= 0) return navIdx;
+    // System button appears after mobileNavigation items
+    return activeHref === '/system' ? mobileNavigation.length : -1;
+  })();
 
   useEffect(() => {
     setMounted(true)
   }, [])
+
+  // Clear optimistic active state once real navigation completes
+  useEffect(() => {
+    setPendingHref(null)
+  }, [pathname])
+
+  // Track previous active index for sliding stagger — update after animation has started
+  useEffect(() => {
+    const t = setTimeout(() => {
+      prevMobileIndexRef.current = mobileActiveIndex
+    }, 350)
+    return () => clearTimeout(t)
+  }, [mobileActiveIndex])
+
+  const navigateTo = (href: string) => {
+    setPendingHref(href)
+    router.push(href)
+  }
+
+  const getMobileScale = (idx: number) => {
+    if (mobileActiveIndex < 0) return 1
+    const dist = Math.abs(idx - mobileActiveIndex)
+    if (dist === 0) return 1.22
+    if (dist === 1) return 1.08
+    return 1
+  }
+
+  const getMobileTransition = (idx: number) => {
+    const prev = prevMobileIndexRef.current
+    const curr = mobileActiveIndex
+    const base = { type: "spring" as const, stiffness: 380, damping: 26 }
+    if (prev < 0 || prev === curr) return base
+    const min = Math.min(prev, curr)
+    const max = Math.max(prev, curr)
+    // Only stagger buttons along the travel path
+    if (idx < min || idx > max) return base
+    return { ...base, delay: Math.abs(idx - prev) * 0.055 }
+  }
 
   const isPublicPage = pathname === '/login' || pathname === '/signup'
   if (isPublicPage) return null
@@ -52,7 +100,7 @@ export function Navigation() {
   return (
     <>
       {/* Desktop Terminal Sidebar */}
-      <aside className="hidden md:flex md:w-64 md:flex-col md:fixed md:inset-y-0 bg-background border-r border-border z-40">
+      <aside className="hidden md:flex md:w-64 md:flex-col md:fixed md:inset-y-0 left-0 bg-background border-r border-border z-40">
         <div className="flex flex-col h-full pt-6 pb-4">
           {/* Mainframe ID */}
           <div className="px-6 mb-6 space-y-4">
@@ -99,14 +147,14 @@ export function Navigation() {
           {/* Core Navigation Links */}
           <nav className="flex-1 px-2 space-y-1 overflow-y-auto">
             {navigation.map((item) => {
-              const isActive = pathname === item.href
               const targetHref = cycleId ? `${item.href}?cycleId=${cycleId}` : item.href
+              const isActive = (pendingHref ?? pathname) === item.href
               return (
                 <div key={item.name}>
-                  <Link
-                    href={targetHref}
+                  <button
+                    onClick={() => navigateTo(targetHref)}
                     className={cn(
-                      "group relative flex items-center justify-between px-4 py-3 transition-all duration-300 border border-transparent",
+                      "group relative flex items-center justify-between w-full px-4 py-3 transition-all duration-300 border border-transparent",
                       isActive ? "bg-secondary/70 border-border/50 text-foreground" : "text-muted-foreground hover:bg-muted/30 hover:text-foreground"
                     )}
                   >
@@ -122,7 +170,7 @@ export function Navigation() {
                         {item.name}
                       </span>
                     </div>
-                  </Link>
+                  </button>
                 </div>
               )
             })}
@@ -174,49 +222,62 @@ export function Navigation() {
         </div>
       </aside>
 
-      {/* Mobile Terminal Bottom Bar (Exactly 5 spaced items, Portaled to document.body to guarantee viewport attachment) */}
-      {mounted && typeof document !== "undefined" && createPortal(
-        <nav className="md:hidden fixed bottom-0 left-0 right-0 bg-background/95 backdrop-blur-md border-t border-border z-[99999] px-1 max-w-full overflow-hidden shadow-2xl">
-          <div className="flex justify-around items-center h-16 w-full max-w-full">
-            {mobileNavigation.map((item) => {
-              const isActive = pathname === item.href
-              const targetHref = cycleId ? `${item.href}?cycleId=${cycleId}` : item.href
+      {/* Mobile Terminal Bottom Bar — rendered inline, fixed positioning handles placement */}
+      {mounted && (
+        <nav className="md:hidden fixed bottom-0 left-0 right-0 bg-background/95 backdrop-blur-md border-t border-border z-[99999] px-1 shadow-2xl">
+          {/* Persistent sliding indicator */}
+          <motion.div
+            className="absolute top-0 left-0 h-0.5 bg-foreground z-50 pointer-events-none"
+            style={{ width: `${100 / (mobileNavigation.length + 1)}%` }}
+            initial={false}
+            animate={{ x: mobileActiveIndex >= 0 ? `${mobileActiveIndex * 100}%` : "0%" }}
+            transition={{ type: "spring", stiffness: 380, damping: 30 }}
+          />
+
+          <div className="flex justify-around items-center h-14 w-full">
+            {mobileNavigation.map((item, idx) => {
+              const targetHref = cycleId ? `${item.href}?cycleId=${cycleId}` : item.href;
+              const isActive = activeHref === item.href;
               return (
-                <Link
+                <button
                   key={item.name}
-                  href={targetHref}
+                  onClick={() => navigateTo(targetHref)}
                   className={cn(
-                    "flex flex-col items-center justify-center grow h-full transition-all relative min-w-0 px-2 py-1 select-none",
+                    "flex flex-col items-center justify-center flex-1 w-0 h-full transition-colors relative min-w-0 px-2 py-1 select-none",
                     isActive ? "text-foreground font-bold" : "text-muted-foreground hover:text-foreground"
                   )}
                 >
-                  {isActive && (
-                    <motion.div 
-                      layoutId="activeNavMobile"
-                      className="absolute top-0 left-3 right-3 h-0.5 bg-foreground" 
-                    />
-                  )}
-                  <item.icon className={cn("h-4 w-4 shrink-0 transition-transform", isActive && "scale-110 text-foreground")} />
-                  <span className="text-[9px] mt-1.5 font-mono uppercase tracking-tight truncate w-full text-center">{item.name}</span>
-                </Link>
-              )
+                  <motion.div
+                    className="flex items-center justify-center"
+                    animate={{ scale: getMobileScale(idx) }}
+                    transition={getMobileTransition(idx)}
+                  >
+                    <item.icon className={cn("h-5 w-5 shrink-0", isActive && "text-foreground")} />
+                  </motion.div>
+                </button>
+              );
             })}
 
-            {/* 5th Button: System / Menu Trigger */}
-            <button 
+            {/* System / Menu Trigger */}
+            <button
               onClick={() => setMobileMenuOpen(true)}
               className={cn(
-                "flex flex-col items-center justify-center grow h-full text-muted-foreground hover:text-foreground transition-all min-w-0 px-2 py-1 select-none",
+                "flex flex-col items-center justify-center flex-1 w-0 h-full text-muted-foreground hover:text-foreground transition-colors min-w-0 px-2 py-1 select-none",
                 mobileMenuOpen && "text-foreground font-bold"
               )}
             >
-              <Sliders className="h-4 w-4 shrink-0" />
-              <span className="text-[9px] mt-1.5 font-mono uppercase tracking-tight truncate w-full text-center">System</span>
+              <motion.div
+                className="flex items-center justify-center"
+                animate={{ scale: getMobileScale(mobileNavigation.length) }}
+                transition={getMobileTransition(mobileNavigation.length)}
+              >
+                <Sliders className="h-5 w-5 shrink-0" />
+              </motion.div>
             </button>
           </div>
-        </nav>,
-        document.body
+        </nav>
       )}
+
 
       {/* Mobile System Menu Drawer Modal */}
       <Dialog open={mobileMenuOpen} onOpenChange={setMobileMenuOpen}>

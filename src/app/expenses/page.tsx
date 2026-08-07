@@ -17,8 +17,9 @@ export default async function ExpensesPage({ searchParams }: PageProps) {
   const [expensesRes, categoriesRes, rulesRes, cycles] = await Promise.all([
     supabase
       .from("tracker_expense")
-      .select("*")
-      .order("date", { ascending: false }),
+      .select("id, amount, merchant, date, source, category_id, raw_text, is_anomaly")
+      .order("date", { ascending: false })
+      .limit(500),
     supabase
       .from("categories")
       .select("*")

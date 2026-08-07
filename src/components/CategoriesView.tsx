@@ -679,7 +679,7 @@ export function CategoriesView({ expenses, categories, cycles, currentCycleId }:
       </section>
 
       {/* 4. Controls, Date Filter, and Trend Graph (Split Section) */}
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start [content-visibility:auto] [contain-intrinsic-size:1px_500px]">
         {/* Left Side: Filter Matrix Block */}
         <div className="lg:col-span-4 space-y-6">
           <div className="flex items-center justify-between border-b border-foreground/10 pb-4">

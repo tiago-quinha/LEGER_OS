@@ -1,108 +1,101 @@
 import React from "react"
 import { Skeleton } from "@/components/ui/skeleton"
+
 import { Brain } from "lucide-react"
 
-export default function LegerAiLoading() {
+export default function MemoryLoading() {
   return (
-    <div className="mx-auto max-w-[1500px] p-4 md:p-8 space-y-8 md:space-y-12 pb-24 text-foreground w-full animate-fade-in">
-      {/* 1. Header: The Intelligence Node */}
-      <header className="flex flex-col md:flex-row md:items-end justify-between gap-8 border-b border-foreground/10 pb-8 relative">
-        <div className="absolute top-0 right-0 technical-label opacity-20 hidden lg:block uppercase tracking-widest text-[9px]">
-          NODE_ID: LEGER_CORE_05 // ENCRYPTED
-        </div>
-        <div className="space-y-4">
-          <div className="flex items-center gap-3 text-[10px] font-mono tracking-[0.2em] uppercase text-muted-foreground">
-            <Brain className="h-4 w-4 animate-pulse text-foreground/80" />
-            <span>Neural Synthesis</span>
-            <span className="opacity-30">/</span>
-            <span>STRATEGY_NODE</span>
+    <div className="mx-auto max-w-[1500px] p-4 md:p-8 space-y-10 md:space-y-12 pb-24 md:pb-8 w-full animate-fade-in">
+      
+      {/* 1. Header */}
+      <header className="flex flex-col md:flex-row md:items-center justify-between gap-6 md:gap-8 border-b border-foreground/10 pb-6 md:pb-8 relative">
+        <div className="space-y-3">
+          <div className="flex items-center gap-3 text-[9px] md:text-[10px] font-mono tracking-[0.2em] uppercase text-muted-foreground">
+            <Brain className="h-3.5 w-3.5" />
+            <span>AI Context</span>
           </div>
-          <h1 className="text-4xl sm:text-5xl md:text-6xl font-bold tracking-tighter uppercase leading-none">
-            Leger AI
-          </h1>
+          <Skeleton className="h-10 md:h-12 w-64 rounded-none" />
         </div>
-        <Skeleton className="h-12 w-full md:w-36 rounded-none animate-pulse" />
       </header>
 
-      {/* 2. Main Terminal Area (Exact 1:2 split) */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 lg:gap-12">
-        
-        {/* Left Column: Data Telemetry (lg:col-span-1) */}
-        <div className="lg:col-span-1 space-y-6 lg:space-y-12">
-          <div className="space-y-6">
-            <div className="flex justify-between items-center border-b border-border pb-2">
-              <Skeleton className="h-4 w-32" />
-              <Skeleton className="h-3 w-12" />
-            </div>
-            
-            <div className="space-y-4">
-              {/* Threat Vector */}
-              <div className="space-y-1.5 py-2 border-b border-border/50">
-                <div className="flex justify-between items-center">
-                  <Skeleton className="h-3 w-20" />
-                  <Skeleton className="h-3.5 w-12" />
-                </div>
-                <div className="w-full h-1.5 bg-secondary/50 overflow-hidden relative">
-                  <Skeleton className="h-full w-[40%]" />
-                </div>
-              </div>
-              
-              {/* Cycle Velocity */}
-              <div className="flex justify-between items-center py-2 border-b border-border/50">
-                <Skeleton className="h-3 w-24" />
-                <Skeleton className="h-3.5 w-8" />
-              </div>
-              
-              {/* Last Sync */}
-              <div className="flex justify-between items-center py-2 border-b border-border/50">
-                <Skeleton className="h-3 w-20" />
-                <Skeleton className="h-3.5 w-16" />
-              </div>
-            </div>
-          </div>
+      {/* Centered Content Column */}
+      <div className="max-w-[900px] mx-auto w-full space-y-8 pt-4">
 
-          {/* Strategic Standing */}
-          <div className="p-6 bg-secondary/10 border border-border ledger-border space-y-4 shadow-sm">
-            <div className="flex items-center gap-2">
-              <Skeleton className="h-3 w-3 rounded-full" />
-              <Skeleton className="h-3.5 w-32" />
-            </div>
-            <Skeleton className="h-11 w-full rounded-none" />
+      {/* Mainframe Ingestion Box Skeleton */}
+      <div className="p-5 border border-border ledger-border bg-card/60 backdrop-blur-sm space-y-4">
+        <div className="flex items-start justify-between gap-4">
+          <div className="space-y-2">
+            <Skeleton className="h-3 w-28 rounded-none" />
+            <Skeleton className="h-5 w-80 rounded-none" />
+          </div>
+          <Skeleton className="h-9 w-9 rounded-full shrink-0" />
+        </div>
+        <Skeleton className="h-20 w-full rounded-none" />
+        <div className="flex justify-end">
+          <Skeleton className="h-8 w-32 rounded-none" />
+        </div>
+      </div>
+
+      {/* Filter Tabs Skeleton */}
+      <div className="flex items-center gap-1.5 overflow-x-auto pb-2 border-b border-border/30">
+        {Array.from({ length: 5 }).map((_, i) => (
+          <Skeleton key={i} className="h-7 w-20 rounded-none shrink-0" />
+        ))}
+      </div>
+
+      {/* Memory Timeline List Skeleton */}
+      <div className="space-y-8">
+        {/* Group 1 (Today) */}
+        <div className="space-y-4">
+          <div className="flex items-center gap-4">
+            <Skeleton className="h-4.5 w-16 rounded-none shrink-0" />
+            <div className="h-px bg-border/40 flex-grow" />
+          </div>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            {Array.from({ length: 2 }).map((_, i) => (
+              <div key={i} className="p-4 border border-border bg-card space-y-4 min-h-[120px] flex flex-col justify-between">
+                <div className="space-y-3">
+                  <div className="flex items-center justify-between gap-3">
+                    <Skeleton className="h-4.5 w-16 rounded-none" />
+                    <Skeleton className="h-4.5 w-14 rounded-none" />
+                  </div>
+                  <Skeleton className="h-4 w-full rounded-none" />
+                  <Skeleton className="h-4 w-2/3 rounded-none" />
+                </div>
+                <div className="flex justify-between items-center pt-2 border-t border-border/20">
+                  <Skeleton className="h-3 w-16 rounded-none" />
+                  <Skeleton className="h-3 w-24 rounded-none" />
+                </div>
+              </div>
+            ))}
           </div>
         </div>
 
-        {/* Right Column: Leger Feed / Terminal (lg:col-span-2) */}
-        <div className="lg:col-span-2 space-y-8">
-          <div className="min-h-[400px] border border-border ledger-border bg-card relative p-6 md:p-12 pt-14 md:pt-14 flex flex-col justify-between overflow-hidden text-left shadow-xl">
-            
-            {/* Dialogue Feed */}
-            <div className="space-y-6 flex-1">
-              <div className="flex items-start gap-4">
-                <Skeleton className="h-8 w-8 rounded-full" />
-                <div className="space-y-2 flex-1">
-                  <Skeleton className="h-3.5 w-24" />
-                  <Skeleton className="h-3 w-full" />
-                  <Skeleton className="h-3 w-[88%]" />
+        {/* Group 2 (Yesterday) */}
+        <div className="space-y-4">
+          <div className="flex items-center gap-4">
+            <Skeleton className="h-4.5 w-24 rounded-none shrink-0" />
+            <div className="h-px bg-border/40 flex-grow" />
+          </div>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            {Array.from({ length: 2 }).map((_, i) => (
+              <div key={i} className="p-4 border border-border bg-card space-y-4 min-h-[120px] flex flex-col justify-between">
+                <div className="space-y-3">
+                  <div className="flex items-center justify-between gap-3">
+                    <Skeleton className="h-4.5 w-16 rounded-none" />
+                    <Skeleton className="h-4.5 w-14 rounded-none" />
+                  </div>
+                  <Skeleton className="h-4 w-5/6 rounded-none" />
+                </div>
+                <div className="flex justify-between items-center pt-2 border-t border-border/20">
+                  <Skeleton className="h-3 w-16 rounded-none" />
+                  <Skeleton className="h-3 w-24 rounded-none" />
                 </div>
               </div>
-
-              <div className="flex items-start gap-4 justify-end">
-                <div className="space-y-2 flex-1 flex flex-col items-end">
-                  <Skeleton className="h-3.5 w-20" />
-                  <Skeleton className="h-3 w-[60%]" />
-                </div>
-                <Skeleton className="h-8 w-8 rounded-full" />
-              </div>
-            </div>
-
-            {/* Input Bar area at bottom */}
-            <div className="border-t border-border/55 pt-6 mt-8 flex gap-3">
-              <Skeleton className="h-10 flex-1 rounded-none" />
-              <Skeleton className="h-10 w-24 rounded-none" />
-            </div>
+            ))}
           </div>
         </div>
-
+      </div>
       </div>
     </div>
   )

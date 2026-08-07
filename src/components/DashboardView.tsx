@@ -307,49 +307,47 @@ export function DashboardView({
   
   const currentCycle = cycles.find(c => c.id === currentCycleId) || cycles[0]
 
-  // DATA CALCULATIONS
-  const totalOut = expenses
-    .filter(exp => parseFloat(exp.amount) < 0)
-    .reduce((sum, exp) => sum + Math.abs(parseFloat(exp.amount) || 0), 0)
+  // DATA CALCULATIONS (memoized to avoid re-iterating expenses on every render)
+  const { totalOut, totalAnomalies, cleanTotalOut, totalIn, netChange, cycleEndBalance, netFlow } = useMemo(() => {
+    let _totalOut = 0, _totalAnomalies = 0, _totalIn = 0, _netChange = 0
+    for (const exp of expenses) {
+      const amt = parseFloat(exp.amount) || 0
+      _netChange += amt
+      if (amt < 0) {
+        const absAmt = Math.abs(amt)
+        _totalOut += absAmt
+        if (exp.is_anomaly) _totalAnomalies += absAmt
+      } else if (amt > 0) {
+        _totalIn += amt
+      }
+    }
+    return {
+      totalOut: _totalOut,
+      totalAnomalies: _totalAnomalies,
+      cleanTotalOut: _totalOut - _totalAnomalies,
+      totalIn: _totalIn,
+      netChange: _netChange,
+      cycleEndBalance: injectedStartBalance + _netChange,
+      netFlow: _totalIn - _totalOut,
+    }
+  }, [expenses, injectedStartBalance])
 
-  const totalAnomalies = expenses
-    .filter(exp => parseFloat(exp.amount) < 0 && exp.is_anomaly)
-    .reduce((sum, exp) => sum + Math.abs(parseFloat(exp.amount) || 0), 0)
-
-  const cleanTotalOut = totalOut - totalAnomalies
-
-  const totalIn = expenses
-    .filter(exp => parseFloat(exp.amount) > 0)
-    .reduce((sum, exp) => sum + Math.abs(parseFloat(exp.amount) || 0), 0)
-
-  const netChange = expenses.reduce((sum, exp) => sum + (parseFloat(exp.amount) || 0), 0)
-  const cycleEndBalance = injectedStartBalance + netChange
-  const netFlow = totalIn - totalOut
-
-  const calculateDaysElapsed = () => {
+  const daysElapsed = useMemo(() => {
     if (!currentCycle) return 30
     const start = new Date(currentCycle.startDate)
     const end = currentCycle.endDate ? new Date(currentCycle.endDate) : new Date()
     const diffTime = Math.abs(end.getTime() - start.getTime())
-    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24))
-    return Math.max(1, diffDays)
-  }
+    return Math.max(1, Math.ceil(diffTime / (1000 * 60 * 60 * 24)))
+  }, [currentCycle])
 
-  const daysElapsed = calculateDaysElapsed()
-
-  const calculateTotalDays = () => {
+  const totalDaysInCycle = useMemo(() => {
     if (!currentCycle) return 30
-    if (!currentCycle.endDate) {
-      return Math.max(30, daysElapsed)
-    }
+    if (!currentCycle.endDate) return Math.max(30, daysElapsed)
     const start = new Date(currentCycle.startDate)
     const end = new Date(currentCycle.endDate)
     const diffTime = Math.abs(end.getTime() - start.getTime())
-    const diffDays = Math.round(diffTime / (1000 * 60 * 60 * 24))
-    return Math.max(1, diffDays - 1)
-  }
-
-  const totalDaysInCycle = calculateTotalDays()
+    return Math.max(1, Math.round(diffTime / (1000 * 60 * 60 * 24)) - 1)
+  }, [currentCycle, daysElapsed])
   const startDate = new Date(currentCycle.startDate)
   const today = new Date()
 
@@ -629,15 +627,15 @@ export function DashboardView({
   }, [isPro])
 
   // Group expenses by date for calendar view
-  const expensesByDate = expenses.reduce((acc: any, exp) => {
+  const expensesByDate = useMemo(() => expenses.reduce((acc: any, exp) => {
     const date = new Date(exp.date).toDateString()
     if (!acc[date]) acc[date] = []
     acc[date].push(exp)
     return acc
-  }, {})
+  }, {}), [expenses])
 
   // GENERATE HYBRID DATA
-  const hybridData = Array.from({ length: totalDaysInCycle + 1 }, (_, i) => {
+  const hybridData = useMemo(() => Array.from({ length: totalDaysInCycle + 1 }, (_, i) => {
     const date = new Date(startDate)
     date.setDate(date.getDate() + i)
     const dateLabel = date.toLocaleDateString('en-GB', { day: '2-digit', month: 'short' })
@@ -708,9 +706,9 @@ export function DashboardView({
       pessimisticSpend,
       pessimisticBalance
     }
-  })
+  }), [totalDaysInCycle, startDate, today, expenses, injectedStartBalance, totalIn, isCurrentCycle, expertProjection])
 
-  const spendingByCategory = categories.map(cat => {
+  const spendingByCategory = useMemo(() => categories.map(cat => {
     const spent = expenses
       .filter(exp => exp.category_id === cat.id && parseFloat(exp.amount) < 0)
       .reduce((sum, exp) => sum + Math.abs(parseFloat(exp.amount) || 0), 0)
@@ -738,7 +736,7 @@ export function DashboardView({
         color: cat.color || "#09090B",
         prevValue: prevSpentAtPoint 
     }
-  }).filter(c => c.value > 0 || c.limit > 0 || c.netBalance !== 0).sort((a, b) => b.value - a.value)
+  }).filter(c => c.value > 0 || c.limit > 0 || c.netBalance !== 0).sort((a, b) => b.value - a.value), [categories, expenses, budgets, previousExpenses])
 
   useEffect(() => {
     if (typeof window !== "undefined") {
@@ -953,18 +951,20 @@ export function DashboardView({
             </div>
 
             {/* Full-width statistics bar matching graph width */}
-            <div className="flex items-center justify-between gap-4 py-2 px-4 border border-border ledger-border bg-card text-[10px] font-mono w-full">
-               <div className="flex items-center gap-1.5">
-                 <span className={cn("h-2 w-2 rounded-full", delta >= 0 ? "bg-emerald-500" : "bg-destructive")} />
-                 <span className="text-muted-foreground uppercase tracking-wider">Net Cash Flow:</span>
-                 <span className={cn("font-bold", delta >= 0 ? "text-emerald-500" : "text-destructive")}>
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 sm:gap-4 py-2 px-4 border border-border ledger-border bg-card text-[10px] font-mono w-full">
+               <div className="flex items-center justify-between sm:justify-start gap-1.5 w-full sm:w-auto">
+                 <div className="flex items-center gap-1.5">
+                   <span className={cn("h-2 w-2 rounded-full shrink-0", delta >= 0 ? "bg-emerald-500" : "bg-destructive")} />
+                   <span className="text-muted-foreground uppercase tracking-wider whitespace-nowrap">Net Cash Flow:</span>
+                 </div>
+                 <span className={cn("font-bold whitespace-nowrap", delta >= 0 ? "text-emerald-500" : "text-destructive")}>
                    <PrivacyValue>{delta >= 0 ? "+" : ""}{currencySymbol}{delta.toFixed(2)}</PrivacyValue>
                  </span>
                </div>
-               <span className="text-muted-foreground/30 font-light select-none">|</span>
-               <div className="flex items-center gap-1.5">
-                  <span className="text-muted-foreground uppercase tracking-wider">Daily Burn:</span>
-                  <span className="font-bold text-foreground">
+               <span className="hidden sm:inline text-muted-foreground/30 font-light select-none">|</span>
+               <div className="flex items-center justify-between sm:justify-start gap-1.5 w-full sm:w-auto border-t border-border/30 pt-2 sm:pt-0 sm:border-0">
+                  <span className="text-muted-foreground uppercase tracking-wider whitespace-nowrap">Daily Burn:</span>
+                  <span className="font-bold text-foreground whitespace-nowrap">
                     <PrivacyValue>{currencySymbol}{(cleanTotalOut / Math.max(1, daysElapsed)).toFixed(2)}/d</PrivacyValue>
                   </span>
                </div>
@@ -1178,147 +1178,8 @@ export function DashboardView({
             ))}
           </div>
 
-          {/* 4. Budgets Performance */}
-          <section className="space-y-8">
-            <div className="flex items-center justify-between border-b border-foreground/10 pb-4">
-              <h2 className="text-[10px] font-mono uppercase tracking-wider text-foreground font-bold">Budget Limits</h2>
-              <span className="text-[10px] font-mono text-muted-foreground">{activeBudgets.length} ACTIVE LIMITS</span>
-            </div>
-            
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-x-12 gap-y-10">
-              {activeBudgets.map((cat) => {
-                const netBalance = cat.netBalance !== undefined ? cat.netBalance : -cat.value
-                const isProfitable = netBalance > 0
-                const netSpent = netBalance < 0 ? Math.abs(netBalance) : 0
-
-                const percentage = cat.limit > 0 ? (Math.abs(netBalance) / cat.limit) * 100 : 0
-                const isOver = !isProfitable && netSpent > cat.limit && cat.limit > 0
-
-                return (
-                  <div 
-                    key={cat.name} 
-                    className="space-y-3 group cursor-pointer hover:bg-secondary/20 p-2.5 -mx-2.5 rounded-none transition-colors border border-transparent hover:border-border/40" 
-                    onClick={() => {
-                      setSelectedCategoryForGraph(cat)
-                      setBudgetGraphOpen(true)
-                    }}
-                  >
-                    <div className="flex justify-between items-end">
-                      <div className="space-y-0.5">
-                        <span className="text-xs font-bold uppercase tracking-tight block">{cat.name}</span>
-                        <span className="text-[9px] font-mono text-muted-foreground uppercase">
-                          {isProfitable 
-                            ? `+${currencySymbol}${netBalance.toFixed(0)} surplus` 
-                            : isOver 
-                              ? "limit exceeded" 
-                              : `${currencySymbol}${(cat.limit - netSpent).toFixed(0)} remaining`
-                          }
-                        </span>
-                      </div>
-                      <div className="text-right space-y-0.5">
-                        <div className={cn("text-xs font-mono font-bold", isProfitable ? "text-emerald-500" : "")}>
-                          <PrivacyValue>
-                            {isProfitable ? "+" : ""}{currencySymbol}{isProfitable ? Math.round(netBalance) : Math.round(netSpent)}
-                          </PrivacyValue>
-                          <span className="text-muted-foreground/60 font-normal"> / {currencySymbol}{cat.limit.toFixed(0)}</span>
-                        </div>
-                        <p className="text-[9px] font-mono text-muted-foreground uppercase">
-                          {isProfitable 
-                            ? `+${percentage.toFixed(0)}% surplus` 
-                            : `${percentage.toFixed(0)}% used`
-                          }
-                        </p>
-                      </div>
-                    </div>
-                    
-                    <div className="relative w-full h-2 bg-secondary/30 rounded-none border border-border/40 flex items-center">
-                      {/* Zero center-line indicator */}
-                      <div className="absolute left-1/2 -top-0.5 -bottom-0.5 -translate-x-1/2 w-[1px] bg-foreground/50 z-20" />
-
-                      <div className="absolute inset-0 overflow-hidden">
-                        {isProfitable && (
-                          <div 
-                            className="absolute left-1/2 top-0 bottom-0 bg-emerald-500 transition-all duration-1000"
-                            style={{ width: `${Math.min(50, (netBalance / (cat.limit || 100)) * 50)}%` }}
-                          />
-                        )}
-
-                        {!isProfitable && netSpent > 0 && (
-                          <div 
-                            className={cn("absolute right-1/2 top-0 bottom-0 transition-all duration-1000", isOver ? "bg-destructive" : "bg-foreground")}
-                            style={{ width: `${Math.min(50, (netSpent / (cat.limit || 100)) * 50)}%` }}
-                          />
-                        )}
-                      </div>
-                    </div>
-                  </div>
-                )
-              })}
-            </div>
-          </section>
-
-          {/* 5. Logs & Archive Grid */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-12 pb-10">
-            <div className="space-y-6">
-              <h3 className="text-[10px] font-mono uppercase tracking-wider text-foreground font-bold border-b border-border pb-4">Category Breakdown</h3>
-              <div className="space-y-6">
-                {spendingByCategory.map((cat) => (
-                  <div key={cat.name} className="group cursor-default">
-                    <div className="flex justify-between items-end mb-2">
-                      <span className="text-xs font-bold uppercase tracking-tight group-hover:pl-2 transition-all duration-300 block">{cat.name}</span>
-                      <span className="text-xs font-mono font-bold uppercase">{currencySymbol}{cat.value.toFixed(2)}</span>
-                    </div>
-                    <div className="h-px w-full bg-border relative">
-                      <div className="absolute top-0 left-0 h-px bg-foreground transition-all duration-700" style={{ width: `${(cat.value / totalOut) * 100}%` }} />
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </div>
-
-            <div className="space-y-6">
-              <div className="flex items-center justify-between border-b border-border pb-4">
-                <h3 className="text-[10px] font-mono uppercase tracking-wider text-foreground font-bold">Recent Transactions</h3>
-                <span className="text-[10px] font-mono text-muted-foreground uppercase">{expenses.length} Entries</span>
-              </div>
-              <div className="space-y-0">
-                <AnimatedList
-                  items={expenses.slice(0, 10)}
-                  gap={0}
-                  animation="scale"
-                  renderItem={(exp) => (
-                    <div 
-                      onClick={() => openAudit(exp.id)}
-                      className="py-4 flex items-center justify-between group hover:bg-muted/30 transition-colors px-2 cursor-pointer border-b border-border/50"
-                    >
-                      <div className="space-y-1">
-                        <p className="text-xs font-bold uppercase truncate max-w-[180px] sm:max-w-xs tracking-tight group-hover:pl-1 transition-all">{exp.merchant || "UNSPECIFIED"}</p>
-                        <p className="text-[9px] font-mono text-muted-foreground uppercase">{new Date(exp.date).toLocaleDateString(language, { day: '2-digit', month: 'short' })}</p>
-                      </div>
-                      <div className={cn("text-xs font-mono font-bold", parseFloat(exp.amount) > 0 ? "text-emerald-600 dark:text-emerald-400" : "")}>
-                        <PrivacyValue><NumberTicker value={Math.abs(parseFloat(exp.amount))} prefix={parseFloat(exp.amount) > 0 ? "+" : currencySymbol} /></PrivacyValue>
-                      </div>
-                    </div>
-                  )}
-                />
-                <MagneticButton 
-                  variant="outline" 
-                  className="w-full text-[10px] font-mono uppercase tracking-[0.2em] py-6 opacity-60 hover:opacity-100 border border-border mt-4 bg-background justify-center" 
-                  onClick={() => router.push('/expenses')}
-                >
-                  Access Full Archive <ArrowUpRight className="ml-2 h-3.5 w-3.5" />
-                </MagneticButton>
-              </div>
-            </div>
-          </div>
-
-        </div>
-
-        {/* RIGHT COLUMN: Control Center / Telemetry (lg:col-span-4) */}
-        <div className="lg:col-span-4 space-y-10 md:space-y-14 border-t lg:border-t-0 lg:border-l border-border/50 pt-10 lg:pt-0 lg:pl-6">
-          
           {/* Active Paycheck Cycle HUD & Smart Forecasts */}
-          <div className="space-y-6">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             {/* Paycheck Cycle Card */}
             <Tilt rotationFactor={4} className="p-6 md:p-8 space-y-4 bg-card/20 border border-border relative group overflow-hidden flex flex-col justify-between w-full glow-card">
               <div className="flex justify-between items-center text-xs font-mono z-10">
@@ -1414,6 +1275,144 @@ export function DashboardView({
             </div>
           </div>
 
+          {/* 4. Budgets Performance */}
+          <section className="space-y-8 [content-visibility:auto] [contain-intrinsic-size:1px_300px]">
+            <div className="flex items-center justify-between border-b border-foreground/10 pb-4">
+              <h2 className="text-[10px] font-mono uppercase tracking-wider text-foreground font-bold">Budget Limits</h2>
+              <span className="text-[10px] font-mono text-muted-foreground">{activeBudgets.length} ACTIVE LIMITS</span>
+            </div>
+            
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-x-12 gap-y-10">
+              {activeBudgets.map((cat) => {
+                const netBalance = cat.netBalance !== undefined ? cat.netBalance : -cat.value
+                const isProfitable = netBalance > 0
+                const netSpent = netBalance < 0 ? Math.abs(netBalance) : 0
+
+                const percentage = cat.limit > 0 ? (Math.abs(netBalance) / cat.limit) * 100 : 0
+                const isOver = !isProfitable && netSpent > cat.limit && cat.limit > 0
+
+                return (
+                  <div 
+                    key={cat.name} 
+                    className="space-y-3 group cursor-pointer hover:bg-secondary/20 p-2.5 -mx-2.5 rounded-none transition-colors border border-transparent hover:border-border/40" 
+                    onClick={() => {
+                      setSelectedCategoryForGraph(cat)
+                      setBudgetGraphOpen(true)
+                    }}
+                  >
+                    <div className="flex justify-between items-end">
+                      <div className="space-y-0.5">
+                        <span className="text-xs font-bold uppercase tracking-tight block">{cat.name}</span>
+                        <span className="text-[9px] font-mono text-muted-foreground uppercase">
+                          {isProfitable 
+                            ? `+${currencySymbol}${netBalance.toFixed(0)} surplus` 
+                            : isOver 
+                              ? "limit exceeded" 
+                              : `${currencySymbol}${(cat.limit - netSpent).toFixed(0)} remaining`
+                          }
+                        </span>
+                      </div>
+                      <div className="text-right space-y-0.5">
+                        <div className={cn("text-xs font-mono font-bold", isProfitable ? "text-emerald-500" : "")}>
+                          <PrivacyValue>
+                            {isProfitable ? "+" : ""}{currencySymbol}{isProfitable ? Math.round(netBalance) : Math.round(netSpent)}
+                          </PrivacyValue>
+                          <span className="text-muted-foreground/60 font-normal"> / {currencySymbol}{cat.limit.toFixed(0)}</span>
+                        </div>
+                        <p className="text-[9px] font-mono text-muted-foreground uppercase">
+                          {isProfitable 
+                            ? `+${percentage.toFixed(0)}% surplus` 
+                            : `${percentage.toFixed(0)}% used`
+                          }
+                        </p>
+                      </div>
+                    </div>
+                    
+                    <div className="relative w-full h-2 bg-secondary/30 rounded-none border border-border/40 flex items-center">
+                      {/* Zero center-line indicator */}
+                      <div className="absolute left-1/2 -top-0.5 -bottom-0.5 -translate-x-1/2 w-[1px] bg-foreground/50 z-20" />
+
+                      <div className="absolute inset-0 overflow-hidden">
+                        {isProfitable && (
+                          <div 
+                            className="absolute left-1/2 top-0 bottom-0 bg-emerald-500 transition-all duration-1000"
+                            style={{ width: `${Math.min(50, (netBalance / (cat.limit || 100)) * 50)}%` }}
+                          />
+                        )}
+
+                        {!isProfitable && netSpent > 0 && (
+                          <div 
+                            className={cn("absolute right-1/2 top-0 bottom-0 transition-all duration-1000", isOver ? "bg-destructive" : "bg-foreground")}
+                            style={{ width: `${Math.min(50, (netSpent / (cat.limit || 100)) * 50)}%` }}
+                          />
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                )
+              })}
+            </div>
+          </section>
+
+          {/* 5. Logs & Archive Grid */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-12 pb-10 [content-visibility:auto] [contain-intrinsic-size:1px_400px]">
+            <div className="space-y-6">
+              <h3 className="text-[10px] font-mono uppercase tracking-wider text-foreground font-bold border-b border-border pb-4">Category Breakdown</h3>
+              <div className="space-y-6">
+                {spendingByCategory.map((cat) => (
+                  <div key={cat.name} className="group cursor-default">
+                    <div className="flex justify-between items-end mb-2">
+                      <span className="text-xs font-bold uppercase tracking-tight group-hover:pl-2 transition-all duration-300 block">{cat.name}</span>
+                      <span className="text-xs font-mono font-bold uppercase">{currencySymbol}{cat.value.toFixed(2)}</span>
+                    </div>
+                    <div className="h-px w-full bg-border relative">
+                      <div className="absolute top-0 left-0 h-px bg-foreground transition-all duration-700" style={{ width: `${(cat.value / totalOut) * 100}%` }} />
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            <div className="space-y-6">
+              <div className="flex items-center justify-between border-b border-border pb-4">
+                <h3 className="text-[10px] font-mono uppercase tracking-wider text-foreground font-bold">Recent Transactions</h3>
+                <span className="text-[10px] font-mono text-muted-foreground uppercase">{expenses.length} Entries</span>
+              </div>
+              <div className="space-y-0">
+                <AnimatedList
+                  items={expenses.slice(0, 10)}
+                  gap={0}
+                  animation="scale"
+                  renderItem={(exp) => (
+                    <div 
+                      onClick={() => openAudit(exp.id)}
+                      className="py-4 flex items-center justify-between group hover:bg-muted/30 transition-colors px-2 cursor-pointer border-b border-border/50"
+                    >
+                      <div className="space-y-1">
+                        <p className="text-xs font-bold uppercase truncate max-w-[180px] sm:max-w-xs tracking-tight group-hover:pl-1 transition-all">{exp.merchant || "UNSPECIFIED"}</p>
+                        <p className="text-[9px] font-mono text-muted-foreground uppercase">{new Date(exp.date).toLocaleDateString(language, { day: '2-digit', month: 'short' })}</p>
+                      </div>
+                      <div className={cn("text-xs font-mono font-bold", parseFloat(exp.amount) > 0 ? "text-emerald-600 dark:text-emerald-400" : "")}>
+                        <PrivacyValue><NumberTicker value={Math.abs(parseFloat(exp.amount))} prefix={parseFloat(exp.amount) > 0 ? "+" : currencySymbol} /></PrivacyValue>
+                      </div>
+                    </div>
+                  )}
+                />
+                <MagneticButton 
+                  variant="outline" 
+                  className="w-full text-[10px] font-mono uppercase tracking-[0.2em] py-6 opacity-60 hover:opacity-100 border border-border mt-4 bg-background justify-center" 
+                  onClick={() => router.push('/expenses')}
+                >
+                  Access Full Archive <ArrowUpRight className="ml-2 h-3.5 w-3.5" />
+                </MagneticButton>
+              </div>
+            </div>
+          </div>
+
+        </div>
+
+        {/* RIGHT COLUMN: Control Center / Telemetry (lg:col-span-4) */}
+        <div className="lg:col-span-4 space-y-10 md:space-y-14 border-t lg:border-t-0 lg:border-l border-border/50 pt-10 lg:pt-0 lg:pl-6">
           {/* AI Strategy Insights */}
           <section className="space-y-4">
             <LegerAIIntelligence 
@@ -1429,7 +1428,7 @@ export function DashboardView({
           </section>
 
           {/* AI Projection Overrides Console */}
-          <section className="space-y-4">
+          <section className="space-y-4 [content-visibility:auto] [contain-intrinsic-size:1px_300px]">
             <div className="flex items-center justify-between border-b border-foreground/10 pb-2 flex-wrap gap-4">
               <div className="space-y-0.5">
                 <span className="text-[10px] font-mono uppercase tracking-wider text-foreground font-bold">Forecast Overrides</span>
@@ -1609,45 +1608,8 @@ export function DashboardView({
               </div>
             )}
           </section>
-
-          {/* Activity Logs */}
-          <section className="space-y-4">
-            <div className="flex items-center gap-2 border-b border-foreground/10 pb-2 flex-wrap justify-between">
-               <span className="text-[10px] font-mono uppercase tracking-wider text-foreground font-bold">Activity Log</span>
-               {!isPro && (
-                 <span className="text-[8px] font-mono text-muted-foreground/60 font-bold uppercase tracking-wider">PRO</span>
-               )}
-            </div>
-            <div className="relative border border-border bg-card/20 p-4 font-mono text-[9px] md:text-[10px] space-y-2 min-h-[11rem] max-h-[500px] overflow-y-auto scrollbar-hide">
-               {isPro ? (
-                  systemLogs.map((log, idx) => (
-                     <div key={idx} className="flex gap-3 hover:bg-secondary/20 py-1.5 px-2 items-start font-mono text-[9px] md:text-[10px] border-b border-border/10 last:border-b-0">
-                         <span className="text-muted-foreground select-none shrink-0 font-bold">{log.date}</span>
-                         <span className="text-foreground/80 leading-relaxed">{log.text}</span>
-                     </div>
-                  ))
-               ) : (
-                 <div 
-                   onClick={() => {
-                     setSettingsActiveTab("pro");
-                     setSubscriptionOnly(true);
-                     setSettingsOpen(true);
-                   }}
-                   className="absolute inset-0 bg-background/95 backdrop-blur-[6px] flex flex-col items-center justify-center p-4 text-center cursor-pointer select-none hover:bg-secondary/20 hover:border-foreground/10 transition-all duration-300"
-                 >
-                   <div className="space-y-1.5 max-w-sm">
-                     <p className="font-mono text-[9px] font-bold text-emerald-500 uppercase tracking-widest">Activity Log Locked</p>
-                     <p className="text-[10px] text-muted-foreground leading-normal uppercase">
-                       Upgrade to PRO to unlock real-time cash flow anomaly detection.
-                     </p>
-                   </div>
-                 </div>
-               )}
-            </div>
-          </section>
-
         </div>
-        </div>
+      </div>
 
       {/* Clean Minimal App Footer */}
       <footer className="w-full border-t border-border/40 py-6 mt-16 relative z-10 font-mono text-[10px] text-muted-foreground">

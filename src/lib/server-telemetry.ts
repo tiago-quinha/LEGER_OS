@@ -407,7 +407,9 @@ export async function calculateServerTelemetry(supabase: SupabaseClient, userId:
     topExpenses,
     recentExpenses,
     projectedSurplus: projectedTotalIn - projectedTotalOut,
-    projectedEndBalance: estimatedFinalBalance
+    projectedEndBalance: estimatedFinalBalance,
+    cycleStartDate: currentCycle.startDate,
+    cycleEndDate: currentCycle.endDate
   }
 
   // Cache lightweight telemetry for short TTL to reduce repeated DB work

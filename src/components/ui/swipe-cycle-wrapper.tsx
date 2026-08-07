@@ -4,6 +4,7 @@ import React, { useRef, useTransition } from "react"
 import { motion, useMotionValue, animate } from "framer-motion"
 import { useRouter } from "next/navigation"
 import { shouldPreventSwipe } from "@/hooks/useCycleSwipe"
+import { cn } from "@/lib/utils"
 
 interface SwipeCycleWrapperProps {
   children: React.ReactNode
@@ -53,6 +54,8 @@ export function SwipeCycleWrapper({
     }
   }
 
+  const [isSwipingState, setIsSwipingState] = React.useState(false)
+
   const handleTouchStart = (e: React.TouchEvent) => {
     if (e.touches.length > 1) return
 
@@ -79,10 +82,12 @@ export function SwipeCycleWrapper({
     if (!isHorizontal.current) {
       if (Math.abs(dx) > Math.abs(dy) && Math.abs(dx) > 6) {
         isHorizontal.current = true
+        setIsSwipingState(true)
       } else if (Math.abs(dy) > Math.abs(dx) && Math.abs(dy) > 6) {
         isTracking.current = false
         touchStartX.current = null
         touchStartY.current = null
+        setIsSwipingState(false)
         animate(x, 0, { type: "spring", stiffness: 500, damping: 40 })
         return
       }
@@ -98,7 +103,10 @@ export function SwipeCycleWrapper({
   }
 
   const handleTouchEnd = () => {
-    if (!isTracking.current) return
+    if (!isTracking.current) {
+      setIsSwipingState(false)
+      return
+    }
 
     const currentX = x.get()
     const threshold = 45
@@ -122,7 +130,9 @@ export function SwipeCycleWrapper({
     }
 
     // Smooth spring reset animation
-    animate(x, 0, { type: "spring", stiffness: 450, damping: 35 })
+    animate(x, 0, { type: "spring", stiffness: 450, damping: 35 }).then(() => {
+      setIsSwipingState(false)
+    })
     touchStartX.current = null
     touchStartY.current = null
     isHorizontal.current = false
@@ -151,7 +161,14 @@ export function SwipeCycleWrapper({
       onTouchEnd={handleTouchEnd}
       className={`relative w-full touch-pan-y ${className}`}
     >
-      <motion.div style={{ x }} className="w-full will-change-transform">
+      <motion.div
+        style={{ x }}
+        transformTemplate={({ x }) => `translate3d(${x}, 0px, 0px)`}
+        className={cn(
+          "w-full",
+          isSwipingState && "will-change-transform pointer-events-none select-none overflow-x-clip [contain:layout_paint] [backface-visibility:hidden] [transform-style:preserve-3d]"
+        )}
+      >
         {contentChildren}
       </motion.div>
       {fixedChildren}

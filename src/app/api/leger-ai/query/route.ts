@@ -25,16 +25,69 @@ export async function POST(request: Request) {
         .join("\n") + "\n";
     }
 
+    // --- STEP 0.5: Server-side Telemetry & Profile Context Retrieval ---
+    let finalTelemetry = telemetry;
+    let finalCategories = categories;
+    let profileData: any = null;
+
+    if (userId) {
+      try {
+        const supabaseAdmin = getAdminClient();
+        const [serverDataRes, profileRes] = await Promise.all([
+          calculateServerTelemetry(supabaseAdmin, userId, clientDate).catch(telErr => {
+            console.error("Failed to calculate server-side telemetry:", telErr);
+            return null;
+          }),
+          supabaseAdmin.from("profiles").select("ai_yap_level, ai_journal, subscription_tier").eq("id", userId).single()
+        ]);
+
+        if (serverDataRes) {
+          finalTelemetry = serverDataRes;
+          finalCategories = serverDataRes.categoriesDetailed;
+        }
+        if (profileRes.data) {
+          profileData = profileRes.data;
+        }
+      } catch (err) {
+        console.error("Failed to load server-side context:", err);
+      }
+    }
+
+    const activeCategories = finalCategories || categories || [];
+    const cycleStart = finalTelemetry?.cycleStartDate || (telemetry?.startDate) || null;
+    const cycleEnd = finalTelemetry?.cycleEndDate || (telemetry?.endDate) || null;
+
+    let categoriesContextForIntent = "";
+    if (activeCategories && Array.isArray(activeCategories) && activeCategories.length > 0) {
+      categoriesContextForIntent = "AVAILABLE SYSTEM CATEGORIES (Name and ID mapping):\n" + activeCategories
+        .map((c: any) => `- Name: "${c.name}", ID: ${c.id}`)
+        .join("\n") + "\n";
+    }
+
+    let activeCycleContextForIntent = "";
+    if (cycleStart) {
+      activeCycleContextForIntent = `ACTIVE PAYCHECK CYCLE DATES:
+- Start Date: ${cycleStart}
+- End Date: ${cycleEnd || "Present (Ongoing)"}
+`;
+    }
+
     // --- STEP 1: Intent Analysis for Database Queries ---
     const intentPrompt = `
       You are the intent routing node of LEGER_OS, a personal finance terminal.
       
+      CURRENT DATE: ${clientDate || new Date().toISOString()}
+
+      ${activeCycleContextForIntent}
+      ${categoriesContextForIntent}
       ${historyContext}
       The user is asking: "${query}"
       
       Determine if this query requires retrieving database records to construct an accurate answer (e.g., historical transactions, list of categories, budgets, income logs, balance snapshots, merchant rules).
       
       CRITICAL OPTIMIZATION: If the user's question can be directly answered using the provided client-computed telemetry summary (such as total spend for a specific category, net cash flow, overall balance, daily velocity, target limits), set "requiresDb" to false. Do NOT query the database to sum up category totals if the telemetry categories array already provides the value. Only set "requiresDb" to true if the user explicitly asks to list individual transactions, search for specific merchant names, list rules, or check items outside the active cycle.
+      
+      When generating filters for "tracker_expense", you MUST use the correct category_id based on the AVAILABLE SYSTEM CATEGORIES provided above. If filtering by date, use the ACTIVE PAYCHECK CYCLE DATES as a reference.
       
       Format your response as a strict JSON object:
       {
@@ -210,6 +263,11 @@ export async function POST(request: Request) {
               if (k === "amount" || k === "balance") {
                 return `${k}: €${parseFloat(val || 0).toFixed(2)}`;
               }
+              if (k === "category_id") {
+                const cat = (activeCategories || []).find((c: any) => c.id?.toString() === val?.toString());
+                const catName = cat ? cat.name : "Unknown";
+                return `${k}: ${val} (${catName})`;
+              }
               return `${k}: ${val}`;
             }).join(", ");
             return `- ${content}`;
@@ -220,43 +278,21 @@ export async function POST(request: Request) {
       }
     }
 
-    // --- STEP 2.5: Server-side Telemetry & Profile Context Retrieval ---
-    let finalTelemetry = telemetry;
-    let finalCategories = categories;
-    let profileData: any = null;
-
-    if (userId) {
-      try {
-        const supabaseAdmin = getAdminClient();
-        const [serverDataRes, profileRes] = await Promise.all([
-          calculateServerTelemetry(supabaseAdmin, userId, clientDate).catch(telErr => {
-            console.error("Failed to calculate server-side telemetry:", telErr);
-            return null;
-          }),
-          supabaseAdmin.from("profiles").select("ai_yap_level, ai_journal, subscription_tier").eq("id", userId).single()
-        ]);
-
-        if (serverDataRes) {
-          finalTelemetry = serverDataRes;
-          finalCategories = serverDataRes.categoriesDetailed;
-        }
-        if (profileRes.data) {
-          profileData = profileRes.data;
-        }
-      } catch (err) {
-        console.error("Failed to load server-side context:", err);
-      }
-    }
-
     // --- STEP 3: Final Response Synthesis ---
     let telemetryContext = "";
     if (finalTelemetry) {
+      const getCategoryName = (catId: any) => {
+        if (catId === undefined || catId === null) return "Uncategorized";
+        const cat = (activeCategories || []).find((c: any) => c.id?.toString() === catId.toString());
+        return cat ? cat.name : "Uncategorized";
+      };
+
       const topContext = (finalTelemetry.topExpenses || [])
-        .map((e: any) => `- Date: ${e.date}, Merchant: ${e.merchant || "Unknown"}, Amount: €${parseFloat(e.amount).toFixed(2)}`)
+        .map((e: any) => `- Date: ${e.date}, Merchant: ${e.merchant || "Unknown"}, Amount: €${parseFloat(e.amount).toFixed(2)}, Category: ${getCategoryName(e.category_id)}`)
         .join("\n");
 
       const recentContext = (finalTelemetry.recentExpenses || [])
-        .map((e: any) => `- Date: ${e.date}, Merchant: ${e.merchant || "Unknown"}, Amount: €${parseFloat(e.amount).toFixed(2)}`)
+        .map((e: any) => `- Date: ${e.date}, Merchant: ${e.merchant || "Unknown"}, Amount: €${parseFloat(e.amount).toFixed(2)}, Category: ${getCategoryName(e.category_id)}`)
         .join("\n");
 
       telemetryContext = `
@@ -381,7 +417,10 @@ export async function POST(request: Request) {
          - "fixedDelta": number representing a lump sum amount to add/subtract from the remaining cycle spend (default 0)
          - "reason": a short 3-6 word summary of why (e.g., "Hybrid work gas reduction")
       8. Determine if the user's message contains a new personal fact, situation update, or lifestyle context about themselves in this message that should be remembered in future chats (e.g., "I'm currently on vacation", "I just started hybrid work", "I'm saving for a trip to Tokyo", "I got a dog", "I have a new job").
-         If yes, summarize it as a short fact string (e.g., "Currently on vacation", "Working hybrid", "Saving for a trip to Tokyo").
+         If yes, generate a structured journal object:
+         - "content": A short, concise fact string (e.g., "Currently on vacation", "Working hybrid", "Saving for a trip to Tokyo").
+         - "category": One of "lifestyle" | "goal" | "health" | "financial" | "other" (choose the most logical category).
+         - "durationDays": A reasonable number of days this fact will remain active/relevant based on context (e.g. 7 for a 1-week vacation, 30 for a 1-month rehab, 90 for a seasonal shift, or null if it represents a permanent or long-term lifestyle change like starting a new job, buying a dog, or buying a house). Be smart and logical!
          Otherwise, return null.
 
       Format your response as a JSON object:
@@ -403,7 +442,11 @@ export async function POST(request: Request) {
           "fixedDelta": number,
           "reason": "string"
         } | null,
-        "newJournalEntry": "string" | null
+        "newJournalEntry": {
+          "content": "string",
+          "category": "lifestyle" | "goal" | "health" | "financial" | "other",
+          "durationDays": number | null
+        } | null
       }
     `;
 
@@ -422,7 +465,7 @@ export async function POST(request: Request) {
         try {
           const supabaseAdmin = getAdminClient();
           
-          let existingJournal: string[] = [];
+          let existingJournal: any[] = [];
           if (profileData && Array.isArray(profileData.ai_journal)) {
             existingJournal = profileData.ai_journal;
           } else {
@@ -436,14 +479,34 @@ export async function POST(request: Request) {
             }
           }
           
-          const newFact = parsedRes.newJournalEntry.trim();
-          if (newFact && !existingJournal.includes(newFact)) {
-            const updatedJournal = [...existingJournal, newFact];
+          const content = typeof parsedRes.newJournalEntry === "string" 
+            ? parsedRes.newJournalEntry.trim()
+            : parsedRes.newJournalEntry.content?.trim();
+
+          const exists = existingJournal.some((item: any) => {
+            const existingContent = typeof item === "string" ? item.trim() : item.content?.trim();
+            return existingContent?.toLowerCase() === content?.toLowerCase();
+          });
+
+          if (content && !exists) {
+            const durationDays = typeof parsedRes.newJournalEntry === "object" ? parsedRes.newJournalEntry.durationDays : null;
+            const category = typeof parsedRes.newJournalEntry === "object" ? parsedRes.newJournalEntry.category : "other";
+            
+            const newFactObj = {
+              id: `mem_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+              content,
+              category: category || "other",
+              createdAt: new Date().toISOString(),
+              expiresAt: durationDays ? new Date(Date.now() + durationDays * 24 * 60 * 60 * 1000).toISOString() : null,
+              status: "active"
+            };
+
+            const updatedJournal = [...existingJournal, newFactObj];
             await supabaseAdmin
               .from("profiles")
               .update({ ai_journal: updatedJournal })
               .eq("id", userId);
-            console.log(`Journal updated for user ${userId}: added fact "${newFact}"`);
+            console.log(`Journal updated for user ${userId}: added fact object`, newFactObj);
           }
         } catch (journalErr) {
           console.error("Failed to update user status journal in database:", journalErr);

@@ -386,7 +386,7 @@ export function AnalyticsView({ expenses, categories, paychecks: initialPaycheck
       </div>
 
       {/* 4. Category Burn Distribution */}
-      <section className="space-y-6">
+      <section className="space-y-6 [content-visibility:auto] [contain-intrinsic-size:1px_300px]">
         <div className="flex items-center justify-between border-b border-foreground/10 pb-4">
           <h2 className="technical-label">Historical Category Comparison</h2>
           <div className="flex items-center gap-2 text-[9px] font-mono text-muted-foreground uppercase tracking-widest">
