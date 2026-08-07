@@ -20,14 +20,14 @@ const navigation = [
   { name: "Categories", href: "/categories", icon: Tag, desc: "Category analysis" },
   { name: "Budgets", href: "/budgets", icon: PieChart, desc: "Budget planning" },
   { name: "Analytics", href: "/analytics", icon: BarChart3, desc: "Cash flow trends" },
-  { name: "Memory", href: "/leger-ai", icon: Brain, desc: "AI Context Memory" },
+  { name: "Memory", href: "/memory", icon: Brain, desc: "AI Context Memory" },
 ]
 
 // Mobile bottom bar shows 5 core routes
 const mobileNavigation = [
   { name: "Dashboard", href: "/", icon: Home },
   { name: "Ledger", href: "/expenses", icon: List },
-  { name: "Memory", href: "/leger-ai", icon: Brain },
+  { name: "Memory", href: "/memory", icon: Brain },
   { name: "Categories", href: "/categories", icon: Tag },
   { name: "Analytics", href: "/analytics", icon: BarChart3 },
 ]

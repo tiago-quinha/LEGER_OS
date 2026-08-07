@@ -835,9 +835,9 @@ export function DashboardView({
         {/* 1. Header */}
       <header className="flex items-center justify-between gap-6 pb-4 md:pb-6 relative border-b border-border">
         <div className="space-y-1.5">
-          <div className="flex items-center gap-3 text-[9px] md:text-[10px] font-sans font-bold tracking-[0.2em] uppercase text-muted-foreground">
+          <div className="flex items-center gap-3 text-[9px] md:text-[10px] font-mono font-bold tracking-[0.2em] uppercase text-muted-foreground">
             <CalendarRange className="h-3.5 w-3.5" />
-            <span>Active Paycheck Cycle</span>
+            <span>/dashboard</span>
           </div>
           <h1 className="text-4xl md:text-5xl font-bold tracking-tighter uppercase leading-none break-words">
             {isPending ? (
