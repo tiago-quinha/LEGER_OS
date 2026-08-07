@@ -55,7 +55,7 @@ export function AuthShowcase() {
       <div className="space-y-4 border-b border-border/80 pb-6 relative">
         <div className="flex items-center justify-between text-[11px] text-muted-foreground font-semibold uppercase tracking-widest">
           <span className="flex items-center gap-2">
-            <span className="h-2 w-2 rounded-none bg-emerald-500 animate-pulse inline-block" />
+            <span className="h-2 w-2 rounded-none bg-emerald-500 inline-block" />
             <span>THE MODERN FINANCIAL OS</span>
           </span>
         </div>

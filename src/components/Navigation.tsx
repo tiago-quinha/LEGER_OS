@@ -125,7 +125,7 @@ export function Navigation() {
                   <div className="flex items-center justify-between gap-2">
                     <p className="text-[11px] font-bold font-mono uppercase truncate text-foreground">{profile.username || "USER"}</p>
                     {isPro ? (
-                       <GlowingBadge variant="success" pulse dot className="px-1.5 py-0.5 text-[8px] uppercase font-mono">PRO</GlowingBadge>
+                       <span className="px-2 py-0.5 text-[8px] uppercase font-mono font-bold text-emerald-500 bg-emerald-500/10 border border-emerald-500/30">PRO</span>
                     ) : (
                        <button 
                          onClick={() => {

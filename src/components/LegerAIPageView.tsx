@@ -468,7 +468,6 @@ export function LegerAIPageView({ cycleData, expenses, categories }: LegerAIPage
                                 ? "text-muted-foreground border-border/40 bg-muted/10" 
                                 : "text-emerald-500 border-emerald-500/20 bg-emerald-500/10"
                             )}>
-                              {!isExpired && <span className="w-1 h-1 bg-emerald-500 animate-pulse inline-block rounded-full" />}
                               {mem.status}
                             </span>
                             <button 

@@ -33,9 +33,9 @@ export default function AuthConfirmPage() {
               <Terminal className="h-3 w-3 text-emerald-600 dark:text-emerald-400" />
               <span>SECURITY // PROTOCOL_01</span>
             </div>
-            <GlowingBadge variant="success" pulse dot className="text-[9px] uppercase tracking-wider">
-              VERIFIED // ONLINE
-            </GlowingBadge>
+            <span className="text-[9px] font-mono font-bold uppercase tracking-wider text-muted-foreground bg-secondary/80 border border-border px-2 py-0.5">
+              VERIFIED LOGGED IN
+            </span>
           </div>
 
           <div className="space-y-2">

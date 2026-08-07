@@ -414,9 +414,11 @@ export function SystemSettingsModal({ open, onOpenChange }: SystemSettingsModalP
                   <Sliders className="h-4 w-4 text-foreground" />
                   <span>System Settings & Configuration</span>
                 </h3>
-                <GlowingBadge variant={isPro ? "success" : "neutral"} pulse={isPro} dot={true} className="text-[9px] shrink-0">
-                  {isPro ? "PRO Active" : "Core Free"}
-                </GlowingBadge>
+                {isPro ? (
+                  <span className="text-[9px] font-mono font-bold uppercase text-emerald-500 bg-emerald-500/10 border border-emerald-500/30 px-2 py-0.5 shrink-0">PRO Active</span>
+                ) : (
+                  <span className="text-[9px] font-mono font-bold uppercase text-muted-foreground bg-secondary/80 border border-border px-2 py-0.5 shrink-0">Core Free</span>
+                )}
               </div>
               <p className="text-[10px] uppercase tracking-wider text-muted-foreground">
                 Calibrate financial cycles, AI providers, merchant rules, phone sync, and subscription tier.
@@ -887,7 +889,7 @@ export function SystemSettingsModal({ open, onOpenChange }: SystemSettingsModalP
                         PRO TIER REQUIRED
                       </span>
                     ) : (
-                      <GlowingBadge variant="success" pulse dot className="text-[8px]">ACTIVE</GlowingBadge>
+                      <span className="text-[9px] font-mono font-bold uppercase text-emerald-500 bg-emerald-500/10 border border-emerald-500/30 px-2 py-0.5">ACTIVE</span>
                     )}
                   </div>
                   <p className="text-[10px] text-muted-foreground font-sans leading-relaxed">
@@ -1025,7 +1027,7 @@ export function SystemSettingsModal({ open, onOpenChange }: SystemSettingsModalP
                     <span className="font-mono text-xs font-bold uppercase text-foreground block">Session Node</span>
                     <span className="font-mono text-[10px] text-muted-foreground truncate block">{user?.email || "USER"}</span>
                   </div>
-                  <GlowingBadge variant="success" pulse dot className="text-[8px] uppercase">SECURE</GlowingBadge>
+                  <span className="text-[9px] font-mono font-bold uppercase text-muted-foreground bg-secondary/80 border border-border px-2 py-0.5">SECURE</span>
                 </div>
                 <Button
                   type="button"

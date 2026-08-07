@@ -395,9 +395,11 @@ export function SystemConfigView() {
 
         {/* Quick Toolbar Controls */}
         <div className="flex flex-wrap items-center gap-2.5">
-          <GlowingBadge variant={isPro ? "success" : "neutral"} pulse={true} dot={true} className="text-[10px] uppercase">
-            {isPro ? "PRO Active" : "Core Free"}
-          </GlowingBadge>
+          {isPro ? (
+            <span className="text-[10px] font-mono font-bold uppercase text-emerald-500 bg-emerald-500/10 border border-emerald-500/30 px-2.5 py-0.5">PRO Active</span>
+          ) : (
+            <span className="text-[10px] font-mono font-bold uppercase text-muted-foreground bg-secondary/80 border border-border px-2.5 py-0.5">Core Free</span>
+          )}
 
           {/* Privacy Toggle */}
           <button
@@ -903,7 +905,7 @@ export function SystemConfigView() {
                     PRO TIER REQUIRED
                   </span>
                 ) : (
-                  <GlowingBadge variant="success" pulse dot className="text-[10px]">ACTIVE</GlowingBadge>
+                  <span className="text-[10px] font-mono font-bold uppercase text-emerald-500 bg-emerald-500/10 border border-emerald-500/30 px-2 py-0.5">ACTIVE</span>
                 )}
               </div>
               <CardDescription className="text-xs uppercase tracking-wider text-muted-foreground mt-1">
@@ -1002,9 +1004,11 @@ export function SystemConfigView() {
                   {isPro ? "UNLIMITED PREDICTIVE SIMULATIONS ACTIVE" : "UPGRADE TO AUTONOMOUS MAINFRAME ENGINE"}
                 </h3>
               </div>
-              <GlowingBadge variant={isPro ? "success" : "neutral"} pulse={true} dot={true} className="text-xs py-1 px-3">
-                {isPro ? "PRO Unlocked" : "Core Free Tier"}
-              </GlowingBadge>
+              {isPro ? (
+                <span className="text-xs font-mono font-bold uppercase text-emerald-500 bg-emerald-500/10 border border-emerald-500/30 px-3 py-1">PRO Unlocked</span>
+              ) : (
+                <span className="text-xs font-mono font-bold uppercase text-muted-foreground bg-secondary/80 border border-border px-3 py-1">Core Free Tier</span>
+              )}
             </div>
             <CardContent className="px-6 py-6 space-y-6">
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
@@ -1071,9 +1075,7 @@ export function SystemConfigView() {
                   <CardTitle className="text-base font-bold uppercase tracking-wider flex items-center gap-2 text-foreground">
                     <Terminal className="h-4 w-4" /> Super User Diagnostic Matrix
                   </CardTitle>
-                  <GlowingBadge variant="success" pulse={true} dot={true} className="text-[10px]">
-                    ADMIN_MODE
-                  </GlowingBadge>
+                  <span className="text-[10px] font-mono font-bold uppercase text-muted-foreground bg-secondary/80 border border-border px-2 py-0.5">ADMIN MODE</span>
                 </div>
                 <CardDescription className="text-xs uppercase tracking-wider text-muted-foreground mt-1">
                   System diagnostics, bridge probing, and onboarding state testing.

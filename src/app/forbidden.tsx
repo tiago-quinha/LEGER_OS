@@ -21,9 +21,9 @@ export default function ForbiddenPage() {
             <ShieldAlert className="h-4 w-4 text-destructive" />
             <span>Security & Permissions</span>
           </div>
-          <GlowingBadge variant="error" pulse dot className="text-[9px] uppercase">
+          <span className="text-[9px] font-mono font-bold uppercase text-destructive bg-destructive/10 border border-destructive/30 px-2 py-0.5">
             Access Forbidden
-          </GlowingBadge>
+          </span>
         </div>
 
         <div className="space-y-2">

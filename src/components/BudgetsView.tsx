@@ -387,13 +387,13 @@ export function BudgetsView({ categories, budgets: initialBudgets, expenses, cyc
                     <CardTitle className="text-lg">{cat.name}</CardTitle>
                   </div>
                   {isProfitable ? (
-                    <GlowingBadge variant="success" pulse dot className="scale-75 origin-right px-2 py-0.5">
-                      +{netProfit.toFixed(2)} Profit
-                    </GlowingBadge>
+                    <span className="text-[10px] font-mono font-bold uppercase text-emerald-500 bg-emerald-500/10 border border-emerald-500/30 px-2 py-0.5">
+                      +{netProfit.toFixed(2)} Surplus
+                    </span>
                   ) : isOverBudget ? (
-                    <GlowingBadge variant="error" pulse dot className="scale-75 origin-right px-2 py-0.5">
+                    <span className="text-[10px] font-mono font-bold uppercase text-destructive bg-destructive/10 border border-destructive/30 px-2 py-0.5">
                       Over Target
-                    </GlowingBadge>
+                    </span>
                   ) : null}
                 </div>
               </CardHeader>
