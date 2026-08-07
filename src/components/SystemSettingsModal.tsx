@@ -1,7 +1,7 @@
 "use client"
 
 import React, { useState, useEffect } from "react"
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog"
+import { motion, AnimatePresence, useDragControls } from "framer-motion"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
@@ -80,6 +80,7 @@ interface SystemSettingsModalProps {
 }
 
 export function SystemSettingsModal({ open, onOpenChange }: SystemSettingsModalProps) {
+  const sheetDragControls = useDragControls()
   const { 
     currencySymbol, 
     isPro, 
@@ -351,26 +352,73 @@ export function SystemSettingsModal({ open, onOpenChange }: SystemSettingsModalP
   })
 
   return (
-    <Dialog open={open} onOpenChange={handleOpenChange}>
-      <DialogContent className="bg-card border border-border rounded-none p-4 sm:p-6 font-mono text-xs w-[96vw] sm:max-w-2xl md:max-w-3xl lg:max-w-4xl shadow-2xl overflow-hidden h-[650px] max-h-[92vh] flex flex-col">
-        {/* Modal Header */}
-        <DialogHeader className="border-b border-border pb-4 pr-8 shrink-0">
-          <div className="flex items-center justify-between gap-3">
-            <DialogTitle className="text-sm sm:text-base font-bold uppercase tracking-wider flex items-center gap-2 truncate text-foreground">
-              <Sliders className="h-4 w-4 text-foreground" />
-              <span>System Settings & Configuration</span>
-            </DialogTitle>
-            <GlowingBadge variant={isPro ? "success" : "neutral"} pulse={isPro} dot={true} className="text-[9px] shrink-0">
-              {isPro ? "PRO Active" : "Core Free"}
-            </GlowingBadge>
-          </div>
-          <DialogDescription className="text-[10px] uppercase tracking-wider text-muted-foreground mt-1">
-            Calibrate financial cycles, AI providers, merchant rules, phone sync, and subscription tier.
-          </DialogDescription>
-        </DialogHeader>
+    <AnimatePresence>
+      {open && (
+        <div className="fixed inset-0 z-[100000] overflow-hidden pointer-events-none">
+          {/* Backdrop Overlay */}
+          <motion.div 
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.2 }}
+            onClick={() => handleOpenChange(false)}
+            className="absolute inset-0 bg-black/70 backdrop-blur-md pointer-events-auto"
+          />
 
-        {/* Modal Tabs & Body */}
-        <div className="flex-1 flex flex-col min-h-0 pt-4 overflow-hidden">
+          {/* Draggable Settings Sheet Drawer */}
+          <motion.div
+            drag="y"
+            dragListener={false}
+            dragControls={sheetDragControls}
+            dragConstraints={{ top: 0, bottom: 600 }}
+            dragElastic={0}
+            dragMomentum={false}
+            dragSnapToOrigin={false}
+            onDragEnd={(event, info) => {
+              if (info.offset.y > 60 || info.velocity.y > 200) {
+                handleOpenChange(false)
+              }
+            }}
+            initial={{ y: "100%", opacity: 0.95 }}
+            animate={{ y: 0, opacity: 1 }}
+            exit={{ y: "100%", opacity: 0 }}
+            transition={{ duration: 0.25, ease: "easeOut" }}
+            className="absolute pointer-events-auto bottom-0 left-0 right-0 sm:bottom-6 sm:left-auto sm:right-6 w-full sm:w-[620px] md:w-[720px] lg:w-[840px] h-[85vh] sm:h-[680px] max-h-[92vh] border-t border-x sm:border border-border bg-card/95 backdrop-blur-md shadow-2xl flex flex-col overflow-hidden rounded-t-2xl sm:rounded-xl font-mono text-xs z-[100001]"
+          >
+            {/* Drag Handle Bar */}
+            <div 
+              className="w-full flex justify-center py-2.5 cursor-grab active:cursor-grabbing border-b border-border/40 select-none shrink-0 bg-secondary/20 hover:bg-secondary/30 transition-colors"
+              onPointerDown={(e) => sheetDragControls.start(e)}
+            >
+              <div className="w-14 h-1.5 rounded-full bg-muted-foreground/40" />
+            </div>
+
+            {/* Sheet Header */}
+            <div className="p-4 sm:p-5 border-b border-border shrink-0 space-y-1 relative">
+              <button 
+                type="button"
+                onClick={() => handleOpenChange(false)}
+                className="absolute top-3.5 right-4 p-1.5 text-muted-foreground hover:text-foreground transition-colors cursor-pointer"
+                title="Close settings"
+              >
+                <X className="h-4.5 w-4.5" />
+              </button>
+              <div className="flex items-center justify-between gap-3 pr-8">
+                <h3 className="text-sm sm:text-base font-bold uppercase tracking-wider flex items-center gap-2 truncate text-foreground">
+                  <Sliders className="h-4 w-4 text-foreground" />
+                  <span>System Settings & Configuration</span>
+                </h3>
+                <GlowingBadge variant={isPro ? "success" : "neutral"} pulse={isPro} dot={true} className="text-[9px] shrink-0">
+                  {isPro ? "PRO Active" : "Core Free"}
+                </GlowingBadge>
+              </div>
+              <p className="text-[10px] uppercase tracking-wider text-muted-foreground">
+                Calibrate financial cycles, AI providers, merchant rules, phone sync, and subscription tier.
+              </p>
+            </div>
+
+            {/* Modal Tabs & Body */}
+            <div className="flex-1 flex flex-col min-h-0 p-4 sm:p-5 overflow-hidden">
           <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full flex-1 flex flex-col min-h-0 space-y-4 overflow-hidden">
             <TabsList className={cn(
               "bg-secondary/40 border border-border rounded-none p-1 !h-auto w-full grid gap-1 shrink-0",
@@ -1125,8 +1173,10 @@ export function SystemSettingsModal({ open, onOpenChange }: SystemSettingsModalP
               </TabsContent>
             )}
           </Tabs>
+            </div>
+          </motion.div>
         </div>
-      </DialogContent>
-    </Dialog>
+      )}
+    </AnimatePresence>
   )
 }
