@@ -15,7 +15,7 @@ import { getAIHeaders } from "@/lib/ai-client"
 import { 
   Sparkles, Check, X, Sliders, Brain, Smartphone, Shield, ShieldOff, Sun, Moon, 
   LogOut, ShieldAlert, Copy, ChevronDown, Plus, Trash2, Search, Terminal, Zap, 
-  Database, FileJson, Rocket, Landmark
+  Database, FileJson, Rocket, Landmark, Lock
 } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { GlowingBadge } from "@/components/unlumen-ui/glowing-badge"
@@ -851,8 +851,9 @@ export function SystemSettingsModal({ open, onOpenChange }: SystemSettingsModalP
                   <span className="text-[9px] font-mono uppercase font-bold text-muted-foreground">Unique Posting Endpoint</span>
                   {!isPro ? (
                     <div className="p-3 bg-amber-500/10 border border-amber-500/30 space-y-2">
-                      <div className="font-mono text-[10px] font-bold text-amber-500 uppercase">
-                        🔒 ENDPOINT LOCKED ON CORE FREE TIER
+                      <div className="font-mono text-[10px] font-bold text-amber-500 uppercase flex items-center gap-1.5">
+                        <Lock className="h-3.5 w-3.5 text-amber-500 shrink-0" />
+                        <span>ENDPOINT LOCKED ON CORE FREE TIER</span>
                       </div>
                       <p className="text-[10px] text-muted-foreground font-sans leading-relaxed">
                         Automated real-time push notification posting requires a LEGER_OS PRO node. Upgrade to PRO to activate your unique phone webhook URL.
