@@ -49,28 +49,6 @@ import { AnimatedList } from "@/components/unlumen-ui/animated-list"
 import { MagneticButton } from "@/components/unlumen-ui/magnetic-button"
 import { GlowingBadge } from "@/components/unlumen-ui/glowing-badge"
 import { FloatingTooltipTrigger } from "@/components/unlumen-ui/floating-tooltip"
-const LegerAIIntelligence = dynamic(() => import("@/components/LegerAIIntelligence").then(mod => mod.LegerAIIntelligence), {
-  ssr: false,
-  loading: () => (
-    <div className="h-[200px] w-full border border-border ledger-border bg-card/20 rounded-lg p-6 flex flex-col justify-between">
-      <div className="space-y-4">
-        <div className="flex items-center gap-2">
-          <Skeleton className="h-5 w-5 rounded-full" />
-          <Skeleton className="h-4 w-48" />
-        </div>
-        <div className="space-y-2">
-          <Skeleton className="h-3 w-full" />
-          <Skeleton className="h-3 w-[92%]" />
-          <Skeleton className="h-3 w-[78%]" />
-        </div>
-      </div>
-      <div className="flex gap-2">
-        <Skeleton className="h-8 w-28 rounded-md" />
-        <Skeleton className="h-8 w-20 rounded-md" />
-      </div>
-    </div>
-  )
-})
 
 interface CurvePoint {
   inflow: number
@@ -1413,20 +1391,6 @@ export function DashboardView({
 
         {/* RIGHT COLUMN: Control Center / Telemetry (lg:col-span-4) */}
         <div className="lg:col-span-4 space-y-10 md:space-y-14 border-t lg:border-t-0 lg:border-l border-border/50 pt-10 lg:pt-0 lg:pl-6">
-          {/* AI Strategy Insights */}
-          <section className="space-y-4">
-            <LegerAIIntelligence 
-              cycleData={{
-                currentBalance: cycleEndBalance,
-                velocity,
-                categories: spendingByCategory.filter(c => c.value > 0),
-                totalIn,
-                totalOut,
-                spendingLimit: targetMonthlySpend
-              }} 
-            />
-          </section>
-
           {/* AI Projection Overrides Console */}
           <section className="space-y-4 [content-visibility:auto] [contain-intrinsic-size:1px_300px]">
             <div className="flex items-center justify-between border-b border-foreground/10 pb-2 flex-wrap gap-4">
