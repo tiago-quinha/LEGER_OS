@@ -155,15 +155,10 @@ export async function DELETE(request: Request) {
     }
 
     const existingJournal = profile?.ai_journal || [];
+    const normalizedExisting = normalizeJournal(existingJournal);
     
     // Filter out the deleted memory
-    // (If the array contains plain strings, we skip them since they have no ID, or we filter them if the ID matches their index)
-    const updatedJournal = existingJournal.filter((item: any, idx: number) => {
-      if (typeof item === "string") {
-        return `legacy-${idx}` !== id;
-      }
-      return item.id !== id;
-    });
+    const updatedJournal = normalizedExisting.filter((item: any) => item.id !== id);
 
     const { error: updateErr } = await supabaseAdmin
       .from("profiles")
@@ -208,15 +203,21 @@ export async function PUT(request: Request) {
     }
 
     const existingJournal = profile?.ai_journal || [];
+    const normalizedExisting = normalizeJournal(existingJournal);
 
-    const updatedJournal = existingJournal.map((item: any) => {
-      if (typeof item === "object" && item.id === id) {
+    const updatedJournal = normalizedExisting.map((item: any) => {
+      if (item.id === id) {
+        const newExpiresAt = expiresAt !== undefined ? expiresAt : item.expiresAt;
+        let newStatus = "active";
+        if (newExpiresAt && new Date(newExpiresAt) < new Date()) {
+          newStatus = "expired";
+        }
         return {
           ...item,
           content: content !== undefined ? content : item.content,
           category: category !== undefined ? category : item.category,
-          expiresAt: expiresAt !== undefined ? expiresAt : item.expiresAt,
-          status: "active" // Reset status to active if updated
+          expiresAt: newExpiresAt,
+          status: newStatus
         };
       }
       return item;

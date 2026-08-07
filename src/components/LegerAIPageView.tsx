@@ -52,7 +52,8 @@ export function LegerAIPageView({ cycleData, expenses, categories }: LegerAIPage
   const [selectedMemory, setSelectedMemory] = useState<Memory | null>(null)
   const [editContent, setEditContent] = useState("")
   const [editCategory, setEditCategory] = useState<Memory["category"]>("other")
-  const [editExpiryOption, setEditExpiryOption] = useState<"keep" | "extend7" | "extend30" | "permanent">("keep")
+  const [editExpiryOption, setEditExpiryOption] = useState<string>("keep")
+  const [customDays, setCustomDays] = useState<string>("7")
   const [isUpdating, setIsUpdating] = useState(false)
 
   // Fetch all memories on mount/profile change
@@ -140,10 +141,21 @@ export function LegerAIPageView({ cycleData, expenses, categories }: LegerAIPage
     let expiresAt = selectedMemory.expiresAt
     if (editExpiryOption === "permanent") {
       expiresAt = null
-    } else if (editExpiryOption === "extend7") {
+    } else if (editExpiryOption === "1day") {
+      expiresAt = new Date(Date.now() + 1 * 24 * 60 * 60 * 1000).toISOString()
+    } else if (editExpiryOption === "3days") {
+      expiresAt = new Date(Date.now() + 3 * 24 * 60 * 60 * 1000).toISOString()
+    } else if (editExpiryOption === "7days" || editExpiryOption === "extend7") {
       expiresAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString()
-    } else if (editExpiryOption === "extend30") {
+    } else if (editExpiryOption === "14days") {
+      expiresAt = new Date(Date.now() + 14 * 24 * 60 * 60 * 1000).toISOString()
+    } else if (editExpiryOption === "30days" || editExpiryOption === "extend30") {
       expiresAt = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString()
+    } else if (editExpiryOption === "90days") {
+      expiresAt = new Date(Date.now() + 90 * 24 * 60 * 60 * 1000).toISOString()
+    } else if (editExpiryOption === "custom") {
+      const days = parseInt(customDays) || 7
+      expiresAt = new Date(Date.now() + days * 24 * 60 * 60 * 1000).toISOString()
     }
 
     // Optimistically update local memories state immediately
@@ -561,18 +573,39 @@ export function LegerAIPageView({ cycleData, expenses, categories }: LegerAIPage
 
               {/* Expiry Selector */}
               <div className="space-y-1.5">
-                <label className="text-[9px] font-mono uppercase tracking-widest text-muted-foreground">Context Expiration</label>
+                <label className="text-[9px] font-mono uppercase tracking-widest text-muted-foreground">Context Duration / Expiration</label>
                 <select
                   value={editExpiryOption}
-                  onChange={(e) => setEditExpiryOption(e.target.value as any)}
+                  onChange={(e) => setEditExpiryOption(e.target.value)}
                   className="w-full p-2.5 text-xs bg-secondary/30 border border-border/80 focus:outline-none focus:border-foreground/35 rounded-none text-foreground font-mono uppercase"
                 >
-                  <option value="keep">Keep Current (Expiry: {selectedMemory.expiresAt ? new Date(selectedMemory.expiresAt).toLocaleDateString("en-GB") : "Permanent"})</option>
-                  <option value="extend7">Set/Extend for 7 Days</option>
-                  <option value="extend30">Set/Extend for 30 Days</option>
+                  <option value="keep">Keep Current ({selectedMemory.expiresAt ? `Expires: ${new Date(selectedMemory.expiresAt).toLocaleDateString("en-GB")}` : "Permanent"})</option>
+                  <option value="1day">Set Active for 1 Day (24 hrs)</option>
+                  <option value="3days">Set Active for 3 Days</option>
+                  <option value="7days">Set Active for 7 Days (1 Week)</option>
+                  <option value="14days">Set Active for 14 Days (2 Weeks)</option>
+                  <option value="30days">Set Active for 30 Days (1 Month)</option>
+                  <option value="90days">Set Active for 90 Days (3 Months)</option>
                   <option value="permanent">Make Permanent (No Expiration)</option>
+                  <option value="custom">Custom Duration (In Days)...</option>
                 </select>
               </div>
+
+              {/* Custom Days Input */}
+              {editExpiryOption === "custom" && (
+                <div className="space-y-1.5 animate-fade-in">
+                  <label className="text-[9px] font-mono uppercase tracking-widest text-muted-foreground">Active Duration (Number of Days)</label>
+                  <input
+                    type="number"
+                    min="1"
+                    max="365"
+                    value={customDays}
+                    onChange={(e) => setCustomDays(e.target.value)}
+                    placeholder="Enter days (e.g. 14)"
+                    className="w-full p-2.5 text-xs bg-secondary/30 border border-border/80 focus:outline-none focus:border-foreground/35 rounded-none text-foreground font-mono"
+                  />
+                </div>
+              )}
             </div>
           )}
 
