@@ -346,7 +346,7 @@ export function LegerAIPageView({ cycleData, expenses, categories }: LegerAIPage
         <ProLockOverlay 
           title="LEGER_AI CONTEXT MEMORY (PRO)"
           description="Conversational routine tracking, hybrid work overrides, and dynamic active cycle memory gates are exclusive to LEGER_OS PRO nodes."
-          compact={true}
+          className="rounded-none shadow-xl border border-emerald-500/30"
         />
       ) : (
         <div className="p-5 border border-border ledger-border bg-card/60 backdrop-blur-sm relative overflow-hidden space-y-4">
