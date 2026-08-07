@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { generateAIContent } from "@/lib/ai-bridge";
 import { verifyAndConsumeQuota } from "@/lib/server-auth";
 import { getAdminClient } from "@/lib/supabase-admin";
+import { calculateServerTelemetry } from "@/lib/server-telemetry";
 
 // GET: Fetch all memories (structured and converted legacy string records)
 export async function GET(request: Request) {
@@ -44,6 +45,12 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: "Text prompt is required" }, { status: 400 });
     }
 
+    const supabaseAdmin = getAdminClient();
+    const serverDataRes = await calculateServerTelemetry(supabaseAdmin, userId).catch(() => null);
+    const daysElapsed = serverDataRes?.daysElapsed || 1;
+    const totalDaysInCycle = serverDataRes?.totalDaysInCycle || 30;
+    const remainingDaysInCycle = Math.max(1, totalDaysInCycle - daysElapsed);
+
     const prompt = `
       You are the memory parsing node of LEGER_OS, a personal finance terminal.
       I will provide a natural language statement about a user's current situation, routine changes, goals, or lifestyle updates.
@@ -55,11 +62,13 @@ export async function POST(request: Request) {
       1. "content": A clean, concise summary of the fact (e.g. "Low grade fever reported", "Working hybrid", "Started saving for Tokyo trip").
       2. "category": Choose the most logical one: "lifestyle" | "goal" | "health" | "financial" | "other".
       3. "durationDays": A reasonable number of days this fact will remain active/relevant. 
-         For example:
+         CRITICAL PAYCHECK CYCLE DURATION RULE:
+         Current Cycle Status: Day ${daysElapsed} of ${totalDaysInCycle} Total Days (${remainingDaysInCycle} Days Remaining in current cycle).
+         If the user input mentions "this cycle", "for this cycle", "until next paycheck", "the rest of the cycle", or "this month's cycle", set "durationDays" to EXACTLY ${remainingDaysInCycle}.
+         For explicit timeframes:
          - "on vacation for a week" -> 7
          - "fever/flu today" -> 5
          - "rehab for my knee for a month" -> 30
-         - "saving for Tokyo trip in December" -> calculate days until December or choose 120-180 based on context
          - Permanent updates (e.g., "got a dog", "new job", "started hybrid work") -> null (representing infinite/long-term duration)
 
       Format your response as a strict JSON object:
@@ -84,7 +93,6 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: "Failed to parse text into memory" }, { status: 400 });
     }
 
-    const supabaseAdmin = getAdminClient();
     const { data: profile, error: getErr } = await supabaseAdmin
       .from("profiles")
       .select("ai_journal")

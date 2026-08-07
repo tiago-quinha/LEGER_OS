@@ -420,7 +420,11 @@ export async function POST(request: Request) {
          If yes, generate a structured journal object:
          - "content": A short, concise fact string (e.g., "Currently on vacation", "Working hybrid", "Saving for a trip to Tokyo").
          - "category": One of "lifestyle" | "goal" | "health" | "financial" | "other" (choose the most logical category).
-         - "durationDays": A reasonable number of days this fact will remain active/relevant based on context (e.g. 7 for a 1-week vacation, 30 for a 1-month rehab, 90 for a seasonal shift, or null if it represents a permanent or long-term lifestyle change like starting a new job, buying a dog, or buying a house). Be smart and logical!
+         - "durationDays": A reasonable number of days this fact will remain active/relevant based on context.
+            CRITICAL PAYCHECK CYCLE DURATION RULE:
+            Current Cycle Status: Day ${finalTelemetry?.daysElapsed || 1} of ${finalTelemetry?.totalDaysInCycle || 30} Total Days (${Math.max(1, (finalTelemetry?.totalDaysInCycle || 30) - (finalTelemetry?.daysElapsed || 0))} Days Remaining in current cycle).
+            If the user mentions "this cycle", "for this cycle", "until next paycheck", "the rest of the cycle", "this month's cycle", or "for the cycle", you MUST set "durationDays" to EXACTLY ${Math.max(1, (finalTelemetry?.totalDaysInCycle || 30) - (finalTelemetry?.daysElapsed || 0))}.
+            Otherwise, use 7 for 1-week, 30 for 1-month, 90 for seasonal, or null for permanent long-term updates.
          Otherwise, return null.
 
       Format your response as a JSON object:
