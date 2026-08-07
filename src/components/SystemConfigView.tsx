@@ -687,7 +687,7 @@ export function SystemConfigView() {
                         AI Response Verbosity / Yap Level
                       </Label>
                       {!isPro && (
-                        <span className="text-[8px] font-mono uppercase font-bold text-amber-500 bg-amber-500/10 border border-amber-500/20 px-1.5 py-0.5">
+                        <span className="text-[8px] font-mono uppercase font-bold text-emerald-500 bg-emerald-500/10 border border-emerald-500/30 px-1.5 py-0.5">
                           PRO LOCKED
                         </span>
                       )}
@@ -723,7 +723,7 @@ export function SystemConfigView() {
                     <span className="text-foreground flex items-center gap-2">
                       Recency Decay Weight (λ)
                       {!isPro && (
-                        <span className="text-[8px] font-mono uppercase font-bold text-amber-500 bg-amber-500/10 border border-amber-500/20 px-1.5 py-0.5">
+                        <span className="text-[8px] font-mono uppercase font-bold text-emerald-500 bg-emerald-500/10 border border-emerald-500/30 px-1.5 py-0.5">
                           PRO FEATURE
                         </span>
                       )}
@@ -914,7 +914,7 @@ export function SystemConfigView() {
                   <Smartphone className="h-4 w-4" /> MacroDroid Android Push Sync Integration
                 </CardTitle>
                 {!isPro ? (
-                  <span className="text-[8px] font-mono uppercase font-bold text-amber-500 bg-amber-500/10 border border-amber-500/20 px-2 py-0.5">
+                  <span className="text-[8px] font-mono uppercase font-bold text-emerald-500 bg-emerald-500/10 border border-emerald-500/30 px-2 py-0.5">
                     PRO TIER REQUIRED
                   </span>
                 ) : (
@@ -931,8 +931,8 @@ export function SystemConfigView() {
                   1. Your Unique Webhook Endpoint
                 </span>
                 {!isPro ? (
-                  <div className="p-4 bg-amber-500/10 border border-amber-500/30 space-y-3">
-                    <div className="font-mono text-xs font-bold text-amber-500 uppercase flex items-center gap-2">
+                  <div className="p-4 bg-emerald-500/10 border border-emerald-500/30 space-y-3">
+                    <div className="font-mono text-xs font-bold text-emerald-500 uppercase flex items-center gap-2">
                       🔒 WEBHOOK ENDPOINT LOCKED ON CORE FREE TIER
                     </div>
                     <p className="text-xs text-muted-foreground font-sans leading-relaxed">

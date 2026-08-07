@@ -13,6 +13,7 @@ import { Button } from "@/components/ui/button"
 import { useSystem } from "@/lib/SystemContext"
 import { supabase } from "@/lib/supabase"
 import { toast } from "sonner"
+import { ProLockOverlay } from "@/components/ProLockOverlay"
 import { 
   Dialog, 
   DialogContent, 
@@ -341,41 +342,49 @@ export function LegerAIPageView({ cycleData, expenses, categories }: LegerAIPage
       <div className="max-w-[900px] mx-auto w-full space-y-8 pt-4">
 
       {/* Quick Input Box */}
-      <div className="p-5 border border-border ledger-border bg-card/60 backdrop-blur-sm relative overflow-hidden space-y-4">
-        <div className="flex items-start justify-between gap-4">
-          <div className="space-y-1">
-            <label className="text-[10px] font-mono font-bold uppercase tracking-widest text-muted-foreground">Mainframe Ingestion</label>
-            <h4 className="text-sm font-bold tracking-tight text-foreground">Anything impacting your budget or routine this cycle?</h4>
+      {!isPro ? (
+        <ProLockOverlay 
+          title="LEGER_AI CONTEXT MEMORY (PRO)"
+          description="Conversational routine tracking, hybrid work overrides, and dynamic active cycle memory gates are exclusive to LEGER_OS PRO nodes."
+          compact={true}
+        />
+      ) : (
+        <div className="p-5 border border-border ledger-border bg-card/60 backdrop-blur-sm relative overflow-hidden space-y-4">
+          <div className="flex items-start justify-between gap-4">
+            <div className="space-y-1">
+              <label className="text-[10px] font-mono font-bold uppercase tracking-widest text-muted-foreground">Mainframe Ingestion</label>
+              <h4 className="text-sm font-bold tracking-tight text-foreground">Anything impacting your budget or routine this cycle?</h4>
+            </div>
+            <div className="w-9 h-9 rounded-full bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center shrink-0">
+              <Brain className="h-4.5 w-4.5 text-emerald-500 animate-pulse" />
+            </div>
           </div>
-          <div className="w-9 h-9 rounded-full bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center shrink-0">
-            <Brain className="h-4.5 w-4.5 text-emerald-500 animate-pulse" />
-          </div>
-        </div>
 
-        <form onSubmit={handleAddMemory} className="space-y-3">
-          <textarea
-            value={newMemoryText}
-            onChange={(e) => setNewMemoryText(e.target.value)}
-            placeholder="Examples: 'I'm going on vacation for 10 days', 'Starting hybrid work, reducing fuel spend by 30%', 'Saving €300 for a weekend trip next month'..."
-            className="w-full min-h-[80px] p-3 text-xs bg-secondary/20 border border-border/80 rounded-none focus:outline-none focus:border-foreground/40 font-sans resize-none placeholder:text-muted-foreground/50 text-foreground leading-relaxed"
-            disabled={isSubmitting}
-          />
-          <div className="flex items-center justify-end gap-2.5">
-            <Button 
-              type="submit"
-              disabled={!newMemoryText.trim() || isSubmitting}
-              className="h-8 rounded-none bg-foreground text-background hover:bg-muted font-mono text-[9px] uppercase font-bold tracking-wider px-5 disabled:opacity-40 disabled:cursor-not-allowed shrink-0 cursor-pointer"
-            >
-              {isSubmitting ? (
-                <RefreshCcw className="h-3 w-3 animate-spin mr-1.5" />
-              ) : (
-                <Plus className="h-3 w-3 mr-1.5" />
-              )}
-              Apply Context
-            </Button>
-          </div>
-        </form>
-      </div>
+          <form onSubmit={handleAddMemory} className="space-y-3">
+            <textarea
+              value={newMemoryText}
+              onChange={(e) => setNewMemoryText(e.target.value)}
+              placeholder="Examples: 'I'm going on vacation for 10 days', 'Starting hybrid work, reducing fuel spend by 30%', 'Saving €300 for a weekend trip next month'..."
+              className="w-full min-h-[80px] p-3 text-xs bg-secondary/20 border border-border/80 rounded-none focus:outline-none focus:border-foreground/40 font-sans resize-none placeholder:text-muted-foreground/50 text-foreground leading-relaxed"
+              disabled={isSubmitting}
+            />
+            <div className="flex items-center justify-end gap-2.5">
+              <Button 
+                type="submit"
+                disabled={!newMemoryText.trim() || isSubmitting}
+                className="h-8 rounded-none bg-foreground text-background hover:bg-muted font-mono text-[9px] uppercase font-bold tracking-wider px-5 disabled:opacity-40 disabled:cursor-not-allowed shrink-0 cursor-pointer"
+              >
+                {isSubmitting ? (
+                  <RefreshCcw className="h-3 w-3 animate-spin mr-1.5" />
+                ) : (
+                  <Plus className="h-3 w-3 mr-1.5" />
+                )}
+                Apply Context
+              </Button>
+            </div>
+          </form>
+        </div>
+      )}
 
       {/* Filter Tabs */}
       <div className="flex items-center gap-1.5 overflow-x-auto pb-2 scrollbar-hide border-b border-border/30">

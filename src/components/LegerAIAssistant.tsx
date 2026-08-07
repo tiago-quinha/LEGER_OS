@@ -198,7 +198,7 @@ function TypewriterText({ text, speed = 6, onComplete }: { text: string; speed?:
 }
 
 export function LegerAIAssistant() {
-  const { profile, user, refreshProfile, currencySymbol, language, aiProvider, customApiKey, isPro } = useSystem()
+  const { profile, user, refreshProfile, currencySymbol, language, aiProvider, customApiKey, isPro, setSettingsOpen, setSettingsActiveTab, setSubscriptionOnly } = useSystem()
   const pathname = usePathname()
   const sheetDragControls = useDragControls()
   
@@ -441,9 +441,12 @@ export function LegerAIAssistant() {
     if (!queryText.trim() || isLoading) return
 
     if (!isPro) {
-      toast.error("Conversational Queries are a LEGER_OS PRO feature.", {
+      toast.error("Conversational AI Queries are a LEGER_OS PRO feature.", {
         description: "Upgrade to PRO to unlock conversational overrides and custom projections.",
       })
+      setSettingsActiveTab("pro")
+      setSubscriptionOnly(true)
+      setSettingsOpen(true)
       return
     }
 

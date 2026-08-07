@@ -641,7 +641,7 @@ export function SystemSettingsModal({ open, onOpenChange }: SystemSettingsModalP
                         AI Verbosity / Yap Level
                       </Label>
                       {!isPro && (
-                        <span className="text-[8px] font-mono uppercase font-bold text-amber-500 bg-amber-500/10 border border-amber-500/20 px-1.5 py-0.5">
+                        <span className="text-[8px] font-mono uppercase font-bold text-emerald-500 bg-emerald-500/10 border border-emerald-500/30 px-1.5 py-0.5">
                           PRO LOCKED
                         </span>
                       )}
@@ -671,7 +671,7 @@ export function SystemSettingsModal({ open, onOpenChange }: SystemSettingsModalP
                       <span className="text-muted-foreground uppercase font-bold flex items-center gap-1.5">
                         Recency Decay (λ):
                         {!isPro && (
-                          <span className="text-[8px] uppercase font-bold text-amber-500 bg-amber-500/10 border border-amber-500/20 px-1 py-0.2">
+                          <span className="text-[8px] uppercase font-bold text-emerald-500 bg-emerald-500/10 border border-emerald-500/30 px-1 py-0.2">
                             PRO FEATURE
                           </span>
                         )}
@@ -835,7 +835,7 @@ export function SystemSettingsModal({ open, onOpenChange }: SystemSettingsModalP
                       <Smartphone className="h-4 w-4" /> MacroDroid Android Push Sync
                     </span>
                     {!isPro ? (
-                      <span className="text-[8px] font-mono uppercase font-bold text-amber-500 bg-amber-500/10 border border-amber-500/20 px-2 py-0.5">
+                      <span className="text-[8px] font-mono uppercase font-bold text-emerald-500 bg-emerald-500/10 border border-emerald-500/30 px-2 py-0.5">
                         PRO TIER REQUIRED
                       </span>
                     ) : (
@@ -850,9 +850,9 @@ export function SystemSettingsModal({ open, onOpenChange }: SystemSettingsModalP
                 <div className="space-y-1.5 pt-1">
                   <span className="text-[9px] font-mono uppercase font-bold text-muted-foreground">Unique Posting Endpoint</span>
                   {!isPro ? (
-                    <div className="p-3 bg-amber-500/10 border border-amber-500/30 space-y-2">
-                      <div className="font-mono text-[10px] font-bold text-amber-500 uppercase flex items-center gap-1.5">
-                        <Lock className="h-3.5 w-3.5 text-amber-500 shrink-0" />
+                    <div className="p-3 bg-emerald-500/10 border border-emerald-500/30 space-y-2">
+                      <div className="font-mono text-[10px] font-bold text-emerald-500 uppercase flex items-center gap-1.5">
+                        <Lock className="h-3.5 w-3.5 text-emerald-500 shrink-0" />
                         <span>ENDPOINT LOCKED ON CORE FREE TIER</span>
                       </div>
                       <p className="text-[10px] text-muted-foreground font-sans leading-relaxed">

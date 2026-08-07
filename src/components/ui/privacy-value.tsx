@@ -18,13 +18,13 @@ export function PrivacyValue({ children, className }: PrivacyValueProps) {
 
   return (
     <span 
-      className={cn("relative inline-block transition-all duration-500", className)}
+      className={cn("relative inline-flex items-center transition-all duration-300 cursor-pointer select-none", className)}
       onMouseEnter={() => setIsHovered(true)}
       onMouseLeave={() => setIsHovered(false)}
     >
       <span className={cn(
-        "transition-all duration-700 ease-in-out block",
-        !showValue ? "blur-md opacity-20 scale-95 pointer-events-none select-none" : "blur-0 opacity-100 scale-100"
+        "transition-all duration-300 ease-out block",
+        !showValue ? "blur-sm opacity-15 scale-[0.98] pointer-events-none" : "blur-0 opacity-100 scale-100"
       )}>
         {children}
       </span>
@@ -32,23 +32,18 @@ export function PrivacyValue({ children, className }: PrivacyValueProps) {
       <AnimatePresence>
         {!showValue && (
           <motion.span
-            initial={{ opacity: 0, scale: 0.95 }}
+            initial={{ opacity: 0, scale: 0.96 }}
             animate={{ opacity: 1, scale: 1 }}
-            exit={{ opacity: 0, scale: 0.95 }}
+            exit={{ opacity: 0, scale: 0.96 }}
+            transition={{ duration: 0.2 }}
             className="absolute inset-0 flex items-center justify-center pointer-events-none z-10"
           >
-            <span className="px-1.5 py-0.5 bg-secondary text-muted-foreground border border-border font-mono text-[10px] tracking-widest uppercase shadow-sm whitespace-nowrap select-none flex items-center gap-1">
-              <span className="w-1 h-1 bg-emerald-500 animate-pulse inline-block" />
+            <span className="font-mono text-xs font-bold tracking-widest text-emerald-500/80 bg-emerald-500/10 px-2 py-0.5 border border-emerald-500/20">
               ••••••
             </span>
           </motion.span>
         )}
       </AnimatePresence>
-      
-      {/* Decorative "Scan" light when revealed */}
-      {isHovered && isPrivacyMode && (
-        <div className="absolute inset-0 bg-gradient-to-r from-transparent via-foreground/5 to-transparent -translate-x-full animate-[shimmer_1.5s_infinite] pointer-events-none" />
-      )}
     </span>
   )
 }
