@@ -1042,10 +1042,10 @@ export function SystemSettingsModal({ open, onOpenChange }: SystemSettingsModalP
 
               <div className="p-4 bg-destructive/5 border border-destructive/20 space-y-2">
                 <div className="flex items-center gap-1.5 text-destructive font-mono font-bold text-xs uppercase">
-                  <ShieldAlert className="h-3.5 w-3.5" /> Right to Erasure (GDPR / FTC)
+                  <Trash2 className="h-3.5 w-3.5" /> Delete Account & Purge Data
                 </div>
                 <p className="text-[10px] text-muted-foreground font-sans leading-relaxed">
-                  Permanently purge your account, transactions, budgets, and saved preferences from the mainframe.
+                  Permanently delete your account, transactions, budgets, and all saved preferences.
                 </p>
                 <Button
                   type="button"
