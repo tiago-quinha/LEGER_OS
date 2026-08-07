@@ -22,6 +22,8 @@ export const metadata: Metadata = {
   description: "High-precision paycheck cycle budget and expense tracker",
 };
 
+import { AutoTranslateBridge } from "@/components/AutoTranslateBridge";
+
 export default function RootLayout({
   children,
 }: Readonly<{
@@ -41,6 +43,7 @@ export default function RootLayout({
           disableTransitionOnChange
         >
           <SystemProvider>
+            <AutoTranslateBridge />
             <SystemGuard>
               <AppLayout>{children}</AppLayout>
             </SystemGuard>
