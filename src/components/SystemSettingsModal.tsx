@@ -948,142 +948,136 @@ export function SystemSettingsModal({ open, onOpenChange }: SystemSettingsModalP
 
             {/* TAB 5: PRO PLAN */}
             <TabsContent value="pro" className="space-y-4 flex-1 overflow-y-auto pr-1 min-h-0">
-              <div className="p-4 bg-emerald-500/10 border border-emerald-500/30 space-y-2">
-                <div className="flex items-center justify-between">
-                  <h4 className="text-xs font-bold uppercase tracking-wider flex items-center gap-1.5 text-emerald-500 font-mono">
-                    <Sparkles className="h-3.5 w-3.5" /> LEGER_OS PRO TIER
-                  </h4>
-                  <span className={cn("px-2 py-0.5 text-[8px] font-mono uppercase font-bold border", isPro ? "bg-emerald-500 text-black border-emerald-500" : "bg-background text-muted-foreground border-border")}>
-                    {isPro ? "PRO ACTIVE" : "CORE FREE"}
-                  </span>
+              {/* HIGH CONVERSION PRO HERO CARD */}
+              <div className="p-5 bg-card border-2 border-emerald-500/50 space-y-4 relative overflow-hidden shadow-[0_0_25px_rgba(16,185,129,0.12)]">
+                <div className="absolute top-0 right-0 bg-emerald-500 text-black font-mono font-bold text-[8px] px-2.5 py-1 uppercase tracking-widest">
+                  RECOMMENDED
                 </div>
+
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-border/60 pb-3">
+                  <div className="space-y-0.5">
+                    <h4 className="text-sm font-bold uppercase tracking-wider flex items-center gap-1.5 text-foreground font-mono">
+                      <Sparkles className="h-4 w-4 text-emerald-500" /> LEGER_OS PRO
+                    </h4>
+                    <p className="text-[10px] text-emerald-500 font-mono font-medium">Autonomous Financial Mainframe</p>
+                  </div>
+                  <div className="text-left sm:text-right">
+                    <span className="text-2xl font-bold font-mono text-foreground">{currencySymbol}4.99<span className="text-xs text-muted-foreground font-normal">/mo</span></span>
+                    <p className="text-[8px] font-mono text-muted-foreground uppercase">Instant Activation • Cancel Anytime</p>
+                  </div>
+                </div>
+
                 <p className="text-[11px] text-muted-foreground font-sans leading-relaxed">
-                  LEGER_OS includes a free Core Base for manual cash flow tracking. Upgrade to PRO to unlock automated MacroDroid sync, neural categorization, and recency-decay predictive analytics.
+                  Unlock autonomous bank push synchronization, AI neural transaction categorization, and precision recency-decay predictive cash flow simulations.
                 </p>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5 pt-1 text-[10px] font-mono">
+                  <div className="flex items-center gap-2 p-2 bg-secondary/30 border border-border/40">
+                    <Check className="h-3.5 w-3.5 text-emerald-500 shrink-0" />
+                    <span className="text-foreground font-bold">Android Push Notification Sync</span>
+                  </div>
+                  <div className="flex items-center gap-2 p-2 bg-secondary/30 border border-border/40">
+                    <Check className="h-3.5 w-3.5 text-emerald-500 shrink-0" />
+                    <span className="text-foreground font-bold">Gemini 2.5 Pro Neural Ingestion</span>
+                  </div>
+                  <div className="flex items-center gap-2 p-2 bg-secondary/30 border border-border/40">
+                    <Check className="h-3.5 w-3.5 text-emerald-500 shrink-0" />
+                    <span className="text-foreground font-bold">Recency-Decay (λ) Forecasting</span>
+                  </div>
+                  <div className="flex items-center gap-2 p-2 bg-secondary/30 border border-border/40">
+                    <Check className="h-3.5 w-3.5 text-emerald-500 shrink-0" />
+                    <span className="text-foreground font-bold">Conversational AI Overrides</span>
+                  </div>
+                </div>
+
+                <Button 
+                  type="button"
+                  onClick={upgradeToPro}
+                  disabled={isPro}
+                  className="w-full rounded-none font-mono text-xs uppercase font-bold h-10 bg-emerald-500 text-black hover:bg-emerald-400 transition-all cursor-pointer shadow-lg"
+                >
+                  {isPro ? "PRO Access Active" : "Upgrade to PRO (€4.99/mo)"}
+                </Button>
               </div>
 
-              <div className="grid grid-cols-2 gap-3">
-                {/* CORE PLAN CARD */}
-                <div className="p-4 bg-card border border-border space-y-3 flex flex-col justify-between">
-                  <div className="space-y-2">
-                    <div className="flex justify-between items-start">
-                      <div>
-                        <h5 className="font-bold text-xs uppercase text-foreground">LEGER_OS CORE</h5>
-                        <p className="text-[9px] text-muted-foreground font-mono">Free Forever Base</p>
-                      </div>
-                      <span className="text-base font-bold font-mono text-foreground">{currencySymbol}0<span className="text-[10px] text-muted-foreground">/mo</span></span>
-                    </div>
-                    <ul className="space-y-1.5 text-[10px] font-mono text-muted-foreground border-t border-border pt-2">
-                      <li className="flex items-center gap-1.5 text-foreground"><Check className="h-3 w-3 text-emerald-500 shrink-0" /> Expense & Income Tracking</li>
-                      <li className="flex items-center gap-1.5 text-foreground"><Check className="h-3 w-3 text-emerald-500 shrink-0" /> Paycheck Cycle & Budgets</li>
-                      <li className="flex items-center gap-1.5 opacity-50"><X className="h-3 w-3 text-destructive shrink-0" /> Android Push Notification Sync</li>
-                      <li className="flex items-center gap-1.5 opacity-50"><X className="h-3 w-3 text-destructive shrink-0" /> Recency Decay Predictive Simulations</li>
-                    </ul>
+              {/* CORE FREE BASE PLAN */}
+              <div className="p-4 bg-card border border-border space-y-3">
+                <div className="flex justify-between items-center">
+                  <div>
+                    <h5 className="font-bold text-xs uppercase text-foreground">LEGER_OS CORE BASE</h5>
+                    <p className="text-[9px] text-muted-foreground font-mono">Manual tracking • Free forever</p>
                   </div>
-                  <Button 
-                    type="button"
-                    disabled={!isPro} 
-                    variant="outline" 
-                    onClick={cancelPro}
-                    className="w-full rounded-none font-mono text-[9px] uppercase h-8 border-destructive text-destructive hover:bg-destructive/10 cursor-pointer"
-                  >
-                    {!isPro ? "Current Active Plan" : "Cancel PRO"}
-                  </Button>
+                  <span className="text-xs font-bold font-mono text-muted-foreground">{currencySymbol}0/mo</span>
                 </div>
-
-                {/* PRO PLAN CARD */}
-                <div className="p-4 bg-card border-2 border-emerald-500/50 space-y-3 flex flex-col justify-between relative overflow-hidden shadow-[0_0_15px_rgba(16,185,129,0.08)]">
-                  <div className="absolute top-0 right-0 bg-emerald-500 text-black font-mono font-bold text-[8px] px-2 py-0.5 uppercase">
-                    RECOMMENDED
-                  </div>
-                  <div className="space-y-2">
-                    <div className="flex justify-between items-start">
-                      <div>
-                        <h5 className="font-bold text-xs uppercase text-foreground flex items-center gap-1"><Sparkles className="h-3 w-3 text-emerald-500" /> LEGER_OS PRO</h5>
-                        <p className="text-[9px] text-emerald-500 font-mono">Autonomous Mainframe</p>
-                      </div>
-                      <span className="text-base font-bold font-mono text-foreground">{currencySymbol}4.99<span className="text-[10px] text-muted-foreground">/mo</span></span>
-                    </div>
-                    <ul className="space-y-1.5 text-[10px] font-mono text-muted-foreground border-t border-border pt-2">
-                      <li className="flex items-center gap-1.5 text-foreground font-bold"><Check className="h-3 w-3 text-emerald-500 shrink-0" /> Android Push Sync</li>
-                      <li className="flex items-center gap-1.5 text-foreground font-bold"><Check className="h-3 w-3 text-emerald-500 shrink-0" /> Gemini 2.5 Pro Neural Categorization</li>
-                      <li className="flex items-center gap-1.5 text-foreground font-bold"><Check className="h-3 w-3 text-emerald-500 shrink-0" /> Recency Decay Predictive Simulations</li>
-                      <li className="flex items-center gap-1.5 text-foreground"><Check className="h-3 w-3 text-emerald-500 shrink-0" /> Unlimited Statement Ingestions</li>
-                    </ul>
-                  </div>
-                  <Button 
-                    type="button"
-                    onClick={upgradeToPro}
-                    disabled={isPro}
-                    className="w-full rounded-none font-mono text-[9px] uppercase font-bold h-8 bg-emerald-500 text-black hover:bg-emerald-400 transition-all cursor-pointer"
-                  >
-                    {isPro ? "PRO Access Active" : "Upgrade to PRO (€4.99/mo)"}
-                  </Button>
-                </div>
+                <Button 
+                  type="button"
+                  disabled={!isPro} 
+                  variant="outline" 
+                  onClick={cancelPro}
+                  className="w-full rounded-none font-mono text-[9px] uppercase h-8 border-border text-muted-foreground hover:text-destructive hover:border-destructive cursor-pointer"
+                >
+                  {!isPro ? "Current Active Base Plan" : "Cancel PRO Subscription"}
+                </Button>
               </div>
             </TabsContent>
 
             {/* TAB 6: ACCOUNT & SECURITY */}
             <TabsContent value="account" className="space-y-4 flex-1 overflow-y-auto pr-1 min-h-0">
-              <div className="grid grid-cols-2 gap-3">
-                <div className="p-4 bg-card border border-border space-y-3 flex flex-col justify-between">
-                  <div className="space-y-1">
-                    <div className="flex items-center justify-between">
-                      <span className="font-mono text-xs font-bold uppercase text-foreground block">Session Node</span>
-                      <span className="text-[9px] font-mono font-bold uppercase text-muted-foreground bg-secondary/80 border border-border px-2 py-0.5">SECURE</span>
-                    </div>
+              <div className="p-4 bg-card border border-border space-y-3">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <span className="font-mono text-xs font-bold uppercase text-foreground block">Session Node</span>
                     <span className="font-mono text-[10px] text-muted-foreground truncate block">{user?.email || "USER"}</span>
                   </div>
-                  <Button
-                    type="button"
-                    onClick={() => signOut()}
-                    variant="outline"
-                    className="w-full rounded-none h-8 text-[9px] uppercase font-mono font-bold bg-destructive/10 text-destructive hover:bg-destructive hover:text-background border-destructive/30 cursor-pointer"
-                  >
-                    <LogOut className="h-3 w-3 mr-1.5" /> Disconnect Session
-                  </Button>
+                  <span className="text-[9px] font-mono font-bold uppercase text-muted-foreground bg-secondary/80 border border-border px-2 py-0.5">SECURE</span>
                 </div>
+                <Button
+                  type="button"
+                  onClick={() => signOut()}
+                  variant="outline"
+                  className="w-full rounded-none h-8 text-[9px] uppercase font-mono font-bold bg-destructive/10 text-destructive hover:bg-destructive hover:text-background border-destructive/30 cursor-pointer"
+                >
+                  <LogOut className="h-3 w-3 mr-1.5" /> Disconnect Session & Sign Out
+                </Button>
+              </div>
 
-                <div className="p-4 bg-destructive/5 border border-destructive/20 space-y-3 flex flex-col justify-between">
-                  <div className="space-y-1">
-                    <div className="flex items-center gap-1.5 text-destructive font-mono font-bold text-xs uppercase">
-                      <ShieldAlert className="h-3.5 w-3.5" /> Right to Erasure (GDPR / FTC)
-                    </div>
-                    <p className="text-[10px] text-muted-foreground font-sans leading-relaxed">
-                      Permanently purge your account, transactions, budgets, and saved preferences.
-                    </p>
-                  </div>
-                  <Button
-                    type="button"
-                    onClick={async () => {
-                      const confirmText = window.prompt("Type 'DELETE MY DATA' to permanently purge your account:")
-                      if (confirmText !== "DELETE MY DATA") {
-                        toast.error("Purge cancelled.")
-                        return
-                      }
-                      const toastId = toast.loading("Purging profile...")
-                      try {
-                        const res = await fetch("/api/user/erase", { method: "POST" })
-                        const data = await res.json()
-                        if (data.success) {
-                          toast.dismiss(toastId)
-                          toast.success("Account purged.")
-                          await signOut()
-                        } else {
-                          toast.dismiss(toastId)
-                          toast.error(data.error || "Purge failed.")
-                        }
-                      } catch (e) {
-                        toast.dismiss(toastId)
-                        toast.error("Connection error.")
-                      }
-                    }}
-                    variant="outline"
-                    className="w-full rounded-none h-8 text-[9px] uppercase font-mono font-bold bg-destructive/10 text-destructive hover:bg-destructive hover:text-background border-destructive/30 cursor-pointer"
-                  >
-                    Purge All Data & Delete Account
-                  </Button>
+              <div className="p-4 bg-destructive/5 border border-destructive/20 space-y-2">
+                <div className="flex items-center gap-1.5 text-destructive font-mono font-bold text-xs uppercase">
+                  <ShieldAlert className="h-3.5 w-3.5" /> Right to Erasure (GDPR / FTC)
                 </div>
+                <p className="text-[10px] text-muted-foreground font-sans leading-relaxed">
+                  Permanently purge your account, transactions, budgets, and saved preferences from the mainframe.
+                </p>
+                <Button
+                  type="button"
+                  onClick={async () => {
+                    const confirmText = window.prompt("Type 'DELETE MY DATA' to permanently purge your account:")
+                    if (confirmText !== "DELETE MY DATA") {
+                      toast.error("Purge cancelled.")
+                      return
+                    }
+                    const toastId = toast.loading("Purging profile...")
+                    try {
+                      const res = await fetch("/api/user/erase", { method: "POST" })
+                      const data = await res.json()
+                      if (data.success) {
+                        toast.dismiss(toastId)
+                        toast.success("Account purged.")
+                        await signOut()
+                      } else {
+                        toast.dismiss(toastId)
+                        toast.error(data.error || "Purge failed.")
+                      }
+                    } catch (e) {
+                      toast.dismiss(toastId)
+                      toast.error("Connection error.")
+                    }
+                  }}
+                  variant="outline"
+                  className="w-full rounded-none h-8 text-[9px] uppercase font-mono font-bold bg-destructive/10 text-destructive hover:bg-destructive hover:text-background border-destructive/30 cursor-pointer"
+                >
+                  Purge All Data & Delete Account
+                </Button>
               </div>
             </TabsContent>
 
