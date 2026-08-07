@@ -700,7 +700,7 @@ export function SystemSettingsModal({ open, onOpenChange }: SystemSettingsModalP
                       description="Custom AI response verbosity yap levels and recency-decay time parameters (λ) are exclusive to LEGER_OS PRO nodes."
                     />
                   ) : (
-                    <>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-2 border-t border-border/40">
                       {/* AI Response Verbosity */}
                       <div className="space-y-1.5">
                         <Label htmlFor="modalYapLevel" className="text-[9px] uppercase font-mono font-bold text-muted-foreground">
@@ -722,7 +722,7 @@ export function SystemSettingsModal({ open, onOpenChange }: SystemSettingsModalP
                       </div>
 
                       {/* Recency Decay Weight (PRO Gated Calibration) */}
-                      <div className="space-y-1.5 pt-2 border-t border-border/40">
+                      <div className="space-y-1.5 flex flex-col justify-between">
                         <div className="flex items-center justify-between text-[10px] font-mono">
                           <span className="text-muted-foreground uppercase font-bold">
                             Recency Decay (λ):
@@ -736,10 +736,10 @@ export function SystemSettingsModal({ open, onOpenChange }: SystemSettingsModalP
                           step="0.01"
                           value={decayInput}
                           onChange={(e) => setDecayInput(e.target.value)}
-                          className="w-full accent-emerald-500 h-1.5 bg-secondary cursor-pointer"
+                          className="w-full accent-emerald-500 h-1.5 bg-secondary cursor-pointer my-auto"
                         />
                       </div>
-                    </>
+                    </div>
                   )}
                 </div>
               </div>
@@ -1021,61 +1021,65 @@ export function SystemSettingsModal({ open, onOpenChange }: SystemSettingsModalP
 
             {/* TAB 6: ACCOUNT & SECURITY */}
             <TabsContent value="account" className="space-y-4 flex-1 overflow-y-auto pr-1 min-h-0">
-              <div className="p-4 bg-card border border-border space-y-3">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <span className="font-mono text-xs font-bold uppercase text-foreground block">Session Node</span>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div className="p-4 bg-card border border-border space-y-3 flex flex-col justify-between">
+                  <div className="space-y-1">
+                    <div className="flex items-center justify-between">
+                      <span className="font-mono text-xs font-bold uppercase text-foreground block">Session Node</span>
+                      <span className="text-[9px] font-mono font-bold uppercase text-muted-foreground bg-secondary/80 border border-border px-2 py-0.5">SECURE</span>
+                    </div>
                     <span className="font-mono text-[10px] text-muted-foreground truncate block">{user?.email || "USER"}</span>
                   </div>
-                  <span className="text-[9px] font-mono font-bold uppercase text-muted-foreground bg-secondary/80 border border-border px-2 py-0.5">SECURE</span>
+                  <Button
+                    type="button"
+                    onClick={() => signOut()}
+                    variant="outline"
+                    className="w-full rounded-none h-8 text-[9px] uppercase font-mono font-bold bg-destructive/10 text-destructive hover:bg-destructive hover:text-background border-destructive/30 cursor-pointer"
+                  >
+                    <LogOut className="h-3 w-3 mr-1.5" /> Disconnect Session
+                  </Button>
                 </div>
-                <Button
-                  type="button"
-                  onClick={() => signOut()}
-                  variant="outline"
-                  className="w-full rounded-none h-8 text-[9px] uppercase font-mono font-bold bg-destructive/10 text-destructive hover:bg-destructive hover:text-background border-destructive/30 cursor-pointer"
-                >
-                  <LogOut className="h-3 w-3 mr-1.5" /> Disconnect Session & Sign Out
-                </Button>
-              </div>
 
-              <div className="p-4 bg-destructive/5 border border-destructive/20 space-y-2">
-                <div className="flex items-center gap-1.5 text-destructive font-mono font-bold text-xs uppercase">
-                  <ShieldAlert className="h-3.5 w-3.5" /> Right to Erasure (GDPR / FTC)
-                </div>
-                <p className="text-[10px] text-muted-foreground font-sans leading-relaxed">
-                  Permanently purge your account, transactions, budgets, and saved preferences from the mainframe.
-                </p>
-                <Button
-                  type="button"
-                  onClick={async () => {
-                    const confirmText = window.prompt("Type 'DELETE MY DATA' to permanently purge your account:")
-                    if (confirmText !== "DELETE MY DATA") {
-                      toast.error("Purge cancelled.")
-                      return
-                    }
-                    const toastId = toast.loading("Purging profile...")
-                    try {
-                      const res = await fetch("/api/user/erase", { method: "POST" })
-                      const data = await res.json()
-                      if (data.success) {
-                        toast.dismiss(toastId)
-                        toast.success("Account purged.")
-                        await signOut()
-                      } else {
-                        toast.dismiss(toastId)
-                        toast.error(data.error || "Purge failed.")
+                <div className="p-4 bg-destructive/5 border border-destructive/20 space-y-3 flex flex-col justify-between">
+                  <div className="space-y-1">
+                    <div className="flex items-center gap-1.5 text-destructive font-mono font-bold text-xs uppercase">
+                      <ShieldAlert className="h-3.5 w-3.5" /> Right to Erasure (GDPR / FTC)
+                    </div>
+                    <p className="text-[10px] text-muted-foreground font-sans leading-relaxed">
+                      Permanently purge your account, transactions, budgets, and saved preferences.
+                    </p>
+                  </div>
+                  <Button
+                    type="button"
+                    onClick={async () => {
+                      const confirmText = window.prompt("Type 'DELETE MY DATA' to permanently purge your account:")
+                      if (confirmText !== "DELETE MY DATA") {
+                        toast.error("Purge cancelled.")
+                        return
                       }
-                    } catch (e) {
-                      toast.dismiss(toastId)
-                      toast.error("Connection error.")
-                    }
-                  }}
-                  variant="outline"
-                  className="w-full rounded-none h-8 text-[9px] uppercase font-mono font-bold bg-destructive/10 text-destructive hover:bg-destructive hover:text-background border-destructive/30 cursor-pointer"
-                >
-                  Purge All Data & Delete Account
-                </Button>
+                      const toastId = toast.loading("Purging profile...")
+                      try {
+                        const res = await fetch("/api/user/erase", { method: "POST" })
+                        const data = await res.json()
+                        if (data.success) {
+                          toast.dismiss(toastId)
+                          toast.success("Account purged.")
+                          await signOut()
+                        } else {
+                          toast.dismiss(toastId)
+                          toast.error(data.error || "Purge failed.")
+                        }
+                      } catch (e) {
+                        toast.dismiss(toastId)
+                        toast.error("Connection error.")
+                      }
+                    }}
+                    variant="outline"
+                    className="w-full rounded-none h-8 text-[9px] uppercase font-mono font-bold bg-destructive/10 text-destructive hover:bg-destructive hover:text-background border-destructive/30 cursor-pointer"
+                  >
+                    Purge All Data & Delete Account
+                  </Button>
+                </div>
               </div>
             </TabsContent>
 
