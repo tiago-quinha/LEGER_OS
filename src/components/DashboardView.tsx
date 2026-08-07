@@ -958,12 +958,25 @@ export function DashboardView({
                     isPro={isPro}
                   />
                   {!isPro && showGraphLock && (
-                    <div className="absolute inset-0 z-20 flex items-center justify-center p-4">
-                      <ProLockOverlay 
-                        title="ADVANCED PROJECTION ENGINE"
-                        description="Upgrade to LEGER_OS PRO to unlock daily recency-decay cash flow forecasting, Monte Carlo simulation paths, and custom AI overrides."
-                        className="max-w-md w-full rounded-none shadow-2xl border border-emerald-500/30"
-                      />
+                    <div className="absolute inset-0 z-30 bg-background/95 backdrop-blur-md flex flex-col items-center justify-center p-4 text-center">
+                      <div className="max-w-md w-full space-y-3">
+                        <ProLockOverlay 
+                          title="ADVANCED PROJECTION ENGINE"
+                          description="Upgrade to LEGER_OS PRO to unlock daily recency-decay cash flow forecasting, Monte Carlo simulation paths, and custom AI overrides."
+                          className="w-full rounded-none shadow-2xl border border-emerald-500/30"
+                        />
+                        <Button 
+                          type="button"
+                          onClick={() => {
+                            setViewMode('calendar')
+                            localStorage.setItem('leger_pro_graph_dismissed_until', (Date.now() + 3 * 60 * 60 * 1000).toString())
+                          }}
+                          variant="outline"
+                          className="w-full h-8 rounded-none border-border hover:bg-secondary/40 text-muted-foreground font-mono text-[9px] uppercase font-bold tracking-wider cursor-pointer"
+                        >
+                          Dismiss (Calendar View)
+                        </Button>
+                      </div>
                     </div>
                   )}
                 </div>
@@ -1162,66 +1175,50 @@ export function DashboardView({
             </Tilt>
 
             {/* Smart Forecasts Card */}
-            <div
-              onClick={() => {
-                if (!isPro) {
-                  setSettingsActiveTab("pro");
-                  setSubscriptionOnly(true);
-                  setSettingsOpen(true);
-                }
-              }}
-              className={cn(
-                "relative flex flex-col justify-stretch w-full",
-                !isPro ? "cursor-pointer" : ""
-              )}
-            >
-              <Tilt 
-                rotationFactor={4} 
-                className={cn(
-                  "p-6 md:p-8 space-y-4 bg-card/20 border border-border relative group overflow-hidden flex flex-col justify-between grow w-full glow-card"
-                )}
-              >
-                <div className="flex justify-between items-center text-xs font-mono z-10">
-                  <span className="text-muted-foreground uppercase tracking-wider flex items-center gap-1.5 font-semibold text-[10px]">
-                    <span className="h-1.5 w-1.5 rounded-full bg-emerald-500" /> Cycle Forecast
-                  </span>
-                  <span className="font-bold text-foreground bg-secondary px-2.5 py-0.5 text-[10px] uppercase font-mono border border-border">
-                    {isPro ? (
+            {!isPro ? (
+              <ProLockOverlay 
+                title="CYCLE FORECASTING (PRO)"
+                description="Unlock advanced end-of-cycle cash flow forecasting models and daily recency-decay velocity projections."
+                className="h-full min-h-[180px] flex flex-col justify-center rounded-none border border-border bg-card/20"
+              />
+            ) : (
+              <div className="relative flex flex-col justify-stretch w-full">
+                <Tilt 
+                  rotationFactor={4} 
+                  className="p-6 md:p-8 space-y-4 bg-card/20 border border-border relative group overflow-hidden flex flex-col justify-between grow w-full glow-card"
+                >
+                  <div className="flex justify-between items-center text-xs font-mono z-10">
+                    <span className="text-muted-foreground uppercase tracking-wider flex items-center gap-1.5 font-semibold text-[10px]">
+                      <span className="h-1.5 w-1.5 rounded-full bg-emerald-500" /> Cycle Forecast
+                    </span>
+                    <span className="font-bold text-foreground bg-secondary px-2.5 py-0.5 text-[10px] uppercase font-mono border border-border">
                       <PrivacyValue>{currencySymbol}{estimatedFinalBalance.toFixed(2)} Est.</PrivacyValue>
-                    ) : (
-                      "PRO Locked"
-                    )}
-                  </span>
-                </div>
+                    </span>
+                  </div>
 
-                <div className="space-y-2 z-10">
-                  <div className="flex justify-between items-baseline">
-                    <span className="text-xs text-muted-foreground font-mono">Projected Surplus</span>
-                    <span className={cn(
-                      "text-xl md:text-2xl font-mono font-bold tracking-tight",
-                      estimatedFinalBalance >= 0 ? "text-emerald-500" : "text-destructive"
-                    )}>
-                      {isPro ? (
+                  <div className="space-y-2 z-10">
+                    <div className="flex justify-between items-baseline">
+                      <span className="text-xs text-muted-foreground font-mono">Projected Surplus</span>
+                      <span className={cn(
+                        "text-xl md:text-2xl font-mono font-bold tracking-tight",
+                        estimatedFinalBalance >= 0 ? "text-emerald-500" : "text-destructive"
+                      )}>
                         <PrivacyValue>{currencySymbol}{estimatedFinalBalance.toFixed(2)}</PrivacyValue>
-                      ) : (
-                        <span className="text-emerald-500 font-extrabold tracking-widest text-sm uppercase">PRO Subscription Required</span>
-                      )}
-                    </span>
+                      </span>
+                    </div>
+                    <div className="flex items-center justify-between text-[11px] text-muted-foreground pt-2 border-t border-border/40 font-mono">
+                      <span>Based on 7-day velocity decay</span>
+                      <span className={cn("font-semibold flex items-center gap-1", onTrack ? "text-emerald-500" : "text-amber-500")}>
+                        {onTrack ? "Optimal" : "High Burn"}
+                      </span>
+                    </div>
                   </div>
-                  <div className="flex items-center justify-between text-[11px] text-muted-foreground pt-2 border-t border-border/40 font-mono">
-                    <span>{isPro ? "Based on 7-day velocity decay" : "Velocity analysis gated"}</span>
-                    <span className={cn("font-semibold flex items-center gap-1", isPro ? (onTrack ? "text-emerald-500" : "text-amber-500") : "text-emerald-500/80")}>
-                      {isPro ? (onTrack ? "Optimal" : "High Burn") : "Upgrade"}
-                    </span>
-                  </div>
-                </div>
-                <p className="text-[11px] text-muted-foreground font-sans z-10 leading-relaxed">
-                  {isPro 
-                    ? "Forecasts your exact cash position before cycle close based on spending pattern decay." 
-                    : "Unlock advanced cash flow forecasting models based on daily velocity changes."}
-                </p>
-              </Tilt>
-            </div>
+                  <p className="text-[11px] text-muted-foreground font-sans z-10 leading-relaxed">
+                    Forecasts your exact cash position before cycle close based on spending pattern decay.
+                  </p>
+                </Tilt>
+              </div>
+            )}
           </div>
 
           {/* 4. Budgets Performance */}

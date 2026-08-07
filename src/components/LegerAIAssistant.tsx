@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect, useRef, useMemo } from "react"
 import { motion, AnimatePresence, useAnimation, useMotionValue, useDragControls } from "framer-motion"
-import { Brain, Cpu, MessageSquare, Mic, MicOff, Send, X, RefreshCcw, Sparkles } from "lucide-react"
+import { Brain, Cpu, MessageSquare, Mic, MicOff, Send, X, RefreshCcw, Sparkles, Lock } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { useSystem } from "@/lib/SystemContext"
 import { getAIHeaders } from "@/lib/ai-client"
@@ -585,17 +585,19 @@ export function LegerAIAssistant() {
               dragListener={false}
               dragControls={sheetDragControls}
               dragConstraints={{ top: 0, bottom: 600 }}
-              dragElastic={{ top: 0, bottom: 0.5 }}
+              dragElastic={0}
+              dragMomentum={false}
+              dragSnapToOrigin={false}
               onDragEnd={(event, info) => {
-                if (isMobile && info.offset.y > 120) {
+                if (isMobile && (info.offset.y > 60 || info.velocity.y > 200)) {
                   setIsOpen(false)
                 }
               }}
               initial={isMobile ? { y: "100%", opacity: 0.95 } : { opacity: 0, scale: 0.95, y: 30 }}
               animate={isMobile ? { y: 0, opacity: 1 } : { opacity: 1, scale: 1, y: 0 }}
-              exit={isMobile ? { y: "100%", opacity: 0.95 } : { opacity: 0, scale: 0.95, y: 30 }}
-              transition={{ duration: 0.25, ease: "easeOut" }}
-              className="absolute pointer-events-auto bottom-16 left-0 right-0 sm:bottom-20 sm:left-auto sm:right-6 w-full sm:w-[380px] h-[72vh] sm:h-[520px] max-h-[85vh] sm:max-h-[calc(100vh-140px)] border-t border-x sm:border border-border bg-card/95 backdrop-blur-md shadow-2xl flex flex-col overflow-hidden rounded-t-2xl sm:rounded-xl font-sans z-[100000]"
+              exit={isMobile ? { y: "100%", opacity: 0 } : { opacity: 0, scale: 0.95, y: 30 }}
+              transition={{ duration: 0.2, ease: "easeOut" }}
+              className="absolute pointer-events-auto bottom-0 left-0 right-0 sm:bottom-20 sm:left-auto sm:right-6 w-full sm:w-[380px] h-[80vh] sm:h-[520px] max-h-[90vh] sm:max-h-[calc(100vh-140px)] border-t border-x sm:border border-border bg-card/95 backdrop-blur-md shadow-2xl flex flex-col overflow-hidden rounded-t-2xl sm:rounded-xl font-sans z-[100000]"
             >
               {isMobile && (
                 <div 
@@ -830,11 +832,26 @@ export function LegerAIAssistant() {
           whileTap={{ scale: 0.95 }}
         >
           <button
-            onClick={() => setIsOpen(!isOpen)}
+            onClick={() => {
+              if (!isPro) {
+                setSettingsActiveTab("pro")
+                setSubscriptionOnly(true)
+                setSettingsOpen(true)
+              } else {
+                setIsOpen(!isOpen)
+              }
+            }}
             className="w-12 h-12 rounded-full bg-foreground text-background flex items-center justify-center shadow-2xl relative border border-border border-white/20 select-none overflow-hidden transition-all duration-300 hover:shadow-[0_0_15px_rgba(255,255,255,0.25)] dark:hover:shadow-[0_0_15px_rgba(16,185,129,0.25)]"
           >
             {isOpen ? (
               <X className="h-5 w-5 animate-pulse" />
+            ) : !isPro ? (
+              <div className="relative flex items-center justify-center">
+                <Brain className="h-5 w-5 text-background/80" />
+                <span className="absolute -top-1.5 -right-1.5 w-4 h-4 bg-emerald-500 text-black rounded-full flex items-center justify-center border border-foreground shadow-sm">
+                  <Lock className="h-2.5 w-2.5 text-black" />
+                </span>
+              </div>
             ) : (
               <div className="relative">
                 <Brain className="h-5 w-5 text-background animate-pulse" />

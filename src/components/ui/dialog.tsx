@@ -31,7 +31,7 @@ function DialogOverlay({
     <DialogPrimitive.Backdrop
       data-slot="dialog-overlay"
       className={cn(
-        "fixed inset-0 isolate z-[200000] bg-black/60 backdrop-blur-sm transition-all duration-300 ease-out data-open:animate-in data-open:fade-in-0 data-closed:animate-out data-closed:fade-out-0",
+        "fixed inset-0 isolate z-[200000] bg-black/70 backdrop-blur-md transition-all duration-300 ease-out data-ending-style:opacity-0 data-starting-style:opacity-0",
         className
       )}
       {...props}
@@ -53,7 +53,7 @@ function DialogContent({
       <DialogPrimitive.Popup
         data-slot="dialog-content"
         className={cn(
-          "fixed left-1/2 top-1/2 z-[200000] grid w-[94vw] sm:w-full max-w-[94vw] sm:max-w-lg -translate-x-1/2 -translate-y-1/2 gap-4 rounded-none bg-popover p-4 sm:p-6 text-sm text-popover-foreground ring-1 ring-border transition-all duration-300 ease-out outline-none max-h-[88dvh] sm:max-h-[85dvh] overflow-y-auto data-open:animate-in data-open:fade-in-0 data-open:zoom-in-95 data-open:slide-in-from-bottom-3 data-closed:animate-out data-closed:fade-out-0 data-closed:zoom-out-95 data-closed:slide-out-to-bottom-3",
+          "fixed left-1/2 top-1/2 z-[200000] grid w-[94vw] sm:w-full max-w-[94vw] sm:max-w-lg -translate-x-1/2 -translate-y-1/2 gap-4 rounded-none bg-popover p-4 sm:p-6 text-sm text-popover-foreground ring-1 ring-border shadow-2xl transition-all duration-300 ease-out outline-none max-h-[88dvh] sm:max-h-[85dvh] overflow-y-auto data-ending-style:opacity-0 data-ending-style:scale-95 data-ending-style:translate-y-2 data-starting-style:opacity-0 data-starting-style:scale-95 data-starting-style:translate-y-2",
           className
         )}
         {...props}
@@ -65,13 +65,12 @@ function DialogContent({
             render={
               <Button
                 variant="ghost"
-                className="absolute top-2 right-2"
+                className="absolute top-2 right-2 cursor-pointer"
                 size="icon-sm"
               />
             }
           >
-            <XIcon
-            />
+            <XIcon />
             <span className="sr-only">Close</span>
           </DialogPrimitive.Close>
         )}
@@ -106,14 +105,7 @@ function DialogFooter({
         className
       )}
       {...props}
-    >
-      {children}
-      {showCloseButton && (
-        <DialogPrimitive.Close render={<Button variant="outline" />}>
-          Close
-        </DialogPrimitive.Close>
-      )}
-    </div>
+    />
   )
 }
 

@@ -637,63 +637,56 @@ export function SystemSettingsModal({ open, onOpenChange }: SystemSettingsModalP
 
                   {/* Yap Level (PRO Gated) */}
                   <div className="space-y-1.5 pt-1">
-                    <div className="flex items-center justify-between">
-                      <Label htmlFor="modalYapLevel" className="text-[9px] uppercase font-mono font-bold text-muted-foreground">
-                        AI Verbosity / Yap Level
-                      </Label>
-                      {!isPro && (
-                        <span className="text-[8px] font-mono uppercase font-bold text-emerald-500 bg-emerald-500/10 border border-emerald-500/30 px-1.5 py-0.5">
-                          PRO LOCKED
-                        </span>
-                      )}
-                    </div>
-                    <div className="relative">
-                      <select
-                        id="modalYapLevel"
-                        value={isPro ? aiYapLevelInput : "standard"}
-                        disabled={!isPro}
-                        onChange={(e) => setAiYapLevelInput(e.target.value as any)}
-                        className={cn(
-                          "w-full bg-background border border-border rounded-none h-9 px-3 pr-8 text-xs font-mono outline-none appearance-none",
-                          !isPro ? "opacity-60 cursor-not-allowed text-muted-foreground" : "text-foreground focus:border-foreground"
-                        )}
-                      >
-                        <option value="concise">Concise & Direct (Brief answers)</option>
-                        <option value="standard">Standard (Balanced context)</option>
-                        <option value="verbose">Verbose & Explanatory (Thorough strategies)</option>
-                      </select>
-                      <ChevronDown className="absolute right-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground pointer-events-none" />
-                    </div>
-                  </div>
-
-                  {/* Recency Decay Weight (PRO Gated Calibration) */}
-                  <div className="space-y-1.5 pt-2 border-t border-border/40">
-                    <div className="flex items-center justify-between text-[10px] font-mono">
-                      <span className="text-muted-foreground uppercase font-bold flex items-center gap-1.5">
-                        Recency Decay (λ):
-                        {!isPro && (
-                          <span className="text-[8px] uppercase font-bold text-emerald-500 bg-emerald-500/10 border border-emerald-500/30 px-1 py-0.2">
-                            PRO FEATURE
-                          </span>
-                        )}
-                      </span>
-                      <span className="font-bold text-foreground">{decayInput} (~{Math.round(0.693 / (parseFloat(decayInput) || 0.12))} day half-life)</span>
-                    </div>
-                    <input
-                      type="range"
-                      min="0.05"
-                      max="0.30"
-                      step="0.01"
-                      value={decayInput}
-                      disabled={!isPro}
-                      onChange={(e) => setDecayInput(e.target.value)}
-                      className={cn(
-                        "w-full accent-emerald-500 h-1.5 bg-secondary",
-                        !isPro ? "opacity-50 cursor-not-allowed" : "cursor-pointer"
-                      )}
+                  {!isPro ? (
+                    <ProLockOverlay 
+                      compact
+                      title="ADVANCED AI CALIBRATION (PRO)"
+                      description="Custom AI response verbosity yap levels and recency-decay time parameters (λ) are exclusive to LEGER_OS PRO nodes."
                     />
-                  </div>
+                  ) : (
+                    <>
+                      {/* AI Response Verbosity */}
+                      <div className="space-y-1.5">
+                        <Label htmlFor="modalYapLevel" className="text-[9px] uppercase font-mono font-bold text-muted-foreground">
+                          AI Verbosity / Yap Level
+                        </Label>
+                        <div className="relative">
+                          <select
+                            id="modalYapLevel"
+                            value={aiYapLevelInput}
+                            onChange={(e) => setAiYapLevelInput(e.target.value as any)}
+                            className="w-full bg-background border border-border rounded-none h-9 px-3 pr-8 text-xs font-mono outline-none appearance-none text-foreground focus:border-foreground"
+                          >
+                            <option value="concise">Concise & Direct (Brief answers)</option>
+                            <option value="standard">Standard (Balanced context)</option>
+                            <option value="verbose">Verbose & Explanatory (Thorough strategies)</option>
+                          </select>
+                          <ChevronDown className="absolute right-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground pointer-events-none" />
+                        </div>
+                      </div>
+
+                      {/* Recency Decay Weight (PRO Gated Calibration) */}
+                      <div className="space-y-1.5 pt-2 border-t border-border/40">
+                        <div className="flex items-center justify-between text-[10px] font-mono">
+                          <span className="text-muted-foreground uppercase font-bold">
+                            Recency Decay (λ):
+                          </span>
+                          <span className="font-bold text-foreground">{decayInput} (~{Math.round(0.693 / (parseFloat(decayInput) || 0.12))} day half-life)</span>
+                        </div>
+                        <input
+                          type="range"
+                          min="0.05"
+                          max="0.30"
+                          step="0.01"
+                          value={decayInput}
+                          onChange={(e) => setDecayInput(e.target.value)}
+                          className="w-full accent-emerald-500 h-1.5 bg-secondary cursor-pointer"
+                        />
+                      </div>
+                    </>
+                  )}
                 </div>
+              </div>
 
                 <Button
                   type="submit"
