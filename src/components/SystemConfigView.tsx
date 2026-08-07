@@ -13,7 +13,12 @@ import { supabase } from "@/lib/supabase"
 import { toast } from "sonner"
 import { useTheme } from "next-themes"
 import { useRouter } from "next/navigation"
-import { Landmark, Sparkles, Shield, ShieldOff, Sun, Moon, Check, Plus, Trash2, Sliders, Database, Cpu, Calendar, CreditCard, RefreshCw, Terminal, Zap, Download, Rocket, Activity, FileJson, Brain, LogOut, ArrowRight, ChevronDown, ShieldAlert, Smartphone, Copy, ExternalLink } from "lucide-react"
+import { 
+  Landmark, Sparkles, Shield, ShieldOff, Sun, Moon, Check, Plus, Trash2, Sliders, 
+  Database, Cpu, Calendar, CreditCard, RefreshCw, Terminal, Zap, Download, Rocket, 
+  Activity, FileJson, Brain, LogOut, ArrowRight, ChevronDown, ShieldAlert, Smartphone, 
+  Copy, ExternalLink, Globe, Layers, Search
+} from "lucide-react"
 import { cn } from "@/lib/utils"
 import { PrivacyValue } from "@/components/ui/privacy-value"
 import { GlowingBadge } from "@/components/unlumen-ui/glowing-badge"
@@ -72,12 +77,28 @@ const HABIT_PRESETS = [
 ]
 
 export function SystemConfigView() {
-  const { profile, user, isPrivacyMode, setPrivacyMode, refreshData, refreshProfile, currencySymbol, isPro, upgradeToPro, cancelPro, signOut, setSettingsOpen, setSettingsActiveTab, setSubscriptionOnly } = useSystem()
+  const { 
+    profile, 
+    user, 
+    isPrivacyMode, 
+    setPrivacyMode, 
+    refreshData, 
+    refreshProfile, 
+    currencySymbol, 
+    isPro, 
+    upgradeToPro, 
+    cancelPro, 
+    signOut, 
+    setSettingsOpen, 
+    setSettingsActiveTab, 
+    setSubscriptionOnly 
+  } = useSystem()
+
   const { theme, setTheme } = useTheme()
-  const [activeTab, setActiveTab] = useState("paycheck")
+  const [activeTab, setActiveTab] = useState("general")
   const [mounted, setMounted] = useState(false)
 
-  // Paycheck state
+  // Form states
   const [keywordInput, setKeywordInput] = useState("")
   const [cycleMode, setCycleMode] = useState<"keyword" | "monthly">("keyword")
   const [targetIncomeInput, setTargetIncomeInput] = useState("2500")
@@ -90,16 +111,16 @@ export function SystemConfigView() {
   const [aiYapLevelInput, setAiYapLevelInput] = useState<"concise" | "standard" | "verbose">("standard")
   const [isSavingProfile, setIsSavingProfile] = useState(false)
 
-  // Habits state
+  // Rules & Habits state
   const [selectedHabits, setSelectedHabits] = useState<string[]>(["groceries", "dining", "transport"])
   const [isSeeding, setIsSeeding] = useState(false)
   const [existingRules, setExistingRules] = useState<any[]>([])
   const [newRuleKw, setNewRuleKw] = useState("")
   const [newRuleCat, setNewRuleCat] = useState("")
+  const [ruleSearchQuery, setRuleSearchQuery] = useState("")
   const [categories, setCategories] = useState<any[]>([])
 
   const router = useRouter()
-  // Admin & Super User Check
   const isSuperUser = profile?.is_admin === true || profile?.role === "admin" || profile?.role === "super_user" || profile?.username?.toLowerCase()?.includes("quinha") || profile?.username?.toLowerCase()?.includes("admin") || user?.email?.toLowerCase()?.includes("quinha") || user?.email?.toLowerCase()?.includes("admin") || process.env.NODE_ENV === "development"
   const [isPingingAI, setIsPingingAI] = useState(false)
 
@@ -138,7 +159,7 @@ export function SystemConfigView() {
     if (catsRes.data) setCategories(catsRes.data)
   }
 
-  const handleSavePaycheck = async (e: React.FormEvent) => {
+  const handleSaveProfile = async (e: React.FormEvent) => {
     e.preventDefault()
     if (!user) return
     setIsSavingProfile(true)
@@ -162,10 +183,10 @@ export function SystemConfigView() {
 
     setIsSavingProfile(false)
     if (error) {
-      toast.error("Failed to save income profile")
+      toast.error("Failed to save system settings")
       console.error(error)
     } else {
-      toast.success("Paycheck & projection trajectory settings updated!")
+      toast.success("System configuration saved successfully!")
       await refreshProfile()
       refreshData()
     }
@@ -201,7 +222,7 @@ export function SystemConfigView() {
     }
 
     setIsSeeding(false)
-    toast.success(`Successfully injected ${addedCount} habit rules into neural matrix!`)
+    toast.success(`Successfully registered ${addedCount} merchant rules!`)
     loadRulesAndCategories()
     refreshData()
   }
@@ -222,27 +243,23 @@ export function SystemConfigView() {
 
     const previousRules = [...existingRules]
 
-    // 1. Optimistic UI update
     setExistingRules(prev => [...prev, tempRule])
     setNewRuleKw("")
     setNewRuleCat("")
     toast.success(`Rule registered: "${trimmedKw}"`)
 
-    // 2. Database mutation
     const { data, error } = await supabase
       .from("merchant_rules")
       .insert({ keyword: trimmedKw, category_id: catId })
       .select()
 
     if (error) {
-      // 3. Rollback on failure
       setExistingRules(previousRules)
       toast.error("Failed to add custom rule")
       return
     }
 
     if (data && data[0]) {
-      // Swap temp ID with the database ID
       setExistingRules(prev => prev.map(r => r.id === tempId ? data[0] : r))
     } else {
       loadRulesAndCategories()
@@ -250,61 +267,53 @@ export function SystemConfigView() {
   }
 
   const handleDeleteRule = async (id: number) => {
-    if (!window.confirm("Are you sure you want to delete this custom categorization rule? Transactions from this merchant will no longer be auto-categorized.")) {
-      return
-    }
-    const previousRules = [...existingRules]
-    
-    // 1. Optimistic UI update
-    setExistingRules(existingRules.filter(r => r.id !== id))
-    toast.success("Rule deleted")
+    if (!window.confirm("Delete this categorization rule?")) return
 
-    // 2. Database mutation
+    const previousRules = [...existingRules]
+    setExistingRules(existingRules.filter(r => r.id !== id))
+    toast.success("Rule removed")
+
     const { error } = await supabase.from("merchant_rules").delete().eq("id", id)
     if (error) {
-      // 3. Rollback on failure
       setExistingRules(previousRules)
       toast.error("Failed to delete rule")
-      return
     }
   }
 
   const handleRightToErasure = async () => {
     const doubleConfirm = window.confirm(
-      "WARNING: This will permanently delete your account and all associated transactions, budgets, limits, and configurations. This cannot be undone.\n\nAre you sure you want to proceed?"
+      "WARNING: Permanently purge your profile and all transactions, budgets, limits, and settings?\n\nThis action CANNOT be undone."
     )
     if (!doubleConfirm) return
 
-    const typingConfirm = window.prompt(
-      "To confirm deletion, type 'DELETE MY DATA' below:"
-    )
+    const typingConfirm = window.prompt("Type 'DELETE MY DATA' below to confirm:")
     if (typingConfirm !== "DELETE MY DATA") {
-      toast.error("Confirmation string did not match. Deletion aborted.")
+      toast.error("Confirmation text did not match. Aborted.")
       return
     }
 
-    const toastId = toast.loading("Purging mainframe data node...")
+    const toastId = toast.loading("Purging profile...")
     try {
       const res = await fetch("/api/user/erase", { method: "POST" })
       const data = await res.json()
       if (data.success) {
         toast.dismiss(toastId)
-        toast.success("Mainframe profile completely purged.")
+        toast.success("Profile purged.")
         await signOut()
         router.push("/login")
       } else {
         toast.dismiss(toastId)
-        toast.error(data.error || "Failed to execute erasure request.")
+        toast.error(data.error || "Erasure failed.")
       }
     } catch (err) {
       toast.dismiss(toastId)
-      toast.error("Connection lost during data purge.")
+      toast.error("Connection error during purge.")
     }
   }
 
   const handleLaunchOnboarding = () => {
     router.push("/?onboarding=true")
-    toast.success("Relaunching LEGER_OS Interactive Onboarding Wizard")
+    toast.success("Relaunching onboarding wizard")
   }
 
   const handlePingGemini = async () => {
@@ -318,12 +327,12 @@ export function SystemConfigView() {
       })
       const latency = Date.now() - startTime
       if (res.ok || res.status === 400 || res.status === 200) {
-        toast.success(`Gemini AI Neural Bridge Online (Latency: ${latency}ms)`)
+        toast.success(`AI Bridge Online (Latency: ${latency}ms)`)
       } else {
-        toast.error(`Neural Bridge error (Status: ${res.status}) - check API key`)
+        toast.error(`Bridge error (Status: ${res.status}) - check API key`)
       }
     } catch (e) {
-      toast.error("Failed to connect to Neural Bridge")
+      toast.error("Failed to ping AI Bridge")
     } finally {
       setIsPingingAI(false)
     }
@@ -333,13 +342,11 @@ export function SystemConfigView() {
     const diagnosticData = {
       system: "LEGER_OS v4.0",
       timestamp: new Date().toISOString(),
-      environment: process.env.NODE_ENV,
       user: {
         id: user?.id,
         email: user?.email,
-        role: profile?.role || "super_user",
         username: profile?.username,
-        is_admin: profile?.is_admin || true
+        role: profile?.role || "super_user"
       },
       settings: {
         paycheck_keyword: profile?.paycheck_keyword,
@@ -356,20 +363,27 @@ export function SystemConfigView() {
     a.href = url
     a.download = `leger_os_diagnostics_${new Date().toISOString().slice(0, 10)}.json`
     a.click()
-    toast.success("Diagnostic dump exported")
+    toast.success("Diagnostics exported")
   }
+
+  const filteredRules = existingRules.filter(r => {
+    if (!ruleSearchQuery.trim()) return true
+    const q = ruleSearchQuery.toLowerCase()
+    const cat = categories.find(c => c.id === r.category_id)
+    return r.keyword.toLowerCase().includes(q) || cat?.name.toLowerCase().includes(q)
+  })
 
   return (
     <motion.div
       initial={{ opacity: 0, y: 4 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.45, ease: [0.16, 1, 0.3, 1] }}
-      className="mx-auto max-w-[1500px] p-4 md:p-8 space-y-10 md:space-y-16 pb-36 md:pb-8 w-full"
+      className="mx-auto max-w-[1500px] p-4 md:p-8 space-y-8 md:space-y-10 pb-36 md:pb-8 w-full font-mono"
     >
-      {/* 1. Page Header */}
-      <header className="flex flex-col md:flex-row md:items-center justify-between gap-6 md:gap-8 border-b border-border pb-6 md:pb-8 relative">
-        <div className="space-y-3">
-          <div className="flex items-center gap-3 text-[9px] md:text-[10px] font-mono tracking-[0.2em] uppercase text-muted-foreground">
+      {/* 1. Header & Summary Strip */}
+      <header className="flex flex-col md:flex-row md:items-center justify-between gap-6 border-b border-border pb-6 relative">
+        <div className="space-y-2">
+          <div className="flex items-center gap-3 text-[9px] md:text-[10px] tracking-[0.2em] uppercase text-muted-foreground">
             <Sliders className="h-3.5 w-3.5" />
             <span>/system</span>
           </div>
@@ -377,262 +391,186 @@ export function SystemConfigView() {
             System Config
           </h1>
         </div>
-        <div className="flex items-center gap-2 self-start md:self-center">
-          <GlowingBadge variant="success" pulse={true} dot={true} className="text-[10px] uppercase font-mono">
-            NODE_ONLINE
+
+        {/* Quick Toolbar Controls */}
+        <div className="flex flex-wrap items-center gap-2.5">
+          <GlowingBadge variant={isPro ? "success" : "neutral"} pulse={true} dot={true} className="text-[10px] uppercase">
+            {isPro ? "PRO_ACTIVE" : "CORE_FREE"}
           </GlowingBadge>
-          <span className="font-mono text-[10px] px-2.5 py-1 bg-secondary border border-border uppercase font-bold">
-            {profile?.role?.toUpperCase() || "SUPER_USER"}
-          </span>
+
+          {/* Privacy Toggle */}
+          <button
+            type="button"
+            onClick={() => setPrivacyMode(!isPrivacyMode)}
+            className={cn(
+              "h-8 px-3 text-[10px] uppercase font-bold border transition-colors flex items-center gap-1.5 cursor-pointer",
+              isPrivacyMode 
+                ? "bg-emerald-500/10 text-emerald-500 border-emerald-500/30 hover:bg-emerald-500/20" 
+                : "bg-secondary/40 text-muted-foreground border-border hover:bg-secondary/80 hover:text-foreground"
+            )}
+            title="Toggle Privacy Safe-Deposit"
+          >
+            {isPrivacyMode ? <Shield className="h-3.5 w-3.5" /> : <ShieldOff className="h-3.5 w-3.5" />}
+            <span>Privacy: {isPrivacyMode ? "ON" : "OFF"}</span>
+          </button>
+
+          {/* Theme Toggle */}
+          <button
+            type="button"
+            onClick={() => setTheme(theme === "dark" ? "light" : "dark")}
+            className="h-8 px-3 text-[10px] uppercase font-bold border border-border bg-secondary/40 text-muted-foreground hover:text-foreground hover:bg-secondary/80 transition-colors flex items-center gap-1.5 cursor-pointer"
+            title="Toggle Theme"
+          >
+            {theme === "dark" ? <Moon className="h-3.5 w-3.5 text-primary" /> : <Sun className="h-3.5 w-3.5 text-amber-500" />}
+            <span>{mounted && theme === "dark" ? "Dark" : "Light"}</span>
+          </button>
+
+          {/* Disconnect Session */}
+          <button
+            type="button"
+            onClick={() => signOut()}
+            className="h-8 px-3 text-[10px] uppercase font-bold border border-destructive/30 bg-destructive/10 text-destructive hover:bg-destructive hover:text-background transition-colors flex items-center gap-1.5 cursor-pointer"
+            title="Sign Out"
+          >
+            <LogOut className="h-3.5 w-3.5" />
+            <span>Sign Out</span>
+          </button>
         </div>
       </header>
 
-      {/* 2. Quick Environment Controls Strip (3 Columns) */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        {/* Privacy Mode Card */}
-        <Card className="rounded-none border-border bg-card hover:border-foreground/40 transition-colors">
-          <CardContent className="p-4 flex flex-col justify-between h-full space-y-3">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-2 text-xs font-bold uppercase tracking-wider font-mono">
-                {isPrivacyMode ? <Shield className="h-4 w-4 text-emerald-500" /> : <ShieldOff className="h-4 w-4 text-muted-foreground" />}
-                <span>Privacy Mode</span>
-              </div>
-              <span className={cn("text-[9px] font-mono uppercase px-2 py-0.5 font-bold", isPrivacyMode ? "bg-emerald-500/10 text-emerald-500 border border-emerald-500/30" : "bg-secondary text-muted-foreground")}>
-                {isPrivacyMode ? "ACTIVE" : "OFF"}
-              </span>
-            </div>
-            <p className="text-[11px] text-muted-foreground leading-relaxed font-sans">
-              Obfuscates monetary amounts and account balances across all dashboard views.
-            </p>
-            <div className="pt-2 border-t border-border/50 flex items-center justify-between">
-              <span className="text-[10px] font-mono text-muted-foreground">Preview:</span>
-              <span className="font-bold font-mono text-xs text-foreground">
-                <PrivacyValue>{currencySymbol}4,850.00</PrivacyValue>
-              </span>
-            </div>
-            <Button
-              onClick={() => setPrivacyMode(!isPrivacyMode)}
-              variant={isPrivacyMode ? "default" : "outline"}
-              className="w-full rounded-none h-9 text-[10px] uppercase font-mono font-bold tracking-widest mt-1"
-            >
-              {isPrivacyMode ? "Disable Safe-Deposit" : "Enable Safe-Deposit"}
-            </Button>
-          </CardContent>
-        </Card>
-
-        {/* Environmental Theme Card */}
-        <Card className="rounded-none border-border bg-card hover:border-foreground/40 transition-colors">
-          <CardContent className="p-4 flex flex-col justify-between h-full space-y-3">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-2 text-xs font-bold uppercase tracking-wider font-mono">
-                {theme === "dark" ? <Moon className="h-4 w-4 text-primary" /> : <Sun className="h-4 w-4 text-amber-500" />}
-                <span>Environment</span>
-              </div>
-              <span className="text-[9px] font-mono uppercase px-2 py-0.5 font-bold bg-secondary text-foreground">
-                {!mounted ? "SYNC..." : theme === "dark" ? "CYBER DARK" : "LIGHT"}
-              </span>
-            </div>
-            <p className="text-[11px] text-muted-foreground leading-relaxed font-sans">
-              Switch between sleek Cybermatic Dark mode and clean Mainframe Light mode.
-            </p>
-            <div className="pt-2 border-t border-border/50 flex items-center justify-between text-[10px] font-mono text-muted-foreground">
-              <span>Contrast:</span>
-              <span className="font-bold text-foreground">HIGH-PRECISION</span>
-            </div>
-            <Button
-              onClick={() => setTheme(theme === "dark" ? "light" : "dark")}
-              variant="outline"
-              className="w-full rounded-none h-9 text-[10px] uppercase font-mono font-bold tracking-widest mt-1"
-            >
-              Switch to {theme === "dark" ? "Mainframe Light" : "Cybermatic Dark"}
-            </Button>
-          </CardContent>
-        </Card>
-
-        {/* Node Session & Sign Out Card */}
-        <Card className="rounded-none border-border bg-card hover:border-foreground/40 transition-colors">
-          <CardContent className="p-4 flex flex-col justify-between h-full space-y-3">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-2 text-xs font-bold uppercase tracking-wider font-mono">
-                <Terminal className="h-4 w-4 text-emerald-500" />
-                <span>Session Node</span>
-              </div>
-              <span className="text-[9px] font-mono uppercase px-2 py-0.5 font-bold bg-emerald-500/10 text-emerald-500 border border-emerald-500/30 truncate max-w-[90px]">
-                {profile?.username || user?.email?.split("@")[0] || "USER"}
-              </span>
-            </div>
-            <p className="text-[11px] text-muted-foreground leading-relaxed font-sans truncate">
-              ID: {user?.id?.slice(0, 16) || "LOCAL_NODE"}...
-            </p>
-            <div className="pt-2 border-t border-border/50 flex items-center justify-between text-[10px] font-mono text-muted-foreground">
-              <span>RLS Security:</span>
-              <span className="font-bold text-emerald-500">ENFORCED</span>
-            </div>
-            <Button
-              onClick={() => signOut()}
-              variant="outline"
-              className="w-full rounded-none h-9 text-[10px] uppercase font-mono font-bold tracking-widest mt-1 bg-destructive/10 text-destructive hover:bg-destructive hover:text-background border-destructive/30 transition-all"
-            >
-              <LogOut className="h-3.5 w-3.5 mr-1.5" /> Disconnect Session
-            </Button>
-          </CardContent>
-        </Card>
-
-        {/* GDPR / FTC Right to Erasure Card */}
-        <Card className="rounded-none border-border bg-card hover:border-destructive/30 transition-colors">
-          <CardContent className="p-4 flex flex-col justify-between h-full space-y-3">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-2 text-xs font-bold uppercase tracking-wider font-mono">
-                <ShieldAlert className="h-4 w-4 text-destructive" />
-                <span>Right to Erasure</span>
-              </div>
-              <span className="text-[9px] font-mono uppercase px-2 py-0.5 font-bold bg-destructive/10 text-destructive border border-destructive/30">
-                GDPR/FTC
-              </span>
-            </div>
-            <p className="text-[11px] text-muted-foreground leading-relaxed font-sans">
-              Permanently purge your profile, transactions, budgets, limits, and configurations.
-            </p>
-            <div className="pt-2 border-t border-border/50 flex items-center justify-between text-[10px] font-mono text-muted-foreground">
-              <span>Purge Cascade:</span>
-              <span className="font-bold text-destructive">DESTRUCTIVE</span>
-            </div>
-            <Button
-              onClick={handleRightToErasure}
-              variant="outline"
-              className="w-full rounded-none h-9 text-[10px] uppercase font-mono font-bold tracking-widest mt-1 bg-destructive/10 text-destructive hover:bg-destructive hover:text-background border-destructive/30 transition-all"
-            >
-              Purge All Data & Account
-            </Button>
-          </CardContent>
-        </Card>
-      </div>
-
+      {/* 2. Main Organized Settings Tabs */}
       <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full space-y-6 [content-visibility:auto] [contain-intrinsic-size:1px_400px]">
         <TabsList className={cn(
-          "bg-secondary/40 border border-border rounded-none p-1 sm:p-1.5 !h-auto w-full flex flex-col sm:grid gap-1 sm:gap-1.5",
-          isSuperUser ? "sm:grid-cols-5" : "sm:grid-cols-4"
+          "bg-secondary/40 border border-border rounded-none p-1.5 !h-auto w-full grid grid-cols-2 sm:grid-cols-5 gap-1.5",
+          isSuperUser ? "sm:grid-cols-6" : "sm:grid-cols-5"
         )}>
-          <TabsTrigger value="paycheck" className="rounded-none h-10 sm:h-11 px-4 text-xs uppercase tracking-wider font-mono font-bold flex items-center justify-start sm:justify-center gap-2 w-full text-left sm:text-center shrink-0">
-            <Calendar className="h-4 w-4 shrink-0" /> <span>Cycle & AI Engine</span>
+          <TabsTrigger value="general" className="rounded-none h-10 px-3 text-xs uppercase tracking-wider font-bold flex items-center justify-center gap-2">
+            <Sliders className="h-4 w-4 shrink-0" /> <span>General & Cycle</span>
           </TabsTrigger>
-          <TabsTrigger value="habits" className="rounded-none h-10 sm:h-11 px-4 text-xs uppercase tracking-wider font-mono font-bold flex items-center justify-start sm:justify-center gap-2 w-full text-left sm:text-center shrink-0">
-            <Sparkles className="h-4 w-4 shrink-0" /> <span>Habits & Merchant Rules</span>
+          <TabsTrigger value="ai" className="rounded-none h-10 px-3 text-xs uppercase tracking-wider font-bold flex items-center justify-center gap-2">
+            <Brain className="h-4 w-4 shrink-0" /> <span>AI Engine</span>
           </TabsTrigger>
-          <TabsTrigger value="phone" className="rounded-none h-10 sm:h-11 px-4 text-xs uppercase tracking-wider font-mono font-bold flex items-center justify-start sm:justify-center gap-2 w-full text-left sm:text-center shrink-0">
-            <Smartphone className="h-4 w-4 shrink-0" /> <span>Phone Posting</span>
+          <TabsTrigger value="habits" className="rounded-none h-10 px-3 text-xs uppercase tracking-wider font-bold flex items-center justify-center gap-2">
+            <Sparkles className="h-4 w-4 shrink-0" /> <span>Habits & Rules</span>
           </TabsTrigger>
-          <TabsTrigger value="pro" className="rounded-none h-10 sm:h-11 px-4 text-xs uppercase tracking-wider font-mono font-bold flex items-center justify-start sm:justify-center gap-2 w-full text-left sm:text-center bg-emerald-500/10 text-emerald-500 border border-emerald-500/30 shrink-0">
-            <Sparkles className="h-4 w-4 shrink-0" /> <span>PRO Plan Status</span>
+          <TabsTrigger value="phone" className="rounded-none h-10 px-3 text-xs uppercase tracking-wider font-bold flex items-center justify-center gap-2">
+            <Smartphone className="h-4 w-4 shrink-0" /> <span>Phone Sync</span>
+          </TabsTrigger>
+          <TabsTrigger value="pro" className="rounded-none h-10 px-3 text-xs uppercase tracking-wider font-bold flex items-center justify-center gap-2 bg-emerald-500/10 text-emerald-500 border border-emerald-500/30">
+            <Sparkles className="h-4 w-4 shrink-0" /> <span>PRO Plan</span>
           </TabsTrigger>
           {isSuperUser && (
-            <TabsTrigger value="devtools" className="rounded-none h-10 sm:h-11 px-4 text-xs uppercase tracking-wider font-mono font-bold flex items-center justify-start sm:justify-center gap-2 w-full text-left sm:text-center sm:border-l border-border/50 shrink-0">
-              <Terminal className="h-4 w-4 shrink-0" /> <span>Super User Dev Tools</span>
+            <TabsTrigger value="devtools" className="rounded-none h-10 px-3 text-xs uppercase tracking-wider font-bold flex items-center justify-center gap-2 col-span-2 sm:col-span-1">
+              <Terminal className="h-4 w-4 shrink-0" /> <span>Dev Tools</span>
             </TabsTrigger>
           )}
         </TabsList>
 
-        {/* TAB 1: PAYCHECK CYCLE & AI ENGINE CONFIG */}
-        <TabsContent value="paycheck" className="space-y-6">
+        {/* TAB 1: GENERAL & FINANCIAL CYCLE */}
+        <TabsContent value="general" className="space-y-6">
           <Card className="rounded-none border-border bg-card shadow-lg pt-0">
-            <CardHeader className="border-b border-border px-6 sm:px-8 py-6 bg-secondary/10">
-              <div className="flex items-center justify-between">
-                <div>
-                  <CardTitle className="text-base sm:text-lg font-bold uppercase tracking-wider font-mono flex items-center gap-2">
-                    <Landmark className="h-5 w-5 text-foreground" /> Financial Cycle Architecture
-                  </CardTitle>
-                  <CardDescription className="text-xs font-mono uppercase tracking-wider text-muted-foreground mt-1">
-                    LEGER_OS dynamically tracks finances based on paycheck cycles or standard calendar months.
-                  </CardDescription>
-                </div>
-              </div>
+            <CardHeader className="border-b border-border px-6 py-5 bg-secondary/10">
+              <CardTitle className="text-base font-bold uppercase tracking-wider flex items-center gap-2 text-foreground">
+                <Landmark className="h-4 w-4" /> Financial Cycle & Localization Architecture
+              </CardTitle>
+              <CardDescription className="text-xs uppercase tracking-wider text-muted-foreground mt-1">
+                Configure your active paycheck cadence, base currency, system locale, and target ceilings.
+              </CardDescription>
             </CardHeader>
-            <CardContent className="px-6 sm:px-8 py-6 sm:py-8 space-y-6">
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <div 
-                  onClick={() => setCycleMode("keyword")}
-                  className={cn(
-                    "p-5 border cursor-pointer transition-all space-y-2.5 rounded-none",
-                    cycleMode === "keyword" ? "bg-foreground/5 border-foreground shadow-sm ring-1 ring-foreground" : "bg-card border-border hover:bg-secondary/20 opacity-70"
-                  )}
-                >
-                  <div className="flex items-center justify-between">
-                    <span className="font-bold uppercase tracking-widest text-xs font-mono">Paycheck Keyword Mode</span>
-                    {cycleMode === "keyword" && <Check className="h-4 w-4 text-emerald-500" />}
+            <CardContent className="px-6 py-6 space-y-6">
+              <form onSubmit={handleSaveProfile} className="space-y-6">
+                {/* Cadence Cards */}
+                <div className="space-y-2">
+                  <Label className="text-xs uppercase tracking-widest text-muted-foreground font-bold">
+                    Cycle Reset Cadence
+                  </Label>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    <div 
+                      onClick={() => setCycleMode("keyword")}
+                      className={cn(
+                        "p-4 border cursor-pointer transition-all space-y-2 rounded-none",
+                        cycleMode === "keyword" ? "bg-foreground/5 border-foreground shadow-sm ring-1 ring-foreground" : "bg-card border-border hover:bg-secondary/20 opacity-70"
+                      )}
+                    >
+                      <div className="flex items-center justify-between">
+                        <span className="font-bold uppercase tracking-widest text-xs">Paycheck Keyword Mode</span>
+                        {cycleMode === "keyword" && <Check className="h-4 w-4 text-emerald-500" />}
+                      </div>
+                      <p className="text-xs text-muted-foreground font-sans leading-relaxed">
+                        Resets dynamically whenever your incoming employer bank description is matched. Best for irregular pay dates.
+                      </p>
+                    </div>
+
+                    <div 
+                      onClick={() => setCycleMode("monthly")}
+                      className={cn(
+                        "p-4 border cursor-pointer transition-all space-y-2 rounded-none",
+                        cycleMode === "monthly" ? "bg-foreground/5 border-foreground shadow-sm ring-1 ring-foreground" : "bg-card border-border hover:bg-secondary/20 opacity-70"
+                      )}
+                    >
+                      <div className="flex items-center justify-between">
+                        <span className="font-bold uppercase tracking-widest text-xs">Calendar Monthly Mode</span>
+                        {cycleMode === "monthly" && <Check className="h-4 w-4 text-emerald-500" />}
+                      </div>
+                      <p className="text-xs text-muted-foreground font-sans leading-relaxed">
+                        Resets automatically on the 1st of every calendar month. Standard accounting cadence.
+                      </p>
+                    </div>
                   </div>
-                  <p className="text-xs text-muted-foreground font-sans leading-relaxed">
-                    Cycle resets automatically whenever a transaction description matches your employer / salary keyword. Best for irregular or bi-weekly paychecks.
-                  </p>
                 </div>
 
-                <div 
-                  onClick={() => setCycleMode("monthly")}
-                  className={cn(
-                    "p-5 border cursor-pointer transition-all space-y-2.5 rounded-none",
-                    cycleMode === "monthly" ? "bg-foreground/5 border-foreground shadow-sm ring-1 ring-foreground" : "bg-card border-border hover:bg-secondary/20 opacity-70"
-                  )}
-                >
-                  <div className="flex items-center justify-between">
-                    <span className="font-bold uppercase tracking-widest text-xs font-mono">Calendar Monthly Mode</span>
-                    {cycleMode === "monthly" && <Check className="h-4 w-4 text-emerald-500" />}
-                  </div>
-                  <p className="text-xs text-muted-foreground font-sans leading-relaxed">
-                    Fixed calendar intervals from the 1st to the end of each month. Standard bookkeeping cadence.
-                  </p>
-                </div>
-              </div>
-
-              <form onSubmit={handleSavePaycheck} className="space-y-6 pt-2">
                 {cycleMode === "keyword" && (
-                  <div className="space-y-2 bg-secondary/15 p-4 border border-border">
-                    <Label htmlFor="paycheckKw" className="text-xs uppercase tracking-widest font-mono font-bold text-foreground">
-                      Primary Income / Employer Keyword
+                  <div className="space-y-1.5 bg-secondary/15 p-4 border border-border">
+                    <Label htmlFor="paycheckKwInput" className="text-xs uppercase tracking-widest font-bold text-foreground">
+                      Primary Employer / Paycheck Keyword
                     </Label>
                     <Input
-                      id="paycheckKw"
-                      placeholder="e.g. SALARY, PAYROLL, DIRECT DEPOSIT, EMPLOYER..."
+                      id="paycheckKwInput"
+                      placeholder="e.g. SALARY, PAYROLL, DIRECT DEPOSIT..."
                       value={keywordInput}
                       onChange={(e) => setKeywordInput(e.target.value)}
-                      className="rounded-none font-mono text-base sm:text-xs uppercase bg-background border-border h-11"
+                      className="rounded-none text-xs uppercase bg-background border-border h-10 font-bold"
                     />
                     <span className="text-[10px] text-muted-foreground block font-sans">
-                      * Case-insensitive substring matched against your incoming bank statement descriptions to automatically trigger a new cycle.
+                      * Case-insensitive substring matched against bank extract descriptions to initialize new financial cycles.
                     </span>
                   </div>
                 )}
 
+                {/* Currency & Language */}
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                  <div className="space-y-2">
-                    <Label htmlFor="currencySelectModal" className="text-xs uppercase tracking-widest font-mono text-muted-foreground font-bold">
+                  <div className="space-y-1.5">
+                    <Label htmlFor="generalCurrency" className="text-xs uppercase tracking-widest text-muted-foreground font-bold">
                       Base Currency
                     </Label>
                     <div className="relative">
                       <select
-                        id="currencySelectModal"
+                        id="generalCurrency"
                         value={currencyInput}
                         onChange={(e) => setCurrencyInput(e.target.value)}
-                        className="w-full rounded-none font-mono text-base sm:text-xs h-11 bg-background border border-border px-3 pr-10 font-bold text-foreground focus:outline-none focus:ring-1 focus:ring-foreground appearance-none"
+                        className="w-full rounded-none text-xs h-10 bg-background border border-border px-3 pr-10 font-bold text-foreground focus:outline-none focus:border-foreground appearance-none"
                       >
-                        {Object.entries(SUPPORTED_CURRENCIES).map(([code, info]) => (
-                          <option key={code} value={code} className="bg-background text-foreground">{info.name}</option>
+                        {Object.entries(SUPPORTED_CURRENCIES).map(([code, info]: [string, { symbol: string; name: string }]) => (
+                          <option key={code} value={code}>{info.name}</option>
                         ))}
                       </select>
                       <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground pointer-events-none" />
                     </div>
                   </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="languageSelectModal" className="text-xs uppercase tracking-widest font-mono text-muted-foreground font-bold">
+
+                  <div className="space-y-1.5">
+                    <Label htmlFor="generalLanguage" className="text-xs uppercase tracking-widest text-muted-foreground font-bold">
                       System Locale / Language
                     </Label>
                     <div className="relative">
                       <select
-                        id="languageSelectModal"
+                        id="generalLanguage"
                         value={languageInput}
                         onChange={(e) => setLanguageInput(e.target.value)}
-                        className="w-full rounded-none font-mono text-base sm:text-xs h-11 bg-background border border-border px-3 pr-10 font-bold text-foreground focus:outline-none focus:ring-1 focus:ring-foreground appearance-none"
+                        className="w-full rounded-none text-xs h-10 bg-background border border-border px-3 pr-10 font-bold text-foreground focus:outline-none focus:border-foreground appearance-none"
                       >
-                        {Object.entries(SUPPORTED_LANGUAGES).map(([code, info]) => (
-                          <option key={code} value={code} className="bg-background text-foreground">{info.name}</option>
+                        {Object.entries(SUPPORTED_LANGUAGES).map(([code, info]: [string, { name: string }]) => (
+                          <option key={code} value={code}>{info.name}</option>
                         ))}
                       </select>
                       <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground pointer-events-none" />
@@ -640,218 +578,242 @@ export function SystemConfigView() {
                   </div>
                 </div>
 
+                {/* Targets */}
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                  <div className="space-y-2">
-                    <Label htmlFor="targetIncomeModal" className="text-xs uppercase tracking-widest font-mono text-muted-foreground font-bold">
-                      Expected Monthly Income ({currencySymbol})
+                  <div className="space-y-1.5">
+                    <Label htmlFor="generalIncome" className="text-xs uppercase tracking-widest text-muted-foreground font-bold">
+                      Target Monthly Income ({currencySymbol})
                     </Label>
                     <Input
-                      id="targetIncomeModal"
+                      id="generalIncome"
                       type="number"
-                      inputMode="decimal"
-                      pattern="[0-9]*"
                       value={targetIncomeInput}
                       onChange={(e) => setTargetIncomeInput(e.target.value)}
                       placeholder="2500"
-                      className="rounded-none font-mono text-base sm:text-xs h-11 bg-background text-emerald-600 dark:text-emerald-400 font-bold"
+                      className="rounded-none text-xs h-10 bg-background text-emerald-500 font-bold"
                     />
                   </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="targetSpendModal" className="text-xs uppercase tracking-widest font-mono text-muted-foreground font-bold">
+                  <div className="space-y-1.5">
+                    <Label htmlFor="generalSpend" className="text-xs uppercase tracking-widest text-muted-foreground font-bold">
                       Target Spending Ceiling ({currencySymbol})
                     </Label>
                     <Input
-                      id="targetSpendModal"
+                      id="generalSpend"
                       type="number"
-                      inputMode="decimal"
-                      pattern="[0-9]*"
                       value={targetSpendInput}
                       onChange={(e) => setTargetSpendInput(e.target.value)}
                       placeholder="1500"
-                      className="rounded-none font-mono text-base sm:text-xs h-11 bg-background font-bold"
+                      className="rounded-none text-xs h-10 bg-background font-bold"
                     />
                   </div>
-                </div>
-
-                <div className="p-5 bg-secondary/10 border border-border space-y-4">
-                  <div className="space-y-2">
-                    <div className="flex justify-between text-xs uppercase font-mono tracking-widest text-muted-foreground">
-                      <span>Recency Decay Weight (λ)</span>
-                      <span className="font-bold text-foreground">{decayInput} (Half-life: ~{Math.round(0.693 / (parseFloat(decayInput) || 0.12))} days)</span>
-                    </div>
-                    <input
-                      type="range"
-                      min="0.05"
-                      max="0.30"
-                      step="0.01"
-                      value={decayInput}
-                      onChange={(e) => setDecayInput(e.target.value)}
-                      className="w-full accent-emerald-500 cursor-pointer h-2 bg-secondary"
-                    />
-                    <p className="text-[10px] text-muted-foreground font-sans">
-                      * Governs how aggressively daily burn rate projections discount older transactions. Higher $\lambda$ prioritizes your most recent 3-5 days of spending.
-                    </p>
-                  </div>
-                </div>
-
-                <div className="p-5 bg-secondary/10 border border-border space-y-4">
-                  <div className="space-y-2 border-b border-border/40 pb-2">
-                    <span className="text-xs uppercase tracking-widest font-mono text-foreground font-bold block">
-                      AI Neural Bridge Configuration
-                    </span>
-                    <span className="text-[10px] font-mono text-muted-foreground uppercase block">
-                      Select your custom provider and enter credentials for unlimited AI strategies
-                    </span>
-                  </div>
-
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                      <div className="space-y-2">
-                        <Label htmlFor="aiProviderSelect" className="text-[10px] uppercase tracking-widest font-mono text-muted-foreground font-bold">
-                          AI Provider
-                        </Label>
-                        <div className="relative">
-                          <select
-                            id="aiProviderSelect"
-                            value={aiProviderInput}
-                            onChange={(e) => setAiProviderInput(e.target.value)}
-                            className="w-full bg-background border border-input rounded-none h-11 px-3 pr-10 text-xs outline-none font-mono focus:border-foreground appearance-none"
-                          >
-                            <option value="gemini" className="bg-[#121215] text-foreground font-mono py-1">Google Gemini (Default)</option>
-                            <option value="openai" className="bg-[#121215] text-foreground font-mono py-1">OpenAI (GPT-4o-mini)</option>
-                            <option value="groq" className="bg-[#121215] text-foreground font-mono py-1">Groq (Llama 3.3 Fast)</option>
-                            <option value="ollama" className="bg-[#121215] text-foreground font-mono py-1">Ollama (Local / Self-hosted)</option>
-                          </select>
-                          <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground pointer-events-none" />
-                        </div>
-                      </div>
-
-                    <div className="space-y-2">
-                      <Label htmlFor="customApiKeyInput" className="text-[10px] uppercase tracking-widest font-mono text-muted-foreground font-bold flex justify-between">
-                        <span>Custom API Key / Endpoint URL</span>
-                        {customKeyInput && (
-                          <span className="text-emerald-500 font-bold lowercase">[configured]</span>
-                        )}
-                      </Label>
-                      <Input
-                        id="customApiKeyInput"
-                        type="password"
-                        value={customKeyInput}
-                        onChange={(e) => setCustomKeyInput(e.target.value)}
-                        placeholder={aiProviderInput === "ollama" ? "e.g. http://localhost:11434" : "e.g. AIzaSy... or AQ..."}
-                        className="rounded-none font-mono text-base sm:text-xs h-11 bg-background"
-                      />
-                    </div>
-                  </div>
-
-                  {isPro && (
-                    <div className="space-y-2 mt-4">
-                      <Label htmlFor="aiYapLevelSelect" className="text-[10px] uppercase tracking-widest font-mono text-muted-foreground font-bold">
-                        AI Verbosity / Yap Level (PRO Only)
-                      </Label>
-                      <div className="relative">
-                        <select
-                          id="aiYapLevelSelect"
-                          value={aiYapLevelInput}
-                          onChange={(e) => setAiYapLevelInput(e.target.value as any)}
-                          className="w-full bg-background border border-input rounded-none h-11 px-3 pr-10 text-xs outline-none font-mono focus:border-foreground appearance-none"
-                        >
-                          <option value="concise" className="bg-[#121215] text-foreground font-mono py-1">Concise & Direct (Saves tokens, brief answers)</option>
-                          <option value="standard" className="bg-[#121215] text-foreground font-mono py-1">Standard (Balanced context & suggestions)</option>
-                          <option value="verbose" className="bg-[#121215] text-foreground font-mono py-1">Verbose & Explanatory (Thorough strategies & projections)</option>
-                        </select>
-                        <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground pointer-events-none" />
-                      </div>
-                    </div>
-                  )}
-                  <p className="text-[10px] text-muted-foreground font-sans">
-                    * Configure a personal key (like Gemini AI Studio or OpenAI developer keys) to bypass all host quotas and run unthrottled neural forecasts.
-                  </p>
                 </div>
 
                 <Button
                   type="submit"
                   disabled={isSavingProfile}
-                  className="w-full sm:w-auto px-8 h-12 rounded-none bg-foreground text-background hover:bg-foreground/90 uppercase font-mono text-xs font-bold tracking-[0.2em] transition-all active:scale-[0.98]"
+                  className="w-full sm:w-auto px-8 h-11 rounded-none bg-foreground text-background hover:bg-foreground/90 uppercase text-xs font-bold tracking-[0.2em] transition-all cursor-pointer"
                 >
-                  {isSavingProfile ? "COMMITTING CHANGES..." : "SAVE ARCHITECTURE & CALIBRATION"}
+                  {isSavingProfile ? "SAVING CONFIGURATION..." : "SAVE GENERAL CONFIGURATION"}
                 </Button>
               </form>
             </CardContent>
           </Card>
         </TabsContent>
 
-        {/* TAB 2: HABITS & MERCHANT RULES */}
-        <TabsContent value="habits" className="space-y-6">
+        {/* TAB 2: AI INTELLIGENCE ENGINE */}
+        <TabsContent value="ai" className="space-y-6">
           <Card className="rounded-none border-border bg-card shadow-lg pt-0">
-            <CardHeader className="border-b border-border px-6 sm:px-8 py-6 bg-secondary/10">
-              <CardTitle className="text-base sm:text-lg font-bold uppercase tracking-wider font-mono flex items-center gap-2">
-                <Sparkles className="h-5 w-5 text-foreground" /> Habit Seeding & Automatic Categorization
+            <CardHeader className="border-b border-border px-6 py-5 bg-secondary/10">
+              <CardTitle className="text-base font-bold uppercase tracking-wider flex items-center gap-2 text-foreground">
+                <Brain className="h-4 w-4" /> Neural Intelligence & Provider Bridge
               </CardTitle>
-              <CardDescription className="text-xs font-mono uppercase tracking-wider text-muted-foreground mt-1">
-                Select common European & global spending habits to inject default merchant OCR parsing rules.
+              <CardDescription className="text-xs uppercase tracking-wider text-muted-foreground mt-1">
+                Configure your AI models, custom API keys, verbosity yap level, and mathematical recency decay.
               </CardDescription>
             </CardHeader>
-            <CardContent className="px-6 sm:px-8 py-6 sm:py-8 space-y-6">
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-                {HABIT_PRESETS.map((preset) => {
-                  const isSelected = selectedHabits.includes(preset.id)
-                  return (
-                    <div
-                      key={preset.id}
-                      onClick={() => toggleHabit(preset.id)}
-                      className={cn(
-                        "p-4 border cursor-pointer transition-all flex flex-col justify-between space-y-3 rounded-none",
-                        isSelected ? "bg-foreground/5 border-foreground shadow-sm ring-1 ring-foreground" : "bg-card border-border hover:bg-secondary/20 opacity-75"
-                      )}
-                    >
-                      <div className="flex items-start justify-between gap-2">
-                        <div>
-                          <span className="font-bold uppercase tracking-wider font-mono text-xs block text-foreground">{preset.name}</span>
-                          <span className="text-[9px] font-mono uppercase text-muted-foreground px-1.5 py-0.5 bg-secondary inline-block mt-1">
-                            [{preset.category}]
-                          </span>
-                        </div>
-                        <div className={cn("w-5 h-5 flex items-center justify-center border shrink-0", isSelected ? "bg-foreground text-background border-foreground" : "border-border bg-background")}>
-                          {isSelected && <Check className="h-3.5 w-3.5" />}
-                        </div>
+            <CardContent className="px-6 py-6 space-y-6">
+              <form onSubmit={handleSaveProfile} className="space-y-6">
+                <div className="p-5 bg-secondary/10 border border-border space-y-4">
+                  <div className="space-y-1 border-b border-border/40 pb-3">
+                    <span className="text-xs uppercase tracking-widest text-foreground font-bold block">
+                      Provider Selection & API Key
+                    </span>
+                    <span className="text-[10px] text-muted-foreground block font-sans">
+                      Supply custom API credentials to run unthrottled natural language context and categorization.
+                    </span>
+                  </div>
+
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div className="space-y-1.5">
+                      <Label htmlFor="aiProvider" className="text-[10px] uppercase tracking-widest text-muted-foreground font-bold">
+                        Model Provider
+                      </Label>
+                      <div className="relative">
+                        <select
+                          id="aiProvider"
+                          value={aiProviderInput}
+                          onChange={(e) => setAiProviderInput(e.target.value)}
+                          className="w-full bg-background border border-input rounded-none h-10 px-3 pr-10 text-xs outline-none focus:border-foreground appearance-none font-bold text-foreground"
+                        >
+                          <option value="gemini">Google Gemini (Default - gemini-2.5-pro)</option>
+                          <option value="openai">OpenAI (GPT-4o-mini)</option>
+                          <option value="groq">Groq (Llama 3.3 70B Fast)</option>
+                          <option value="ollama">Ollama (Local / Self-hosted)</option>
+                        </select>
+                        <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground pointer-events-none" />
                       </div>
-                      <p className="text-[11px] text-muted-foreground font-sans leading-relaxed">
-                        {preset.desc}
-                      </p>
                     </div>
-                  )
-                })}
-              </div>
 
-              <div className="flex flex-col sm:flex-row items-center justify-between gap-4 p-4 bg-secondary/20 border border-border">
-                <div className="text-xs font-mono uppercase text-muted-foreground">
-                  Selected: <span className="font-bold text-foreground">{selectedHabits.length}</span> / {HABIT_PRESETS.length} Habit Clusters
+                    <div className="space-y-1.5">
+                      <Label htmlFor="customApiKey" className="text-[10px] uppercase tracking-widest text-muted-foreground font-bold flex justify-between">
+                        <span>Custom API Key / Endpoint</span>
+                        {customKeyInput && <span className="text-emerald-500 font-bold lowercase">[key active]</span>}
+                      </Label>
+                      <Input
+                        id="customApiKey"
+                        type="password"
+                        value={customKeyInput}
+                        onChange={(e) => setCustomKeyInput(e.target.value)}
+                        placeholder={aiProviderInput === "ollama" ? "http://localhost:11434" : "e.g. AIzaSy..."}
+                        className="rounded-none text-xs h-10 bg-background"
+                      />
+                    </div>
+                  </div>
+
+                  {isPro && (
+                    <div className="space-y-1.5 pt-2">
+                      <Label htmlFor="aiYapLevel" className="text-[10px] uppercase tracking-widest text-muted-foreground font-bold">
+                        AI Response Verbosity / Yap Level (PRO Only)
+                      </Label>
+                      <div className="relative">
+                        <select
+                          id="aiYapLevel"
+                          value={aiYapLevelInput}
+                          onChange={(e) => setAiYapLevelInput(e.target.value as any)}
+                          className="w-full bg-background border border-input rounded-none h-10 px-3 pr-10 text-xs outline-none focus:border-foreground appearance-none font-bold text-foreground"
+                        >
+                          <option value="concise">Concise & Direct (Saves tokens, 1-2 bullet points)</option>
+                          <option value="standard">Standard (Balanced context & suggestions)</option>
+                          <option value="verbose">Verbose & Explanatory (Thorough projection breakdowns)</option>
+                        </select>
+                        <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground pointer-events-none" />
+                      </div>
+                    </div>
+                  )}
                 </div>
+
+                {/* Recency Decay Calibration */}
+                <div className="p-5 bg-secondary/10 border border-border space-y-3">
+                  <div className="flex items-center justify-between text-xs font-bold uppercase tracking-widest">
+                    <span className="text-foreground">Recency Decay Weight (λ)</span>
+                    <span className="text-emerald-500 font-bold">{decayInput} (Half-life: ~{Math.round(0.693 / (parseFloat(decayInput) || 0.12))} days)</span>
+                  </div>
+                  <input
+                    type="range"
+                    min="0.05"
+                    max="0.30"
+                    step="0.01"
+                    value={decayInput}
+                    onChange={(e) => setDecayInput(e.target.value)}
+                    className="w-full accent-emerald-500 cursor-pointer h-2 bg-secondary"
+                  />
+                  <p className="text-[11px] text-muted-foreground font-sans leading-relaxed">
+                    * Controls exponential time-decay weighting for daily cash flow forecasting. A higher decay factor heavily weights recent spending trends.
+                  </p>
+                </div>
+
                 <Button
-                  onClick={handleSeedHabits}
-                  disabled={isSeeding || selectedHabits.length === 0}
-                  className="w-full sm:w-auto h-11 px-8 rounded-none bg-foreground text-background hover:bg-foreground/90 uppercase font-mono text-xs font-bold tracking-widest"
+                  type="submit"
+                  disabled={isSavingProfile}
+                  className="w-full sm:w-auto px-8 h-11 rounded-none bg-foreground text-background hover:bg-foreground/90 uppercase text-xs font-bold tracking-[0.2em] transition-all cursor-pointer"
                 >
-                  <Sparkles className="h-4 w-4 mr-2" />
-                  {isSeeding ? "INJECTING RULES..." : `SEED RULES FOR ${selectedHabits.length} HABIT CLUSTERS`}
+                  {isSavingProfile ? "SAVING AI ENGINE..." : "SAVE AI & ENGINE CONFIGURATION"}
                 </Button>
+              </form>
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        {/* TAB 3: HABITS & MERCHANT RULES */}
+        <TabsContent value="habits" className="space-y-6">
+          <Card className="rounded-none border-border bg-card shadow-lg pt-0">
+            <CardHeader className="border-b border-border px-6 py-5 bg-secondary/10">
+              <CardTitle className="text-base font-bold uppercase tracking-wider flex items-center gap-2 text-foreground">
+                <Sparkles className="h-4 w-4" /> Habit Clusters & Automatic Categorization Rules
+              </CardTitle>
+              <CardDescription className="text-xs uppercase tracking-wider text-muted-foreground mt-1">
+                Seed pre-built European spending habits or register custom keyword merchant rules.
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="px-6 py-6 space-y-6">
+              {/* Presets Grid */}
+              <div className="space-y-3">
+                <span className="text-xs uppercase tracking-widest text-muted-foreground font-bold block">
+                  1. Pre-built Spending Habit Clusters
+                </span>
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+                  {HABIT_PRESETS.map((preset) => {
+                    const isSelected = selectedHabits.includes(preset.id)
+                    return (
+                      <div
+                        key={preset.id}
+                        onClick={() => toggleHabit(preset.id)}
+                        className={cn(
+                          "p-3.5 border cursor-pointer transition-all flex flex-col justify-between space-y-2 rounded-none",
+                          isSelected ? "bg-foreground/5 border-foreground shadow-sm ring-1 ring-foreground" : "bg-card border-border hover:bg-secondary/20 opacity-75"
+                        )}
+                      >
+                        <div className="flex items-start justify-between gap-2">
+                          <div>
+                            <span className="font-bold uppercase tracking-wider text-xs block text-foreground">{preset.name}</span>
+                            <span className="text-[9px] uppercase text-muted-foreground px-1.5 py-0.5 bg-secondary inline-block mt-1">
+                              [{preset.category}]
+                            </span>
+                          </div>
+                          <div className={cn("w-4 h-4 flex items-center justify-center border shrink-0 mt-0.5", isSelected ? "bg-foreground text-background border-foreground" : "border-border bg-background")}>
+                            {isSelected && <Check className="h-3 w-3" />}
+                          </div>
+                        </div>
+                        <p className="text-[10px] text-muted-foreground font-sans leading-relaxed">
+                          {preset.desc}
+                        </p>
+                      </div>
+                    )
+                  })}
+                </div>
+
+                <div className="flex flex-col sm:flex-row items-center justify-between gap-3 p-3.5 bg-secondary/20 border border-border">
+                  <span className="text-xs uppercase text-muted-foreground">
+                    Selected: <strong className="text-foreground">{selectedHabits.length}</strong> / {HABIT_PRESETS.length} Habit Clusters
+                  </span>
+                  <Button
+                    onClick={handleSeedHabits}
+                    disabled={isSeeding || selectedHabits.length === 0}
+                    className="w-full sm:w-auto h-9 px-6 rounded-none bg-foreground text-background hover:bg-foreground/90 uppercase text-[10px] font-bold tracking-widest cursor-pointer"
+                  >
+                    <Sparkles className="h-3.5 w-3.5 mr-1.5" />
+                    {isSeeding ? "REGISTERING RULES..." : `SEED RULES FOR ${selectedHabits.length} CLUSTERS`}
+                  </Button>
+                </div>
               </div>
 
-              {/* Custom Rule Adder */}
+              {/* Custom Rule Registration */}
               <div className="border-t border-border pt-6 space-y-4">
-                <h5 className="text-xs font-bold uppercase tracking-widest font-mono text-foreground">Register Custom Merchant Rule</h5>
+                <span className="text-xs uppercase tracking-widest text-muted-foreground font-bold block">
+                  2. Register Custom Merchant Rule
+                </span>
                 <form onSubmit={handleAddRule} className="flex flex-col sm:flex-row gap-3">
                   <Input
-                    placeholder="Merchant keyword (e.g. UBER EATS, APPLE, SPOTIFY)"
+                    placeholder="Merchant Keyword (e.g. UBER EATS, APPLE, SPOTIFY)"
                     value={newRuleKw}
                     onChange={(e) => setNewRuleKw(e.target.value)}
-                    className="rounded-none text-base sm:text-xs h-11 bg-background border-border w-full sm:flex-1 uppercase font-mono"
+                    className="rounded-none text-xs h-10 bg-background uppercase font-mono w-full sm:flex-1"
                   />
-                  <div className="relative w-full sm:w-64">
+                  <div className="relative w-full sm:w-60">
                     <select
                       value={newRuleCat}
                       onChange={(e) => setNewRuleCat(e.target.value)}
-                      className="bg-background border border-border rounded-none px-4 pr-10 text-base sm:text-xs font-mono h-11 outline-none w-full font-bold appearance-none"
+                      className="bg-background border border-border rounded-none px-3 pr-8 text-xs font-mono h-10 outline-none w-full font-bold appearance-none"
                     >
                       <option value="">SELECT CATEGORY...</option>
                       {categories.map(c => (
@@ -860,35 +822,55 @@ export function SystemConfigView() {
                     </select>
                     <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground pointer-events-none" />
                   </div>
-                  <Button type="submit" className="rounded-none uppercase font-mono text-xs font-bold h-11 px-6 w-full sm:w-auto bg-foreground text-background hover:bg-foreground/90">
-                    <Plus className="h-4 w-4 mr-1.5" /> Register Rule
+                  <Button type="submit" className="rounded-none uppercase font-mono text-[10px] font-bold h-10 px-6 w-full sm:w-auto bg-foreground text-background hover:bg-foreground/90 cursor-pointer">
+                    <Plus className="h-3.5 w-3.5 mr-1" /> Add Rule
                   </Button>
                 </form>
 
+                {/* Active Rules List */}
                 {existingRules.length > 0 && (
-                  <div className="pt-4 space-y-2">
-                    <h6 className="text-[10px] font-mono uppercase text-muted-foreground">Active Neural Parsing Rules ({existingRules.length})</h6>
-                    <div className="max-h-[300px] overflow-y-auto border border-border divide-y divide-border bg-card">
-                      {existingRules.map((rule) => {
-                        const cat = categories.find(c => c.id === rule.category_id)
-                        return (
-                          <div key={rule.id} className="p-3 flex items-center justify-between text-xs font-mono hover:bg-secondary/20 transition-colors">
-                            <div className="flex items-center gap-3">
-                              <span className="font-bold text-foreground uppercase">{rule.keyword}</span>
-                              <span className="text-[10px] text-muted-foreground px-2 py-0.5 bg-secondary border border-border">
-                                {cat?.name || "Unclassified"}
-                              </span>
+                  <div className="pt-2 space-y-3">
+                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                      <span className="text-[10px] uppercase text-muted-foreground font-bold">
+                        Active Categorization Rules ({filteredRules.length} of {existingRules.length})
+                      </span>
+                      <div className="relative w-full sm:w-56">
+                        <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
+                        <Input
+                          placeholder="Filter rules..."
+                          value={ruleSearchQuery}
+                          onChange={(e) => setRuleSearchQuery(e.target.value)}
+                          className="pl-8 h-8 text-[10px] rounded-none bg-background border-border"
+                        />
+                      </div>
+                    </div>
+
+                    <div className="max-h-[320px] overflow-y-auto border border-border divide-y divide-border bg-card">
+                      {filteredRules.length === 0 ? (
+                        <div className="p-4 text-center text-muted-foreground text-[10px]">No matching rules found</div>
+                      ) : (
+                        filteredRules.map((rule) => {
+                          const cat = categories.find(c => c.id === rule.category_id)
+                          return (
+                            <div key={rule.id} className="p-2.5 flex items-center justify-between text-xs hover:bg-secondary/20 transition-colors">
+                              <div className="flex items-center gap-3">
+                                <span className="font-bold text-foreground uppercase">{rule.keyword}</span>
+                                <span className="text-[9px] text-muted-foreground px-2 py-0.5 bg-secondary border border-border">
+                                  {cat?.name || "Unclassified"}
+                                </span>
+                              </div>
+                              <button
+                                type="button"
+                                onClick={() => handleDeleteRule(rule.id)}
+                                className="p-1 text-muted-foreground hover:text-destructive transition-colors cursor-pointer"
+                                title="Delete Rule"
+                              >
+                                <Trash2 className="h-3.5 w-3.5" />
+                              </button>
                             </div>
-                            <button
-                              onClick={() => handleDeleteRule(rule.id)}
-                              className="p-1 text-muted-foreground hover:text-destructive transition-colors"
-                              title="Delete Rule"
-                            >
-                              <Trash2 className="h-3.5 w-3.5" />
-                            </button>
-                          </div>
-                        )
-                      })}
+                          )
+                        })
+                      )}
                     </div>
                   </div>
                 )}
@@ -897,175 +879,152 @@ export function SystemConfigView() {
           </Card>
         </TabsContent>
 
-        {/* TAB: SMARTPHONE MACRODROID INGESTION */}
+        {/* TAB 4: PHONE SYNC */}
         <TabsContent value="phone" className="space-y-6">
           <Card className="rounded-none border-border bg-card shadow-lg pt-0">
-            <CardHeader className="border-b border-border px-6 sm:px-8 py-6 bg-secondary/10">
-              <CardTitle className="text-base sm:text-lg font-bold uppercase tracking-wider font-mono flex items-center gap-2">
-                <Smartphone className="h-5 w-5 text-foreground" /> MacroDroid Phone Integration
+            <CardHeader className="border-b border-border px-6 py-5 bg-secondary/10">
+              <CardTitle className="text-base font-bold uppercase tracking-wider flex items-center gap-2 text-foreground">
+                <Smartphone className="h-4 w-4" /> MacroDroid Android Push Sync Integration
               </CardTitle>
-              <CardDescription className="text-xs font-mono uppercase tracking-wider text-muted-foreground mt-1">
-                Post transactions to your mainframe automatically from push notifications on your Android device.
+              <CardDescription className="text-xs uppercase tracking-wider text-muted-foreground mt-1">
+                Post transactions to LEGER_OS in real-time from bank push notifications on Android.
               </CardDescription>
             </CardHeader>
-            <CardContent className="px-6 sm:px-8 py-6 sm:py-8 space-y-6">
-              <div className="space-y-4">
-                <h4 className="font-mono text-xs font-bold uppercase tracking-wider text-foreground">1. Your Unique Posting Endpoint</h4>
-                <p className="text-xs text-muted-foreground leading-relaxed font-sans">
-                  Use this URL in your phone's automation application (like MacroDroid, Tasker, or custom HTTP clients) to post transactions securely into your profile:
-                </p>
+            <CardContent className="px-6 py-6 space-y-6">
+              <div className="space-y-3">
+                <span className="text-xs font-bold uppercase tracking-widest text-foreground block">
+                  1. Your Unique Webhook Endpoint
+                </span>
                 <div className="flex flex-col sm:flex-row gap-2 items-stretch">
-                  <div className="bg-secondary/40 border border-border p-3 font-mono text-[9px] sm:text-[10px] break-all select-all flex-1 flex items-center text-foreground font-semibold">
+                  <div className="bg-secondary/40 border border-border p-3 text-[10px] break-all select-all flex-1 flex items-center text-foreground font-bold">
                     {typeof window !== 'undefined' 
-                      ? `${window.location.origin}/api/transactions/macrodroid?userId=${user?.id || "AUTHENTICATING"}`
-                      : `https://leger-os.vercel.app/api/transactions/macrodroid?userId=${user?.id || "AUTHENTICATING"}`
+                      ? `${window.location.origin}/api/transactions/macrodroid?userId=${user?.id || ""}`
+                      : `https://leger-os.vercel.app/api/transactions/macrodroid?userId=${user?.id || ""}`
                     }
                   </div>
                   <Button 
                     variant="outline" 
-                    className="rounded-none font-mono text-[9px] uppercase tracking-widest shrink-0 cursor-pointer flex items-center gap-1.5 h-auto py-2 sm:py-0"
+                    className="rounded-none text-[10px] uppercase tracking-widest shrink-0 cursor-pointer flex items-center gap-1.5 h-auto py-2.5 sm:py-0"
                     onClick={() => {
                       const url = typeof window !== 'undefined' 
                         ? `${window.location.origin}/api/transactions/macrodroid?userId=${user?.id || ""}`
                         : `https://leger-os.vercel.app/api/transactions/macrodroid?userId=${user?.id || ""}`
                       navigator.clipboard.writeText(url)
-                      toast.success("MacroDroid endpoint copied to clipboard!")
+                      toast.success("MacroDroid URL copied to clipboard!")
                     }}
                   >
-                    <Copy className="h-3 w-3" /> Copy URL
+                    <Copy className="h-3.5 w-3.5" /> Copy URL
                   </Button>
                 </div>
               </div>
 
-              <div className="border-t border-border/40 my-6" />
-
-              <div className="space-y-4">
-                <h4 className="font-mono text-xs font-bold uppercase tracking-wider text-foreground">2. MacroDroid Setup Instructions</h4>
-                <div className="space-y-4 font-sans text-xs text-muted-foreground leading-relaxed">
-                  <div className="space-y-2">
-                    <p className="font-mono text-[10px] font-bold text-foreground uppercase tracking-widest">Step A: Add the Notification Trigger</p>
-                    <ul className="list-disc list-inside pl-2 space-y-1">
-                      <li>Create a new Macro in MacroDroid and name it <code className="bg-secondary/40 px-1 py-0.5 font-mono text-[10px] text-foreground">LEGER_OS Ingestion</code>.</li>
-                      <li>Add a **Trigger** &rarr; **Device Events** &rarr; **Notification** &rarr; **Notification Received**.</li>
-                      <li>Select your banking app (e.g. Santander, Revolut, ActivoBank, etc.).</li>
-                      <li>Set content matches to <code className="bg-secondary/40 px-1 py-0.5 font-mono text-[10px] text-foreground">Any</code>.</li>
-                    </ul>
+              <div className="border-t border-border/40 pt-4 space-y-4">
+                <span className="text-xs font-bold uppercase tracking-widest text-foreground block">
+                  2. MacroDroid Setup Protocol
+                </span>
+                
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                  <div className="p-4 bg-secondary/10 border border-border space-y-2">
+                    <span className="text-[10px] font-bold text-foreground uppercase tracking-widest block">Step A: Trigger</span>
+                    <p className="text-xs text-muted-foreground font-sans leading-relaxed">
+                      Add a **Notification Received** trigger for your banking app (Santander, Revolut, ActivoBank, etc.). Set content match to <code className="bg-secondary px-1 text-foreground">Any</code>.
+                    </p>
                   </div>
 
-                  <div className="space-y-2">
-                    <p className="font-mono text-[10px] font-bold text-foreground uppercase tracking-widest">Step B: Create Local Variables</p>
-                    <p className="pl-2">At the bottom of the Macro edit screen, configure these local variables:</p>
-                    <ul className="list-disc list-inside pl-2 space-y-1">
-                      <li><code className="bg-secondary/40 px-1 py-0.5 font-mono text-[10px] text-foreground">raw_text</code> (String) &rarr; Set in actions using text matches from <code className="bg-secondary/40 px-1 py-0.5 font-mono text-[10px] text-foreground">[notification]</code>.</li>
-                      <li><code className="bg-secondary/40 px-1 py-0.5 font-mono text-[10px] text-foreground">amount</code> (String) &rarr; Extract numerical cash value from notification via Regex.</li>
-                      <li><code className="bg-secondary/40 px-1 py-0.5 font-mono text-[10px] text-foreground">merchant</code> (String) &rarr; Extract merchant name from notification via Regex.</li>
-                    </ul>
+                  <div className="p-4 bg-secondary/10 border border-border space-y-2">
+                    <span className="text-[10px] font-bold text-foreground uppercase tracking-widest block">Step B: Variables</span>
+                    <p className="text-xs text-muted-foreground font-sans leading-relaxed">
+                      Configure local variables: <code className="bg-secondary px-1 text-foreground">raw_text</code> (String), <code className="bg-secondary px-1 text-foreground">amount</code> (String), and <code className="bg-secondary px-1 text-foreground">merchant</code> (String).
+                    </p>
                   </div>
 
-                  <div className="space-y-2">
-                    <p className="font-mono text-[10px] font-bold text-foreground uppercase tracking-widest">Step C: Setup HTTP POST Action</p>
-                    <ul className="list-disc list-inside pl-2 space-y-1">
-                      <li>Add an **Action** &rarr; **Applications** &rarr; **HTTP POST**.</li>
-                      <li>Paste the copyable endpoint URL from above into the **URL** input.</li>
-                      <li>Set **Content Type** to <code className="bg-secondary/40 px-1 py-0.5 font-mono text-[10px] text-foreground">application/json</code>.</li>
-                      <li>Paste the following JSON structure into the **Request Body**:</li>
-                    </ul>
-                    <pre className="bg-secondary/20 border border-border/60 p-4 font-mono text-[10px] text-foreground leading-normal whitespace-pre-wrap select-all max-w-lg mt-1.5 ml-2">
+                  <div className="p-4 bg-secondary/10 border border-border space-y-2">
+                    <span className="text-[10px] font-bold text-foreground uppercase tracking-widest block">Step C: Action</span>
+                    <p className="text-xs text-muted-foreground font-sans leading-relaxed">
+                      Add an **HTTP POST** action to your unique endpoint above with Content-Type <code className="bg-secondary px-1 text-foreground">application/json</code>.
+                    </p>
+                  </div>
+                </div>
+
+                <div className="space-y-2 pt-2">
+                  <span className="text-[10px] uppercase font-bold text-muted-foreground block">JSON Request Payload Structure:</span>
+                  <pre className="bg-secondary/20 border border-border p-4 text-[10px] text-foreground leading-normal whitespace-pre-wrap select-all max-w-lg">
 {`{
   "amount": "{lv=amount}",
   "merchant": "{lv=merchant}",
   "raw_text": "{lv=raw_text}",
   "source": "MacroDroid"
 }`}
-                    </pre>
-                  </div>
-
-                  <div className="space-y-2 bg-emerald-500/5 border border-emerald-500/20 p-4 rounded-none">
-                    <p className="font-mono text-[10px] font-bold text-emerald-500 uppercase tracking-widest flex items-center gap-1.5">
-                      <Sparkles className="h-3.5 w-3.5" /> Portuguese Regex Parsing Example
-                    </p>
-                    <p className="text-[11px] leading-relaxed mt-1 text-muted-foreground">
-                      If your notification says <code className="text-foreground font-semibold font-mono bg-secondary/30 px-1">"Compra de 15,30 EUR no CONTINENTE"</code>, use MacroDroid's **Text Manipulation &rarr; Extract matching text** action:
-                    </p>
-                    <ul className="list-decimal list-inside text-[11px] pl-2 mt-1.5 space-y-1 text-muted-foreground">
-                      <li>To extract amount to <code className="font-mono bg-secondary/30 px-0.5 text-foreground">amount</code>: search for pattern <code className="font-mono bg-secondary/30 px-1 text-foreground">([0-9]+[.,][0-9]{2})</code>.</li>
-                      <li>To extract merchant to <code className="font-mono bg-secondary/30 px-0.5 text-foreground">merchant</code>: search for pattern <code className="font-mono bg-secondary/30 px-1 text-foreground">no\\s+([^\\s]+)</code> or similar keyword captures.</li>
-                    </ul>
-                  </div>
+                  </pre>
                 </div>
               </div>
             </CardContent>
           </Card>
         </TabsContent>
 
-        {/* TAB 3: PRO PLAN STATUS */}
+        {/* TAB 5: PRO PLAN STATUS */}
         <TabsContent value="pro" className="space-y-6">
           <Card className="rounded-none border border-emerald-500/40 bg-card shadow-lg overflow-hidden pt-0">
-            <div className="bg-gradient-to-r from-emerald-500/20 via-emerald-500/5 to-transparent px-6 sm:px-8 py-6 border-b border-emerald-500/30 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+            <div className="bg-gradient-to-r from-emerald-500/20 via-emerald-500/5 to-transparent px-6 py-5 border-b border-emerald-500/30 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
               <div>
-                <div className="flex items-center gap-2 font-mono text-xs text-emerald-500 font-bold uppercase tracking-widest mb-1">
-                  <Sparkles className="h-4 w-4" /> LEGER_OS PRO TIER STATUS
+                <div className="flex items-center gap-2 text-xs text-emerald-500 font-bold uppercase tracking-widest mb-1">
+                  <Sparkles className="h-4 w-4" /> LEGER_OS PRO SUBSCRIPTION STATUS
                 </div>
-                <h3 className="text-xl sm:text-2xl font-black uppercase tracking-wider font-mono text-foreground">
-                  {isPro ? "UNLIMITED NEURAL SIMULATIONS ACTIVE" : "UPGRADE TO ADVANCED PREDICTIVE SIMULATIONS"}
+                <h3 className="text-xl font-bold uppercase tracking-wider text-foreground">
+                  {isPro ? "UNLIMITED PREDICTIVE SIMULATIONS ACTIVE" : "UPGRADE TO AUTONOMOUS MAINFRAME ENGINE"}
                 </h3>
               </div>
               <GlowingBadge variant={isPro ? "success" : "neutral"} pulse={true} dot={true} className="text-xs py-1 px-3">
                 {isPro ? "PRO_UNLOCKED" : "CORE_FREE_TIER"}
               </GlowingBadge>
             </div>
-            <CardContent className="px-6 sm:px-8 py-6 sm:py-8 space-y-6">
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-6">
+            <CardContent className="px-6 py-6 space-y-6">
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                 <div className="space-y-2 p-4 bg-secondary/10 border border-border">
-                  <h4 className="font-bold uppercase text-xs font-mono text-foreground">Recency Decay Modeling</h4>
+                  <h4 className="font-bold uppercase text-xs text-foreground">Recency Decay Modeling</h4>
                   <p className="text-xs text-muted-foreground font-sans leading-relaxed">
-                    Unlocks full exponential half-life calibration ($\lambda$) to adapt daily end-of-cycle cash trajectory forecasts to immediate lifestyle shifts.
+                    Unlocks exponential half-life calibration ($\lambda$) to adapt cash trajectory forecasts to lifestyle shifts.
                   </p>
                 </div>
                 <div className="space-y-2 p-4 bg-secondary/10 border border-border">
-                  <h4 className="font-bold uppercase text-xs font-mono text-foreground">Conversational AI Overrides</h4>
+                  <h4 className="font-bold uppercase text-xs text-foreground">Conversational AI Overrides</h4>
                   <p className="text-xs text-muted-foreground font-sans leading-relaxed">
-                    Set natural language assumptions in LEGER AI ("Reduce weekend dining by 40%") to dynamically modify simulation burn rates.
+                    Set natural language assumptions in LEGER AI ("Reduce gas spend by 30%") to dynamically modify forecasts.
                   </p>
                 </div>
                 <div className="space-y-2 p-4 bg-secondary/10 border border-border">
-                  <h4 className="font-bold uppercase text-xs font-mono text-foreground">Unlimited Neural Ingestion</h4>
+                  <h4 className="font-bold uppercase text-xs text-foreground">Unlimited Neural Ingestion</h4>
                   <p className="text-xs text-muted-foreground font-sans leading-relaxed">
-                    Process multi-page PDF bank extracts and bulk OCR statements with zero throttling across all AI providers.
+                    Process multi-page PDF bank extracts and bulk OCR statements with zero throttling.
                   </p>
                 </div>
               </div>
 
-              {!isPro && (
-                <div className="pt-4 flex flex-col items-stretch gap-4 p-6 bg-emerald-500/10 border border-emerald-500/30">
+              {!isPro ? (
+                <div className="pt-2 flex flex-col items-stretch gap-4 p-5 bg-emerald-500/10 border border-emerald-500/30">
                   <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
                     <div>
-                      <div className="font-bold uppercase text-sm font-mono text-foreground">Ready to upgrade your mainframe?</div>
+                      <div className="font-bold uppercase text-sm text-foreground">Ready to upgrade your mainframe?</div>
                       <div className="text-xs text-muted-foreground font-sans mt-0.5">Instant activation. Cancel anytime.</div>
                     </div>
                     <Button
                       onClick={upgradeToPro}
-                      className="w-full sm:w-auto px-8 h-12 rounded-none bg-emerald-500 hover:bg-emerald-600 text-white font-mono text-xs uppercase font-bold tracking-widest shadow-lg transition-all"
+                      className="w-full sm:w-auto px-8 h-11 rounded-none bg-emerald-500 hover:bg-emerald-600 text-black font-mono text-xs uppercase font-bold tracking-widest shadow-md transition-all cursor-pointer"
                     >
-                      <Sparkles className="h-4 w-4 mr-2" /> Activate PRO Tier - €4.99/mo
+                      <Sparkles className="h-4 w-4 mr-1.5" /> Activate PRO Tier - €4.99/mo
                     </Button>
                   </div>
-                  <p className="text-[9px] text-muted-foreground font-mono text-center sm:text-left mt-1 max-w-xl leading-relaxed">
-                    By activating PRO, you authorize a recurring subscription charge of €4.99/month. Your account will be billed monthly until you cancel in this configuration panel.
-                  </p>
                 </div>
-              )}
-
-              {isPro && (
-                <div className="pt-4 flex flex-col sm:flex-row items-center justify-between gap-4 p-6 bg-destructive/10 border border-destructive/30">
+              ) : (
+                <div className="pt-2 flex flex-col sm:flex-row items-center justify-between gap-4 p-5 bg-destructive/10 border border-destructive/30">
                   <div>
-                    <div className="font-bold uppercase text-sm font-mono text-destructive">LEGER_OS PRO ACTIVE</div>
-                    <div className="text-xs text-muted-foreground font-sans mt-0.5 uppercase font-bold tracking-tight">Full access to predictive analytics, neural bridge and push sync.</div>
+                    <div className="font-bold uppercase text-sm text-destructive">LEGER_OS PRO ACTIVE</div>
+                    <div className="text-xs text-muted-foreground font-sans mt-0.5 uppercase font-bold">Full access to predictive analytics, neural bridge and push sync.</div>
                   </div>
                   <Button
                     onClick={cancelPro}
                     variant="outline"
-                    className="w-full sm:w-auto px-8 h-12 rounded-none border-destructive text-destructive hover:bg-destructive/15 font-mono text-xs uppercase font-bold tracking-widest transition-all"
+                    className="w-full sm:w-auto px-8 h-11 rounded-none border-destructive text-destructive hover:bg-destructive/15 text-xs uppercase font-bold tracking-widest cursor-pointer"
                   >
                     Cancel PRO Subscription
                   </Button>
@@ -1075,121 +1034,133 @@ export function SystemConfigView() {
           </Card>
         </TabsContent>
 
-        {/* TAB 4: SUPER USER DEV TOOLS */}
+        {/* TAB 6: DEV TOOLS (SUPER USERS ONLY) */}
         {isSuperUser && (
           <TabsContent value="devtools" className="space-y-6">
             <Card className="rounded-none border-border bg-card shadow-lg pt-0">
-              <CardHeader className="border-b border-border pb-6 bg-secondary/10">
+              <CardHeader className="border-b border-border px-6 py-5 bg-secondary/10">
                 <div className="flex items-center justify-between">
-                  <CardTitle className="text-base sm:text-lg font-bold uppercase tracking-wider font-mono flex items-center gap-2">
-                    <Terminal className="h-5 w-5 text-foreground" /> Super User Diagnostic Matrix
+                  <CardTitle className="text-base font-bold uppercase tracking-wider flex items-center gap-2 text-foreground">
+                    <Terminal className="h-4 w-4" /> Super User Diagnostic Matrix
                   </CardTitle>
                   <GlowingBadge variant="success" pulse={true} dot={true} className="text-[10px]">
                     ADMIN_MODE
                   </GlowingBadge>
                 </div>
-                <CardDescription className="text-xs font-mono uppercase tracking-wider text-muted-foreground mt-1">
-                  Advanced debugging utilities, neural bridge diagnostics, and state overrides for system administrators.
+                <CardDescription className="text-xs uppercase tracking-wider text-muted-foreground mt-1">
+                  System diagnostics, bridge probing, and onboarding state testing.
                 </CardDescription>
               </CardHeader>
-              <CardContent className="pt-6 space-y-6">
-                {/* Status Banner */}
-                <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 font-mono text-xs uppercase border border-border p-4 bg-secondary/10">
+              <CardContent className="px-6 py-6 space-y-6">
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 text-xs uppercase border border-border p-4 bg-secondary/10">
                   <div>
-                    <span className="text-muted-foreground block text-[10px]">Auth Role:</span>
+                    <span className="text-muted-foreground block text-[9px]">Auth Role:</span>
                     <span className="font-bold text-foreground">{profile?.role?.toUpperCase() || "SUPER_USER"}</span>
                   </div>
                   <div>
-                    <span className="text-muted-foreground block text-[10px]">Session Node:</span>
-                    <span className="font-bold text-foreground truncate block">{user?.id?.slice(0, 8) || "LOCAL_DEV"}...</span>
+                    <span className="text-muted-foreground block text-[9px]">Node ID:</span>
+                    <span className="font-bold text-foreground truncate block">{user?.id?.slice(0, 8) || "DEV"}...</span>
                   </div>
                   <div>
-                    <span className="text-muted-foreground block text-[10px]">Environment:</span>
+                    <span className="text-muted-foreground block text-[9px]">Environment:</span>
                     <span className="font-bold text-foreground">{process.env.NODE_ENV?.toUpperCase() || "DEV"}</span>
                   </div>
                   <div>
-                    <span className="text-muted-foreground block text-[10px]">RLS Security:</span>
+                    <span className="text-muted-foreground block text-[9px]">RLS Security:</span>
                     <span className="font-bold text-emerald-500">ENFORCED</span>
                   </div>
                 </div>
 
-                {/* Action Buttons Grid */}
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                  {/* 1. Launch Onboarding */}
                   <div className="p-4 border border-border bg-card space-y-3 flex flex-col justify-between">
                     <div>
-                      <div className="flex items-center gap-2 font-bold font-mono uppercase text-sm text-foreground">
-                        <Rocket className="h-4 w-4 shrink-0 text-primary" /> Launch Onboarding Setup Wizard
+                      <div className="flex items-center gap-2 font-bold uppercase text-xs text-foreground">
+                        <Rocket className="h-4 w-4 text-primary" /> Onboarding Setup Wizard
                       </div>
                       <p className="text-xs text-muted-foreground font-sans mt-1 leading-relaxed">
-                        Reset UI state and enter the interactive onboarding wizard to test paycheck setup and habit seeding.
+                        Relaunch interactive setup wizard to test paycheck configuration.
                       </p>
                     </div>
                     <Button 
                       onClick={handleLaunchOnboarding}
                       variant="outline" 
-                      className="w-full rounded-none uppercase font-mono text-xs tracking-widest h-10 bg-secondary/40 hover:bg-foreground hover:text-background transition-all"
+                      className="w-full rounded-none uppercase text-xs tracking-widest h-10 bg-secondary/40 hover:bg-foreground hover:text-background cursor-pointer"
                     >
                       Start Setup Wizard
                     </Button>
                   </div>
 
-                  {/* 2. Ping Neural Bridge */}
                   <div className="p-4 border border-border bg-card space-y-3 flex flex-col justify-between">
                     <div>
-                      <div className="flex items-center gap-2 font-bold font-mono uppercase text-sm text-foreground">
-                        <Zap className="h-4 w-4 shrink-0 text-purple-500" /> Probe Neural Bridge Latency
+                      <div className="flex items-center gap-2 font-bold uppercase text-xs text-foreground">
+                        <Zap className="h-4 w-4 text-purple-500" /> Probe Neural Bridge
                       </div>
                       <p className="text-xs text-muted-foreground font-sans mt-1 leading-relaxed">
-                        Send a diagnostic probe to verify that the configured AI API key is responding with low latency.
+                        Send a diagnostic ping to test AI response latency.
                       </p>
                     </div>
                     <Button 
                       onClick={handlePingGemini}
                       disabled={isPingingAI}
                       variant="outline" 
-                      className="w-full rounded-none uppercase font-mono text-xs tracking-widest h-10 bg-secondary/40 hover:bg-foreground hover:text-background transition-all"
+                      className="w-full rounded-none uppercase text-xs tracking-widest h-10 bg-secondary/40 hover:bg-foreground hover:text-background cursor-pointer"
                     >
-                      {isPingingAI ? "PROBING BRIDGE..." : "TEST AI LATENCY"}
+                      {isPingingAI ? "PROBING..." : "TEST AI LATENCY"}
                     </Button>
                   </div>
 
-                  {/* 3. Re-Seed Neural Rules */}
                   <div className="p-4 border border-border bg-card space-y-3 flex flex-col justify-between">
                     <div>
-                      <div className="flex items-center gap-2 font-bold font-mono uppercase text-sm text-foreground">
-                        <Database className="h-4 w-4 shrink-0 text-amber-500" /> Inject Default Habit Rules
+                      <div className="flex items-center gap-2 font-bold uppercase text-xs text-foreground">
+                        <Database className="h-4 w-4 text-amber-500" /> Inject Default Rules
                       </div>
                       <p className="text-xs text-muted-foreground font-sans mt-1 leading-relaxed">
-                        Force-populate the database with standard merchant categorization patterns (groceries, tech, utilities).
+                        Force-populate database with standard merchant categorization rules.
                       </p>
                     </div>
                     <Button 
                       onClick={handleSeedHabits}
                       disabled={isSeeding}
                       variant="outline" 
-                      className="w-full rounded-none uppercase font-mono text-xs tracking-widest h-10 bg-secondary/40 hover:bg-foreground hover:text-background transition-all"
+                      className="w-full rounded-none uppercase text-xs tracking-widest h-10 bg-secondary/40 hover:bg-foreground hover:text-background cursor-pointer"
                     >
                       {isSeeding ? "INJECTING..." : "SEED DEFAULT RULES"}
                     </Button>
                   </div>
 
-                  {/* 4. Export Diagnostics */}
                   <div className="p-4 border border-border bg-card space-y-3 flex flex-col justify-between">
                     <div>
-                      <div className="flex items-center gap-2 font-bold font-mono uppercase text-sm text-foreground">
-                        <FileJson className="h-4 w-4 shrink-0 text-blue-500" /> Export Diagnostic Dump
+                      <div className="flex items-center gap-2 font-bold uppercase text-xs text-foreground">
+                        <FileJson className="h-4 w-4 text-blue-500" /> Export Diagnostic Dump
                       </div>
                       <p className="text-xs text-muted-foreground font-sans mt-1 leading-relaxed">
-                        Download a JSON file containing current profile parameters, rules count, and session metadata.
+                        Download JSON file containing system telemetry and session parameters.
                       </p>
                     </div>
                     <Button 
                       onClick={handleExportDiagnostics}
                       variant="outline" 
-                      className="w-full rounded-none uppercase font-mono text-xs tracking-widest h-10 bg-secondary/40 hover:bg-foreground hover:text-background transition-all"
+                      className="w-full rounded-none uppercase text-xs tracking-widest h-10 bg-secondary/40 hover:bg-foreground hover:text-background cursor-pointer"
                     >
                       DOWNLOAD JSON LOG
+                    </Button>
+                  </div>
+                </div>
+
+                <div className="pt-4 border-t border-border">
+                  <div className="p-4 bg-destructive/10 border border-destructive/30 space-y-2">
+                    <div className="flex items-center gap-2 font-bold uppercase text-xs text-destructive">
+                      <ShieldAlert className="h-4 w-4" /> GDPR / FTC Right to Erasure
+                    </div>
+                    <p className="text-xs text-muted-foreground font-sans leading-relaxed">
+                      Permanently purge account, transactions, budgets, limits, and settings.
+                    </p>
+                    <Button
+                      onClick={handleRightToErasure}
+                      variant="outline"
+                      className="w-full rounded-none h-10 text-xs uppercase font-bold tracking-widest bg-destructive/10 text-destructive hover:bg-destructive hover:text-background border-destructive/30 cursor-pointer"
+                    >
+                      Purge Account & All Data
                     </Button>
                   </div>
                 </div>
