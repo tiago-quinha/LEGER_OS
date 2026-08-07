@@ -20,7 +20,7 @@ import {
 import { cn } from "@/lib/utils"
 import { GlowingBadge } from "@/components/unlumen-ui/glowing-badge"
 import { ProLockOverlay } from "@/components/ProLockOverlay"
-import { SUPPORTED_CURRENCIES, SUPPORTED_LANGUAGES } from "@/lib/format"
+import { SUPPORTED_CURRENCIES, SUPPORTED_LANGUAGES, getProPrice } from "@/lib/format"
 
 const HABIT_PRESETS = [
   {
@@ -962,7 +962,7 @@ export function SystemSettingsModal({ open, onOpenChange }: SystemSettingsModalP
                     <p className="text-[10px] text-emerald-500 font-mono font-medium">Autonomous Financial Mainframe</p>
                   </div>
                   <div className="text-left sm:text-right">
-                    <span className="text-2xl font-bold font-mono text-foreground">{currencySymbol}4.99<span className="text-xs text-muted-foreground font-normal">/mo</span></span>
+                    <span className="text-2xl font-bold font-mono text-foreground">{getProPrice(currencyInput).formatted}<span className="text-xs text-muted-foreground font-normal">/mo</span></span>
                     <p className="text-[8px] font-mono text-muted-foreground uppercase">Instant Activation • Cancel Anytime</p>
                   </div>
                 </div>
@@ -996,7 +996,7 @@ export function SystemSettingsModal({ open, onOpenChange }: SystemSettingsModalP
                   disabled={isPro}
                   className="w-full rounded-none font-mono text-xs uppercase font-bold h-10 bg-emerald-500 text-black hover:bg-emerald-400 transition-all cursor-pointer shadow-lg"
                 >
-                  {isPro ? "PRO Access Active" : "Upgrade to PRO (€4.99/mo)"}
+                  {isPro ? "PRO Access Active" : `Upgrade to PRO (${getProPrice(currencyInput).formatted}/mo)`}
                 </Button>
               </div>
 

@@ -5,6 +5,7 @@ import { motion } from "framer-motion"
 import { Lock, Sparkles } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { useSystem } from "@/lib/SystemContext"
+import { getProPrice } from "@/lib/format"
 
 interface ProLockOverlayProps {
   title?: string
@@ -21,7 +22,8 @@ export function ProLockOverlay({
   compact = false,
   onUpgrade
 }: ProLockOverlayProps) {
-  const { setSettingsOpen, setSettingsActiveTab, setSubscriptionOnly } = useSystem()
+  const { setSettingsOpen, setSettingsActiveTab, setSubscriptionOnly, currency } = useSystem()
+  const proPrice = getProPrice(currency).formatted
 
   const handleUpgrade = () => {
     setSettingsActiveTab("pro")
@@ -49,7 +51,7 @@ export function ProLockOverlay({
           onClick={handleUpgrade}
           className="w-full rounded-none h-8 bg-emerald-500 text-black hover:bg-emerald-400 font-mono text-[9px] uppercase font-bold tracking-widest cursor-pointer shadow-sm"
         >
-          <Sparkles className="h-3 w-3 mr-1" /> Upgrade to PRO (€4.99/mo)
+          <Sparkles className="h-3 w-3 mr-1" /> Upgrade to PRO ({proPrice}/mo)
         </Button>
       </div>
     )
@@ -77,7 +79,7 @@ export function ProLockOverlay({
         onClick={handleUpgrade}
         className="h-9 px-6 rounded-none bg-emerald-500 text-black hover:bg-emerald-400 font-mono text-[10px] uppercase font-bold tracking-widest shadow-md transition-all cursor-pointer"
       >
-        <Sparkles className="h-3.5 w-3.5 mr-1.5" /> Upgrade to PRO (€4.99/mo)
+        <Sparkles className="h-3.5 w-3.5 mr-1.5" /> Upgrade to PRO ({proPrice}/mo)
       </Button>
     </div>
   )

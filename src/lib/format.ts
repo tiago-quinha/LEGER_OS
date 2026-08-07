@@ -30,6 +30,26 @@ export function formatCurrency(amount: number | string, currencyCode: string = "
   return num < 0 ? `-${symbol}${formattedNum}` : `${symbol}${formattedNum}`;
 }
 
+export const PRO_PRICING: Record<string, { amount: string }> = {
+  EUR: { amount: "4.99" },
+  USD: { amount: "5.50" },
+  GBP: { amount: "4.50" },
+  BRL: { amount: "29.50" },
+  CAD: { amount: "7.50" },
+  AUD: { amount: "8.50" },
+  JPY: { amount: "800" },
+  CHF: { amount: "4.50" },
+};
+
+export function getProPrice(currencyCode: string = "EUR"): { amount: string; symbol: string; formatted: string } {
+  const symbol = getCurrencySymbol(currencyCode);
+  const info = PRO_PRICING[currencyCode];
+  if (info) {
+    return { amount: info.amount, symbol, formatted: `${symbol}${info.amount}` };
+  }
+  return { amount: "4.99", symbol, formatted: `${symbol}4.99` };
+}
+
 export function formatDate(dateStr: string | Date, locale: string = "en-US"): string {
   try {
     const d = typeof dateStr === "string" ? new Date(dateStr) : dateStr;
@@ -38,3 +58,4 @@ export function formatDate(dateStr: string | Date, locale: string = "en-US"): st
     return String(dateStr);
   }
 }
+
