@@ -294,30 +294,53 @@ export function SystemSettingsModal({ open, onOpenChange }: SystemSettingsModalP
                     </div>
                   </div>
 
-                  {isPro && (
-                    <div className="space-y-1.5 pt-1">
+                  {/* Yap Level (PRO Gated) */}
+                  <div className="space-y-1.5 pt-1">
+                    <div className="flex items-center justify-between">
                       <Label htmlFor="modalYapLevel" className="text-[9px] uppercase font-mono font-bold text-muted-foreground">
-                        AI Verbosity / Yap Level (PRO Only)
+                        AI Verbosity / Yap Level
                       </Label>
-                      <div className="relative">
-                        <select
-                          id="modalYapLevel"
-                          value={aiYapLevelInput}
-                          onChange={(e) => setAiYapLevelInput(e.target.value as any)}
-                          className="w-full bg-background border border-border rounded-none h-9 px-3 pr-8 text-xs font-mono text-foreground outline-none focus:border-foreground appearance-none"
-                        >
-                          <option value="concise">Concise & Direct (Brief answers)</option>
-                          <option value="standard">Standard (Balanced context)</option>
-                          <option value="verbose">Verbose & Explanatory (Thorough strategies)</option>
-                        </select>
-                        <ChevronDown className="absolute right-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground pointer-events-none" />
-                      </div>
+                      {!isPro && (
+                        <span className="text-[8px] font-mono uppercase font-bold text-amber-500 bg-amber-500/10 border border-amber-500/20 px-1.5 py-0.5">
+                          PRO LOCKED
+                        </span>
+                      )}
                     </div>
-                  )}
+                    <div className="relative">
+                      <select
+                        id="modalYapLevel"
+                        value={isPro ? aiYapLevelInput : "standard"}
+                        disabled={!isPro}
+                        onChange={(e) => setAiYapLevelInput(e.target.value as any)}
+                        className={cn(
+                          "w-full bg-background border border-border rounded-none h-9 px-3 pr-8 text-xs font-mono outline-none appearance-none",
+                          !isPro ? "opacity-60 cursor-not-allowed text-muted-foreground" : "text-foreground focus:border-foreground"
+                        )}
+                      >
+                        <option value="concise">Concise & Direct (Brief answers)</option>
+                        <option value="standard">Standard (Balanced context)</option>
+                        <option value="verbose">Verbose & Explanatory (Thorough strategies)</option>
+                      </select>
+                      <ChevronDown className="absolute right-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground pointer-events-none" />
+                    </div>
+                    {!isPro && (
+                      <span className="text-[9px] font-sans text-muted-foreground block">
+                        * Upgrade to PRO to unlock custom AI response verbosity settings.
+                      </span>
+                    )}
+                  </div>
 
+                  {/* Recency Decay Weight (PRO Gated Calibration) */}
                   <div className="space-y-1.5 pt-2 border-t border-border/40">
-                    <div className="flex justify-between text-[10px] font-mono">
-                      <span className="text-muted-foreground uppercase font-bold">Recency Decay (λ):</span>
+                    <div className="flex items-center justify-between text-[10px] font-mono">
+                      <span className="text-muted-foreground uppercase font-bold flex items-center gap-1.5">
+                        Recency Decay (λ):
+                        {!isPro && (
+                          <span className="text-[8px] uppercase font-bold text-amber-500 bg-amber-500/10 border border-amber-500/20 px-1 py-0.2">
+                            PRO FEATURE
+                          </span>
+                        )}
+                      </span>
                       <span className="font-bold text-foreground">{decayInput} (~{Math.round(0.693 / (parseFloat(decayInput) || 0.12))} day half-life)</span>
                     </div>
                     <input
@@ -326,9 +349,18 @@ export function SystemSettingsModal({ open, onOpenChange }: SystemSettingsModalP
                       max="0.30"
                       step="0.01"
                       value={decayInput}
+                      disabled={!isPro}
                       onChange={(e) => setDecayInput(e.target.value)}
-                      className="w-full accent-emerald-500 cursor-pointer h-1.5 bg-secondary"
+                      className={cn(
+                        "w-full accent-emerald-500 h-1.5 bg-secondary",
+                        !isPro ? "opacity-50 cursor-not-allowed" : "cursor-pointer"
+                      )}
                     />
+                    {!isPro && (
+                      <span className="text-[9px] font-sans text-muted-foreground block">
+                        * Exponential time-decay trajectory forecasting is unlocked on PRO tier.
+                      </span>
+                    )}
                   </div>
                 </div>
 
@@ -346,9 +378,18 @@ export function SystemSettingsModal({ open, onOpenChange }: SystemSettingsModalP
             <TabsContent value="phone" className="space-y-4">
               <div className="p-4 bg-card border border-border space-y-3">
                 <div className="space-y-1">
-                  <span className="text-xs uppercase tracking-wider font-mono text-foreground font-bold flex items-center gap-2">
-                    <Smartphone className="h-4 w-4" /> MacroDroid Android Push Sync
-                  </span>
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs uppercase tracking-wider font-mono text-foreground font-bold flex items-center gap-2">
+                      <Smartphone className="h-4 w-4" /> MacroDroid Android Push Sync
+                    </span>
+                    {!isPro ? (
+                      <span className="text-[8px] font-mono uppercase font-bold text-amber-500 bg-amber-500/10 border border-amber-500/20 px-2 py-0.5">
+                        PRO TIER REQUIRED
+                      </span>
+                    ) : (
+                      <GlowingBadge variant="success" pulse dot className="text-[8px]">ACTIVE</GlowingBadge>
+                    )}
+                  </div>
                   <p className="text-[10px] text-muted-foreground font-sans leading-relaxed">
                     Automatically post bank notifications to LEGER_OS in real-time.
                   </p>
@@ -356,28 +397,46 @@ export function SystemSettingsModal({ open, onOpenChange }: SystemSettingsModalP
 
                 <div className="space-y-1.5 pt-1">
                   <span className="text-[9px] font-mono uppercase font-bold text-muted-foreground">Unique Posting Endpoint</span>
-                  <div className="bg-secondary/40 border border-border p-2.5 font-mono text-[9px] break-all select-all flex items-center justify-between gap-2 text-foreground">
-                    <span className="truncate">
-                      {typeof window !== 'undefined' 
-                        ? `${window.location.origin}/api/transactions/macrodroid?userId=${user?.id || ""}`
-                        : `https://leger-os.vercel.app/api/transactions/macrodroid?userId=${user?.id || ""}`
-                      }
-                    </span>
-                    <button
-                      type="button"
-                      onClick={() => {
-                        const url = typeof window !== 'undefined' 
+                  {!isPro ? (
+                    <div className="p-3 bg-amber-500/10 border border-amber-500/30 space-y-2">
+                      <div className="font-mono text-[10px] font-bold text-amber-500 uppercase">
+                        🔒 ENDPOINT LOCKED ON CORE FREE TIER
+                      </div>
+                      <p className="text-[10px] text-muted-foreground font-sans leading-relaxed">
+                        Automated real-time push notification posting requires a LEGER_OS PRO node. Upgrade to PRO to activate your unique phone webhook URL.
+                      </p>
+                      <Button
+                        type="button"
+                        onClick={() => setActiveTab("pro")}
+                        className="w-full rounded-none h-8 bg-emerald-500 text-black hover:bg-emerald-400 font-mono text-[9px] uppercase font-bold tracking-widest cursor-pointer"
+                      >
+                        <Sparkles className="h-3 w-3 mr-1" /> Upgrade to PRO (€4.99/mo)
+                      </Button>
+                    </div>
+                  ) : (
+                    <div className="bg-secondary/40 border border-border p-2.5 font-mono text-[9px] break-all select-all flex items-center justify-between gap-2 text-foreground">
+                      <span className="truncate">
+                        {typeof window !== 'undefined' 
                           ? `${window.location.origin}/api/transactions/macrodroid?userId=${user?.id || ""}`
                           : `https://leger-os.vercel.app/api/transactions/macrodroid?userId=${user?.id || ""}`
-                        navigator.clipboard.writeText(url)
-                        toast.success("MacroDroid URL copied!")
-                      }}
-                      className="hover:text-emerald-500 shrink-0 p-1 cursor-pointer"
-                      title="Copy URL"
-                    >
-                      <Copy className="h-3.5 w-3.5" />
-                    </button>
-                  </div>
+                        }
+                      </span>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          const url = typeof window !== 'undefined' 
+                            ? `${window.location.origin}/api/transactions/macrodroid?userId=${user?.id || ""}`
+                            : `https://leger-os.vercel.app/api/transactions/macrodroid?userId=${user?.id || ""}`
+                          navigator.clipboard.writeText(url)
+                          toast.success("MacroDroid URL copied!")
+                        }}
+                        className="hover:text-emerald-500 shrink-0 p-1 cursor-pointer"
+                        title="Copy URL"
+                      >
+                        <Copy className="h-3.5 w-3.5" />
+                      </button>
+                    </div>
+                  )}
                 </div>
 
                 <div className="space-y-2 pt-2 border-t border-border/40 text-[10px] font-sans text-muted-foreground leading-normal">

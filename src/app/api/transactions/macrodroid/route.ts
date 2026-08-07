@@ -13,6 +13,21 @@ export async function POST(request: Request) {
     const { amount, merchant, source, raw_text, userId: payloadUserId } = payload
     const userId = queryUserId || payloadUserId
 
+    if (userId) {
+      const { data: userProfile } = await supabaseAdmin
+        .from("profiles")
+        .select("subscription_tier")
+        .eq("id", userId)
+        .single()
+
+      if (userProfile?.subscription_tier !== "PRO") {
+        return NextResponse.json(
+          { error: "Automated push notification ingestion is exclusive to LEGER_OS PRO nodes. Please upgrade to PRO to activate real-time phone posting." },
+          { status: 403 }
+        )
+      }
+    }
+
     let finalMerchant = (merchant || "").trim()
     let finalAmountRaw = amount
 

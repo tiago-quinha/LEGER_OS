@@ -680,32 +680,54 @@ export function SystemConfigView() {
                     </div>
                   </div>
 
-                  {isPro && (
-                    <div className="space-y-1.5 pt-2">
+                  {/* Yap Level (PRO Gated) */}
+                  <div className="space-y-1.5 pt-2">
+                    <div className="flex items-center justify-between">
                       <Label htmlFor="aiYapLevel" className="text-[10px] uppercase tracking-widest text-muted-foreground font-bold">
-                        AI Response Verbosity / Yap Level (PRO Only)
+                        AI Response Verbosity / Yap Level
                       </Label>
-                      <div className="relative">
-                        <select
-                          id="aiYapLevel"
-                          value={aiYapLevelInput}
-                          onChange={(e) => setAiYapLevelInput(e.target.value as any)}
-                          className="w-full bg-background border border-input rounded-none h-10 px-3 pr-10 text-xs outline-none focus:border-foreground appearance-none font-bold text-foreground"
-                        >
-                          <option value="concise">Concise & Direct (Saves tokens, 1-2 bullet points)</option>
-                          <option value="standard">Standard (Balanced context & suggestions)</option>
-                          <option value="verbose">Verbose & Explanatory (Thorough projection breakdowns)</option>
-                        </select>
-                        <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground pointer-events-none" />
-                      </div>
+                      {!isPro && (
+                        <span className="text-[8px] font-mono uppercase font-bold text-amber-500 bg-amber-500/10 border border-amber-500/20 px-1.5 py-0.5">
+                          PRO LOCKED
+                        </span>
+                      )}
                     </div>
-                  )}
+                    <div className="relative">
+                      <select
+                        id="aiYapLevel"
+                        value={isPro ? aiYapLevelInput : "standard"}
+                        disabled={!isPro}
+                        onChange={(e) => setAiYapLevelInput(e.target.value as any)}
+                        className={cn(
+                          "w-full bg-background border border-input rounded-none h-10 px-3 pr-10 text-xs outline-none appearance-none font-bold",
+                          !isPro ? "opacity-60 cursor-not-allowed text-muted-foreground" : "text-foreground focus:border-foreground"
+                        )}
+                      >
+                        <option value="concise">Concise & Direct (Saves tokens, 1-2 bullet points)</option>
+                        <option value="standard">Standard (Balanced context & suggestions)</option>
+                        <option value="verbose">Verbose & Explanatory (Thorough projection breakdowns)</option>
+                      </select>
+                      <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground pointer-events-none" />
+                    </div>
+                    {!isPro && (
+                      <span className="text-[10px] font-sans text-muted-foreground block">
+                        * Upgrade to PRO to unlock custom AI response verbosity settings.
+                      </span>
+                    )}
+                  </div>
                 </div>
 
-                {/* Recency Decay Calibration */}
+                {/* Recency Decay Calibration (PRO Gated) */}
                 <div className="p-5 bg-secondary/10 border border-border space-y-3">
                   <div className="flex items-center justify-between text-xs font-bold uppercase tracking-widest">
-                    <span className="text-foreground">Recency Decay Weight (λ)</span>
+                    <span className="text-foreground flex items-center gap-2">
+                      Recency Decay Weight (λ)
+                      {!isPro && (
+                        <span className="text-[8px] font-mono uppercase font-bold text-amber-500 bg-amber-500/10 border border-amber-500/20 px-1.5 py-0.5">
+                          PRO FEATURE
+                        </span>
+                      )}
+                    </span>
                     <span className="text-emerald-500 font-bold">{decayInput} (Half-life: ~{Math.round(0.693 / (parseFloat(decayInput) || 0.12))} days)</span>
                   </div>
                   <input
@@ -714,11 +736,15 @@ export function SystemConfigView() {
                     max="0.30"
                     step="0.01"
                     value={decayInput}
+                    disabled={!isPro}
                     onChange={(e) => setDecayInput(e.target.value)}
-                    className="w-full accent-emerald-500 cursor-pointer h-2 bg-secondary"
+                    className={cn(
+                      "w-full accent-emerald-500 h-2 bg-secondary",
+                      !isPro ? "opacity-50 cursor-not-allowed" : "cursor-pointer"
+                    )}
                   />
                   <p className="text-[11px] text-muted-foreground font-sans leading-relaxed">
-                    * Controls exponential time-decay weighting for daily cash flow forecasting. A higher decay factor heavily weights recent spending trends.
+                    * Controls exponential time-decay weighting for daily cash flow forecasting. Exponential half-life calibration is unlocked on PRO tier.
                   </p>
                 </div>
 
@@ -883,9 +909,18 @@ export function SystemConfigView() {
         <TabsContent value="phone" className="space-y-6">
           <Card className="rounded-none border-border bg-card shadow-lg pt-0">
             <CardHeader className="border-b border-border px-6 py-5 bg-secondary/10">
-              <CardTitle className="text-base font-bold uppercase tracking-wider flex items-center gap-2 text-foreground">
-                <Smartphone className="h-4 w-4" /> MacroDroid Android Push Sync Integration
-              </CardTitle>
+              <div className="flex items-center justify-between">
+                <CardTitle className="text-base font-bold uppercase tracking-wider flex items-center gap-2 text-foreground">
+                  <Smartphone className="h-4 w-4" /> MacroDroid Android Push Sync Integration
+                </CardTitle>
+                {!isPro ? (
+                  <span className="text-[8px] font-mono uppercase font-bold text-amber-500 bg-amber-500/10 border border-amber-500/20 px-2 py-0.5">
+                    PRO TIER REQUIRED
+                  </span>
+                ) : (
+                  <GlowingBadge variant="success" pulse dot className="text-[10px]">ACTIVE</GlowingBadge>
+                )}
+              </div>
               <CardDescription className="text-xs uppercase tracking-wider text-muted-foreground mt-1">
                 Post transactions to LEGER_OS in real-time from bank push notifications on Android.
               </CardDescription>
@@ -895,27 +930,45 @@ export function SystemConfigView() {
                 <span className="text-xs font-bold uppercase tracking-widest text-foreground block">
                   1. Your Unique Webhook Endpoint
                 </span>
-                <div className="flex flex-col sm:flex-row gap-2 items-stretch">
-                  <div className="bg-secondary/40 border border-border p-3 text-[10px] break-all select-all flex-1 flex items-center text-foreground font-bold">
-                    {typeof window !== 'undefined' 
-                      ? `${window.location.origin}/api/transactions/macrodroid?userId=${user?.id || ""}`
-                      : `https://leger-os.vercel.app/api/transactions/macrodroid?userId=${user?.id || ""}`
-                    }
+                {!isPro ? (
+                  <div className="p-4 bg-amber-500/10 border border-amber-500/30 space-y-3">
+                    <div className="font-mono text-xs font-bold text-amber-500 uppercase flex items-center gap-2">
+                      🔒 WEBHOOK ENDPOINT LOCKED ON CORE FREE TIER
+                    </div>
+                    <p className="text-xs text-muted-foreground font-sans leading-relaxed">
+                      Automated real-time push notification ingestion is exclusive to LEGER_OS PRO nodes. Upgrade to PRO to activate your copyable endpoint URL and real-time bank sync.
+                    </p>
+                    <Button
+                      type="button"
+                      onClick={() => setActiveTab("pro")}
+                      className="rounded-none h-9 px-6 bg-emerald-500 text-black hover:bg-emerald-400 font-mono text-xs uppercase font-bold tracking-widest cursor-pointer"
+                    >
+                      <Sparkles className="h-3.5 w-3.5 mr-1.5" /> Upgrade to PRO (€4.99/mo)
+                    </Button>
                   </div>
-                  <Button 
-                    variant="outline" 
-                    className="rounded-none text-[10px] uppercase tracking-widest shrink-0 cursor-pointer flex items-center gap-1.5 h-auto py-2.5 sm:py-0"
-                    onClick={() => {
-                      const url = typeof window !== 'undefined' 
+                ) : (
+                  <div className="flex flex-col sm:flex-row gap-2 items-stretch">
+                    <div className="bg-secondary/40 border border-border p-3 text-[10px] break-all select-all flex-1 flex items-center text-foreground font-bold">
+                      {typeof window !== 'undefined' 
                         ? `${window.location.origin}/api/transactions/macrodroid?userId=${user?.id || ""}`
                         : `https://leger-os.vercel.app/api/transactions/macrodroid?userId=${user?.id || ""}`
-                      navigator.clipboard.writeText(url)
-                      toast.success("MacroDroid URL copied to clipboard!")
-                    }}
-                  >
-                    <Copy className="h-3.5 w-3.5" /> Copy URL
-                  </Button>
-                </div>
+                      }
+                    </div>
+                    <Button 
+                      variant="outline" 
+                      className="rounded-none text-[10px] uppercase tracking-widest shrink-0 cursor-pointer flex items-center gap-1.5 h-auto py-2.5 sm:py-0"
+                      onClick={() => {
+                        const url = typeof window !== 'undefined' 
+                          ? `${window.location.origin}/api/transactions/macrodroid?userId=${user?.id || ""}`
+                          : `https://leger-os.vercel.app/api/transactions/macrodroid?userId=${user?.id || ""}`
+                        navigator.clipboard.writeText(url)
+                        toast.success("MacroDroid URL copied to clipboard!")
+                      }}
+                    >
+                      <Copy className="h-3.5 w-3.5" /> Copy URL
+                    </Button>
+                  </div>
+                )}
               </div>
 
               <div className="border-t border-border/40 pt-4 space-y-4">
