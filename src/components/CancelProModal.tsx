@@ -119,16 +119,16 @@ export function CancelProModal({ isOpen, onClose }: CancelProModalProps) {
               {step === 1 && (
                 <div className="space-y-6 animate-fade-in">
                   <div className="space-y-2 text-center">
-                    <h3 className="text-lg font-bold uppercase text-foreground">Are you sure you want to downgrade?</h3>
+                    <h3 className="text-lg font-bold uppercase text-foreground">We'd hate to see you go</h3>
                     <p className="text-xs text-muted-foreground font-sans leading-relaxed">
-                      Downgrading to Core Base will immediately stop real-time automated data processing and AI forecasts.
+                      If you downgrade to Core, we'll have to turn off your real-time data processing and AI forecasts right away.
                     </p>
                   </div>
 
                   {/* Minimal Loss List */}
                   <div className="p-4 bg-card border border-border space-y-3 shadow-sm">
                     <span className="text-[10px] font-bold uppercase text-muted-foreground block border-b border-border/40 pb-2">
-                      Capabilities lost on downgrade:
+                      Here's what you'll lose:
                     </span>
                     <div className="space-y-3">
                       <div className="flex items-start gap-3">
@@ -137,7 +137,7 @@ export function CancelProModal({ isOpen, onClose }: CancelProModalProps) {
                         </div>
                         <div>
                           <span className="font-bold text-foreground block text-xs">Real-Time Android Push Sync</span>
-                          <span className="text-[11px] text-muted-foreground font-sans">Bank notifications will no longer be auto-imported.</span>
+                          <span className="text-[11px] text-muted-foreground font-sans">We won't be able to auto-import your bank notifications anymore.</span>
                         </div>
                       </div>
 
@@ -147,7 +147,7 @@ export function CancelProModal({ isOpen, onClose }: CancelProModalProps) {
                         </div>
                         <div>
                           <span className="font-bold text-foreground block text-xs">AI Neural Statement Parsing</span>
-                          <span className="text-[11px] text-muted-foreground font-sans">Automatic statement & receipt parsing will stop.</span>
+                          <span className="text-[11px] text-muted-foreground font-sans">Your statements and receipts won't be parsed automatically.</span>
                         </div>
                       </div>
 
@@ -157,7 +157,7 @@ export function CancelProModal({ isOpen, onClose }: CancelProModalProps) {
                         </div>
                         <div>
                           <span className="font-bold text-foreground block text-xs">Recency-Decay (λ) Forecasts</span>
-                          <span className="text-[11px] text-muted-foreground font-sans">Predictive cash flow will revert to static averages.</span>
+                          <span className="text-[11px] text-muted-foreground font-sans">Your cash flow predictions will go back to basic static averages.</span>
                         </div>
                       </div>
                     </div>
@@ -189,9 +189,9 @@ export function CancelProModal({ isOpen, onClose }: CancelProModalProps) {
               {step === 2 && (
                 <div className="space-y-6 animate-fade-in">
                   <div className="space-y-1 text-center">
-                    <h3 className="text-lg font-bold uppercase text-foreground">Why are you leaving?</h3>
+                    <h3 className="text-lg font-bold uppercase text-foreground">Help us understand</h3>
                     <p className="text-xs text-muted-foreground font-sans">
-                      Please select the option that best describes your decision:
+                      What's the main reason you're considering leaving?
                     </p>
                   </div>
 
@@ -218,12 +218,12 @@ export function CancelProModal({ isOpen, onClose }: CancelProModalProps) {
                   {/* Optional Feedback */}
                   <div className="space-y-1 pt-1">
                     <label className="text-[10px] font-mono uppercase font-bold text-muted-foreground">
-                      Tell us how we can improve (optional):
+                      Anything else you'd like us to know? (optional):
                     </label>
                     <textarea
                       value={feedbackText}
                       onChange={(e) => setFeedbackText(e.target.value)}
-                      placeholder="What could we have done better?"
+                      placeholder="We're always listening — tell us what you'd change..."
                       rows={2}
                       className="w-full bg-card border border-border p-3 text-xs font-mono text-foreground outline-none resize-none"
                     />
@@ -252,9 +252,9 @@ export function CancelProModal({ isOpen, onClose }: CancelProModalProps) {
               {step === 3 && (
                 <div className="space-y-6 animate-fade-in">
                   <div className="space-y-1 text-center">
-                    <h3 className="text-lg font-bold uppercase text-foreground">Special Retention Offer</h3>
+                    <h3 className="text-lg font-bold uppercase text-foreground">We've got something for you</h3>
                     <p className="text-xs text-muted-foreground font-sans">
-                      Before you go, we have an exclusive offer for you:
+                      Before you go — we'd love to make this work:
                     </p>
                   </div>
 
@@ -266,10 +266,10 @@ export function CancelProModal({ isOpen, onClose }: CancelProModalProps) {
 
                       <div className="space-y-1">
                         <span className="text-sm font-bold uppercase text-emerald-500 flex items-center gap-1.5 font-mono">
-                          <Sparkles className="h-4 w-4" /> Keep PRO for {halfPriceFormatted}/mo
+                          <Sparkles className="h-4 w-4" /> We'll keep you on PRO for {halfPriceFormatted}/mo
                         </span>
                         <p className="text-xs text-foreground font-sans leading-relaxed">
-                          Stay on PRO for <strong>{halfPriceFormatted}/month</strong> (50% OFF for 3 months). Retain all bank push notifications, statement parsing & forecasts.
+                          Stay with us at <strong>{halfPriceFormatted}/month</strong> (50% OFF for 3 months). You keep all your bank push notifications, statement parsing & forecasts.
                         </p>
                       </div>
 
@@ -294,10 +294,10 @@ export function CancelProModal({ isOpen, onClose }: CancelProModalProps) {
 
                       <div className="space-y-1">
                         <span className="text-sm font-bold uppercase text-foreground flex items-center gap-1.5 font-mono">
-                          <HelpCircle className="h-4 w-4 text-primary" /> Let us help configure your setup
+                          <HelpCircle className="h-4 w-4 text-primary" /> Let us help you get set up
                         </span>
                         <p className="text-xs text-muted-foreground font-sans leading-relaxed">
-                          Get <strong>1 month of PRO free</strong> + direct setup assistance for your bank push rules and custom category triggers.
+                          We'll give you <strong>1 month of PRO free</strong> + direct help configuring your bank push rules and custom category triggers.
                         </p>
                       </div>
 
@@ -311,15 +311,15 @@ export function CancelProModal({ isOpen, onClose }: CancelProModalProps) {
                     </div>
                   )}
 
-                  <div className="pt-2 space-y-2">
-                    <Button
+                  <div className="pt-4 text-center">
+                    <button
+                      type="button"
                       disabled={isSubmitting}
-                      variant="outline"
                       onClick={handleFinalCancel}
-                      className="w-full h-10 rounded-none text-xs uppercase font-mono font-bold border-destructive text-destructive hover:bg-destructive/10 cursor-pointer"
+                      className="text-[9px] font-mono uppercase text-muted-foreground/60 hover:text-muted-foreground underline underline-offset-4 cursor-pointer disabled:opacity-50"
                     >
-                      {isSubmitting ? "PROCESSING..." : "Decline Offer & Complete Cancellation"}
-                    </Button>
+                      {isSubmitting ? "processing..." : "No thanks, complete cancellation"}
+                    </button>
                   </div>
                 </div>
               )}
