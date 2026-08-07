@@ -633,27 +633,30 @@ export function SystemSettingsModal({ open, onOpenChange }: SystemSettingsModalP
             {/* TAB 2: AI ENGINE CONFIG */}
             <TabsContent value="ai" className="space-y-4 flex-1 overflow-y-auto pr-1 min-h-0">
               <form onSubmit={handleSaveSettings} className="space-y-4">
-                <div className="p-4 bg-secondary/10 border border-border space-y-3">
-                  <div className="space-y-1">
-                    <span className="text-xs uppercase tracking-wider font-mono text-foreground font-bold block">
-                      Neural Provider & Key Setup
-                    </span>
-                    <span className="text-[10px] text-muted-foreground font-sans block">
-                      Select your preferred provider or supply a custom API key.
-                    </span>
+                {/* 1. Provider & Credentials Card */}
+                <div className="p-4 bg-card border border-border space-y-3">
+                  <div className="flex items-center justify-between border-b border-border/40 pb-2">
+                    <div>
+                      <span className="text-xs uppercase tracking-wider font-mono text-foreground font-bold flex items-center gap-1.5">
+                        <Brain className="h-4 w-4 text-emerald-500" /> AI Provider & Credentials
+                      </span>
+                      <span className="text-[10px] text-muted-foreground font-sans block mt-0.5">
+                        Choose your primary inference engine or connect a custom API key.
+                      </span>
+                    </div>
                   </div>
 
                   <div className="grid grid-cols-2 gap-3 pt-1">
                     <div className="space-y-1.5">
                       <Label htmlFor="modalAiProvider" className="text-[9px] uppercase font-mono font-bold text-muted-foreground">
-                        Provider Model
+                        AI Provider Engine
                       </Label>
                       <div className="relative">
                         <select
                           id="modalAiProvider"
                           value={aiProviderInput}
                           onChange={(e) => setAiProviderInput(e.target.value)}
-                          className="w-full bg-background border border-border rounded-none h-9 px-3 pr-8 text-xs font-mono text-foreground outline-none focus:border-foreground appearance-none"
+                          className="w-full bg-background border border-border rounded-none h-9 px-3 pr-8 text-xs font-mono text-foreground outline-none focus:border-foreground appearance-none font-bold"
                         >
                           <option value="gemini">Google Gemini (Default)</option>
                           <option value="openai">OpenAI (GPT-4o-mini)</option>
@@ -675,48 +678,60 @@ export function SystemSettingsModal({ open, onOpenChange }: SystemSettingsModalP
                         value={customKeyInput}
                         onChange={(e) => setCustomKeyInput(e.target.value)}
                         placeholder={aiProviderInput === "ollama" ? "http://localhost:11434" : "e.g. AIzaSy..."}
-                        className="rounded-none font-mono text-xs h-9 bg-background"
+                        className="rounded-none font-mono text-xs h-9 bg-background font-bold"
                       />
                     </div>
                   </div>
+                </div>
 
-                  {/* Yap Level (PRO Gated) */}
-                  <div className="space-y-1.5 pt-1">
+                {/* 2. Response Calibration & Decay Parameters */}
+                <div className="p-4 bg-card border border-border space-y-3">
+                  <div className="flex items-center justify-between border-b border-border/40 pb-2">
+                    <div>
+                      <span className="text-xs uppercase tracking-wider font-mono text-foreground font-bold flex items-center gap-1.5">
+                        <Sliders className="h-3.5 w-3.5 text-foreground" /> Intelligence Calibration
+                      </span>
+                      <span className="text-[10px] text-muted-foreground font-sans block mt-0.5">
+                        Tune response verbosity and recency-decay mathematical weighting (λ).
+                      </span>
+                    </div>
+                  </div>
+
                   {!isPro ? (
                     <ProLockOverlay 
                       compact
                       title="ADVANCED AI CALIBRATION (PRO)"
-                      description="Custom AI response verbosity yap levels and recency-decay time parameters (λ) are exclusive to LEGER_OS PRO nodes."
+                      description="Custom AI response depth and recency-decay time parameters (λ) are exclusive to LEGER_OS PRO nodes."
                     />
                   ) : (
-                    <div className="grid grid-cols-2 gap-3 pt-2 border-t border-border/40">
-                      {/* AI Response Verbosity */}
+                    <div className="grid grid-cols-2 gap-3 pt-1">
+                      {/* AI Response Depth */}
                       <div className="space-y-1.5">
                         <Label htmlFor="modalYapLevel" className="text-[9px] uppercase font-mono font-bold text-muted-foreground">
-                          AI Verbosity / Yap Level
+                          AI Response Depth
                         </Label>
                         <div className="relative">
                           <select
                             id="modalYapLevel"
                             value={aiYapLevelInput}
                             onChange={(e) => setAiYapLevelInput(e.target.value as any)}
-                            className="w-full bg-background border border-border rounded-none h-9 px-3 pr-8 text-xs font-mono outline-none appearance-none text-foreground focus:border-foreground"
+                            className="w-full bg-background border border-border rounded-none h-9 px-3 pr-8 text-xs font-mono outline-none appearance-none text-foreground focus:border-foreground font-bold"
                           >
-                            <option value="concise">Concise & Direct (Brief answers)</option>
+                            <option value="concise">Concise & Direct (Brief)</option>
                             <option value="standard">Standard (Balanced context)</option>
-                            <option value="verbose">Verbose & Explanatory (Thorough strategies)</option>
+                            <option value="verbose">Detailed & Explanatory (Deep)</option>
                           </select>
                           <ChevronDown className="absolute right-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground pointer-events-none" />
                         </div>
                       </div>
 
-                      {/* Recency Decay Weight (PRO Gated Calibration) */}
+                      {/* Recency Decay Weight */}
                       <div className="space-y-1.5 flex flex-col justify-between">
                         <div className="flex items-center justify-between text-[10px] font-mono">
                           <span className="text-muted-foreground uppercase font-bold">
                             Recency Decay (λ):
                           </span>
-                          <span className="font-bold text-foreground">{decayInput} (~{Math.round(0.693 / (parseFloat(decayInput) || 0.12))} day half-life)</span>
+                          <span className="font-bold text-emerald-500">{decayInput} (~{Math.round(0.693 / (parseFloat(decayInput) || 0.12))}d half-life)</span>
                         </div>
                         <input
                           type="range"
@@ -731,14 +746,13 @@ export function SystemSettingsModal({ open, onOpenChange }: SystemSettingsModalP
                     </div>
                   )}
                 </div>
-              </div>
 
                 <Button
                   type="submit"
                   disabled={isSaving}
                   className="w-full h-9 rounded-none bg-foreground text-background hover:bg-foreground/90 uppercase font-mono text-[10px] font-bold tracking-widest cursor-pointer"
                 >
-                  {isSaving ? "SAVING..." : "SAVE AI & ENGINE CONFIGURATION"}
+                  {isSaving ? "SAVING..." : "SAVE AI ENGINE CONFIGURATION"}
                 </Button>
               </form>
             </TabsContent>
