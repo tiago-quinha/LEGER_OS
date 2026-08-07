@@ -208,7 +208,7 @@ export function AnalyticsView({ expenses, categories, paychecks: initialPaycheck
         <div className="space-y-3">
           <div className="flex items-center gap-3 text-[9px] md:text-[10px] font-mono tracking-[0.2em] uppercase text-muted-foreground">
             <BarChart3 className="h-3.5 w-3.5" />
-            <span>/analytics</span>
+            <span>Financial Analytics</span>
           </div>
           <h1 className="text-4xl md:text-5xl font-bold tracking-tighter uppercase leading-none break-words">
             Analytics

@@ -386,7 +386,7 @@ export function SystemConfigView() {
         <div className="space-y-2">
           <div className="flex items-center gap-3 text-[9px] md:text-[10px] tracking-[0.2em] uppercase text-muted-foreground">
             <Sliders className="h-3.5 w-3.5" />
-            <span>/system</span>
+            <span>Configuration Dashboard</span>
           </div>
           <h1 className="text-4xl md:text-5xl font-bold tracking-tighter uppercase leading-none break-words">
             System Config
