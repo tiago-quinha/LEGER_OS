@@ -459,20 +459,22 @@ export function SystemSettingsModal({ open, onOpenChange }: SystemSettingsModalP
 
             {/* TAB 1: GENERAL PREFERENCES */}
             <TabsContent value="preferences" className="space-y-4 flex-1 overflow-y-auto pr-1 min-h-0">
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                <div className="p-3 bg-card border border-border space-y-1.5">
-                  <div className="flex items-center justify-between">
-                    <span className="font-bold uppercase text-[10px] font-mono flex items-center gap-1.5">
-                      {isPrivacyMode ? <Shield className="h-3.5 w-3.5 text-foreground" /> : <ShieldOff className="h-3.5 w-3.5 text-muted-foreground" />}
-                      Privacy Mode
-                    </span>
-                    <span className={cn("text-[8px] font-mono uppercase px-1.5 py-0.5 font-bold", isPrivacyMode ? "bg-foreground text-background font-bold" : "bg-secondary text-muted-foreground")}>
-                      {isPrivacyMode ? "ON" : "OFF"}
-                    </span>
+              <div className="grid grid-cols-2 gap-3">
+                <div className="p-3 bg-card border border-border space-y-1.5 flex flex-col justify-between">
+                  <div className="space-y-1">
+                    <div className="flex items-center justify-between">
+                      <span className="font-bold uppercase text-[10px] font-mono flex items-center gap-1.5">
+                        {isPrivacyMode ? <Shield className="h-3.5 w-3.5 text-foreground" /> : <ShieldOff className="h-3.5 w-3.5 text-muted-foreground" />}
+                        Privacy Mode
+                      </span>
+                      <span className={cn("text-[8px] font-mono uppercase px-1.5 py-0.5 font-bold", isPrivacyMode ? "bg-foreground text-background font-bold" : "bg-secondary text-muted-foreground")}>
+                        {isPrivacyMode ? "ON" : "OFF"}
+                      </span>
+                    </div>
+                    <p className="text-[10px] text-muted-foreground font-sans leading-relaxed">
+                      Obfuscates currency values across all dashboard views.
+                    </p>
                   </div>
-                  <p className="text-[10px] text-muted-foreground font-sans leading-relaxed">
-                    Obfuscates currency values across all dashboard views.
-                  </p>
                   <Button 
                     type="button"
                     variant={isPrivacyMode ? "default" : "outline"} 
@@ -483,19 +485,21 @@ export function SystemSettingsModal({ open, onOpenChange }: SystemSettingsModalP
                   </Button>
                 </div>
 
-                <div className="p-3 bg-card border border-border space-y-1.5">
-                  <div className="flex items-center justify-between">
-                    <span className="font-bold uppercase text-[10px] font-mono flex items-center gap-1.5">
-                      {theme === "dark" ? <Moon className="h-3.5 w-3.5 text-primary" /> : <Sun className="h-3.5 w-3.5 text-amber-500" />}
-                      Theme Mode
-                    </span>
-                    <span className="text-[8px] font-mono uppercase px-1.5 py-0.5 font-bold bg-secondary text-foreground">
-                      {theme === "dark" ? "CYBER DARK" : "LIGHT"}
-                    </span>
+                <div className="p-3 bg-card border border-border space-y-1.5 flex flex-col justify-between">
+                  <div className="space-y-1">
+                    <div className="flex items-center justify-between">
+                      <span className="font-bold uppercase text-[10px] font-mono flex items-center gap-1.5">
+                        {theme === "dark" ? <Moon className="h-3.5 w-3.5 text-primary" /> : <Sun className="h-3.5 w-3.5 text-amber-500" />}
+                        Theme Mode
+                      </span>
+                      <span className="text-[8px] font-mono uppercase px-1.5 py-0.5 font-bold bg-secondary text-foreground">
+                        {theme === "dark" ? "CYBER DARK" : "LIGHT"}
+                      </span>
+                    </div>
+                    <p className="text-[10px] text-muted-foreground font-sans leading-relaxed">
+                      Toggle terminal theme presentation.
+                    </p>
                   </div>
-                  <p className="text-[10px] text-muted-foreground font-sans leading-relaxed">
-                    Toggle terminal theme presentation.
-                  </p>
                   <Button 
                     type="button"
                     variant="outline" 
@@ -512,11 +516,11 @@ export function SystemSettingsModal({ open, onOpenChange }: SystemSettingsModalP
                   <Label className="text-[10px] uppercase font-mono font-bold text-muted-foreground">
                     Cycle Reset Cadence
                   </Label>
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                  <div className="grid grid-cols-2 gap-2.5">
                     <div 
                       onClick={() => setCycleMode("keyword")}
                       className={cn(
-                        "p-3 border cursor-pointer transition-all space-y-1 rounded-none",
+                        "p-3 border cursor-pointer transition-all space-y-1 rounded-none flex flex-col justify-between",
                         cycleMode === "keyword" ? "bg-foreground/5 border-foreground shadow-sm ring-1 ring-foreground" : "bg-card border-border hover:bg-secondary/20 opacity-70"
                       )}
                     >
@@ -532,7 +536,7 @@ export function SystemSettingsModal({ open, onOpenChange }: SystemSettingsModalP
                     <div 
                       onClick={() => setCycleMode("monthly")}
                       className={cn(
-                        "p-3 border cursor-pointer transition-all space-y-1 rounded-none",
+                        "p-3 border cursor-pointer transition-all space-y-1 rounded-none flex flex-col justify-between",
                         cycleMode === "monthly" ? "bg-foreground/5 border-foreground shadow-sm ring-1 ring-foreground" : "bg-card border-border hover:bg-secondary/20 opacity-70"
                       )}
                     >
@@ -562,7 +566,7 @@ export function SystemSettingsModal({ open, onOpenChange }: SystemSettingsModalP
                   </div>
                 )}
 
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div className="grid grid-cols-2 gap-3">
                   <div className="space-y-1">
                     <Label htmlFor="modalCurrency" className="text-[9px] uppercase font-mono font-bold text-muted-foreground">
                       Base Currency
@@ -602,7 +606,7 @@ export function SystemSettingsModal({ open, onOpenChange }: SystemSettingsModalP
                   </div>
                 </div>
 
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div className="grid grid-cols-2 gap-3">
                   <div className="space-y-1">
                     <Label htmlFor="modalIncome" className="text-[9px] uppercase font-mono font-bold text-muted-foreground">
                       Expected Monthly Income ({currencySymbol})
@@ -654,7 +658,7 @@ export function SystemSettingsModal({ open, onOpenChange }: SystemSettingsModalP
                     </span>
                   </div>
 
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-1">
+                  <div className="grid grid-cols-2 gap-3 pt-1">
                     <div className="space-y-1.5">
                       <Label htmlFor="modalAiProvider" className="text-[9px] uppercase font-mono font-bold text-muted-foreground">
                         Provider Model
@@ -700,7 +704,7 @@ export function SystemSettingsModal({ open, onOpenChange }: SystemSettingsModalP
                       description="Custom AI response verbosity yap levels and recency-decay time parameters (λ) are exclusive to LEGER_OS PRO nodes."
                     />
                   ) : (
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-2 border-t border-border/40">
+                    <div className="grid grid-cols-2 gap-3 pt-2 border-t border-border/40">
                       {/* AI Response Verbosity */}
                       <div className="space-y-1.5">
                         <Label htmlFor="modalYapLevel" className="text-[9px] uppercase font-mono font-bold text-muted-foreground">
@@ -958,7 +962,7 @@ export function SystemSettingsModal({ open, onOpenChange }: SystemSettingsModalP
                 </p>
               </div>
 
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <div className="grid grid-cols-2 gap-3">
                 {/* CORE PLAN CARD */}
                 <div className="p-4 bg-card border border-border space-y-3 flex flex-col justify-between">
                   <div className="space-y-2">
@@ -1021,7 +1025,7 @@ export function SystemSettingsModal({ open, onOpenChange }: SystemSettingsModalP
 
             {/* TAB 6: ACCOUNT & SECURITY */}
             <TabsContent value="account" className="space-y-4 flex-1 overflow-y-auto pr-1 min-h-0">
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <div className="grid grid-cols-2 gap-3">
                 <div className="p-4 bg-card border border-border space-y-3 flex flex-col justify-between">
                   <div className="space-y-1">
                     <div className="flex items-center justify-between">
