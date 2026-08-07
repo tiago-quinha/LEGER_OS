@@ -406,10 +406,10 @@ export function SystemSettingsModal({ open, onOpenChange }: SystemSettingsModalP
                 <div className="p-3 bg-card border border-border space-y-1.5">
                   <div className="flex items-center justify-between">
                     <span className="font-bold uppercase text-[10px] font-mono flex items-center gap-1.5">
-                      {isPrivacyMode ? <Shield className="h-3.5 w-3.5 text-emerald-500" /> : <ShieldOff className="h-3.5 w-3.5 text-muted-foreground" />}
+                      {isPrivacyMode ? <Shield className="h-3.5 w-3.5 text-foreground" /> : <ShieldOff className="h-3.5 w-3.5 text-muted-foreground" />}
                       Privacy Mode
                     </span>
-                    <span className={cn("text-[8px] font-mono uppercase px-1.5 py-0.5 font-bold", isPrivacyMode ? "bg-emerald-500/10 text-emerald-500 border border-emerald-500/20" : "bg-secondary text-muted-foreground")}>
+                    <span className={cn("text-[8px] font-mono uppercase px-1.5 py-0.5 font-bold", isPrivacyMode ? "bg-foreground text-background font-bold" : "bg-secondary text-muted-foreground")}>
                       {isPrivacyMode ? "ON" : "OFF"}
                     </span>
                   </div>

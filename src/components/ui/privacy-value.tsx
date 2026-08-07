@@ -38,7 +38,7 @@ export function PrivacyValue({ children, className }: PrivacyValueProps) {
             transition={{ duration: 0.2 }}
             className="absolute inset-0 flex items-center justify-center pointer-events-none z-10"
           >
-            <span className="font-mono text-xs font-bold tracking-widest text-emerald-500/80 bg-emerald-500/10 px-2 py-0.5 border border-emerald-500/20">
+            <span className="font-mono text-xs font-bold tracking-widest text-muted-foreground bg-secondary/80 px-2 py-0.5 border border-border/60">
               ••••••
             </span>
           </motion.span>
