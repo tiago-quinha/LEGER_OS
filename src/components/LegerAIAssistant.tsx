@@ -597,17 +597,26 @@ export function LegerAIAssistant() {
               transition={{ type: "spring", damping: 25, stiffness: 300 }}
               className="absolute pointer-events-auto bottom-0 left-0 right-0 sm:bottom-20 sm:left-auto sm:right-6 w-full sm:w-[380px] h-[80vh] sm:h-[520px] max-h-[90vh] sm:max-h-[calc(100vh-140px)] border-t border-x sm:border border-border bg-card/95 backdrop-blur-md shadow-2xl flex flex-col overflow-hidden rounded-t-2xl sm:rounded-xl font-sans z-[100000]"
             >
-              {isMobile && (
-                <div 
-                  className="w-12 h-1.5 bg-border/80 rounded-full mx-auto my-2.5 shrink-0 cursor-pointer hover:bg-border transition-colors touch-none" 
-                  onPointerDown={(e) => sheetDragControls.start(e)}
-                />
-              )}
+              {/* Full-width Drag Handle Bar with spacious hitbox */}
+              <div 
+                className="w-full flex justify-center py-3.5 cursor-grab active:cursor-grabbing border-b border-border/40 select-none shrink-0 bg-secondary/20 hover:bg-secondary/30 transition-colors touch-none" 
+                onPointerDown={(e) => sheetDragControls.start(e)}
+              >
+                <div className="w-16 h-1.5 bg-muted-foreground/40 rounded-full" />
+              </div>
+
               {/* Scanline background */}
               <div className="absolute inset-0 bg-[linear-gradient(to_right,rgba(128,128,128,0.01)_1px,transparent_1px),linear-gradient(to_bottom,rgba(128,128,128,0.01)_1px,transparent_1px)] bg-[size:16px_16px] pointer-events-none" />
 
               {/* Chat Header */}
-              <div className="p-4 border-b border-border bg-secondary/15 flex items-center justify-between z-10">
+              <div 
+                className="p-4 border-b border-border bg-secondary/15 flex items-center justify-between z-10 cursor-grab active:cursor-grabbing select-none touch-none"
+                onPointerDown={(e) => {
+                  if (!(e.target as HTMLElement).closest('button, input, select, a')) {
+                    sheetDragControls.start(e)
+                  }
+                }}
+              >
                 <div className="flex items-center gap-2">
                   <div className="p-1.5 bg-primary/10 border border-primary/20 rounded-md">
                     <Brain className="h-4 w-4 text-foreground animate-pulse" />
