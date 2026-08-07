@@ -239,7 +239,7 @@ export function BudgetsView({ categories, budgets: initialBudgets, expenses, cyc
           initial={{ opacity: 0, y: 4 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.45, ease: [0.16, 1, 0.3, 1] }}
-          className="mx-auto max-w-[1500px] p-4 md:p-8 space-y-6 w-full pb-24 md:pb-8"
+          className="mx-auto max-w-[1500px] p-4 md:p-8 space-y-6 w-full pb-36 md:pb-8"
         >
         {/* 1. Header */}
       <header className="flex items-center justify-between gap-6 border-b border-foreground/10 pb-6 md:pb-8 relative flex-wrap sm:flex-nowrap">

@@ -313,7 +313,7 @@ export function LegerAIPageView({ cycleData, expenses, categories }: LegerAIPage
       initial={{ opacity: 0, y: 4 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.45, ease: [0.16, 1, 0.3, 1] }}
-      className="mx-auto max-w-[1500px] p-4 md:p-8 space-y-10 md:space-y-12 pb-24 md:pb-8 w-full"
+      className="mx-auto max-w-[1500px] p-4 md:p-8 space-y-10 md:space-y-12 pb-36 md:pb-8 w-full"
     >
       {/* Dynamic Success Notification Banner */}
       <AnimatePresence>
