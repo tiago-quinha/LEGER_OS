@@ -12,6 +12,7 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: reason }, { status: 403 });
     }
 
+    const supabaseAdmin = getAdminClient();
     const body = await request.json();
     const { query, telemetry, categories, userName, clientDate, history } = body;
 
@@ -32,7 +33,6 @@ export async function POST(request: Request) {
 
     if (userId) {
       try {
-        const supabaseAdmin = getAdminClient();
         const [serverDataRes, profileRes] = await Promise.all([
           calculateServerTelemetry(supabaseAdmin, userId, clientDate).catch(telErr => {
             console.error("Failed to calculate server-side telemetry:", telErr);
@@ -206,8 +206,6 @@ export async function POST(request: Request) {
     // --- STEP 2: Database Retrieval ---
     let dbContextStr = "";
     if (requiresDb && sanitizedQueries.length > 0 && userId) {
-      const supabaseAdmin = getAdminClient();
-
       for (const dbQ of sanitizedQueries) {
         const table = dbQ.table;
         const selectCols = dbQ.select || "*";
@@ -467,8 +465,6 @@ export async function POST(request: Request) {
       // Automatic memory journaling processing
       if (parsedRes.newJournalEntry && userId) {
         try {
-          const supabaseAdmin = getAdminClient();
-          
           let existingJournal: any[] = [];
           if (profileData && Array.isArray(profileData.ai_journal)) {
             existingJournal = profileData.ai_journal;
