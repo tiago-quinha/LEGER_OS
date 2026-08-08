@@ -2,7 +2,7 @@
 
 import React, { useState } from "react"
 import { motion, AnimatePresence } from "framer-motion"
-import { AlertTriangle, Check, X, ShieldAlert, Sparkles, ArrowRight, ArrowLeft } from "lucide-react"
+import { AlertTriangle, Check, X, ShieldAlert, Sparkles, ArrowRight, ArrowLeft, Heart } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { useSystem } from "@/lib/SystemContext"
 import { getProPrice } from "@/lib/format"
@@ -22,7 +22,7 @@ const CHURN_REASONS = [
 ]
 
 export function CancelProModal({ isOpen, onClose }: CancelProModalProps) {
-  const { cancelPro, claimProDiscount, currency } = useSystem()
+  const { cancelPro, claimProDiscount, currency, profile } = useSystem()
   const [step, setStep] = useState<1 | 2 | 3>(1)
   const [selectedReason, setSelectedReason] = useState<string>("")
   const [feedbackText, setFeedbackText] = useState<string>("")
@@ -248,57 +248,130 @@ export function CancelProModal({ isOpen, onClose }: CancelProModalProps) {
                 </div>
               )}
 
-              {/* STEP 3: EXCLUSIVE RETENTION OFFER */}
+              {/* STEP 3: RETENTION OFFER OR FAREWELL */}
               {step === 3 && (
                 <div className="space-y-6 animate-fade-in">
-                  <div className="space-y-1 text-center">
-                    <h3 className="text-lg font-bold uppercase text-foreground">We've got something for you</h3>
-                    <p className="text-xs text-muted-foreground font-sans">
-                      Before you go — we'd love to make this work:
-                    </p>
-                  </div>
+                  {profile?.ai_journal?.retention_discount_claimed_at ? (
+                    /* RETURNING CHURNER — No discount, friendly farewell */
+                    <>
+                      <div className="space-y-2 text-center">
+                        <div className="mx-auto w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center mb-2">
+                          <Heart className="h-5 w-5 text-primary" />
+                        </div>
+                        <h3 className="text-lg font-bold uppercase text-foreground">We understand</h3>
+                        <p className="text-xs text-muted-foreground font-sans leading-relaxed max-w-xs mx-auto">
+                          We're sorry to see you go. You're always welcome back — no waiting period, no setup required.
+                        </p>
+                      </div>
 
-                  <div className="p-5 bg-emerald-500/10 border-2 border-emerald-500/50 space-y-4 relative overflow-hidden shadow-lg">
-                    <div className="inline-block bg-emerald-500 text-black font-mono font-bold text-[9px] px-2 py-0.5 uppercase">
-                      EXCLUSIVE 50% RETENTION DISCOUNT
-                    </div>
+                      <div className="p-4 bg-card border border-border space-y-3">
+                        <span className="text-[10px] font-bold uppercase text-muted-foreground block border-b border-border/40 pb-2">
+                          Your data after downgrade:
+                        </span>
+                        <div className="space-y-2 text-xs font-sans text-muted-foreground">
+                          <div className="flex items-start gap-2">
+                            <Check className="h-3.5 w-3.5 text-emerald-500 mt-0.5 shrink-0" />
+                            <span><strong className="text-foreground">Transactions & categories</strong> stay with you forever on Core.</span>
+                          </div>
+                          <div className="flex items-start gap-2">
+                            <AlertTriangle className="h-3.5 w-3.5 text-amber-500 mt-0.5 shrink-0" />
+                            <span><strong className="text-foreground">PRO data</strong> (AI insights, parsed statements, forecasts) will be kept for <strong className="text-foreground">90 days</strong> in case you come back.</span>
+                          </div>
+                          <div className="flex items-start gap-2">
+                            <ShieldAlert className="h-3.5 w-3.5 text-muted-foreground mt-0.5 shrink-0" />
+                            <span>After 90 days, PRO-specific data will be cleared to protect your privacy.</span>
+                          </div>
+                        </div>
+                      </div>
 
-                    <div className="space-y-1">
-                      <span className="text-sm font-bold uppercase text-emerald-500 flex items-center gap-1.5 font-mono">
-                        <Sparkles className="h-4 w-4" /> We'll keep you on PRO for {halfPriceFormatted}/mo
-                      </span>
-                      <p className="text-xs text-foreground font-sans leading-relaxed">
-                        {(selectedReason === "missing_features" || selectedReason === "technical_issues")
-                          ? <>Stay with us at <strong>{halfPriceFormatted}/month</strong> (50% OFF for 3 months) while we work on improvements. You keep all your existing features.</>
-                          : <>Stay with us at <strong>{halfPriceFormatted}/month</strong> (50% OFF for 3 months). You keep all your bank push notifications, statement parsing & forecasts.</>
-                        }
-                      </p>
-                    </div>
+                      <div className="space-y-3">
+                        <Button
+                          onClick={handleKeepPro}
+                          className="w-full h-11 rounded-none bg-foreground text-background hover:bg-foreground/90 font-mono text-xs uppercase font-bold tracking-wider cursor-pointer"
+                        >
+                          Actually, I'll stay on PRO
+                        </Button>
+                        <div className="text-center">
+                          <button
+                            type="button"
+                            disabled={isSubmitting}
+                            onClick={handleFinalCancel}
+                            className="text-[9px] font-mono uppercase text-muted-foreground/60 hover:text-muted-foreground underline underline-offset-4 cursor-pointer disabled:opacity-50"
+                          >
+                            {isSubmitting ? "processing..." : "Complete cancellation"}
+                          </button>
+                        </div>
+                      </div>
+                    </>
+                  ) : (
+                    /* FIRST-TIME CHURNER — Show exclusive 50% discount */
+                    <>
+                      <div className="space-y-1 text-center">
+                        <h3 className="text-lg font-bold uppercase text-foreground">We've got something for you</h3>
+                        <p className="text-xs text-muted-foreground font-sans">
+                          Before you go — we'd love to make this work:
+                        </p>
+                      </div>
 
-                    <div className="p-3 bg-background/80 border border-emerald-500/30 text-xs font-mono flex items-center justify-between">
-                      <span className="text-muted-foreground uppercase">Standard: <span className="line-through">{proPrice.formatted}/mo</span></span>
-                      <span className="font-bold text-emerald-500 text-base">{halfPriceFormatted} / month</span>
-                    </div>
+                      <div className="p-5 bg-emerald-500/10 border-2 border-emerald-500/50 space-y-4 relative overflow-hidden shadow-lg">
+                        <div className="inline-block bg-emerald-500 text-black font-mono font-bold text-[9px] px-2 py-0.5 uppercase">
+                          ONE-TIME EXCLUSIVE 50% DISCOUNT
+                        </div>
 
-                    <Button
-                      disabled={isSubmitting}
-                      onClick={handleClaimDiscount}
-                      className="w-full h-12 rounded-none bg-emerald-500 text-black hover:bg-emerald-400 font-mono text-xs uppercase font-bold tracking-wider cursor-pointer shadow-md"
-                    >
-                      {isSubmitting ? "APPLYING..." : `Claim 50% Discount (${halfPriceFormatted}/mo)`}
-                    </Button>
-                  </div>
+                        <div className="space-y-1">
+                          <span className="text-sm font-bold uppercase text-emerald-500 flex items-center gap-1.5 font-mono">
+                            <Sparkles className="h-4 w-4" /> We'll keep you on PRO for {halfPriceFormatted}/mo
+                          </span>
+                          <p className="text-xs text-foreground font-sans leading-relaxed">
+                            {(selectedReason === "missing_features" || selectedReason === "technical_issues")
+                              ? <>Stay with us at <strong>{halfPriceFormatted}/month</strong> (50% OFF for 3 months) while we work on improvements. You keep all your existing features.</>
+                              : <>Stay with us at <strong>{halfPriceFormatted}/month</strong> (50% OFF for 3 months). You keep all your bank push notifications, statement parsing & forecasts.</>
+                            }
+                          </p>
+                        </div>
 
-                  <div className="pt-4 text-center">
-                    <button
-                      type="button"
-                      disabled={isSubmitting}
-                      onClick={handleFinalCancel}
-                      className="text-[9px] font-mono uppercase text-muted-foreground/60 hover:text-muted-foreground underline underline-offset-4 cursor-pointer disabled:opacity-50"
-                    >
-                      {isSubmitting ? "processing..." : "No thanks, complete cancellation"}
-                    </button>
-                  </div>
+                        <div className="p-3 bg-background/80 border border-emerald-500/30 text-xs font-mono flex items-center justify-between">
+                          <span className="text-muted-foreground uppercase">Standard: <span className="line-through">{proPrice.formatted}/mo</span></span>
+                          <span className="font-bold text-emerald-500 text-base">{halfPriceFormatted} / month</span>
+                        </div>
+
+                        <Button
+                          disabled={isSubmitting}
+                          onClick={handleClaimDiscount}
+                          className="w-full h-12 rounded-none bg-emerald-500 text-black hover:bg-emerald-400 font-mono text-xs uppercase font-bold tracking-wider cursor-pointer shadow-md"
+                        >
+                          {isSubmitting ? "APPLYING..." : `Claim 50% Discount (${halfPriceFormatted}/mo)`}
+                        </Button>
+                      </div>
+
+                      <div className="p-4 bg-card border border-border space-y-2">
+                        <span className="text-[10px] font-bold uppercase text-muted-foreground block">
+                          If you decline, here's what happens to your data:
+                        </span>
+                        <div className="space-y-1.5 text-[11px] font-sans text-muted-foreground">
+                          <div className="flex items-start gap-2">
+                            <Check className="h-3 w-3 text-emerald-500 mt-0.5 shrink-0" />
+                            <span>Transactions & categories stay forever on Core.</span>
+                          </div>
+                          <div className="flex items-start gap-2">
+                            <AlertTriangle className="h-3 w-3 text-amber-500 mt-0.5 shrink-0" />
+                            <span>PRO data (AI insights, forecasts) kept for 90 days.</span>
+                          </div>
+                        </div>
+                      </div>
+
+                      <div className="text-center">
+                        <button
+                          type="button"
+                          disabled={isSubmitting}
+                          onClick={handleFinalCancel}
+                          className="text-[9px] font-mono uppercase text-muted-foreground/60 hover:text-muted-foreground underline underline-offset-4 cursor-pointer disabled:opacity-50"
+                        >
+                          {isSubmitting ? "processing..." : "No thanks, complete cancellation"}
+                        </button>
+                      </div>
+                    </>
+                  )}
                 </div>
               )}
 
