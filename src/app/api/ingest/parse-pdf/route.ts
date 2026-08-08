@@ -88,9 +88,9 @@ function renderPage(pageData: any): Promise<string> {
           const trimmed = token.trim();
 
           // Spatial column sign enhancement:
-          // If token is a raw positive decimal number (e.g., "12.50" or "12,50") and falls under Outflow column X
-          if (/^\d+([.,]\d{2})?$/.test(trimmed)) {
-            if (outflowColX !== null && Math.abs(item.x - outflowColX) < 45) {
+          // If token is a raw positive decimal number (e.g., "12.50", "12,50", "1.250,50", "1 250,50") and falls under Outflow column X
+          if (/^[\d.\s]+[.,]\d{2}$/.test(trimmed) || /^\d+([.,]\d{2})?$/.test(trimmed)) {
+            if (outflowColX !== null && Math.abs(item.x - outflowColX) < 55) {
               token = token.replace(trimmed, `-${trimmed}`);
             }
           }

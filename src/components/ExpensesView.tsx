@@ -500,7 +500,7 @@ export function ExpensesView({ initialExpenses, categories: initialCategories, i
     try {
       // Regex patterns capturing date, merchant, amount, optional trailing balance
       const txPatternA = /^(\d{2}[-\/]\d{2}(?:[-\/]\d{4})?)(?:\s+\d{2}[-\/]\d{2}(?:[-\/]\d{4})?)?\s+(.+?)\s*([+-]?[\d.]+,\d{2}|\b[+-]?\d+\.\d{2}\b)(?:\s*(?:EUR|[\w$€£]+))?(?:\s+(-?[\d.]+(?:[.,]\d{2})?)(?:\s*(?:EUR|[\w$€£]+))?)?$/
-      const balancePattern = /(?:Saldo Inicial|Initial Balance|Saldo|Balance)\s*(?:EUR|[\w$€£]+)?\s*([\d.,]+)/i
+      const balancePattern = /(?:Saldo(?:\s+(?:Inicial|Anterior|Abertura|Transitado|Partida|Anterior\s+em|de\s+Abertura))?|Initial\s+Balance|Opening\s+Balance|Balance\s+Forward|Solde(?:\s+Initial)?|Anfangsbestand)\s*(?:EUR|[\w$€£]+)?\s*[:=]?\s*([+-]?[\d.,]+)/i
       const periodPattern = /(?:PERÍODO DE|PERIOD|PERIODO DE)\s*(\d{4})[-\/]\d{2}[-\/]\d{2}\s*(?:A|TO)\s*(\d{4})[-\/]\d{2}[-\/]\d{2}/i
 
       const rawLines = textToParse.split("\n")
@@ -579,6 +579,14 @@ export function ExpensesView({ initialExpenses, categories: initialCategories, i
             }
           }
 
+          // If initialBalance was not found in header, set runningPrevBalance from first line balance
+          if (runningPrevBalance === null && currentLineBalance !== null) {
+            runningPrevBalance = currentLineBalance
+            if (initialBalance === 0) {
+              initialBalance = currentLineBalance
+            }
+          }
+
           // 3-TIER SIGN DETERMINATION ENGINE
           let finalAmount = rawAmountVal
 
@@ -595,19 +603,37 @@ export function ExpensesView({ initialExpenses, categories: initialCategories, i
           } else if (hasExplicitPlus) {
             finalAmount = Math.abs(rawAmountVal)
           }
-          // Tier 3: Multi-Lingual Keyword Recognition
+          // Tier 3: Action-First Multi-Lingual Keyword Recognition
           else {
             const lowerLine = line.toLowerCase()
-            const isOutflow = MULTI_LANG_OUTFLOW_KW.some(kw => lowerLine.includes(kw))
-            const isInflow = MULTI_LANG_INFLOW_KW.some(kw => lowerLine.includes(kw))
+            const hasOutflowAction = [
+              'compra', 'pagamento', 'levantamento', 'retirada', 'retirado', 'saída', 'saida', 'débito', 'debito', 
+              'purchase', 'payment', 'withdrawal', 'charge', 'spent', 'cargo', 'salida', 'gasto', 'pago', 
+              'sortie', 'achat', 'ausgabe', 'kauf', 'zahlung', 'spesa', 'addebito', 'af', 'debet'
+            ].some(kw => lowerLine.includes(kw))
 
-            if (isOutflow && !isInflow) {
+            const hasInflowAction = [
+              'ordenado', 'salário', 'salario', 'vencimento', 'recebido', 'reembolso', 'devolução', 'devolucao', 
+              'salary', 'payroll', 'paycheck', 'deposit', 'received', 'refund', 'reimbursement', 'ingreso', 'nómina', 
+              'nomina', 'sueldo', 'recibido', 'revenu', 'salaire', 'gehalt', 'lohn', 'erstattung', 'stipendio', 'rimborso', 'bij'
+            ].some(kw => lowerLine.includes(kw))
+
+            if (hasOutflowAction) {
               finalAmount = -Math.abs(rawAmountVal)
-            } else if (isInflow) {
+            } else if (hasInflowAction) {
               finalAmount = Math.abs(rawAmountVal)
             } else {
-              // Default fallback: if un-signed and no keywords, default to negative (expense)
-              finalAmount = -Math.abs(rawAmountVal)
+              const isOutflow = MULTI_LANG_OUTFLOW_KW.some(kw => lowerLine.includes(kw))
+              const isInflow = MULTI_LANG_INFLOW_KW.some(kw => lowerLine.includes(kw))
+
+              if (isOutflow && !isInflow) {
+                finalAmount = -Math.abs(rawAmountVal)
+              } else if (isInflow && !isOutflow) {
+                finalAmount = Math.abs(rawAmountVal)
+              } else {
+                // Default fallback: if un-signed and no keywords, default to negative (expense)
+                finalAmount = -Math.abs(rawAmountVal)
+              }
             }
           }
 
