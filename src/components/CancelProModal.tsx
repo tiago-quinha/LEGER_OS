@@ -160,6 +160,16 @@ export function CancelProModal({ isOpen, onClose }: CancelProModalProps) {
                           <span className="text-[11px] text-muted-foreground font-sans">Your cash flow predictions will go back to basic static averages.</span>
                         </div>
                       </div>
+
+                      <div className="flex items-start gap-3">
+                        <div className="p-1 bg-destructive/10 text-destructive shrink-0 mt-0.5">
+                          <X className="h-3.5 w-3.5" />
+                        </div>
+                        <div>
+                          <span className="font-bold text-foreground block text-xs">Conversational AI Overrides</span>
+                          <span className="text-[11px] text-muted-foreground font-sans">Your saved AI assumptions and forecast adjustments will stop applying.</span>
+                        </div>
+                      </div>
                     </div>
                   </div>
 
