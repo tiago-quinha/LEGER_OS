@@ -2,7 +2,7 @@
 
 import React, { useState } from "react"
 import { motion, AnimatePresence } from "framer-motion"
-import { Check, X, Sparkles, ArrowRight, ArrowLeft, Minus, ShieldAlert, Zap, Clock, ShieldCheck } from "lucide-react"
+import { Check, X, Sparkles, ArrowRight, ArrowLeft, Minus, ShieldAlert, Clock, ShieldCheck } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { useSystem } from "@/lib/SystemContext"
 import { getProPrice, formatCurrency } from "@/lib/format"
@@ -99,9 +99,8 @@ export function CancelProModal({ isOpen, onClose }: CancelProModalProps) {
           {/* Header Bar */}
           <div className="px-5 py-4 border-b border-border flex items-center justify-between shrink-0 bg-card/40">
             <div className="space-y-0.5">
-              <p className="text-[10px] uppercase tracking-widest text-muted-foreground font-bold flex items-center gap-1.5">
-                <Zap className="h-3 w-3 text-emerald-500" />
-                Subscription Control Node
+              <p className="text-[10px] uppercase tracking-widest text-muted-foreground font-bold">
+                Subscription & Plan
               </p>
               <div className="flex items-center gap-2 text-[10px] text-muted-foreground/60">
                 {[1, 2, 3].map((s) => (
