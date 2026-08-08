@@ -802,7 +802,7 @@ export function ExpensesView({ initialExpenses, categories: initialCategories, i
         amount: t.amount.toString(),
         merchant: t.merchant,
         date: t.date,
-        source: "Universal Statement Ingestion",
+        source: "Statement Ingestion",
         raw_text: t.raw_text,
         category_id: t.category_id,
         user_id: user?.id

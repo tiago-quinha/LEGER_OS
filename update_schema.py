@@ -148,6 +148,9 @@ CREATE EXTENSION IF NOT EXISTS pg_trgm;
 CREATE INDEX IF NOT EXISTS idx_tracker_expense_user_date_category ON tracker_expense (user_id, date, category_id);
 CREATE INDEX IF NOT EXISTS idx_tracker_expense_merchant_trgm ON tracker_expense USING gin (merchant gin_trgm_ops);
 
+-- Expand source column to TEXT to prevent VARCHAR(20) truncation errors
+ALTER TABLE tracker_expense ALTER COLUMN source TYPE TEXT;
+
 -- Reload PostgREST schema cache in Supabase so new columns and indexes are immediately recognized by the API
 NOTIFY pgrst, 'reload schema';
 """
