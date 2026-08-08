@@ -52,13 +52,33 @@ for line in raw_lines:
 if current_tx_line:
     lines.append(current_tx_line)
 
+OUTFLOW_KW = [
+    'saída', 'saida', 'débito', 'debito', 'levantamento', 'compra', 'pagamento', 'trf.imed. p/', 'transferência p/', 'transferencia p/', 'cargo', 'despesa', 'enviado', 'retirado', 'retirada',
+    'outflow', 'exit', 'debit', 'withdrawal', 'charge', 'spent', 'paid out', 'money out', 'expense', 'purchase', 'payment', 'transfer to', 'fee', 'sent',
+    'salida', 'cargo', 'retiro', 'gasto', 'pago', 'transferencia a', 'comisión',
+    'sortie', 'débit', 'debit', 'retrait', 'dépense', 'achat', 'paiement',
+    'ausgang', 'ausgabe', 'ausgaben', 'lastschrift', 'abhebung', 'kauf', 'zahlung',
+    'uscita', 'addebito', 'prelievo', 'spesa', 'acquisto',
+    'uitgaand', 'uitgaven', 'af', 'debet', 'opname', 'betaling'
+]
+
+INFLOW_KW = [
+    'entrada', 'crédito', 'credito', 'depósito', 'deposito', 'ordenado', 'salário', 'salario', 'vencimento', 'recebido', 'reembolso', 'prémio', 'rewards', 'trf.imed. de', 'transferência de',
+    'inflow', 'entry', 'credit', 'deposit', 'income', 'salary', 'payroll', 'paycheck', 'received', 'paid in', 'money in', 'refund', 'topup', 'transfer from',
+    'abono', 'ingreso', 'nómina', 'sueldo', 'salario',
+    'entrée', 'crédit', 'dépôt', 'revenu', 'salaire',
+    'eingang', 'einnahme', 'einnahmen', 'gutschrift', 'gehalt', 'lohn',
+    'entrata', 'accredito', 'stipendio',
+    'inkomend', 'inkomsten', 'bij', 'salaris'
+]
+
 for line in lines:
     match = pattern.match(line)
     if match:
         date_str, desc, amount_str, *rest = match.groups()
         
         # Parse amount
-        amount_val = Decimal(amount_str.replace(',', '.'))
+        raw_val = Decimal(amount_str.replace(',', '.'))
         
         # Parse date (handles dashes and slashes)
         date_parts = re.split(r'[-/]', date_str)
@@ -66,19 +86,22 @@ for line in lines:
         month = int(date_parts[1])
         year = int(date_parts[2]) if len(date_parts) == 3 else 2026
         date_obj = datetime(year, month, day)
-        
-        if amount_val < 0:
-            # It's an expense
+
+        desc_lower = desc.lower()
+        is_outflow = raw_val < 0 or any(kw in desc_lower or kw in line.lower() for kw in OUTFLOW_KW)
+        is_inflow = any(kw in desc_lower or kw in line.lower() for kw in INFLOW_KW)
+
+        if is_outflow and not is_inflow:
+            amount_val = -abs(raw_val)
             expenses.append({
-                "amount": str(abs(amount_val)),
+                "amount": str(amount_val),
                 "merchant": desc.strip(),
                 "date": date_obj.isoformat(),
                 "source": "Santander",
                 "raw_text": line
             })
-        elif "ORDENADO" in desc or "TRF.IMED. DE" in desc:
-            # It's income
-            income_total += amount_val
+        elif is_inflow or raw_val > 0:
+            income_total += abs(raw_val)
 
 print(f"Parsed {len(expenses)} expenses.")
 print(f"Total parsed income: {income_total}")

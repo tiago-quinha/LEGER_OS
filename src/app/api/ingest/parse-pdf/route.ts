@@ -5,7 +5,28 @@ import { spawn } from "child_process";
 import path from "path";
 import { createClient } from "@/lib/supabase-server";
 
-// Custom page render function to reconstruct spacing and line breaks
+// Multi-lingual column header detection keywords
+const OUTFLOW_HEADER_KEYWORDS = [
+  'saída', 'saida', 'débito', 'debito', 'levantamento', 'compra', 'pagamento', 'cargo', 'despesa', 'enviado', 'imposto', 'comissão', 'comissao', 'tarifa', 'anuidade', 'retirada', 'retirado',
+  'outflow', 'exit', 'debit', 'withdrawal', 'charge', 'spent', 'paid out', 'money out', 'expense', 'purchase', 'payment', 'transfer to', 'fee', 'sent', 'bill', 'atm',
+  'salida', 'cargo', 'retiro', 'gasto', 'pago', 'transferencia a', 'comisión', 'comision', 'reintegro',
+  'sortie', 'débit', 'debit', 'retrait', 'dépense', 'depense', 'achat', 'paiement', 'virement vers', 'frais', 'prélèvement', 'prelevement',
+  'ausgang', 'ausgabe', 'ausgaben', 'lastschrift', 'abhebung', 'kauf', 'zahlung', 'überweisung an', 'uberweisung an', 'soll', 'entnahme', 'gebühr', 'gebuehr',
+  'uscita', 'uscite', 'addebito', 'prelievo', 'spesa', 'acquisto', 'pagamento', 'bonifico a', 'dare',
+  'uitgaand', 'uitgaven', 'af', 'debet', 'opname', 'betaling', 'overboeking naar', 'aankoop', 'kosten'
+];
+
+const INFLOW_HEADER_KEYWORDS = [
+  'entrada', 'crédito', 'credito', 'depósito', 'deposito', 'ordenado', 'salário', 'salario', 'vencimento', 'recebido', 'reembolso', 'devolução', 'devolucao', 'prémio', 'premio', 'rewards', 'abono', 'rendimento',
+  'inflow', 'entry', 'credit', 'deposit', 'income', 'salary', 'payroll', 'paycheck', 'received', 'paid in', 'money in', 'refund', 'reimbursement', 'reward', 'topup', 'top-up', 'transfer from', 'interest', 'cashback',
+  'abono', 'ingreso', 'nómina', 'nomina', 'sueldo', 'salario', 'recibido', 'reembolso', 'devolución', 'devolucion', 'intereses',
+  'entrée', 'entree', 'crédit', 'credit', 'dépôt', 'depot', 'revenu', 'salaire', 'paye', 'reçu', 'recu', 'remboursement', 'virement de', 'intérêts',
+  'eingang', 'einnahme', 'einnahmen', 'gutschrift', 'einzahlung', 'gehalt', 'lohn', 'erhalten', 'erstattung', 'rückzahlung', 'haben', 'zinsen',
+  'entrata', 'entrate', 'accredito', 'deposito', 'stipendio', 'salario', 'ricevuto', 'rimborso', 'bonifico da', 'avere',
+  'inkomend', 'inkomsten', 'bij', 'credit', 'storting', 'salaris', 'loon', 'ontvangen', 'terugbetaling', 'rente'
+];
+
+// Custom page render function to reconstruct spatial layout, column gaps, and column signs
 function renderPage(pageData: any): Promise<string> {
   const render_options = {
     normalizeWhitespace: true,
@@ -14,26 +35,74 @@ function renderPage(pageData: any): Promise<string> {
 
   return pageData.getTextContent(render_options)
     .then(function(textContent: any) {
-      let lastY: number | undefined, lastX: number | undefined, text = '';
+      // Group items by Y coordinate (rows, tolerance ~3px)
+      const rows = new Map<number, Array<{ x: number; w: number; str: string }>>();
       for (const item of textContent.items) {
-        if (!item.str.trim() && item.str !== ' ') continue;
-        
-        const currentY = item.transform[5];
-        const currentX = item.transform[4];
-        
-        if (lastY !== undefined && Math.abs(currentY - lastY) > 3) {
-          // New line
-          text += '\n';
-        } else if (lastX !== undefined && currentX - lastX > 3) {
-          // Add space on the same line if there is a gap
-          text += ' ';
-        }
-        
-        text += item.str;
-        lastY = currentY;
-        lastX = currentX + item.width;
+        if (!item.str || (!item.str.trim() && item.str !== ' ')) continue;
+        const y = Math.round(item.transform[5] / 3) * 3;
+        if (!rows.has(y)) rows.set(y, []);
+        rows.get(y)!.push({
+          x: item.transform[4],
+          w: item.width || 0,
+          str: item.str
+        });
       }
-      return text;
+
+      // Sort rows from top to bottom (Y descending in PDF coordinate space)
+      const sortedYs = Array.from(rows.keys()).sort((a, b) => b - a);
+
+      let outflowColX: number | null = null;
+      let inflowColX: number | null = null;
+
+      // Scan rows to detect column header X positions
+      for (const y of sortedYs) {
+        const items = rows.get(y)!.sort((a, b) => a.x - b.x);
+        for (const item of items) {
+          const strLower = item.str.toLowerCase().trim();
+          if (OUTFLOW_HEADER_KEYWORDS.some(kw => strLower.includes(kw)) && outflowColX === null) {
+            outflowColX = item.x;
+          }
+          if (INFLOW_HEADER_KEYWORDS.some(kw => strLower.includes(kw)) && inflowColX === null) {
+            inflowColX = item.x;
+          }
+        }
+      }
+
+      let pageText = '';
+      for (const y of sortedYs) {
+        const rowItems = rows.get(y)!.sort((a, b) => a.x - b.x);
+        let lineStr = '';
+        let lastX: number | undefined = undefined;
+
+        for (const item of rowItems) {
+          if (lastX !== undefined) {
+            const gap = item.x - lastX;
+            if (gap > 20) {
+              lineStr += '   '; // Triple space gap for column separation
+            } else if (gap > 3) {
+              lineStr += ' ';
+            }
+          }
+
+          let token = item.str;
+          const trimmed = token.trim();
+
+          // Spatial column sign enhancement:
+          // If token is a raw positive decimal number (e.g., "12.50" or "12,50") and falls under Outflow column X
+          if (/^\d+([.,]\d{2})?$/.test(trimmed)) {
+            if (outflowColX !== null && Math.abs(item.x - outflowColX) < 45) {
+              token = token.replace(trimmed, `-${trimmed}`);
+            }
+          }
+
+          lineStr += token;
+          lastX = item.x + item.w;
+        }
+
+        pageText += lineStr + '\n';
+      }
+
+      return pageText;
     });
 }
 

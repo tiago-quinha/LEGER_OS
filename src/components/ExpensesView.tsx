@@ -470,6 +470,26 @@ export function ExpensesView({ initialExpenses, categories: initialCategories, i
     }
   }
 
+  const MULTI_LANG_OUTFLOW_KW = [
+    'saída', 'saida', 'débito', 'debito', 'levantamento', 'compra', 'pagamento', 'trf.imed. p/', 'transferência p/', 'transferencia p/', 'cargo', 'despesa', 'enviado', 'imposto', 'comissão', 'comissao', 'tarifa', 'anuidade', 'retirada', 'retirado',
+    'outflow', 'exit', 'debit', 'withdrawal', 'charge', 'spent', 'paid out', 'money out', 'expense', 'purchase', 'payment', 'transfer to', 'fee', 'sent', 'bill', 'atm',
+    'salida', 'cargo', 'retiro', 'gasto', 'pago', 'transferencia a', 'comisión', 'comision', 'reintegro',
+    'sortie', 'débit', 'debit', 'retrait', 'dépense', 'depense', 'achat', 'paiement', 'virement vers', 'frais', 'prélèvement', 'prelevement',
+    'ausgang', 'ausgabe', 'ausgaben', 'lastschrift', 'abhebung', 'kauf', 'zahlung', 'überweisung an', 'uberweisung an', 'soll', 'entnahme', 'gebühr', 'gebuehr',
+    'uscita', 'uscite', 'addebito', 'prelievo', 'spesa', 'acquisto', 'pagamento', 'bonifico a', 'dare',
+    'uitgaand', 'uitgaven', 'af', 'debet', 'opname', 'betaling', 'overboeking naar', 'aankoop', 'kosten'
+  ]
+
+  const MULTI_LANG_INFLOW_KW = [
+    'entrada', 'crédito', 'credito', 'depósito', 'deposito', 'ordenado', 'salário', 'salario', 'vencimento', 'recebido', 'reembolso', 'devolução', 'devolucao', 'prémio', 'premio', 'rewards', 'trf.imed. de', 'transferência de', 'transferencia de', 'abono', 'rendimento',
+    'inflow', 'entry', 'credit', 'deposit', 'income', 'salary', 'payroll', 'paycheck', 'received', 'paid in', 'money in', 'refund', 'reimbursement', 'reward', 'topup', 'top-up', 'transfer from', 'interest', 'cashback',
+    'abono', 'ingreso', 'nómina', 'nomina', 'sueldo', 'salario', 'recibido', 'reembolso', 'devolución', 'devolucion', 'intereses',
+    'entrée', 'entree', 'crédit', 'credit', 'dépôt', 'depot', 'revenu', 'salaire', 'paye', 'reçu', 'recu', 'remboursement', 'virement de', 'intérêts',
+    'eingang', 'einnahme', 'einnahmen', 'gutschrift', 'einzahlung', 'gehalt', 'lohn', 'erhalten', 'erstattung', 'rückzahlung', 'haben', 'zinsen',
+    'entrata', 'entrate', 'accredito', 'deposito', 'stipendio', 'salario', 'ricevuto', 'rimborso', 'bonifico da', 'avere',
+    'inkomend', 'inkomsten', 'bij', 'credit', 'storting', 'salaris', 'loon', 'ontvangen', 'terugbetaling', 'rente'
+  ]
+
   const handleParseExtract = (inputText?: string | React.MouseEvent) => {
     const textToParse = typeof inputText === "string" ? inputText : extractText
     if (!textToParse.trim()) {
@@ -478,12 +498,10 @@ export function ExpensesView({ initialExpenses, categories: initialCategories, i
     }
 
     try {
-      // Explicit pattern: date, optional second date, merchant, amount with optional sign (+/-), optional currency, optional trailing balance and currency (handles spaces optional)
-      const txPatternA = /^(\d{2}[-\/]\d{2}(?:[-\/]\d{4})?)(?:\s+\d{2}[-\/]\d{2}(?:[-\/]\d{4})?)?\s+(.+?)\s*([+-]?[\d.]+,\d{2})(?:\s*(?:EUR|[\w$€£]+))?(?:\s+(-?[\d.]+(?:,\d{2})?)(?:\s*(?:EUR|[\w$€£]+))?)?$/
-      
-      // Period and balance patterns for Format A
-      const balancePattern = /Saldo Inicial EUR ([\d.,]+)/i
-      const periodPattern = /PERÍODO DE (\d{4})-\d{2}-\d{2} A (\d{4})-\d{2}-\d{2}/i
+      // Regex patterns capturing date, merchant, amount, optional trailing balance
+      const txPatternA = /^(\d{2}[-\/]\d{2}(?:[-\/]\d{4})?)(?:\s+\d{2}[-\/]\d{2}(?:[-\/]\d{4})?)?\s+(.+?)\s*([+-]?[\d.]+,\d{2}|\b[+-]?\d+\.\d{2}\b)(?:\s*(?:EUR|[\w$€£]+))?(?:\s+(-?[\d.]+(?:[.,]\d{2})?)(?:\s*(?:EUR|[\w$€£]+))?)?$/
+      const balancePattern = /(?:Saldo Inicial|Initial Balance|Saldo|Balance)\s*(?:EUR|[\w$€£]+)?\s*([\d.,]+)/i
+      const periodPattern = /(?:PERÍODO DE|PERIOD|PERIODO DE)\s*(\d{4})[-\/]\d{2}[-\/]\d{2}\s*(?:A|TO)\s*(\d{4})[-\/]\d{2}[-\/]\d{2}/i
 
       const rawLines = textToParse.split("\n")
       const lines: string[] = []
@@ -501,7 +519,7 @@ export function ExpensesView({ initialExpenses, categories: initialCategories, i
         } else {
           if (currentTxLine) {
             if (txPatternA.test(currentTxLine)) {
-              // Already complete, do not append subsequent garbage lines (e.g. copyright footer)
+              // Line complete
             } else {
               currentTxLine += " " + line
             }
@@ -532,26 +550,19 @@ export function ExpensesView({ initialExpenses, categories: initialCategories, i
       let detectedYear = startYear
 
       const txList: any[] = []
-
-      // Month name parser helper
-      const parsePortugueseMonth = (mStr: string) => {
-        const mClean = mStr.toLowerCase().replace(/\./g, "").trim()
-        const months: Record<string, number> = {
-          jan: 1, fev: 2, mar: 3, abr: 4, mai: 5, jun: 6,
-          jul: 7, ago: 8, set: 9, out: 10, nov: 11, dez: 12
-        }
-        return months[mClean] || 1
-      }
+      let runningPrevBalance: number | null = initialBalance > 0 ? initialBalance : null
 
       for (let i = 0; i < lines.length; i++) {
         const line = lines[i].trim()
         if (!line) continue
 
-        // 1. Try Format A (single-line consolidated statement)
         const matchA = line.match(txPatternA)
         if (matchA) {
-          const [_, dateStr, merchant, amountStr] = matchA
-          const amountVal = parseFloat(amountStr.replace(/\./g, "").replace(",", "."))
+          const [_, dateStr, merchant, amountStr, balanceStr] = matchA
+          let rawAmountVal = parseFloat(amountStr.replace(/\./g, "").replace(",", "."))
+          const hasExplicitMinus = amountStr.includes("-") || line.includes(" -")
+          const hasExplicitPlus = amountStr.includes("+")
+
           const dateParts = dateStr.split(/[-\/]/)
           const day = parseInt(dateParts[0])
           const month = parseInt(dateParts[1])
@@ -560,31 +571,63 @@ export function ExpensesView({ initialExpenses, categories: initialCategories, i
           detectedMonth = month
           detectedYear = txYear
 
-          const userPaycheckKw = profile?.paycheck_keyword || "SALARY"
-          const isIncome = amountVal > 0 && (
-            (userPaycheckKw !== "MONTHLY" && merchant.toLowerCase().includes(userPaycheckKw.toLowerCase())) ||
-            merchant.toUpperCase().includes("SALARY") || 
-            merchant.toUpperCase().includes("PAYROLL") || 
-            merchant.toUpperCase().includes("DIRECT DEPOSIT") ||
-            merchant.toUpperCase().includes("PAYCHECK") ||
-            merchant.toUpperCase().includes("REWARDS")
-          )
+          let currentLineBalance: number | null = null
+          if (balanceStr) {
+            const parsedBal = parseFloat(balanceStr.replace(/\./g, "").replace(",", "."))
+            if (!isNaN(parsedBal)) {
+              currentLineBalance = parsedBal
+            }
+          }
+
+          // 3-TIER SIGN DETERMINATION ENGINE
+          let finalAmount = rawAmountVal
+
+          // Tier 1: Mathematical Balance Delta Verification
+          if (runningPrevBalance !== null && currentLineBalance !== null) {
+            const delta = currentLineBalance - runningPrevBalance
+            if (Math.abs(delta) > 0.001) {
+              finalAmount = delta < 0 ? -Math.abs(rawAmountVal) : Math.abs(rawAmountVal)
+            }
+          } 
+          // Tier 2: Explicit Sign Markers
+          else if (hasExplicitMinus) {
+            finalAmount = -Math.abs(rawAmountVal)
+          } else if (hasExplicitPlus) {
+            finalAmount = Math.abs(rawAmountVal)
+          }
+          // Tier 3: Multi-Lingual Keyword Recognition
+          else {
+            const lowerLine = line.toLowerCase()
+            const isOutflow = MULTI_LANG_OUTFLOW_KW.some(kw => lowerLine.includes(kw))
+            const isInflow = MULTI_LANG_INFLOW_KW.some(kw => lowerLine.includes(kw))
+
+            if (isOutflow && !isInflow) {
+              finalAmount = -Math.abs(rawAmountVal)
+            } else if (isInflow) {
+              finalAmount = Math.abs(rawAmountVal)
+            } else {
+              // Default fallback: if un-signed and no keywords, default to negative (expense)
+              finalAmount = -Math.abs(rawAmountVal)
+            }
+          }
+
+          if (currentLineBalance !== null) {
+            runningPrevBalance = currentLineBalance
+          }
 
           const categoryId = matchCategory(merchant, rules, categories)
 
           txList.push({
             id: `temp-${i}-${Date.now()}`,
-            amount: amountVal,
+            amount: finalAmount,
             merchant: merchant.trim(),
             date: new Date(Date.UTC(txYear, month - 1, day)).toISOString(),
             raw_text: line,
-            isIncome,
+            isIncome: finalAmount > 0,
             category_id: categoryId,
             checked: true
           })
-          continue
         }
-
       }
 
       const balanceDate = `${detectedYear}-${String(detectedMonth).padStart(2, '0')}-01`
@@ -602,7 +645,7 @@ export function ExpensesView({ initialExpenses, categories: initialCategories, i
         transactions: txList
       })
 
-      toast.success(`Parsed ${txList.length} transactions successfully.`)
+      toast.success(`Parsed ${txList.length} transactions successfully across universal statement formats.`)
     } catch (err: any) {
       console.error(err)
       toast.error(`Ingestion parsing failure: ${err.message}`)
@@ -641,16 +684,19 @@ export function ExpensesView({ initialExpenses, categories: initialCategories, i
         throw new Error("AI could not detect valid transactions in this text.")
       }
 
-      const userPaycheckKw = profile?.paycheck_keyword || "SALARY"
       const txList = data.transactions.map((tx: any, index: number) => {
-        const amtVal = parseFloat(tx.amount) || 0
+        let amtVal = parseFloat(tx.amount) || 0
         const merch = tx.merchant || "Unknown Merchant"
-        const isInc = amtVal > 0 && (
-          (userPaycheckKw !== "MONTHLY" && merch.toLowerCase().includes(userPaycheckKw.toLowerCase())) ||
-          merch.toUpperCase().includes("SALARY") || 
-          merch.toUpperCase().includes("PAYROLL") || 
-          merch.toUpperCase().includes("PAYCHECK")
-        )
+        const rawLower = (tx.raw_text || merch).toLowerCase()
+
+        // Multi-lingual keyword sign check safety net
+        if (amtVal > 0 && MULTI_LANG_OUTFLOW_KW.some(kw => rawLower.includes(kw) || merch.toLowerCase().includes(kw))) {
+          if (!MULTI_LANG_INFLOW_KW.some(kw => rawLower.includes(kw) || merch.toLowerCase().includes(kw))) {
+            amtVal = -amtVal
+          }
+        }
+
+        const isInc = amtVal > 0
         const catId = matchCategory(merch, rules, categories)
 
         return {
@@ -707,9 +753,9 @@ export function ExpensesView({ initialExpenses, categories: initialCategories, i
         if (balError) throw balError
       }
 
-      // 2. Calculate and ingest income snapshot
+      // 2. Calculate and ingest income snapshot (all positive selected items)
       const incomeSum = selectedTxs
-        .filter(t => t.isIncome)
+        .filter(t => t.amount > 0)
         .reduce((sum, t) => sum + t.amount, 0)
       
       if (incomeSum > 0) {
@@ -730,9 +776,10 @@ export function ExpensesView({ initialExpenses, categories: initialCategories, i
         amount: t.amount.toString(),
         merchant: t.merchant,
         date: t.date,
-        source: "Santander Ingestion",
+        source: "Universal Statement Ingestion",
         raw_text: t.raw_text,
-        category_id: t.category_id
+        category_id: t.category_id,
+        user_id: user?.id
       }))
 
       for (let i = 0; i < txsToInsert.length; i += 50) {
@@ -2419,103 +2466,143 @@ export function ExpensesView({ initialExpenses, categories: initialCategories, i
                   ) : (
                     <div className="space-y-6">
                       {/* Telemetry Summary */}
-                      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 sm:gap-6 p-6 bg-secondary/20 border border-border border-dashed font-mono">
-                        <div className="space-y-1">
-                          <span className="technical-label text-[9px]">Est. Start Balance</span>
-                          <p className="text-lg sm:text-xl font-bold">{currencySymbol}{parsedData.startBalance.toFixed(2)}</p>
-                        </div>
-                        <div className="space-y-1">
-                          <span className="technical-label text-[9px]">Total Salary/Income</span>
-                          <p className="text-lg sm:text-xl font-bold">
-                            {currencySymbol}{parsedData.transactions.filter(t => t.checked && t.isIncome).reduce((sum, t) => sum + t.amount, 0).toFixed(2)}
-                          </p>
-                        </div>
-                        <div className="space-y-1">
-                          <span className="technical-label text-[9px]">Parsed Records</span>
-                          <p className="text-lg sm:text-xl font-bold">{parsedData.transactions.filter(t => t.checked).length} selected</p>
-                        </div>
-                      </div>
+                      {(() => {
+                        const checkedTxs = parsedData.transactions.filter(t => t.checked)
+                        const inflows = checkedTxs.filter(t => t.amount > 0)
+                        const outflows = checkedTxs.filter(t => t.amount < 0)
+                        const totalInflow = inflows.reduce((sum, t) => sum + t.amount, 0)
+                        const totalOutflow = outflows.reduce((sum, t) => sum + Math.abs(t.amount), 0)
+                        const netFlow = totalInflow - totalOutflow
+                        const uncategorizedCount = checkedTxs.filter(t => !t.category_id).length
+                        const allChecked = parsedData.transactions.length > 0 && parsedData.transactions.every(t => t.checked)
 
-                      {/* Preview Table */}
-                      <div className="border border-border max-h-[300px] overflow-y-auto overflow-x-auto">
-                        <Table>
-                          <TableHeader className="bg-secondary/40 sticky top-0 z-10">
-                            <TableRow>
-                              <TableHead className="w-12 text-center"></TableHead>
-                              <TableHead className="text-xs font-mono font-bold uppercase tracking-wider">Date</TableHead>
-                              <TableHead className="text-xs font-mono font-bold uppercase tracking-wider">Merchant</TableHead>
-                              <TableHead className="text-xs font-mono font-bold uppercase tracking-wider">Category</TableHead>
-                              <TableHead className="text-right text-xs font-mono font-bold uppercase tracking-wider">Amount</TableHead>
-                            </TableRow>
-                          </TableHeader>
-                          <TableBody>
-                            {parsedData.transactions.map((tx, idx) => (
-                              <TableRow key={tx.id} className={cn(!tx.checked && "opacity-40 bg-muted/10")}>
-                                <TableCell className="text-center p-2">
-                                  <input 
-                                    type="checkbox" 
-                                    checked={tx.checked}
-                                    onChange={(e) => {
-                                      const updatedTxs = [...parsedData.transactions]
-                                      updatedTxs[idx].checked = e.target.checked
-                                      setParsedData({ ...parsedData, transactions: updatedTxs })
-                                    }}
-                                    className="cursor-pointer"
-                                  />
-                                </TableCell>
-                                <TableCell className="font-mono text-[9px] p-2">
-                                  {new Date(tx.date).toLocaleDateString("en-GB", { day: '2-digit', month: 'short' })}
-                                </TableCell>
-                                <TableCell className="font-mono text-[9px] p-2 uppercase max-w-[100px] sm:max-w-[150px] truncate" title={tx.merchant}>
-                                  {tx.merchant}
-                                </TableCell>
-                                <TableCell className="p-2">
-                                  <Select
-                                    value={tx.category_id?.toString() || "none"}
-                                    onValueChange={(val: string | null) => {
-                                      const catId = (!val || val === "none") ? null : parseInt(val)
-                                      const updatedTxs = [...parsedData.transactions]
-                                      updatedTxs[idx].category_id = catId
-                                      setParsedData({ ...parsedData, transactions: updatedTxs })
-                                    }}
-                                  >
-                                    <SelectTrigger className="h-6 text-[8px] font-mono uppercase bg-transparent border-border rounded-none p-1 shrink-0 w-24">
-                                      {tx.category_id ? (
-                                        (() => {
-                                          const cat = categories.find(c => c.id === tx.category_id)
-                                          if (!cat) return <span className="truncate text-muted-foreground">Categorize</span>
-                                          return (
-                                            <div className="flex items-center gap-1.5 overflow-hidden w-full text-[8px] font-mono">
-                                              <div 
-                                                className="h-1.5 w-1.5 rounded-full shrink-0" 
-                                                style={{ backgroundColor: cat.color }} 
-                                              />
-                                              <span className="truncate">{cat.name}</span>
-                                            </div>
-                                          )
-                                        })()
-                                      ) : (
-                                        <span className="truncate text-muted-foreground">Categorize</span>
-                                      )}
-                                    </SelectTrigger>
-                                    <SelectContent>
-                                      <SelectItem value="none">Uncategorized</SelectItem>
-                                      {categories.map((cat) => (
-                                        <SelectItem key={cat.id} value={cat.id.toString()}>
-                                          {cat.name}
-                                        </SelectItem>
-                                      ))}
-                                    </SelectContent>
-                                  </Select>
-                                </TableCell>
-                                <TableCell className={cn("text-right font-mono text-[10px] font-bold p-2", tx.isIncome ? "text-emerald-600" : "")}>
-                                  {tx.amount > 0 ? "+" : ""}{currencySymbol}{tx.amount.toFixed(2)}
-                                </TableCell>
-                              </TableRow>
-                            ))}
-                          </TableBody>
-                        </Table>
-                      </div>
+                        return (
+                          <>
+                            <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 p-5 bg-secondary/20 border border-border border-dashed font-mono">
+                              <div className="space-y-1">
+                                <span className="technical-label text-[9px]">Est. Start Balance</span>
+                                <p className="text-base sm:text-lg font-bold">{currencySymbol}{parsedData.startBalance.toFixed(2)}</p>
+                              </div>
+                              <div className="space-y-1">
+                                <span className="technical-label text-[9px] text-emerald-500">Total Inflow (Entry)</span>
+                                <p className="text-base sm:text-lg font-bold text-emerald-500">
+                                  +{currencySymbol}{totalInflow.toFixed(2)}
+                                </p>
+                                <p className="text-[9px] text-muted-foreground">{inflows.length} items</p>
+                              </div>
+                              <div className="space-y-1">
+                                <span className="technical-label text-[9px] text-destructive">Total Outflow (Exit)</span>
+                                <p className="text-base sm:text-lg font-bold text-destructive">
+                                  -{currencySymbol}{totalOutflow.toFixed(2)}
+                                </p>
+                                <p className="text-[9px] text-muted-foreground">{outflows.length} items</p>
+                              </div>
+                              <div className="space-y-1">
+                                <span className="technical-label text-[9px]">Net Flow / Selected</span>
+                                <p className="text-base sm:text-lg font-bold">
+                                  {netFlow >= 0 ? "+" : ""}{currencySymbol}{netFlow.toFixed(2)}
+                                </p>
+                                <p className="text-[9px] text-muted-foreground">
+                                  {checkedTxs.length}/{parsedData.transactions.length} selected ({uncategorizedCount} uncategorized)
+                                </p>
+                              </div>
+                            </div>
+
+                            {/* Preview Table */}
+                            <div className="border border-border max-h-[300px] overflow-y-auto overflow-x-auto">
+                              <Table>
+                                <TableHeader className="bg-secondary/40 sticky top-0 z-10">
+                                  <TableRow>
+                                    <TableHead className="w-12 text-center">
+                                      <input 
+                                        type="checkbox"
+                                        checked={allChecked}
+                                        onChange={(e) => {
+                                          const checkedVal = e.target.checked
+                                          const updatedTxs = parsedData.transactions.map(t => ({ ...t, checked: checkedVal }))
+                                          setParsedData({ ...parsedData, transactions: updatedTxs })
+                                        }}
+                                        className="cursor-pointer"
+                                        title="Select / Deselect All"
+                                      />
+                                    </TableHead>
+                                    <TableHead className="text-xs font-mono font-bold uppercase tracking-wider">Date</TableHead>
+                                    <TableHead className="text-xs font-mono font-bold uppercase tracking-wider">Merchant</TableHead>
+                                    <TableHead className="text-xs font-mono font-bold uppercase tracking-wider">Category</TableHead>
+                                    <TableHead className="text-right text-xs font-mono font-bold uppercase tracking-wider">Amount</TableHead>
+                                  </TableRow>
+                                </TableHeader>
+                                <TableBody>
+                                  {parsedData.transactions.map((tx, idx) => (
+                                    <TableRow key={tx.id} className={cn(!tx.checked && "opacity-40 bg-muted/10")}>
+                                      <TableCell className="text-center p-2">
+                                        <input 
+                                          type="checkbox" 
+                                          checked={tx.checked}
+                                          onChange={(e) => {
+                                            const updatedTxs = [...parsedData.transactions]
+                                            updatedTxs[idx].checked = e.target.checked
+                                            setParsedData({ ...parsedData, transactions: updatedTxs })
+                                          }}
+                                          className="cursor-pointer"
+                                        />
+                                      </TableCell>
+                                      <TableCell className="font-mono text-[9px] p-2">
+                                        {new Date(tx.date).toLocaleDateString("en-GB", { day: '2-digit', month: 'short' })}
+                                      </TableCell>
+                                      <TableCell className="font-mono text-[9px] p-2 uppercase max-w-[100px] sm:max-w-[150px] truncate" title={tx.merchant}>
+                                        {tx.merchant}
+                                      </TableCell>
+                                      <TableCell className="p-2">
+                                        <Select
+                                          value={tx.category_id?.toString() || "none"}
+                                          onValueChange={(val: string | null) => {
+                                            const catId = (!val || val === "none") ? null : parseInt(val)
+                                            const updatedTxs = [...parsedData.transactions]
+                                            updatedTxs[idx].category_id = catId
+                                            setParsedData({ ...parsedData, transactions: updatedTxs })
+                                          }}
+                                        >
+                                          <SelectTrigger className="h-6 text-[8px] font-mono uppercase bg-transparent border-border rounded-none p-1 shrink-0 w-24">
+                                            {tx.category_id ? (
+                                              (() => {
+                                                const cat = categories.find(c => c.id === tx.category_id)
+                                                if (!cat) return <span className="truncate text-muted-foreground">Categorize</span>
+                                                return (
+                                                  <div className="flex items-center gap-1.5 overflow-hidden w-full text-[8px] font-mono">
+                                                    <div 
+                                                      className="h-1.5 w-1.5 rounded-full shrink-0" 
+                                                      style={{ backgroundColor: cat.color }} 
+                                                    />
+                                                    <span className="truncate">{cat.name}</span>
+                                                  </div>
+                                                )
+                                              })()
+                                            ) : (
+                                              <span className="truncate text-muted-foreground">Categorize</span>
+                                            )}
+                                          </SelectTrigger>
+                                          <SelectContent>
+                                            <SelectItem value="none">Uncategorized</SelectItem>
+                                            {categories.map((cat) => (
+                                              <SelectItem key={cat.id} value={cat.id.toString()}>
+                                                {cat.name}
+                                              </SelectItem>
+                                            ))}
+                                          </SelectContent>
+                                        </Select>
+                                      </TableCell>
+                                      <TableCell className={cn("text-right font-mono text-[10px] font-bold p-2", tx.amount > 0 ? "text-emerald-500" : "text-foreground")}>
+                                        {tx.amount > 0 ? "+" : ""}{currencySymbol}{tx.amount.toFixed(2)}
+                                      </TableCell>
+                                    </TableRow>
+                                  ))}
+                                </TableBody>
+                              </Table>
+                            </div>
+                          </>
+                        )
+                      })()}
 
                       {/* Commit button */}
                       <MagneticButton 
