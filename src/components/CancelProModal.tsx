@@ -2,7 +2,7 @@
 
 import React, { useState } from "react"
 import { motion, AnimatePresence } from "framer-motion"
-import { AlertTriangle, Check, X, ShieldAlert, Sparkles, ArrowRight, ArrowLeft, Heart } from "lucide-react"
+import { Check, X, Sparkles, ArrowRight, ArrowLeft, Minus } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { useSystem } from "@/lib/SystemContext"
 import { getProPrice } from "@/lib/format"
@@ -14,11 +14,18 @@ interface CancelProModalProps {
 }
 
 const CHURN_REASONS = [
-  { id: "too_expensive", label: "Price is too high for my monthly budget" },
-  { id: "not_using_enough", label: "I don't use AI push sync or forecasts enough" },
-  { id: "technical_issue", label: "Encountered setup difficulty or technical bug" },
+  { id: "too_expensive", label: "Price is too high for my budget" },
+  { id: "not_using_enough", label: "I don't use push sync or forecasts enough" },
+  { id: "technical_issue", label: "Setup difficulty or technical bug" },
   { id: "missing_features", label: "Missing a feature I need" },
-  { id: "other", label: "Other reasons" },
+  { id: "other", label: "Other" },
+]
+
+const LOST_FEATURES = [
+  { label: "Real-Time Android Push Sync", sub: "We won't be able to auto-import your bank notifications anymore." },
+  { label: "AI Neural Statement Parsing", sub: "Your statements and receipts won't be parsed automatically." },
+  { label: "Recency-Decay (λ) Forecasts", sub: "Your cash flow predictions will go back to basic static averages." },
+  { label: "Conversational AI Overrides", sub: "Your AI forecast assumptions will stop applying." },
 ]
 
 export function CancelProModal({ isOpen, onClose }: CancelProModalProps) {
@@ -34,22 +41,21 @@ export function CancelProModal({ isOpen, onClose }: CancelProModalProps) {
 
   if (!isOpen) return null
 
-  const handleKeepPro = () => {
+  const reset = () => {
     setStep(1)
     setSelectedReason("")
     setFeedbackText("")
-    onClose()
   }
+
+  const handleKeepPro = () => { reset(); onClose() }
 
   const handleClaimDiscount = async () => {
     setIsSubmitting(true)
     try {
       await claimProDiscount()
-      setStep(1)
-      setSelectedReason("")
-      setFeedbackText("")
+      reset()
       onClose()
-    } catch (e) {
+    } catch {
       toast.error("Failed to claim discount")
     } finally {
       setIsSubmitting(false)
@@ -59,325 +65,277 @@ export function CancelProModal({ isOpen, onClose }: CancelProModalProps) {
   const handleFinalCancel = async () => {
     setIsSubmitting(true)
     try {
-      await cancelPro({
-        reason: selectedReason || "unspecified",
-        feedback: feedbackText || ""
-      })
-      setStep(1)
-      setSelectedReason("")
-      setFeedbackText("")
+      await cancelPro({ reason: selectedReason || "unspecified", feedback: feedbackText || "" })
+      reset()
       onClose()
-    } catch (e) {
+    } catch {
       toast.error("Failed to cancel subscription")
     } finally {
       setIsSubmitting(false)
     }
   }
 
+  const hasClaimedDiscount = !!profile?.ai_journal?.retention_discount_claimed_at
+  const isTechnicalReason = selectedReason === "missing_features" || selectedReason === "technical_issue"
+
   return (
     <AnimatePresence>
-      <div className="fixed inset-0 z-[100005] bg-background w-full h-full flex flex-col overflow-hidden font-mono text-xs select-none">
-        <motion.div 
+      <div className="fixed inset-0 z-[100005] bg-background w-full h-full flex flex-col overflow-hidden select-none">
+        <motion.div
           initial={{ y: "100%" }}
           animate={{ y: 0 }}
           exit={{ y: "100%" }}
           transition={{ type: "spring", damping: 28, stiffness: 300 }}
           className="w-full h-full flex flex-col bg-background text-foreground overflow-hidden"
         >
-          {/* Header Bar */}
-          <div className="p-4 sm:p-6 border-b border-border flex items-center justify-between shrink-0 bg-card/50">
-            <div className="flex items-center gap-3">
-              <div className="p-2 bg-destructive/10 border border-destructive/20 text-destructive">
-                <AlertTriangle className="h-4 w-4" />
-              </div>
-              <div>
-                <h2 className="text-sm font-bold uppercase tracking-wider text-foreground">LEGER_OS // Subscription Gate</h2>
-                <div className="flex items-center gap-2 text-[10px] text-muted-foreground font-mono mt-0.5">
-                  <span className={step === 1 ? "text-foreground font-bold" : ""}>1. Benefits</span>
-                  <span>•</span>
-                  <span className={step === 2 ? "text-foreground font-bold" : ""}>2. Reason</span>
-                  <span>•</span>
-                  <span className={step === 3 ? "text-foreground font-bold" : ""}>3. Offer</span>
-                </div>
+
+          {/* Header */}
+          <div className="px-5 py-4 border-b border-border flex items-center justify-between shrink-0">
+            <div className="space-y-0.5">
+              <p className="text-[10px] font-mono uppercase tracking-widest text-muted-foreground">
+                Manage Subscription
+              </p>
+              <div className="flex items-center gap-2 text-[10px] font-mono text-muted-foreground/60">
+                {[1, 2, 3].map((s) => (
+                  <React.Fragment key={s}>
+                    <span className={step === s ? "text-foreground font-bold" : ""}>
+                      {s === 1 ? "What you lose" : s === 2 ? "Your reason" : "Our offer"}
+                    </span>
+                    {s < 3 && <Minus className="h-2.5 w-2.5 opacity-30" />}
+                  </React.Fragment>
+                ))}
               </div>
             </div>
-
-            <button 
+            <button
               onClick={handleKeepPro}
-              className="p-2 text-muted-foreground hover:text-foreground transition-colors cursor-pointer border border-border bg-card hover:bg-secondary/40"
-              title="Close and keep PRO"
+              className="p-1.5 text-muted-foreground hover:text-foreground transition-colors cursor-pointer"
             >
-              <X className="h-5 w-5" />
+              <X className="h-4 w-4" />
             </button>
           </div>
 
-          {/* Main Content Area */}
-          <div className="flex-1 overflow-y-auto p-4 sm:p-8 flex flex-col items-center justify-center">
-            <div className="w-full max-w-md space-y-6">
+          {/* Content */}
+          <div className="flex-1 overflow-y-auto flex flex-col items-center justify-center px-5 py-8">
+            <div className="w-full max-w-sm space-y-6">
 
-              {/* STEP 1: LOSS AVERSION & FEATURE BREAKDOWN */}
+              {/* ── STEP 1 ── */}
               {step === 1 && (
-                <div className="space-y-6 animate-fade-in">
-                  <div className="space-y-2 text-center">
-                    <h3 className="text-lg font-bold uppercase text-foreground">We'd hate to see you go</h3>
+                <div className="space-y-6">
+                  <div className="space-y-1">
+                    <h3 className="text-base font-bold font-mono uppercase tracking-wide text-foreground">
+                      We'd hate to see you go
+                    </h3>
                     <p className="text-xs text-muted-foreground font-sans leading-relaxed">
-                      If you downgrade to Core, we'll have to turn off your real-time data processing and AI forecasts right away.
+                      Downgrading to Core stops all real-time processing immediately. Here's what you'll lose:
                     </p>
                   </div>
 
-                  {/* Minimal Loss List */}
-                  <div className="p-4 bg-card border border-border space-y-3 shadow-sm">
-                    <span className="text-[10px] font-bold uppercase text-muted-foreground block border-b border-border/40 pb-2">
-                      Here's what you'll lose:
-                    </span>
-                    <div className="space-y-3">
-                      <div className="flex items-start gap-3">
-                        <div className="p-1 bg-destructive/10 text-destructive shrink-0 mt-0.5">
-                          <X className="h-3.5 w-3.5" />
-                        </div>
-                        <div>
-                          <span className="font-bold text-foreground block text-xs">Real-Time Android Push Sync</span>
-                          <span className="text-[11px] text-muted-foreground font-sans">We won't be able to auto-import your bank notifications anymore.</span>
+                  <div className="divide-y divide-border border border-border">
+                    {LOST_FEATURES.map((f) => (
+                      <div key={f.label} className="flex items-start gap-3 px-4 py-3">
+                        <X className="h-3 w-3 text-muted-foreground/50 mt-0.5 shrink-0" />
+                        <div className="min-w-0">
+                          <p className="text-xs font-mono font-bold text-foreground">{f.label}</p>
+                          <p className="text-[11px] text-muted-foreground font-sans mt-0.5">{f.sub}</p>
                         </div>
                       </div>
-
-                      <div className="flex items-start gap-3">
-                        <div className="p-1 bg-destructive/10 text-destructive shrink-0 mt-0.5">
-                          <X className="h-3.5 w-3.5" />
-                        </div>
-                        <div>
-                          <span className="font-bold text-foreground block text-xs">AI Neural Statement Parsing</span>
-                          <span className="text-[11px] text-muted-foreground font-sans">Your statements and receipts won't be parsed automatically.</span>
-                        </div>
-                      </div>
-
-                      <div className="flex items-start gap-3">
-                        <div className="p-1 bg-destructive/10 text-destructive shrink-0 mt-0.5">
-                          <X className="h-3.5 w-3.5" />
-                        </div>
-                        <div>
-                          <span className="font-bold text-foreground block text-xs">Recency-Decay (λ) Forecasts</span>
-                          <span className="text-[11px] text-muted-foreground font-sans">Your cash flow predictions will go back to basic static averages.</span>
-                        </div>
-                      </div>
-
-                      <div className="flex items-start gap-3">
-                        <div className="p-1 bg-destructive/10 text-destructive shrink-0 mt-0.5">
-                          <X className="h-3.5 w-3.5" />
-                        </div>
-                        <div>
-                          <span className="font-bold text-foreground block text-xs">Conversational AI Overrides</span>
-                          <span className="text-[11px] text-muted-foreground font-sans">Your saved AI assumptions and forecast adjustments will stop applying.</span>
-                        </div>
-                      </div>
-                    </div>
+                    ))}
                   </div>
 
-                  {/* Actions */}
-                  <div className="space-y-3 pt-2">
+                  <div className="space-y-2.5">
                     <Button
                       onClick={handleKeepPro}
-                      className="w-full h-12 rounded-none bg-emerald-500 text-black hover:bg-emerald-400 font-mono text-xs uppercase font-bold tracking-wider cursor-pointer shadow-lg"
+                      className="w-full h-11 rounded-none bg-emerald-500 text-black hover:bg-emerald-400 font-mono text-xs uppercase font-bold tracking-wider cursor-pointer"
                     >
-                      <Sparkles className="h-4 w-4 mr-2" /> Keep My PRO Benefits ({proPrice.formatted}/mo)
+                      <Sparkles className="h-3.5 w-3.5 mr-2" />
+                      Keep PRO — {proPrice.formatted}/mo
                     </Button>
-
-                    <div className="text-center">
-                      <button
-                        type="button"
-                        onClick={() => setStep(2)}
-                        className="text-[10px] font-mono uppercase text-muted-foreground hover:text-foreground underline underline-offset-4 cursor-pointer"
-                      >
-                        I still want to downgrade...
-                      </button>
-                    </div>
+                    <button
+                      type="button"
+                      onClick={() => setStep(2)}
+                      className="w-full text-center text-[10px] font-mono uppercase text-muted-foreground/50 hover:text-muted-foreground transition-colors cursor-pointer py-1"
+                    >
+                      I still want to downgrade
+                    </button>
                   </div>
                 </div>
               )}
 
-              {/* STEP 2: ONE-CLICK EXIT SURVEY */}
+              {/* ── STEP 2 ── */}
               {step === 2 && (
-                <div className="space-y-6 animate-fade-in">
-                  <div className="space-y-1 text-center">
-                    <h3 className="text-lg font-bold uppercase text-foreground">Help us understand</h3>
+                <div className="space-y-6">
+                  <div className="space-y-1">
+                    <h3 className="text-base font-bold font-mono uppercase tracking-wide text-foreground">
+                      Help us understand
+                    </h3>
                     <p className="text-xs text-muted-foreground font-sans">
                       What's the main reason you're considering leaving?
                     </p>
                   </div>
 
-                  <div className="space-y-2.5">
+                  <div className="divide-y divide-border border border-border">
                     {CHURN_REASONS.map((item) => {
                       const isSelected = selectedReason === item.id
                       return (
-                        <div
+                        <button
                           key={item.id}
+                          type="button"
                           onClick={() => setSelectedReason(item.id)}
-                          className={`p-3.5 border cursor-pointer transition-all flex items-center justify-between select-none ${
-                            isSelected ? "bg-foreground/5 border-foreground ring-1 ring-foreground" : "bg-card border-border hover:bg-secondary/20 opacity-80"
+                          className={`w-full flex items-center justify-between px-4 py-3 text-left transition-colors cursor-pointer ${
+                            isSelected ? "bg-foreground/5" : "hover:bg-secondary/30"
                           }`}
                         >
-                          <span className="text-xs font-mono text-foreground font-bold uppercase">{item.label}</span>
-                          <div className={`w-4 h-4 border flex items-center justify-center shrink-0 ${isSelected ? "bg-foreground text-background border-foreground" : "border-border"}`}>
-                            {isSelected && <Check className="h-3 w-3" />}
+                          <span className="text-xs font-mono text-foreground">{item.label}</span>
+                          <div className={`w-3.5 h-3.5 border shrink-0 flex items-center justify-center transition-colors ${
+                            isSelected ? "bg-foreground border-foreground" : "border-border"
+                          }`}>
+                            {isSelected && <Check className="h-2.5 w-2.5 text-background" />}
                           </div>
-                        </div>
+                        </button>
                       )
                     })}
                   </div>
 
-                  {/* Optional Feedback */}
-                  <div className="space-y-1 pt-1">
-                    <label className="text-[10px] font-mono uppercase font-bold text-muted-foreground">
-                      Anything else you'd like us to know? (optional):
+                  <div className="space-y-1">
+                    <label className="text-[10px] font-mono uppercase text-muted-foreground/60">
+                      Anything else? (optional)
                     </label>
                     <textarea
                       value={feedbackText}
                       onChange={(e) => setFeedbackText(e.target.value)}
-                      placeholder="We're always listening — tell us what you'd change..."
+                      placeholder="We're always listening..."
                       rows={2}
-                      className="w-full bg-card border border-border p-3 text-xs font-mono text-foreground outline-none resize-none"
+                      className="w-full bg-card border border-border px-3 py-2.5 text-xs font-mono text-foreground outline-none resize-none placeholder:text-muted-foreground/40"
                     />
                   </div>
 
-                  <div className="flex gap-3 pt-2">
+                  <div className="flex gap-2">
                     <Button
                       variant="outline"
                       onClick={() => setStep(1)}
-                      className="rounded-none h-11 text-xs uppercase font-bold w-1/3"
+                      className="rounded-none h-10 text-xs font-mono uppercase w-1/3 cursor-pointer"
                     >
-                      <ArrowLeft className="h-3.5 w-3.5 mr-1" /> Back
+                      <ArrowLeft className="h-3 w-3 mr-1" /> Back
                     </Button>
                     <Button
                       disabled={!selectedReason}
                       onClick={() => setStep(3)}
-                      className="rounded-none h-11 text-xs uppercase font-bold bg-foreground text-background hover:bg-foreground/90 w-2/3 cursor-pointer"
+                      className="rounded-none h-10 text-xs font-mono uppercase font-bold bg-foreground text-background hover:bg-foreground/90 w-2/3 cursor-pointer disabled:opacity-30"
                     >
-                      Next Step <ArrowRight className="h-3.5 w-3.5 ml-1" />
+                      Continue <ArrowRight className="h-3 w-3 ml-1" />
                     </Button>
                   </div>
                 </div>
               )}
 
-              {/* STEP 3: RETENTION OFFER OR FAREWELL */}
+              {/* ── STEP 3 ── */}
               {step === 3 && (
-                <div className="space-y-6 animate-fade-in">
-                  {profile?.ai_journal?.retention_discount_claimed_at ? (
-                    /* RETURNING CHURNER — No discount, friendly farewell */
+                <div className="space-y-6">
+                  {hasClaimedDiscount ? (
+                    /* Returning churner — warm farewell, no discount */
                     <>
-                      <div className="space-y-2 text-center">
-                        <div className="mx-auto w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center mb-2">
-                          <Heart className="h-5 w-5 text-primary" />
-                        </div>
-                        <h3 className="text-lg font-bold uppercase text-foreground">We understand</h3>
-                        <p className="text-xs text-muted-foreground font-sans leading-relaxed max-w-xs mx-auto">
-                          We're sorry to see you go. You're always welcome back — no waiting period, no setup required.
+                      <div className="space-y-1">
+                        <h3 className="text-base font-bold font-mono uppercase tracking-wide text-foreground">
+                          We understand
+                        </h3>
+                        <p className="text-xs text-muted-foreground font-sans leading-relaxed">
+                          You're always welcome back — no waiting period, no setup required.
                         </p>
                       </div>
 
-                      <div className="p-4 bg-card border border-border space-y-3">
-                        <span className="text-[10px] font-bold uppercase text-muted-foreground block border-b border-border/40 pb-2">
-                          Your data after downgrade:
-                        </span>
-                        <div className="space-y-2 text-xs font-sans text-muted-foreground">
-                          <div className="flex items-start gap-2">
-                            <Check className="h-3.5 w-3.5 text-emerald-500 mt-0.5 shrink-0" />
-                            <span><strong className="text-foreground">Transactions & categories</strong> stay with you forever on Core.</span>
-                          </div>
-                          <div className="flex items-start gap-2">
-                            <AlertTriangle className="h-3.5 w-3.5 text-amber-500 mt-0.5 shrink-0" />
-                            <span><strong className="text-foreground">PRO data</strong> (AI insights, parsed statements, forecasts) will be kept for <strong className="text-foreground">90 days</strong> in case you come back.</span>
-                          </div>
-                          <div className="flex items-start gap-2">
-                            <ShieldAlert className="h-3.5 w-3.5 text-muted-foreground mt-0.5 shrink-0" />
-                            <span>After 90 days, PRO-specific data will be cleared to protect your privacy.</span>
-                          </div>
+                      <div className="divide-y divide-border border border-border">
+                        <div className="flex items-start gap-3 px-4 py-3">
+                          <Check className="h-3 w-3 text-foreground/40 mt-0.5 shrink-0" />
+                          <p className="text-xs font-sans text-muted-foreground">
+                            <span className="text-foreground font-semibold">Transactions & categories</span> stay with you forever on Core.
+                          </p>
+                        </div>
+                        <div className="flex items-start gap-3 px-4 py-3">
+                          <X className="h-3 w-3 text-muted-foreground/40 mt-0.5 shrink-0" />
+                          <p className="text-xs font-sans text-muted-foreground">
+                            <span className="text-foreground font-semibold">PRO data</span> (AI insights, forecasts) is kept for <span className="text-foreground font-semibold">90 days</span>, then cleared for your privacy.
+                          </p>
                         </div>
                       </div>
 
-                      <div className="space-y-3">
+                      <div className="space-y-2.5">
                         <Button
                           onClick={handleKeepPro}
                           className="w-full h-11 rounded-none bg-foreground text-background hover:bg-foreground/90 font-mono text-xs uppercase font-bold tracking-wider cursor-pointer"
                         >
                           Actually, I'll stay on PRO
                         </Button>
-                        <div className="text-center">
-                          <button
-                            type="button"
-                            disabled={isSubmitting}
-                            onClick={handleFinalCancel}
-                            className="text-[9px] font-mono uppercase text-muted-foreground/60 hover:text-muted-foreground underline underline-offset-4 cursor-pointer disabled:opacity-50"
-                          >
-                            {isSubmitting ? "processing..." : "Complete cancellation"}
-                          </button>
-                        </div>
-                      </div>
-                    </>
-                  ) : (
-                    /* FIRST-TIME CHURNER — Show exclusive 50% discount */
-                    <>
-                      <div className="space-y-1 text-center">
-                        <h3 className="text-lg font-bold uppercase text-foreground">We've got something for you</h3>
-                        <p className="text-xs text-muted-foreground font-sans">
-                          Before you go — we'd love to make this work:
-                        </p>
-                      </div>
-
-                      <div className="p-5 bg-emerald-500/10 border-2 border-emerald-500/50 space-y-4 relative overflow-hidden shadow-lg">
-                        <div className="inline-block bg-emerald-500 text-black font-mono font-bold text-[9px] px-2 py-0.5 uppercase">
-                          ONE-TIME EXCLUSIVE 50% DISCOUNT
-                        </div>
-
-                        <div className="space-y-1">
-                          <span className="text-sm font-bold uppercase text-emerald-500 flex items-center gap-1.5 font-mono">
-                            <Sparkles className="h-4 w-4" /> We'll keep you on PRO for {halfPriceFormatted}/mo
-                          </span>
-                          <p className="text-xs text-foreground font-sans leading-relaxed">
-                            {(selectedReason === "missing_features" || selectedReason === "technical_issues")
-                              ? <>Stay with us at <strong>{halfPriceFormatted}/month</strong> (50% OFF for 3 months) while we work on improvements. You keep all your existing features.</>
-                              : <>Stay with us at <strong>{halfPriceFormatted}/month</strong> (50% OFF for 3 months). You keep all your bank push notifications, statement parsing & forecasts.</>
-                            }
-                          </p>
-                        </div>
-
-                        <div className="p-3 bg-background/80 border border-emerald-500/30 text-xs font-mono flex items-center justify-between">
-                          <span className="text-muted-foreground uppercase">Standard: <span className="line-through">{proPrice.formatted}/mo</span></span>
-                          <span className="font-bold text-emerald-500 text-base">{halfPriceFormatted} / month</span>
-                        </div>
-
-                        <Button
-                          disabled={isSubmitting}
-                          onClick={handleClaimDiscount}
-                          className="w-full h-12 rounded-none bg-emerald-500 text-black hover:bg-emerald-400 font-mono text-xs uppercase font-bold tracking-wider cursor-pointer shadow-md"
-                        >
-                          {isSubmitting ? "APPLYING..." : `Claim 50% Discount (${halfPriceFormatted}/mo)`}
-                        </Button>
-                      </div>
-
-                      <div className="p-4 bg-card border border-border space-y-2">
-                        <span className="text-[10px] font-bold uppercase text-muted-foreground block">
-                          If you decline, here's what happens to your data:
-                        </span>
-                        <div className="space-y-1.5 text-[11px] font-sans text-muted-foreground">
-                          <div className="flex items-start gap-2">
-                            <Check className="h-3 w-3 text-emerald-500 mt-0.5 shrink-0" />
-                            <span>Transactions & categories stay forever on Core.</span>
-                          </div>
-                          <div className="flex items-start gap-2">
-                            <AlertTriangle className="h-3 w-3 text-amber-500 mt-0.5 shrink-0" />
-                            <span>PRO data (AI insights, forecasts) kept for 90 days.</span>
-                          </div>
-                        </div>
-                      </div>
-
-                      <div className="text-center">
                         <button
                           type="button"
                           disabled={isSubmitting}
                           onClick={handleFinalCancel}
-                          className="text-[9px] font-mono uppercase text-muted-foreground/60 hover:text-muted-foreground underline underline-offset-4 cursor-pointer disabled:opacity-50"
+                          className="w-full text-center text-[9px] font-mono uppercase text-muted-foreground/40 hover:text-muted-foreground transition-colors cursor-pointer py-1 disabled:opacity-30"
                         >
-                          {isSubmitting ? "processing..." : "No thanks, complete cancellation"}
+                          {isSubmitting ? "Processing..." : "Complete cancellation"}
+                        </button>
+                      </div>
+                    </>
+                  ) : (
+                    /* First-time churner — one-time 50% discount */
+                    <>
+                      <div className="space-y-1">
+                        <h3 className="text-base font-bold font-mono uppercase tracking-wide text-foreground">
+                          One last thing
+                        </h3>
+                        <p className="text-xs text-muted-foreground font-sans leading-relaxed">
+                          {isTechnicalReason
+                            ? "We're working on it. Before you go, we'd like to make this right:"
+                            : "Before you go — we'd love to make this work:"}
+                        </p>
+                      </div>
+
+                      <div className="border border-border divide-y divide-border">
+                        <div className="px-4 py-3 flex items-center justify-between">
+                          <div className="space-y-0.5">
+                            <p className="text-[10px] font-mono uppercase text-muted-foreground/60 tracking-widest">One-time offer</p>
+                            <p className="text-xs font-mono font-bold text-foreground">50% off for 3 months</p>
+                          </div>
+                          <div className="text-right">
+                            <p className="text-[10px] font-mono text-muted-foreground line-through">{proPrice.formatted}/mo</p>
+                            <p className="text-sm font-mono font-bold text-emerald-500">{halfPriceFormatted}/mo</p>
+                          </div>
+                        </div>
+                        <div className="px-4 py-3">
+                          <p className="text-xs text-muted-foreground font-sans leading-relaxed">
+                            {isTechnicalReason
+                              ? <>Stay at <strong className="text-foreground">{halfPriceFormatted}/mo</strong> while we ship improvements. You keep every existing feature.</>
+                              : <>Stay at <strong className="text-foreground">{halfPriceFormatted}/mo</strong> and keep push sync, statement parsing & forecasts.</>
+                            }
+                          </p>
+                        </div>
+                      </div>
+
+                      <div className="divide-y divide-border border border-border text-xs font-sans text-muted-foreground">
+                        <div className="flex items-start gap-3 px-4 py-2.5">
+                          <Check className="h-3 w-3 text-foreground/40 mt-0.5 shrink-0" />
+                          <span>Transactions & categories stay forever on Core if you decline.</span>
+                        </div>
+                        <div className="flex items-start gap-3 px-4 py-2.5">
+                          <X className="h-3 w-3 text-muted-foreground/40 mt-0.5 shrink-0" />
+                          <span>PRO data (AI insights, forecasts) kept 90 days, then cleared.</span>
+                        </div>
+                      </div>
+
+                      <div className="space-y-2.5">
+                        <Button
+                          disabled={isSubmitting}
+                          onClick={handleClaimDiscount}
+                          className="w-full h-11 rounded-none bg-emerald-500 text-black hover:bg-emerald-400 font-mono text-xs uppercase font-bold tracking-wider cursor-pointer"
+                        >
+                          {isSubmitting ? "Applying..." : `Claim 50% discount — ${halfPriceFormatted}/mo`}
+                        </Button>
+                        <button
+                          type="button"
+                          disabled={isSubmitting}
+                          onClick={handleFinalCancel}
+                          className="w-full text-center text-[9px] font-mono uppercase text-muted-foreground/40 hover:text-muted-foreground transition-colors cursor-pointer py-1 disabled:opacity-30"
+                        >
+                          {isSubmitting ? "Processing..." : "No thanks, complete cancellation"}
                         </button>
                       </div>
                     </>
