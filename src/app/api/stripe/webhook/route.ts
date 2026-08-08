@@ -1,0 +1,100 @@
+import { getAdminClient } from "@/lib/supabase-admin"
+import { stripe } from "@/lib/stripe"
+import { NextResponse } from "next/server"
+import Stripe from "stripe"
+
+export async function POST(request: Request) {
+  const body = await request.text()
+  const signature = request.headers.get("stripe-signature")
+
+  let event: Stripe.Event
+
+  try {
+    const webhookSecret = process.env.STRIPE_WEBHOOK_SECRET
+    if (webhookSecret && signature) {
+      event = stripe.webhooks.constructEvent(body, signature, webhookSecret)
+    } else {
+      // Allow unverified events in local dev if secret is not set
+      event = JSON.parse(body) as Stripe.Event
+    }
+  } catch (err: any) {
+    console.error(`Webhook Signature Verification Failed: ${err.message}`)
+    return NextResponse.json({ error: "Webhook signature verification failed" }, { status: 400 })
+  }
+
+  const supabaseAdmin = getAdminClient()
+
+  try {
+    switch (event.type) {
+      case "checkout.session.completed": {
+        const session = event.data.object as Stripe.Checkout.Session
+        const userId = session.metadata?.supabase_user_id
+        const isDiscountClaim = session.metadata?.is_discount_claim === "true"
+
+        if (userId) {
+          const { data: profile } = await supabaseAdmin
+            .from("profiles")
+            .select("ai_journal")
+            .eq("id", userId)
+            .single()
+
+          const journal = profile?.ai_journal || {}
+          if (isDiscountClaim) {
+            journal.retention_discount_claimed_at = new Date().toISOString()
+          }
+
+          await supabaseAdmin
+            .from("profiles")
+            .update({
+              subscription_tier: "PRO",
+              ai_quota_limit: 300,
+              ai_quota_usage: 0,
+              stripe_customer_id: session.customer as string,
+              stripe_subscription_id: session.subscription as string,
+              ai_journal: journal,
+            })
+            .eq("id", userId)
+        }
+        break
+      }
+
+      case "customer.subscription.deleted": {
+        const subscription = event.data.object as Stripe.Subscription
+        const customerId = subscription.customer as string
+
+        const { data: profile } = await supabaseAdmin
+          .from("profiles")
+          .select("id, ai_journal")
+          .eq("stripe_customer_id", customerId)
+          .single()
+
+        if (profile) {
+          const retentionDeadline = new Date()
+          retentionDeadline.setDate(retentionDeadline.getDate() + 90)
+
+          const journal = profile.ai_journal || {}
+          journal.pro_data_retention_deadline = retentionDeadline.toISOString()
+
+          await supabaseAdmin
+            .from("profiles")
+            .update({
+              subscription_tier: "FREE",
+              ai_quota_limit: 50,
+              stripe_subscription_id: null,
+              ai_journal: journal,
+            })
+            .eq("id", profile.id)
+        }
+        break
+      }
+
+      default:
+        console.log(`Unhandled Stripe Webhook Event: ${event.type}`)
+    }
+
+    return NextResponse.json({ received: true })
+  } catch (err: any) {
+    console.error("Stripe Webhook Handler Error:", err)
+    return NextResponse.json({ error: "Webhook handler failed" }, { status: 500 })
+  }
+}

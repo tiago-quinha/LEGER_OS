@@ -4,7 +4,9 @@ import React, { createContext, useContext, useState, useEffect } from "react"
 import { useRouter } from "next/navigation"
 import { supabase } from "@/lib/supabase"
 import { User, Session } from "@supabase/supabase-js"
-import { formatCurrency as formatCurr, formatDate as formatDt, getCurrencySymbol } from "@/lib/format"
+import { formatCurrency as formatCurr, formatDate as formatDt, getCurrencySymbol, getProPrice } from "@/lib/format"
+import { StripePaymentModal } from "@/components/StripePaymentModal"
+import { StripeManageDrawer } from "@/components/StripeManageDrawer"
 import { toast } from "sonner"
 
 interface SystemContextType {
@@ -31,6 +33,8 @@ interface SystemContextType {
   upgradeToPro: () => Promise<void>
   cancelPro: (surveyData?: { reason?: string; feedback?: string }) => Promise<void>
   claimProDiscount: () => Promise<void>
+  openStripePortal: () => Promise<void>
+  openStripeManageDrawer: () => Promise<void>
   
   // UI State
   isPrivacyMode: boolean
@@ -155,20 +159,56 @@ export function SystemProvider({ children }: { children: React.ReactNode }) {
   const decayWeight = profile?.decay_weight !== undefined ? Number(profile.decay_weight) : 0.12
   const paycheckKeyword = profile?.paycheck_keyword || "SALARY"
 
+  const [stripeModalState, setStripeModalState] = useState<{
+    isOpen: boolean
+    clientSecret: string
+    amountFormatted: string
+    isDiscountClaim: boolean
+  }>({
+    isOpen: false,
+    clientSecret: "",
+    amountFormatted: "",
+    isDiscountClaim: false,
+  })
+
   const upgradeToPro = async () => {
     if (!user) {
-      toast.error("Please log in to upgrade to LEGER_OS PRO")
+      toast.error("Please log in to manage your subscription")
       return
     }
     try {
-      const res = await fetch('/api/user/subscription', {
+      const res = await fetch('/api/stripe/create-intent', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ isDiscountClaim: false })
+      })
+      const data = await res.json()
+
+      if (res.ok && data.clientSecret) {
+        const proPriceObj = getProPrice(currency)
+        setStripeModalState({
+          isOpen: true,
+          clientSecret: data.clientSecret,
+          amountFormatted: proPriceObj.formatted,
+          isDiscountClaim: false,
+        })
+        return
+      }
+
+      if (data.error && !data.error.includes("not configured")) {
+        toast.error(data.error)
+        return
+      }
+
+      // Dev fallback for unconfigured environment
+      const fallbackRes = await fetch('/api/user/subscription', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ action: 'upgrade' })
       })
-      const data = await res.json()
-      if (!res.ok) throw new Error(data.error || "Failed to upgrade")
-      
+      const fallbackData = await fallbackRes.json()
+      if (!fallbackRes.ok) throw new Error(fallbackData.error || "Failed to upgrade")
+
       toast.success("Welcome to LEGER_OS PRO! All advanced AI & predictive models unlocked.")
       await refreshProfile()
       refreshData()
@@ -209,19 +249,107 @@ export function SystemProvider({ children }: { children: React.ReactNode }) {
       return
     }
     try {
-      const res = await fetch('/api/user/subscription', {
+      const res = await fetch('/api/stripe/create-intent', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ isDiscountClaim: true })
+      })
+      const data = await res.json()
+
+      if (res.ok && data.clientSecret) {
+        const proPriceObj = getProPrice(currency)
+        const halfPrice = (parseFloat(proPriceObj.amount) / 2).toFixed(2)
+        setStripeModalState({
+          isOpen: true,
+          clientSecret: data.clientSecret,
+          amountFormatted: `${proPriceObj.symbol}${halfPrice}`,
+          isDiscountClaim: true,
+        })
+        return
+      }
+
+      if (data.error && !data.error.includes("not configured")) {
+        toast.error(data.error)
+        return
+      }
+
+      // Dev fallback for unconfigured environment
+      const fallbackRes = await fetch('/api/user/subscription', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ action: 'claim_discount' })
       })
-      const data = await res.json()
-      if (!res.ok) throw new Error(data.error || "Failed to apply discount")
+      const fallbackData = await fallbackRes.json()
+      if (!fallbackRes.ok) throw new Error(fallbackData.error || "Failed to apply discount")
 
       toast.success("Exclusive 50% discount applied! You retain full PRO access.")
       await refreshProfile()
       refreshData()
     } catch (err: any) {
       toast.error(err.message || "Failed to apply discount")
+    }
+  }
+
+  const [stripeManageState, setStripeManageState] = useState<{
+    isOpen: boolean
+    clientSecret: string
+  }>({
+    isOpen: false,
+    clientSecret: "",
+  })
+
+  const openStripeManageDrawer = async () => {
+    if (!user) {
+      toast.error("Please log in to manage your subscription")
+      return
+    }
+    try {
+      const res = await fetch('/api/stripe/create-setup-intent', { method: 'POST' })
+      const data = await res.json()
+
+      if (res.ok && data.clientSecret) {
+        setStripeManageState({
+          isOpen: true,
+          clientSecret: data.clientSecret,
+        })
+        return
+      }
+
+      if (data.error && !data.error.includes("not configured")) {
+        toast.error(data.error)
+        return
+      }
+
+      toast.info("Stripe Billing Portal is unconfigured. Add your STRIPE_SECRET_KEY to .env to enable portal access.")
+    } catch {
+      toast.info("Stripe Billing Portal is unconfigured. Add your STRIPE_SECRET_KEY to .env to enable portal access.")
+    }
+  }
+
+  const openStripePortal = async () => {
+    if (!user) {
+      toast.error("Please log in to manage your subscription")
+      return
+    }
+    try {
+      const res = await fetch('/api/stripe/portal', { method: 'POST' })
+      const contentType = res.headers.get("content-type") || ""
+
+      if (contentType.includes("application/json")) {
+        const data = await res.json()
+        if (res.ok && data.url) {
+          window.location.href = data.url
+          return
+        }
+        if (data.error) {
+          toast.info(data.error)
+          return
+        }
+      }
+
+      toast.info("Stripe Billing Portal is unconfigured. Add your STRIPE_SECRET_KEY to .env to enable portal access.")
+    } catch {
+      toast.info("Stripe Billing Portal is unconfigured. Add your STRIPE_SECRET_KEY to .env to enable portal access.")
     }
   }
 
@@ -253,6 +381,8 @@ export function SystemProvider({ children }: { children: React.ReactNode }) {
       upgradeToPro,
       cancelPro,
       claimProDiscount,
+      openStripePortal,
+      openStripeManageDrawer,
       isPrivacyMode, 
       setPrivacyMode, 
       isAuditPanelOpen, 
@@ -272,6 +402,18 @@ export function SystemProvider({ children }: { children: React.ReactNode }) {
       setSubscriptionOnly
     }}>
       {children}
+      <StripePaymentModal
+        isOpen={stripeModalState.isOpen}
+        onClose={() => setStripeModalState(prev => ({ ...prev, isOpen: false }))}
+        clientSecret={stripeModalState.clientSecret}
+        amountFormatted={stripeModalState.amountFormatted}
+        isDiscountClaim={stripeModalState.isDiscountClaim}
+      />
+      <StripeManageDrawer
+        isOpen={stripeManageState.isOpen}
+        onClose={() => setStripeManageState(prev => ({ ...prev, isOpen: false }))}
+        clientSecret={stripeManageState.clientSecret}
+      />
     </SystemContext.Provider>
   )
 }

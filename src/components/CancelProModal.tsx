@@ -2,7 +2,7 @@
 
 import React, { useState } from "react"
 import { motion, AnimatePresence } from "framer-motion"
-import { Check, X, Sparkles, ArrowRight, ArrowLeft, Minus, ShieldAlert, Clock, ShieldCheck } from "lucide-react"
+import { Check, X, Sparkles, ArrowRight, ArrowLeft, Minus } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { useSystem } from "@/lib/SystemContext"
 import { getProPrice, formatCurrency } from "@/lib/format"
@@ -155,7 +155,7 @@ export function CancelProModal({ isOpen, onClose }: CancelProModalProps) {
                   <div className="space-y-2.5">
                     <Button
                       onClick={handleKeepPro}
-                      className="w-full h-11 rounded-none bg-emerald-500 text-black hover:bg-emerald-400 text-xs uppercase font-bold tracking-wider cursor-pointer shadow-sm"
+                      className="w-full h-11 rounded-none bg-emerald-600 text-white hover:bg-emerald-500 text-xs uppercase font-bold tracking-wider cursor-pointer shadow-sm"
                     >
                       <Sparkles className="h-3.5 w-3.5 mr-2" />
                       Keep My PRO Access — {fullPriceFormatted}/mo
@@ -260,13 +260,11 @@ export function CancelProModal({ isOpen, onClose }: CancelProModalProps) {
                             <strong className="text-foreground font-mono">Transactions & categories</strong> stay stored permanently on Core.
                           </p>
                         </div>
-                        <div className="flex items-start gap-3 px-4 py-3">
-                          <Clock className="h-3.5 w-3.5 text-amber-500 mt-0.5 shrink-0" />
-                          <p className="text-xs font-sans text-muted-foreground">
-                            <strong className="text-foreground font-mono">PRO AI Data</strong> (insights & forecasts) retained for <strong className="text-foreground font-mono">90 days</strong> before privacy purge.
-                          </p>
-                        </div>
                       </div>
+
+                      <p className="text-[11px] text-muted-foreground font-sans text-center">
+                        Your data will remain active for 90 days if you decide to come back.
+                      </p>
 
                       <div className="space-y-2.5">
                         <Button
@@ -286,11 +284,11 @@ export function CancelProModal({ isOpen, onClose }: CancelProModalProps) {
                       </div>
                     </>
                   ) : (
-                    /* First-time churner — 50% discount retargeting offer */
+                    /* First-time churner — 50% discount offer */
                     <>
                       <div className="space-y-1">
                         <h3 className="text-base font-bold uppercase tracking-wide text-foreground">
-                          Exclusive Retargeting Offer
+                          Special Offer
                         </h3>
                         <p className="text-xs text-muted-foreground font-sans leading-relaxed">
                           {isTechnicalReason
@@ -299,12 +297,13 @@ export function CancelProModal({ isOpen, onClose }: CancelProModalProps) {
                         </p>
                       </div>
 
-                      {/* Main Offer Card */}
+                      {/* Main Combined Green Offer Card */}
                       <div className="border border-emerald-500/40 bg-emerald-500/10 divide-y divide-emerald-500/20">
+                        {/* Price & Savings Header */}
                         <div className="px-4 py-3 flex items-center justify-between">
                           <div className="space-y-0.5">
-                            <span className="text-[9px] uppercase bg-emerald-500 text-black font-bold px-1.5 py-0.5 tracking-wider inline-block">
-                              ONE-TIME 50% RETENTION DISCOUNT
+                            <span className="text-[9px] uppercase bg-emerald-500 text-emerald-950 font-bold px-1.5 py-0.5 tracking-wider inline-block">
+                              ONE-TIME 50% DISCOUNT
                             </span>
                             <p className="text-xs font-bold text-foreground mt-1">
                               Save {totalSavedFormatted} over next 3 months
@@ -316,40 +315,34 @@ export function CancelProModal({ isOpen, onClose }: CancelProModalProps) {
                           </div>
                         </div>
 
-                        <div className="px-4 py-3 text-xs text-foreground font-sans leading-relaxed space-y-2">
+                        {/* Offer Details */}
+                        <div className="px-4 py-2.5 text-xs text-foreground font-sans leading-relaxed">
                           <p>
-                            Lock in <strong>{halfPriceFormatted}/month</strong> (50% OFF) for your next 3 billing cycles ({currency}).
+                            Lock in <strong>{halfPriceFormatted}/month</strong> (50% OFF) for your next 3 billing cycles.
                           </p>
-                          <div className="text-[11px] text-muted-foreground space-y-1 font-mono pt-1">
-                            <div className="flex items-center gap-1.5">
-                              <ShieldCheck className="h-3 w-3 text-emerald-500 shrink-0" />
-                              <span>Retain Push Sync, AI Parsing & λ Forecasts</span>
+                        </div>
+
+                        {/* Embedded Features List (All 4 Step 1 features with checks) */}
+                        <div className="px-4 py-3 text-xs font-sans text-muted-foreground space-y-2">
+                          {LOST_FEATURES.map((f) => (
+                            <div key={f.label} className="flex items-center gap-2">
+                              <Check className="h-3.5 w-3.5 text-emerald-500 shrink-0" />
+                              <span className="text-foreground text-[11px] font-mono">{f.label}</span>
                             </div>
-                            <div className="flex items-start gap-1.5">
-                              <Check className="h-3 w-3 text-emerald-500 shrink-0 mt-0.5" />
-                              <span>Renews at standard {fullPriceFormatted}/mo after 3 months. Cancel anytime.</span>
-                            </div>
-                          </div>
+                          ))}
                         </div>
                       </div>
 
-                      {/* Data Retention Guarantee */}
-                      <div className="divide-y divide-border border border-border bg-card/30 text-xs font-sans text-muted-foreground">
-                        <div className="flex items-start gap-3 px-4 py-2.5">
-                          <Check className="h-3 w-3 text-emerald-500 mt-0.5 shrink-0" />
-                          <span>Core financial history (expenses & categories) stays saved forever.</span>
-                        </div>
-                        <div className="flex items-start gap-3 px-4 py-2.5">
-                          <Clock className="h-3 w-3 text-amber-500 mt-0.5 shrink-0" />
-                          <span>PRO AI insights & forecasts retained for 90-day grace period upon downgrade.</span>
-                        </div>
-                      </div>
+                      {/* Clean 90-day retention text outside the green card */}
+                      <p className="text-[11px] text-muted-foreground font-sans text-center leading-relaxed">
+                        Your data will remain active for 90 days if you decide to come back.
+                      </p>
 
                       <div className="space-y-2.5">
                         <Button
                           disabled={isSubmitting}
                           onClick={handleClaimDiscount}
-                          className="w-full h-11 rounded-none bg-emerald-500 text-black hover:bg-emerald-400 text-xs uppercase font-bold tracking-wider cursor-pointer shadow-sm"
+                          className="w-full h-11 rounded-none bg-emerald-600 text-white hover:bg-emerald-500 text-xs uppercase font-bold tracking-wider cursor-pointer shadow-sm"
                         >
                           {isSubmitting ? "Applying Offer..." : `Claim 50% Discount (${halfPriceFormatted}/mo)`}
                         </Button>

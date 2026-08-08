@@ -9,7 +9,7 @@ You operate within a 3-Layer Architecture (`directives/`, `orchestration`, `exec
 ## 🔒 Mandatory Obsidian Vault Protocol (Vault-First Policy)
 
 1. **Check Obsidian Vault Before Executing:**
-   Before forming a hypothesis, writing code, or answering architecture questions, you **MUST** first inspect the **LEGER_OS Obsidian Vault** (`LEGER_OS/` or via Obsidian MCP tools).
+   Before forming a hypothesis, searching the codebase, writing code, or answering architecture questions, you **MUST** first inspect the **LEGER_OS Obsidian Vault** (`LEGER_OS/` or via Obsidian MCP tools).
    - Read the relevant SOP directive in `LEGER_OS/01 - Directives (SOPs)/`.
    - Read the current cycle note in `LEGER_OS/02 - Paycheck Cycles/`.
    - Verify calculation standards in `LEGER_OS/00 - System & AI/Mathematical Projection Engine.md`.
@@ -45,3 +45,6 @@ You operate within a 3-Layer Architecture (`directives/`, `orchestration`, `exec
 4. **PostgREST Invariant:** SQL migrations must finish with `NOTIFY pgrst, 'reload schema';`.
 5. **Standardized Emerald PRO Theme & Normalized `ProLockOverlay` Invariant:** Reserve Emerald Green (`text-emerald-500`, `bg-emerald-500/10`, `border-emerald-500/30`) strictly for PRO/Premium features. Non-PRO security/privacy indicators (e.g. Privacy Safe-Deposit mode, floating AI trigger lock badge) must use neutral monochrome styling (`text-muted-foreground bg-card border-border`). All locked PRO features across all views must use the standard `<ProLockOverlay />` component. On chart/graph overlays, wrap `ProLockOverlay` in an opaque/blurred `bg-background/95 backdrop-blur-md` backdrop so data is completely non-interactive and hidden.
 6. **No Pseudo-Terminal Underscore Typography Invariant:** Ban pseudo-terminal uppercase underscore jargon in UI copy (e.g., `PRO_ACTIVE`, `CORE_FREE`, `PRO_LOCKED`, `HTTP_403_DENIED`, `SECURITY_GATEKEEPER`, `SUPER_USER`). Always use clean, professional natural English typography (e.g., `PRO Active`, `Core Free`, `PRO Locked`, `Access Forbidden`, `Security & Permissions`).
+7. **Transparent Tax-Inclusive Pricing Invariant:** All Stripe payment sessions and intents MUST set `tax_behavior: "inclusive"`. The advertised price in the application (e.g. €4.99, €2.50, $5.50, £4.50) MUST match the exact final amount charged to the user with zero added tax surprises at checkout.
+8. **Native Embedded Dark Payment Drawer Standard:** All payment, checkout, and billing management flows MUST use native in-app bottom slide-up drawers (`StripePaymentModal.tsx` and `StripeManageDrawer.tsx`) matching the LEGER_OS dark theme (`#09090b`), sharp borders (`border-border`), mono typography, and Emerald Green action buttons (`bg-emerald-600 text-white`). Include the official standard compliance footer: `🔒 256-BIT SSL ENCRYPTED · POWERED BY stripe`.
+

@@ -15,7 +15,7 @@ import { getAIHeaders } from "@/lib/ai-client"
 import { 
   Sparkles, Check, X, Sliders, Brain, Smartphone, Shield, ShieldOff, Sun, Moon, 
   LogOut, ShieldAlert, Copy, ChevronDown, Plus, Trash2, Search, Terminal, Zap, 
-  Database, FileJson, Rocket, Landmark, Lock
+  Database, FileJson, Rocket, Landmark, Lock, CreditCard
 } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { GlowingBadge } from "@/components/unlumen-ui/glowing-badge"
@@ -87,6 +87,8 @@ export function SystemSettingsModal({ open, onOpenChange }: SystemSettingsModalP
     isPro, 
     upgradeToPro, 
     cancelPro, 
+    openStripePortal,
+    openStripeManageDrawer,
     isSubscriptionOnly, 
     setSubscriptionOnly,
     profile,
@@ -991,14 +993,24 @@ export function SystemSettingsModal({ open, onOpenChange }: SystemSettingsModalP
                   </div>
                 </div>
 
-                <Button 
-                  type="button"
-                  onClick={upgradeToPro}
-                  disabled={isPro}
-                  className="w-full rounded-none font-mono text-xs uppercase font-bold h-10 bg-emerald-500 text-black hover:bg-emerald-400 transition-all cursor-pointer shadow-lg"
-                >
-                  {isPro ? "PRO Access Active" : `Upgrade to PRO (${getProPrice(currencyInput).formatted}/mo)`}
-                </Button>
+                {isPro ? (
+                  <Button 
+                    type="button"
+                    onClick={openStripeManageDrawer}
+                    className="w-full rounded-none font-mono text-xs uppercase font-bold h-10 bg-card border border-border text-foreground hover:bg-secondary/40 transition-all cursor-pointer shadow-sm flex items-center justify-center gap-2"
+                  >
+                    <CreditCard className="h-3.5 w-3.5 text-emerald-500" />
+                    Manage Payment Methods & Invoices
+                  </Button>
+                ) : (
+                  <Button 
+                    type="button"
+                    onClick={upgradeToPro}
+                    className="w-full rounded-none font-mono text-xs uppercase font-bold h-10 bg-emerald-500 text-black hover:bg-emerald-400 transition-all cursor-pointer shadow-lg"
+                  >
+                    Upgrade to PRO ({getProPrice(currencyInput).formatted}/mo)
+                  </Button>
+                )}
               </div>
 
               {/* CORE FREE BASE PLAN */}
