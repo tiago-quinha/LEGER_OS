@@ -250,10 +250,18 @@ export function LegerAIPageView({ cycleData, expenses, categories }: LegerAIPage
     setEditExpiryOption("keep")
   }
 
+  const getCategoryGroup = (cat: string): string => {
+    const raw = (cat || "").toLowerCase()
+    if (["lifestyle", "goal", "health", "financial", "other"].includes(raw)) {
+      return raw
+    }
+    return "financial"
+  }
+
   // Filter memories based on tab selection
   const filteredMemories = useMemo(() => {
     if (activeTab === "all") return memories
-    return memories.filter(m => m.category === activeTab)
+    return memories.filter(m => getCategoryGroup(m.category) === activeTab)
   }, [memories, activeTab])
 
   // Group memories by date relative to today
@@ -289,17 +297,18 @@ export function LegerAIPageView({ cycleData, expenses, categories }: LegerAIPage
 
   // Map category helper
   const getCategoryDetails = (cat: string) => {
-    switch (cat) {
+    const group = getCategoryGroup(cat)
+    switch (group) {
       case "lifestyle":
-        return { label: "Lifestyle", color: "text-blue-400 bg-blue-500/10 border-blue-500/20", icon: Heart }
+        return { label: cat || "Lifestyle", color: "text-blue-400 bg-blue-500/10 border-blue-500/20", icon: Heart }
       case "goal":
-        return { label: "Goal", color: "text-amber-400 bg-amber-500/10 border-amber-500/20", icon: Award }
+        return { label: cat || "Goal", color: "text-amber-400 bg-amber-500/10 border-amber-500/20", icon: Award }
       case "health":
-        return { label: "Health Condition", color: "text-rose-400 bg-rose-500/10 border-rose-500/20", icon: Activity }
+        return { label: cat || "Health Condition", color: "text-rose-400 bg-rose-500/10 border-rose-500/20", icon: Activity }
       case "financial":
-        return { label: "Financial", color: "text-emerald-400 bg-emerald-500/10 border-emerald-500/20", icon: DollarSign }
+        return { label: cat || "Financial", color: "text-emerald-400 bg-emerald-500/10 border-emerald-500/20", icon: DollarSign }
       default:
-        return { label: "Other", color: "text-muted-foreground bg-muted/10 border-border/40", icon: HelpCircle }
+        return { label: cat || "Other", color: "text-muted-foreground bg-muted/10 border-border/40", icon: HelpCircle }
     }
   }
 
