@@ -2,15 +2,33 @@
 
 import React, { useState, useEffect, useMemo } from "react"
 import { motion, AnimatePresence } from "framer-motion"
-import { Brain, Cpu, Zap, X, ShieldCheck, Sparkles, MessageSquare, RefreshCcw, History, TrendingUp, AlertTriangle } from "lucide-react"
+import { 
+  RefreshCcw, History, Calendar, 
+  Clock, Plus, Trash2, Search
+} from "lucide-react"
 import { cn } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
-import { MagneticButton } from "@/components/unlumen-ui/magnetic-button"
 import { useSystem } from "@/lib/SystemContext"
-import { supabase } from "@/lib/supabase"
-import { getAIHeaders } from "@/lib/ai-client"
 import { toast } from "sonner"
-import { renderFormattedText } from "./LegerAIAssistant"
+import { ProLockOverlay } from "@/components/ProLockOverlay"
+import { 
+  Dialog, 
+  DialogContent, 
+  DialogHeader, 
+  DialogTitle, 
+  DialogDescription,
+  DialogFooter
+} from "@/components/ui/dialog"
+
+interface Memory {
+  id: string
+  content: string
+  category: string
+  categoryId?: number | string | null
+  createdAt: string
+  expiresAt: string | null
+  status: "active" | "expired" | string
+}
 
 interface LegerAIPageViewProps {
   cycleData: any
@@ -19,110 +37,62 @@ interface LegerAIPageViewProps {
 }
 
 export function LegerAIPageView({ cycleData, expenses, categories }: LegerAIPageViewProps) {
-  const { profile, user, refreshProfile, currencySymbol, language, aiProvider, customApiKey, isPro, setSettingsOpen, setSettingsActiveTab, setSubscriptionOnly } = useSystem()
-  const [analysis, setAnalysis] = useState<any>(null)
+  const { profile, user, refreshProfile, isPro, setSettingsOpen, setSettingsActiveTab, setSubscriptionOnly } = useSystem()
+  
+  // Memories Page States
+  const [memories, setMemories] = useState<Memory[]>([])
+  const [activeTab, setActiveTab] = useState<string>("all")
+  const [newMemoryText, setNewMemoryText] = useState("")
   const [isLoading, setIsLoading] = useState(false)
-  const [lastUpdated, setLastUpdated] = useState<string | null>(null)
-  const [errorMessage, setErrorMessage] = useState<string | null>(null)
+  const [isSubmitting, setIsSubmitting] = useState(false)
 
-  // Interactive Client State
-  const [displayMessage, setDisplayMessage] = useState<string | null>(null)
-  const [activeFilters, setActiveFilters] = useState<any | null>(null)
-  const [userQuery, setUserQuery] = useState("")
-  const [isQuerying, setIsQuerying] = useState(false)
+  // Feature: Text search
+  const [searchQuery, setSearchQuery] = useState("")
 
-  const userName = profile?.username || profile?.full_name || "User"
+  // Feature: Collapsed expired groups
+  const [expandedExpiredGroups, setExpandedExpiredGroups] = useState<Set<string>>(new Set())
 
-  const totalOut = useMemo(() => expenses
-    .filter(e => parseFloat(e.amount) < 0)
-    .reduce((sum, e) => sum + Math.abs(parseFloat(e.amount)), 0), [expenses])
+  // Clickable memory states (Edit Modal)
+  const [selectedMemory, setSelectedMemory] = useState<Memory | null>(null)
+  const [editContent, setEditContent] = useState("")
+  const [editCategory, setEditCategory] = useState<Memory["category"]>("other")
+  const [editExpiryOption, setEditExpiryOption] = useState<string>("keep")
+  const [customDays, setCustomDays] = useState<string>("7")
+  const [isUpdating, setIsUpdating] = useState(false)
 
-  const totalIn = useMemo(() => expenses
-    .filter(e => parseFloat(e.amount) > 0)
-    .reduce((sum, e) => sum + parseFloat(e.amount), 0), [expenses])
-
-  const spendingLimit = profile?.target_monthly_spend || 1500
-
-  // Cache Key grounded in a stable data fingerprint (v3 forces cache-busting for the new prompt format)
-  const fingerprint = `${Math.round(cycleData.currentBalance)}_${cycleData.categories.length}_${profile?.id || 'guest'}`
-  const cacheKey = `leger_insight_v3_${fingerprint}`
-
-  const runAnalysis = async (force = false) => {
-    setErrorMessage(null)
-    
-    // Check cache first if not forced
-    if (!force) {
-      const cached = localStorage.getItem(cacheKey)
-      if (cached) {
-        try {
-          const { data, timestamp } = JSON.parse(cached)
-          
-          // Invalidate cache if older than 12 hours
-          const cacheAgeMs = Date.now() - Number(timestamp)
-          if (cacheAgeMs < 12 * 60 * 60 * 1000) {
-            setAnalysis(data)
-            setDisplayMessage(data.message)
-            setActiveFilters(null)
-            setLastUpdated(new Date(Number(timestamp)).toLocaleString())
-            return
-          } else {
-            localStorage.removeItem(cacheKey)
-          }
-        } catch (e) {
-          localStorage.removeItem(cacheKey)
-        }
-      }
-    }
-
+  // Fetch all memories on mount/profile change
+  const fetchMemories = async () => {
     setIsLoading(true)
     try {
-      const response = await fetch("/api/analyze-cycle", {
-        method: "POST",
-        headers: getAIHeaders(aiProvider, customApiKey),
-        body: JSON.stringify({
-          currentBalance: cycleData.currentBalance,
-          velocity: cycleData.velocity,
-          categories: cycleData.categories,
-          totalIn,
-          totalOut,
-          spendingLimit,
-          userName: userName
-        })
-      })
-      
-      const data = await response.json()
-      
+      const response = await fetch("/api/leger-ai/memory")
       if (response.ok) {
-        const timestamp = Date.now()
-        setAnalysis(data)
-        setDisplayMessage(data.message)
-        setActiveFilters(null)
-        setLastUpdated(new Date(timestamp).toLocaleString())
-        localStorage.setItem(cacheKey, JSON.stringify({ data, timestamp }))
+        const data = await response.json()
+        setMemories(data.memories || [])
       } else {
-        setErrorMessage(data.error || "Neural synthesis failed.")
+        const err = await response.json()
+        console.error("Failed to load memories:", err.error)
       }
     } catch (err) {
-      console.error(err)
-      setErrorMessage("Lost contact with the mainframe.")
+      console.error("Mainframe error loading memories:", err)
     } finally {
       setIsLoading(false)
     }
   }
 
   useEffect(() => {
-    const hasData = cycleData.currentBalance > 0 || cycleData.categories.length > 0;
-    if (profile && hasData) runAnalysis()
-  }, [cacheKey, !!profile, cycleData.currentBalance, cycleData.categories.length])
+    if (user) {
+      fetchMemories()
+    }
+  }, [user])
 
-  // Handle natural language custom prompt query
-  const handleQuerySubmit = async (e: React.FormEvent) => {
+  // Handle adding a new memory
+  const handleAddMemory = async (e: React.FormEvent) => {
     e.preventDefault()
-    if (!userQuery.trim() || isQuerying || isLoading) return
+    if (!newMemoryText.trim() || isSubmitting) return
 
     if (!isPro) {
-      toast.error("Leger AI Custom Queries are a LEGER_OS PRO feature.", {
-        description: "Upgrade to PRO to unlock conversational overrides and custom projections.",
+      toast.error("Leger AI Context Memory is a LEGER_OS PRO feature.", {
+        description: "Upgrade to PRO to unlock conversational routine tracking and active memory gates.",
       })
       setSettingsActiveTab("pro")
       setSubscriptionOnly(true)
@@ -130,144 +100,375 @@ export function LegerAIPageView({ cycleData, expenses, categories }: LegerAIPage
       return
     }
 
-    setIsQuerying(true)
-    setErrorMessage(null)
+    setIsSubmitting(true)
     try {
-      const response = await fetch("/api/leger-ai/query", {
+      const response = await fetch("/api/leger-ai/memory", {
         method: "POST",
-        headers: getAIHeaders(aiProvider, customApiKey),
-        body: JSON.stringify({
-          query: userQuery,
-          expenses,
-          categories,
-          userName,
-          clientDate: new Date().toISOString()
-        })
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ text: newMemoryText })
       })
-      const data = await response.json()
+
       if (response.ok) {
-        setDisplayMessage(data.message)
-        setActiveFilters(data.filters)
-        setUserQuery("")
-        if (data.override) {
-          try {
-            let updated: any[] = []
-            if (!data.override.reset) {
-              const existing = profile?.projection_overrides || JSON.parse(localStorage.getItem("leger_cycle_overrides") || "[]")
-              updated = existing.filter((o: any) => o.categoryId !== data.override.categoryId)
-              updated.push(data.override)
-            }
-            
-            localStorage.setItem("leger_cycle_overrides", JSON.stringify(updated))
-            
-            if (user) {
-              await supabase
-                .from("profiles")
-                .update({ projection_overrides: updated })
-                .eq("id", user.id)
-              await refreshProfile()
-            }
-            
-            window.dispatchEvent(new Event("leger_overrides_updated"))
-          } catch (e) {}
-        }
+        const data = await response.json()
+        setMemories(data.memories || [])
+        setNewMemoryText("")
+        toast.success("Context applied", {
+          description: `AI successfully analyzed and registered: "${data.memory.content}"`
+        })
+        
+        // Refresh system context profile
+        await refreshProfile()
       } else {
-        setErrorMessage(data.error || "Leger AI query diagnostics failed.")
+        const err = await response.json()
+        toast.error("Memory parsing failed", { description: err.error || "Neural model error." })
       }
     } catch (err) {
       console.error(err)
-      setErrorMessage("Leger AI query node connection lost.")
+      toast.error("Connection lost", { description: "Mainframe query node disconnected." })
     } finally {
-      setIsQuerying(false)
+      setIsSubmitting(false)
     }
   }
 
-  // Filter transaction grid dynamically based on active filters
-  const filteredExpenses = useMemo(() => {
-    const list = expenses || []
-    if (!activeFilters) return list
+  // Handle updating an existing memory
+  const handleUpdateMemory = async () => {
+    if (!selectedMemory || isUpdating) return
 
-    const { categoryId, merchant, amountMin, amountMax, type } = activeFilters
+    const originalMemories = [...memories]
+    setIsUpdating(true)
 
-    return list.filter((e: any) => {
-      const amt = Math.abs(parseFloat(e.amount))
-      
-      // Category match
-      if (categoryId !== null && categoryId !== undefined && e.category_id !== categoryId) {
-        return false
-      }
-      
-      // Merchant search
-      if (merchant) {
-        const searchStr = merchant.toLowerCase()
-        if (!e.merchant || !e.merchant.toLowerCase().includes(searchStr)) {
-          return false
+    // Calculate new expiresAt locally
+    let expiresAt = selectedMemory.expiresAt
+    if (editExpiryOption === "permanent") {
+      expiresAt = null
+    } else if (editExpiryOption === "1day") {
+      expiresAt = new Date(Date.now() + 1 * 24 * 60 * 60 * 1000).toISOString()
+    } else if (editExpiryOption === "3days") {
+      expiresAt = new Date(Date.now() + 3 * 24 * 60 * 60 * 1000).toISOString()
+    } else if (editExpiryOption === "7days" || editExpiryOption === "extend7") {
+      expiresAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString()
+    } else if (editExpiryOption === "14days") {
+      expiresAt = new Date(Date.now() + 14 * 24 * 60 * 60 * 1000).toISOString()
+    } else if (editExpiryOption === "30days" || editExpiryOption === "extend30") {
+      expiresAt = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString()
+    } else if (editExpiryOption === "90days") {
+      expiresAt = new Date(Date.now() + 90 * 24 * 60 * 60 * 1000).toISOString()
+    } else if (editExpiryOption === "custom") {
+      const days = parseInt(customDays) || 7
+      expiresAt = new Date(Date.now() + days * 24 * 60 * 60 * 1000).toISOString()
+    }
+
+    // Optimistically update local memories state immediately
+    const updatedMemories = memories.map(m => {
+      if (m.id === selectedMemory.id) {
+        return {
+          ...m,
+          content: editContent,
+          category: editCategory,
+          expiresAt,
+          status: (expiresAt && new Date(expiresAt) < new Date()) ? "expired" as const : "active" as const
         }
       }
-      // Amount min
-      if (amountMin !== null && amountMin !== undefined && amt < amountMin) {
-        return false
-      }
-      
-      // Amount max
-      if (amountMax !== null && amountMax !== undefined && amt > amountMax) {
-        return false
-      }
-      
-      // Type match
-      if (type === "expense" && parseFloat(e.amount) >= 0) return false
-      if (type === "income" && parseFloat(e.amount) <= 0) return false
-
-      return true
+      return m
     })
-  }, [expenses, activeFilters])
-  if (!isPro) {
-    return (
-      <div className="mx-auto max-w-[1500px] p-4 md:p-8 space-y-8 md:space-y-12 pb-24 text-foreground w-full">
-        {/* Header */}
-        <header className="flex flex-col md:flex-row md:items-end justify-between gap-8 border-b border-foreground/10 pb-8 relative">
-          <div className="space-y-4">
-            <div className="flex items-center gap-3 text-[10px] font-mono tracking-[0.2em] uppercase text-muted-foreground">
-              <Brain className="h-4 w-4 text-muted-foreground" />
-              <span>Neural Synthesis</span>
-              <span className="opacity-30">/</span>
-              <span>STRATEGY_NODE</span>
-            </div>
-            <h1 className="text-4xl sm:text-5xl md:text-6xl font-bold tracking-tighter uppercase leading-none">
-              Leger AI
-            </h1>
-          </div>
-        </header>
+    setMemories(updatedMemories)
 
-        {/* Brutalist Lock Banner */}
-        <div className="border border-border bg-card relative p-8 md:p-16 text-center overflow-hidden flex flex-col items-center justify-center min-h-[400px]">
-          {/* Cyber OS background grid */}
-          <div className="absolute inset-0 bg-[linear-gradient(to_right,rgba(128,128,128,0.06)_1px,transparent_1px),linear-gradient(to_bottom,rgba(128,128,128,0.06)_1px,transparent_1px)] bg-[size:24px_24px] pointer-events-none" />
-          
-          <div className="space-y-6 max-w-md z-10 font-mono">
-            <div className="mx-auto w-12 h-12 bg-secondary flex items-center justify-center ledger-border mb-4">
-              <Brain className="h-6 w-6 text-muted-foreground" />
-            </div>
-            <h3 className="text-lg font-bold uppercase tracking-widest text-foreground">NEURAL BRIDGE OFFLINE</h3>
-            <p className="text-xs text-muted-foreground uppercase leading-relaxed">
-              Leger AI diagnostics and conversational query tools are restricted to **LEGER_OS PRO** nodes. Upgrade your subscription to unlock automated category recommendations, conversational queries, and deficit alarms.
-            </p>
-            <div className="pt-4">
-              <button 
-                onClick={() => {
-                  setSettingsActiveTab("pro");
-                  setSubscriptionOnly(true);
-                  setSettingsOpen(true);
-                }} 
-                className="px-6 py-3 bg-foreground text-background text-xs uppercase font-mono font-bold tracking-widest hover:bg-emerald-500 hover:text-white transition-all shadow-[0_0_10px_rgba(0,0,0,0.2)]"
-              >
-                UPGRADE TO PRO NODE
-              </button>
-            </div>
-          </div>
-        </div>
-      </div>
-    )
+    // Instantly close dialog & show success feedback
+    setSelectedMemory(null)
+    toast.success("Memory updated", {
+      description: "Mainframe context updated."
+    })
+
+    try {
+      const response = await fetch("/api/leger-ai/memory", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          id: selectedMemory.id,
+          content: editContent,
+          category: editCategory,
+          expiresAt
+        })
+      })
+
+      if (!response.ok) {
+        const err = await response.json()
+        setMemories(originalMemories) // Rollback
+        toast.error("Update failed", { description: err.error })
+      } else {
+        await refreshProfile()
+      }
+    } catch (err) {
+      console.error(err)
+      setMemories(originalMemories) // Rollback
+      toast.error("Connection error", { description: "Failed to save changes to database." })
+    } finally {
+      setIsUpdating(false)
+    }
+  }
+
+  // Handle quick-extending a memory by 7 days (no modal needed)
+  const handleQuickExtend = async (mem: Memory, event: React.MouseEvent) => {
+    event.stopPropagation()
+    
+    const originalMemories = [...memories]
+    const newExpiresAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString()
+
+    // Optimistic update
+    const updatedMemories = memories.map(m => {
+      if (m.id === mem.id) {
+        return { ...m, expiresAt: newExpiresAt, status: "active" as const }
+      }
+      return m
+    })
+    setMemories(updatedMemories)
+    toast.success("Extended +7 days", { description: `"${mem.content}" extended.` })
+
+    try {
+      const response = await fetch("/api/leger-ai/memory", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          id: mem.id,
+          content: mem.content,
+          category: mem.category,
+          expiresAt: newExpiresAt
+        })
+      })
+
+      if (!response.ok) {
+        setMemories(originalMemories)
+        toast.error("Extend failed", { description: "Could not save new expiry date." })
+      } else {
+        await refreshProfile()
+      }
+    } catch {
+      setMemories(originalMemories)
+      toast.error("Connection error", { description: "Failed to extend memory." })
+    }
+  }
+
+  // Handle deleting a memory
+  const handleDeleteMemory = async (id: string, event?: React.MouseEvent) => {
+    if (event) {
+      event.stopPropagation() // Prevent opening modal
+    }
+    
+    const originalMemories = [...memories]
+
+    // Optimistically remove the memory card locally immediately
+    const updatedMemories = memories.filter(m => m.id !== id)
+    setMemories(updatedMemories)
+
+    if (selectedMemory?.id === id) {
+      setSelectedMemory(null)
+    }
+
+    toast.success("Memory forgotten", {
+      description: "Context removed from queries."
+    })
+
+    try {
+      const response = await fetch(`/api/leger-ai/memory?id=${id}`, {
+        method: "DELETE"
+      })
+
+      if (!response.ok) {
+        const err = await response.json()
+        setMemories(originalMemories) // Rollback
+        toast.error("Clear action failed", { description: err.error })
+      } else {
+        await refreshProfile()
+      }
+    } catch (err) {
+      console.error(err)
+      setMemories(originalMemories) // Rollback
+      toast.error("Connection error", { description: "Failed to sync memory deletion." })
+    }
+  }
+
+  // Open Edit Modal helper
+  const handleCardClick = (mem: Memory) => {
+    setSelectedMemory(mem)
+    setEditContent(mem.content)
+    setEditCategory(mem.category)
+    setEditExpiryOption("keep")
+  }
+
+  // Compute available category tabs dynamically from user categories & registered memories
+  const availableCategoryTabs = useMemo(() => {
+    const set = new Set<string>()
+    memories.forEach(m => {
+      if (m.category) set.add(m.category)
+    })
+    if (categories && Array.isArray(categories)) {
+      categories.forEach(c => {
+        if (c.name) set.add(c.name)
+      })
+    }
+    return ["all", ...Array.from(set)]
+  }, [memories, categories])
+
+  // Filter memories based on tab selection + text search
+  const filteredMemories = useMemo(() => {
+    let result = memories
+    if (activeTab !== "all") {
+      result = result.filter(m => m.category.toLowerCase() === activeTab.toLowerCase())
+    }
+    if (searchQuery.trim()) {
+      const q = searchQuery.toLowerCase()
+      result = result.filter(m => m.content.toLowerCase().includes(q))
+    }
+    return result
+  }, [memories, activeTab, searchQuery])
+
+  // Feature: Summary stats computed from all memories (not filtered)
+  const memoryStats = useMemo(() => {
+    const now = new Date()
+    const soonThresholdMs = 2 * 24 * 60 * 60 * 1000 // 2 days
+    let active = 0
+    let expiringSoon = 0
+    let expired = 0
+
+    memories.forEach(mem => {
+      if (mem.status === "expired") {
+        expired++
+      } else if (mem.expiresAt) {
+        const diffMs = new Date(mem.expiresAt).getTime() - now.getTime()
+        if (diffMs <= 0) {
+          expired++
+        } else if (diffMs <= soonThresholdMs) {
+          expiringSoon++
+          active++ // still active, just flagged
+        } else {
+          active++
+        }
+      } else {
+        active++ // permanent
+      }
+    })
+
+    return { active, expiringSoon, expired }
+  }, [memories])
+
+  // Group memories by date relative to today
+  const groupedMemories = useMemo(() => {
+    const groups: { [key: string]: Memory[] } = {}
+    
+    filteredMemories.forEach(mem => {
+      const date = new Date(mem.createdAt)
+      const today = new Date()
+      const yesterday = new Date(today)
+      yesterday.setDate(yesterday.getDate() - 1)
+
+      let key = ""
+      if (date.toDateString() === today.toDateString()) {
+        key = "TODAY"
+      } else if (date.toDateString() === yesterday.toDateString()) {
+        key = "YESTERDAY"
+      } else {
+        key = date.toLocaleDateString("en-GB", {
+          weekday: "short",
+          day: "numeric",
+          month: "short",
+          year: "numeric"
+        }).toUpperCase()
+      }
+
+      if (!groups[key]) groups[key] = []
+      groups[key].push(mem)
+    })
+
+    return groups
+  }, [filteredMemories])
+
+  // Map category helper matching /ledger dot + color style
+  const getCategoryDetails = (cat: string) => {
+    const matchedCategory = (categories || []).find(c => c.name?.toLowerCase() === cat?.toLowerCase())
+    if (matchedCategory) {
+      return {
+        label: matchedCategory.name,
+        color: matchedCategory.color || "#10b981"
+      }
+    }
+
+    switch (cat?.toLowerCase()) {
+      case "goal":
+        return { label: "Goal", color: "#f59e0b" }
+      case "health":
+        return { label: "Health Condition", color: "#f43f5e" }
+      case "financial":
+        return { label: "Financial", color: "#10b981" }
+      default:
+        return { label: cat || "Other", color: "#71717a" }
+    }
+  }
+
+  // Feature: Get projection override impact for a memory's category
+  const getProjectionImpact = (mem: Memory): string | null => {
+    if (mem.status === "expired") return null
+    const overrides = profile?.projection_overrides || []
+    if (!overrides.length || !mem.categoryId) return null
+
+    const catIdStr = String(mem.categoryId)
+    const match = overrides.find((ov: any) => ov.categoryId && String(ov.categoryId) === catIdStr)
+    if (!match) return null
+
+    // Determine impact description
+    if (match.multiplier !== undefined && match.multiplier !== null && match.multiplier !== 1.0) {
+      const pctChange = Math.round((match.multiplier - 1.0) * 100)
+      const catDetails = getCategoryDetails(mem.category)
+      if (pctChange < 0) {
+        return `↓ ${Math.abs(pctChange)}% ${catDetails.label}`
+      } else if (pctChange > 0) {
+        return `↑ ${pctChange}% ${catDetails.label}`
+      } else if (match.multiplier === 0) {
+        return `⏸ ${catDetails.label} frozen`
+      }
+    }
+    if (match.fixedDelta) {
+      const delta = parseFloat(match.fixedDelta)
+      const catDetails = getCategoryDetails(mem.category)
+      if (delta < 0) {
+        return `↓ €${Math.abs(delta).toFixed(0)} ${catDetails.label}`
+      } else if (delta > 0) {
+        return `↑ €${delta.toFixed(0)} ${catDetails.label}`
+      }
+    }
+    return null
+  }
+
+  // Calculate remaining duration string
+  const getDurationString = (expiresAt: string | null) => {
+    if (!expiresAt) return "Permanent"
+    
+    const expiry = new Date(expiresAt)
+    const diffTime = expiry.getTime() - Date.now()
+    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24))
+
+    if (diffDays <= 0) return "Expired"
+    if (diffDays === 1) return "Expires tomorrow"
+    return `Expires in ${diffDays}d`
+  }
+
+  // Feature: Check if memory is expiring soon (within 2 days)
+  const isExpiringSoon = (mem: Memory): boolean => {
+    if (mem.status === "expired" || !mem.expiresAt) return false
+    const diffMs = new Date(mem.expiresAt).getTime() - Date.now()
+    return diffMs > 0 && diffMs <= 2 * 24 * 60 * 60 * 1000
+  }
+
+  // Toggle expired group visibility
+  const toggleExpiredGroup = (dateKey: string) => {
+    setExpandedExpiredGroups(prev => {
+      const next = new Set(prev)
+      if (next.has(dateKey)) {
+        next.delete(dateKey)
+      } else {
+        next.add(dateKey)
+      }
+      return next
+    })
   }
 
   return (
@@ -275,332 +476,392 @@ export function LegerAIPageView({ cycleData, expenses, categories }: LegerAIPage
       initial={{ opacity: 0, y: 4 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.45, ease: [0.16, 1, 0.3, 1] }}
-      className="mx-auto max-w-[1500px] p-4 md:p-8 space-y-8 md:space-y-12 pb-24 text-foreground w-full"
+      className="mx-auto max-w-[1500px] p-4 md:p-8 space-y-10 md:space-y-12 pb-36 md:pb-8 w-full"
     >
-      {/* 1. Header: The Intelligence Node */}
-      <header className="flex flex-col md:flex-row md:items-end justify-between gap-8 border-b border-foreground/10 pb-8 relative">
-        <div className="absolute top-0 right-0 technical-label opacity-20 hidden lg:block uppercase tracking-widest text-[9px]">
-          NODE_ID: LEGER_CORE_05 // ENCRYPTED
-        </div>
-        <div className="space-y-4">
-          <div className="flex items-center gap-3 text-[10px] font-mono tracking-[0.2em] uppercase text-muted-foreground">
-            <Brain className="h-4 w-4 animate-pulse text-foreground/80" />
-            <span>Neural Synthesis</span>
-            <span className="opacity-30">/</span>
-            <span>STRATEGY_NODE</span>
-          </div>
-          <h1 className="text-4xl sm:text-5xl md:text-6xl font-bold tracking-tighter uppercase leading-none">
-            Leger AI
-          </h1>
-        </div>
 
-        <MagneticButton 
-          variant="outline" 
-          onClick={() => runAnalysis(true)} 
-          disabled={isLoading}
-          strength={0.2}
-          className="rounded-none font-mono text-[10px] uppercase tracking-widest h-12 px-6 ledger-border hover:bg-secondary w-full md:w-auto text-foreground"
-        >
-          <RefreshCcw className={cn("mr-2 h-3.5 w-3.5", isLoading && "animate-spin")} />
-          Force Sync
-        </MagneticButton>
+
+      {/* 1. Header */}
+      <header className="flex flex-col md:flex-row md:items-center justify-between gap-6 md:gap-8 border-b border-foreground/10 pb-6 md:pb-8 relative">
+        <div className="space-y-3">
+          <div className="flex items-center gap-3 text-[9px] md:text-[10px] font-mono tracking-[0.2em] uppercase text-muted-foreground">
+            <span>Neural Context Memory</span>
+          </div>
+          <h1 className="text-4xl md:text-5xl font-bold tracking-tighter uppercase leading-none break-words">
+            My Memory
+          </h1>
+
+          {/* Feature 5: Summary stats bar */}
+          {memories.length > 0 && (
+            <div className="flex items-center gap-3 text-[9px] md:text-[10px] font-mono tracking-wider text-muted-foreground pt-1 select-none">
+              <span className="text-foreground/70 font-bold">{memoryStats.active} active</span>
+              {memoryStats.expiringSoon > 0 && (
+                <>
+                  <span className="text-muted-foreground/30">·</span>
+                  <span className="text-amber-500 font-bold">{memoryStats.expiringSoon} expiring soon</span>
+                </>
+              )}
+              {memoryStats.expired > 0 && (
+                <>
+                  <span className="text-muted-foreground/30">·</span>
+                  <span>{memoryStats.expired} expired</span>
+                </>
+              )}
+            </div>
+          )}
+        </div>
       </header>
 
-      {/* 2. Main Terminal Area */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 lg:gap-12">
-        
-        {/* Left Column: Cycle Metrics */}
-        <div className="lg:col-span-1 space-y-6 lg:space-y-12">
-           <div className="space-y-6">
-               <div className="flex justify-between items-center border-b border-border pb-2">
-                  <h3 className="technical-label text-foreground/70">Cycle Performance</h3>
-               </div>
-               <div className="space-y-4">
-                  <div className="space-y-1.5 py-2 border-b border-border/50">
-                     <div className="flex justify-between items-center">
-                        <span className="text-[10px] font-mono text-muted-foreground uppercase tracking-tighter">Spend Ratio</span>
-                        <span className={cn("font-mono text-xs font-bold", (analysis?.threatLevel > 70) ? "text-destructive" : "text-foreground")}>
-                           {analysis?.threatLevel || 0}%
-                        </span>
-                     </div>
-                     <div className="w-full h-1.5 bg-secondary/50 border border-border/40 overflow-hidden relative">
-                        <div className={cn("h-full transition-all duration-1000", (analysis?.threatLevel > 70) ? "bg-destructive" : "bg-foreground")} style={{ width: `${analysis?.threatLevel || 0}%` }} />
-                     </div>
-                  </div>
-                  <div className="flex justify-between items-center py-2 border-b border-border/50">
-                     <span className="text-[10px] font-mono text-muted-foreground uppercase tracking-tighter">Cycle Velocity</span>
-                     <span className="font-mono text-xs font-bold">{cycleData.velocity.toFixed(2)}x</span>
-                  </div>
-                  <div className="flex justify-between items-center py-2 border-b border-border/50">
-                     <span className="text-[10px] font-mono text-muted-foreground uppercase tracking-tighter">Last Sync</span>
-                     <span className="font-mono text-[9px] font-bold text-muted-foreground uppercase">{lastUpdated || "WAITING..."}</span>
-                  </div>
-               </div>
-            </div>
+      {/* Centered Content Column */}
+      <div className="max-w-[900px] mx-auto w-full space-y-8 pt-4">
 
-            <div className="p-6 bg-secondary/5 border border-border space-y-4 shadow-sm">
-               <div className="flex items-center gap-2 technical-label text-muted-foreground opacity-60">
-                  <History className="h-3 w-3" />
-                  <span>Cycle Timeline</span>
-               </div>
-               <div className="space-y-2">
-                  <div className="flex justify-between text-[10px] font-mono">
-                     <span className="uppercase">Elapsed Progress</span>
-                     <span className="font-bold">{cycleData.daysElapsed} Days</span>
-                  </div>
-                  <div className="w-full h-1 bg-secondary/50 overflow-hidden relative">
-                     <div className="h-full bg-foreground" style={{ width: `${Math.min(100, (cycleData.daysElapsed / 30) * 100)}%` }} />
-                  </div>
-               </div>
+      {/* Quick Input Box */}
+      {!isPro ? (
+        <ProLockOverlay 
+          title="LEGER_AI CONTEXT MEMORY (PRO)"
+          description="Conversational routine tracking, hybrid work overrides, and dynamic active cycle memory gates are exclusive to LEGER_OS PRO nodes."
+          className="rounded-none shadow-xl border border-emerald-500/30"
+        />
+      ) : (
+        <div className="p-5 border border-border ledger-border bg-card/60 space-y-3">
+          <h4 className="text-xs font-bold tracking-tight text-foreground">Add memory</h4>
+          <form onSubmit={handleAddMemory} className="space-y-3">
+            <textarea
+              value={newMemoryText}
+              onChange={(e) => setNewMemoryText(e.target.value)}
+              placeholder="e.g. 'Going on vacation for 10 days', 'Hybrid work this week, less fuel spend'..."
+              className="w-full min-h-[72px] p-3 text-xs bg-secondary/20 border border-border/80 rounded-none focus:outline-none focus:border-foreground/40 font-sans resize-none placeholder:text-muted-foreground/40 text-foreground leading-relaxed"
+              disabled={isSubmitting}
+            />
+            <div className="flex items-center justify-end">
+              <Button 
+                type="submit"
+                disabled={!newMemoryText.trim() || isSubmitting}
+                className="h-8 rounded-none bg-foreground text-background hover:bg-muted font-mono text-[9px] uppercase font-bold tracking-wider px-5 disabled:opacity-40 disabled:cursor-not-allowed shrink-0 cursor-pointer"
+              >
+                {isSubmitting ? <RefreshCcw className="h-3 w-3 animate-spin mr-1.5" /> : <Plus className="h-3 w-3 mr-1.5" />}
+                Save
+              </Button>
             </div>
-
-            <div className="p-6 bg-secondary/5 border border-border space-y-4 shadow-sm">
-               <div className="flex items-center gap-2 technical-label text-muted-foreground opacity-60">
-                  <Zap className="h-3 w-3" />
-                  <span>Burn Rate Details</span>
-               </div>
-               <div className="space-y-2.5 font-mono text-[10px]">
-                  <div className="flex justify-between items-center py-1 border-b border-border/20">
-                     <span className="text-muted-foreground uppercase">Current Burn:</span>
-                     <span className="font-bold text-foreground">{currencySymbol}{(totalOut / Math.max(1, cycleData.daysElapsed)).toFixed(2)}/d</span>
-                  </div>
-                  <div className="flex justify-between items-center py-1 border-b border-border/20">
-                     <span className="text-muted-foreground uppercase">Budget Pace:</span>
-                     <span className="font-bold text-foreground">{currencySymbol}{(spendingLimit / 30).toFixed(2)}/d</span>
-                  </div>
-               </div>
-            </div>
+          </form>
         </div>
+      )}
 
-         {/* Right Column: Leger Feed */}
-         <div className="lg:col-span-2 space-y-8">
-            <div className="min-h-[400px] border border-border bg-card relative p-6 md:p-12 pt-14 md:pt-14 flex flex-col justify-between overflow-hidden text-left shadow-xl backdrop-blur-md">
-               {/* background grid */}
-               <div className="absolute inset-0 bg-[linear-gradient(to_right,rgba(128,128,128,0.06)_1px,transparent_1px),linear-gradient(to_bottom,rgba(128,128,128,0.06)_1px,transparent_1px)] bg-[size:24px_24px] pointer-events-none" />
-               
-               {/* glowing aura */}
-               <div className="absolute -top-40 -left-40 w-80 h-80 bg-foreground/[0.015] dark:bg-emerald-500/[0.015] blur-3xl rounded-full pointer-events-none" />
-               
-               <div className="absolute top-6 left-6 technical-label opacity-15 uppercase tracking-[0.4em] z-10">AI Analysis Output</div>
-               
-               {/* Query Input Form */}
-               <form onSubmit={handleQuerySubmit} className="mt-4 mb-8 border-b border-border pb-6 flex flex-col sm:flex-row gap-3 sm:gap-4 items-stretch sm:items-center z-10">
-                  <div className="flex-1 relative">
-                     <input 
-                       type="text"
-                       value={userQuery}
-                       onChange={(e) => setUserQuery(e.target.value)}
-                       placeholder="Ask Leger AI about your cycle spending..."
-                       disabled={isQuerying || isLoading}
-                       className="w-full px-4 py-2 border border-border bg-secondary/10 font-mono text-xs uppercase tracking-tighter outline-none focus:border-foreground/45 transition-colors h-10 rounded-none text-foreground placeholder:text-muted-foreground/30"
-                     />
+      {/* Feature 6: Search + Dynamic Filter Tabs */}
+      <div className="space-y-3">
+        {/* Search input */}
+        {memories.length > 0 && (
+          <div className="relative">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground/50 pointer-events-none" />
+            <input
+              type="text"
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              placeholder="Search memories..."
+              className="w-full h-8 pl-9 pr-3 text-xs bg-card border border-border/60 rounded-none focus:outline-none focus:border-foreground/30 font-sans text-foreground placeholder:text-muted-foreground/40"
+            />
+          </div>
+        )}
+
+        {/* Category tabs */}
+        <div className="flex items-center gap-1.5 overflow-x-auto pb-2 scrollbar-hide border-b border-border/30">
+          {availableCategoryTabs.map(tab => {
+            const isActive = activeTab.toLowerCase() === tab.toLowerCase()
+            return (
+              <button
+                key={tab}
+                onClick={() => setActiveTab(tab)}
+                className={cn(
+                  "px-3.5 py-1.5 text-[9px] font-mono font-bold uppercase tracking-wider border cursor-pointer select-none transition-all shrink-0",
+                  isActive 
+                    ? "bg-foreground border-foreground text-background font-black" 
+                    : "bg-card border-border/60 text-muted-foreground hover:border-border hover:text-foreground"
+                )}
+              >
+                {tab === "all" ? "Timeline" : tab}
+              </button>
+            )
+          })}
+        </div>
+      </div>
+
+      {/* Timeline Feed */}
+      {isLoading ? (
+        <div className="flex flex-col items-center justify-center py-16 space-y-3 font-mono text-xs text-muted-foreground">
+          <RefreshCcw className="h-5 w-5 animate-spin text-emerald-500" />
+          <p className="uppercase tracking-widest text-[10px]">Loading memories matrix...</p>
+        </div>
+      ) : memories.length === 0 ? (
+        <div className="p-8 border border-border border-dashed bg-secondary/5 text-center font-mono space-y-2">
+          <History className="h-6 w-6 text-muted-foreground/30 mx-auto" />
+          <p className="text-[10px] text-muted-foreground uppercase tracking-wider font-bold">No active memories registered</p>
+          <p className="text-[10px] text-muted-foreground/50 leading-relaxed font-sans max-w-sm mx-auto">
+            Ask the Leger AI Assistant in the sidebar or type routines directly into the ingestion matrix above to record them.
+          </p>
+        </div>
+      ) : filteredMemories.length === 0 ? (
+        <div className="p-8 border border-border border-dashed bg-secondary/5 text-center font-mono space-y-2">
+          <Search className="h-5 w-5 text-muted-foreground/30 mx-auto" />
+          <p className="text-[10px] text-muted-foreground uppercase tracking-wider font-bold">
+            {searchQuery.trim() ? "No memories match your search" : "No matching category records found"}
+          </p>
+        </div>
+      ) : (
+        <div className="space-y-8 [content-visibility:auto] [contain-intrinsic-size:1px_400px]">
+          {Object.keys(groupedMemories).map(dateKey => {
+            const allGroupMemories = groupedMemories[dateKey]
+            const activeGroupMemories = allGroupMemories.filter(m => m.status !== "expired")
+            const expiredGroupMemories = allGroupMemories.filter(m => m.status === "expired")
+            const isExpiredGroupExpanded = expandedExpiredGroups.has(dateKey)
+
+            return (
+              <div key={dateKey} className="space-y-4">
+                {/* Timeline Date Divider */}
+                <div className="flex items-center gap-4">
+                  <span className="text-[10px] font-mono font-bold tracking-widest text-muted-foreground shrink-0 select-none">
+                    {dateKey}
+                  </span>
+                  <div className="h-px bg-border/40 flex-grow" />
+                </div>
+
+                {/* Active Memories */}
+                {activeGroupMemories.length > 0 && (
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    {activeGroupMemories.map(mem => {
+                      const catDetails = getCategoryDetails(mem.category)
+                      const durationStr = getDurationString(mem.expiresAt)
+                      const soon = isExpiringSoon(mem)
+                      const projectionImpact = getProjectionImpact(mem)
+
+                      return (
+                        <div 
+                          key={mem.id}
+                          onClick={() => handleCardClick(mem)}
+                          className={cn(
+                            "group p-4 border ledger-border bg-card relative overflow-hidden flex flex-col justify-between transition-all duration-300 cursor-pointer",
+                            soon 
+                              ? "border-amber-500/40 hover:border-amber-500/60" 
+                              : "border-border hover:border-foreground/30 hover:shadow-sm"
+                          )}
+                        >
+                          <div className="space-y-3">
+                            {/* Badges & Actions matching /ledger table styling */}
+                            <div className="flex items-center justify-between gap-3 select-none">
+                              <div className="flex items-center gap-1.5 overflow-hidden text-[9px] md:text-xs font-mono uppercase">
+                                <div 
+                                  className="h-1.5 w-1.5 rounded-full shrink-0" 
+                                  style={{ backgroundColor: catDetails.color }} 
+                                />
+                                <span className="truncate uppercase font-bold text-foreground/80 tracking-wider text-[9px]">
+                                  {catDetails.label}
+                                </span>
+                              </div>
+                              <div className="flex items-center gap-2">
+                                {/* Feature 3: Quick extend button for expiring-soon cards */}
+                                {soon && (
+                                  <button
+                                    onClick={(e) => handleQuickExtend(mem, e)}
+                                    className="inline-flex items-center gap-0.5 px-1.5 py-0.5 text-[8px] font-mono font-bold uppercase border border-amber-500/30 text-amber-500 bg-amber-500/5 hover:bg-amber-500/15 transition-colors cursor-pointer"
+                                    title="Extend 7 days"
+                                  >
+                                    +7d
+                                  </button>
+                                )}
+                                <button 
+                                  onClick={(e) => handleDeleteMemory(mem.id, e)}
+                                  className="text-muted-foreground hover:text-destructive opacity-40 group-hover:opacity-100 transition-all cursor-pointer"
+                                  title="Forget Fact"
+                                >
+                                  <Trash2 className="h-3.5 w-3.5" />
+                                </button>
+                              </div>
+                            </div>
+
+                            {/* Fact Content */}
+                            <p className="text-xs font-bold text-foreground leading-relaxed">
+                              {mem.content}
+                            </p>
+                          </div>
+
+                          {/* Footer: date left, impact + duration stacked right */}
+                          <div className="flex items-end justify-between gap-4 mt-6 pt-2 border-t border-border/20 text-[9px] font-mono text-muted-foreground/60 select-none">
+                            <span className="flex items-center gap-1">
+                              <Calendar className="h-3 w-3" />
+                              {new Date(mem.createdAt).toLocaleDateString("en-GB")}
+                            </span>
+                            <div className="flex flex-col items-end gap-0.5">
+                              {projectionImpact && (
+                                <span className="font-mono font-bold text-[9px] text-foreground/80 tracking-tight">
+                                  {projectionImpact}
+                                </span>
+                              )}
+                              <span className={cn(
+                                "flex items-center gap-1 font-bold",
+                                soon ? "text-amber-500" : "text-foreground/75"
+                              )}>
+                                <Clock className="h-3 w-3" />
+                                {durationStr}
+                              </span>
+                            </div>
+                          </div>
+                        </div>
+                      )
+                    })}
                   </div>
-                  <MagneticButton 
-                    type="submit" 
-                    disabled={isQuerying || isLoading}
-                    variant="none"
-                    strength={0.35}
-                    className="h-10 px-6 font-mono text-[9px] uppercase tracking-widest bg-foreground text-background font-bold hover:bg-foreground/80 rounded-none shrink-0 w-full sm:w-auto"
-                  >
-                     {isQuerying ? "RUNNING..." : "EXECUTE"}
-                  </MagneticButton>
-               </form>
+                )}
 
-               {isLoading ? (
-                 <div className="flex-1 flex flex-col items-center justify-center space-y-8 py-12 z-10">
-                    <div className="relative">
-                       <Cpu className="h-16 w-16 text-foreground animate-spin-slow opacity-20" />
-                       <Brain className="absolute inset-0 h-16 w-16 text-foreground animate-pulse" />
-                    </div>
-                    <p className="text-sm font-mono text-muted-foreground animate-pulse uppercase tracking-[0.2em]">Consulting the Leger AI, {userName}...</p>
-                 </div>
-               ) : errorMessage ? (
-                 <div className="flex-1 flex flex-col items-center justify-center space-y-6 text-center py-12 z-10">
-                    <AlertTriangle className="h-12 w-12 text-destructive animate-pulse" />
-                    <p className="text-lg font-bold tracking-tight text-destructive uppercase max-w-xs">{errorMessage}</p>
-                    <MagneticButton variant="ghost" onClick={() => runAnalysis(true)} strength={0.3} className="technical-label hover:text-foreground underline uppercase text-foreground">Retry connection</MagneticButton>
-                 </div>
-               ) : displayMessage ? (
-                 <div className="space-y-12 z-10">
-                     <div className="flex gap-6">
-                        <div className="mt-1 p-2 bg-foreground text-background ledger-border h-fit shrink-0">
-                           <MessageSquare className="h-6 w-6" />
+                {/* Expired memories — always visible below active */}
+                {expiredGroupMemories.length > 0 && (
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4 opacity-40 hover:opacity-60 transition-opacity">
+                    {expiredGroupMemories.map(mem => {
+                      const catDetails = getCategoryDetails(mem.category)
+                      return (
+                        <div 
+                          key={mem.id}
+                          onClick={() => handleCardClick(mem)}
+                          className="group p-4 border border-border/40 ledger-border bg-card flex flex-col justify-between cursor-pointer"
+                        >
+                          <div className="space-y-3">
+                            <div className="flex items-center justify-between gap-3 select-none">
+                              <div className="flex items-center gap-1.5 overflow-hidden text-[9px] font-mono uppercase">
+                                <div className="h-1.5 w-1.5 rounded-full shrink-0" style={{ backgroundColor: catDetails.color }} />
+                                <span className="truncate uppercase font-bold text-foreground/60 tracking-wider text-[9px]">{catDetails.label}</span>
+                              </div>
+                              <button onClick={(e) => handleDeleteMemory(mem.id, e)} className="text-muted-foreground hover:text-destructive opacity-40 group-hover:opacity-100 transition-all cursor-pointer">
+                                <Trash2 className="h-3.5 w-3.5" />
+                              </button>
+                            </div>
+                            <p className="text-xs text-foreground/60 leading-relaxed line-through">{mem.content}</p>
+                          </div>
+                          <div className="flex items-center justify-between gap-4 mt-4 pt-2 border-t border-border/20 text-[9px] font-mono text-muted-foreground/50 select-none">
+                            <span className="flex items-center gap-1"><Calendar className="h-3 w-3" />{new Date(mem.createdAt).toLocaleDateString("en-GB")}</span>
+                            <span className="flex items-center gap-1"><Clock className="h-3 w-3" />Expired</span>
+                          </div>
                         </div>
-                        <div className="space-y-6 flex-1">
-                           <AnimatePresence mode="wait">
-                              <motion.div 
-                                key={displayMessage}
-                                initial={{ opacity: 0, y: 8 }}
-                                animate={{ opacity: 1, y: 0 }}
-                                exit={{ opacity: 0, y: -8 }}
-                                transition={{ duration: 0.35, ease: "easeOut" }}
-                                className="space-y-6"
-                              >
-                                 <p className="text-base md:text-lg font-medium text-muted-foreground leading-relaxed tracking-wide">
-                                   {renderFormattedText(displayMessage)}
-                                 </p>
-                                 
-                                 {displayMessage === analysis?.message && analysis?.actionItem && (
-                                   <div className="p-4 bg-amber-500/[0.04] border border-amber-500/10 rounded-lg flex items-start gap-3">
-                                      <Brain className="h-5 w-5 text-amber-500 mt-0.5 shrink-0" />
-                                      <div className="space-y-1">
-                                         <p className="text-[10px] font-mono uppercase font-bold text-amber-500 tracking-wider">Tactical Advisory</p>
-                                         <p className="text-sm text-foreground font-medium leading-relaxed">
-                                            {renderFormattedText(analysis.actionItem)}
-                                         </p>
-                                      </div>
-                                   </div>
-                                 )}
-                              </motion.div>
-                           </AnimatePresence>
-                        </div>
-                     </div>
-                    
-                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6 md:gap-8 pt-8 md:pt-12 border-t border-border/50">
-                        <div className="space-y-2 font-mono">
-                           <div className="flex items-center gap-2 technical-label opacity-60 text-foreground">
-                              <TrendingUp className="h-3 w-3" />
-                              <span>Cycle Cash Flow</span>
-                           </div>
-                           <div className="text-lg font-bold">
-                              {currencySymbol}{((cycleData.totalIn || 0) - (cycleData.totalOut || 0)).toFixed(2)}
-                           </div>
-                           <div className="text-[9px] uppercase tracking-tighter text-muted-foreground">
-                              {((cycleData.totalIn || 0) - (cycleData.totalOut || 0)) >= 0 ? "Net Cash Flow Surplus" : "Net Cash Flow Deficit"}
-                           </div>
-                        </div>
-                        
-                        <div className="space-y-2 font-mono">
-                           <div className="flex items-center gap-2 technical-label opacity-60 text-foreground">
-                              <ShieldCheck className="h-3 w-3" />
-                              <span>Budget Allocation</span>
-                           </div>
-                           <div className="text-lg font-bold">
-                              {spendingLimit > 0 ? ((totalOut / spendingLimit) * 100).toFixed(1) : 0}%
-                           </div>
-                           <div className="text-[9px] uppercase tracking-tighter text-muted-foreground">
-                              {currencySymbol}{totalOut.toFixed(2)} utilized of {currencySymbol}{spendingLimit.toFixed(2)}
-                           </div>
-                        </div>
-                     </div>
-                 </div>
-               ) : (
-                 <div className="flex-1 flex items-center justify-center py-12 z-10">
-                    <MagneticButton 
-                      onClick={() => runAnalysis()} 
-                      variant="ghost" 
-                      strength={0.3}
-                      className="technical-label uppercase hover:text-foreground tracking-widest px-6 py-3 border border-border/40 hover:border-foreground/30 rounded-none transition-all duration-300 text-foreground"
-                    >
-                       <Zap className="mr-2 h-3.5 w-3.5 animate-pulse" /> Initialize Neural Bridge
-                    </MagneticButton>
-                 </div>
-               )}
-
-               {/* Decorative scanline */}
-               <div className="absolute inset-0 bg-gradient-to-b from-transparent via-foreground/[0.02] dark:via-emerald-500/[0.03] to-transparent h-24 w-full -translate-y-full animate-scan pointer-events-none" />
-            </div>
-
-            {/* Top Category Outflows panel */}
-            <div className="border border-border ledger-border bg-card p-6 space-y-4">
-               <div className="technical-label text-muted-foreground opacity-60">Top Category Outflows</div>
-               <div className="grid grid-cols-1 sm:grid-cols-3 gap-6">
-                  {cycleData.categories.slice(0, 3).map((cat: any, i: number) => {
-                     const percentage = totalOut > 0 ? (cat.value / totalOut) * 100 : 0;
-                     return (
-                        <div key={i} className="space-y-2 font-mono">
-                           <div className="flex justify-between text-[9px]">
-                              <span className="uppercase font-bold text-muted-foreground">{cat.name}</span>
-                              <span className="text-foreground">{percentage.toFixed(0)}%</span>
-                           </div>
-                           <div className="w-full h-1 bg-secondary/50 overflow-hidden relative">
-                              <div className="h-full bg-foreground/60" style={{ width: `${percentage}%` }} />
-                           </div>
-                           <div className="text-[8px] text-muted-foreground uppercase">
-                              Spent: {currencySymbol}{cat.value.toFixed(0)}
-                           </div>
-                        </div>
-                     );
-                  })}
-                  {cycleData.categories.length === 0 && (
-                     <div className="col-span-3 text-center text-muted-foreground font-mono text-[10px] uppercase italic">
-                        No category expenditures loaded.
-                     </div>
-                  )}
-               </div>
-            </div>
-         </div>
-       </div>
-
-      {/* 3. Transaction Ledger Node (Filtered Table) */}
-      <section className="space-y-6">
-        <div className="border border-border ledger-border bg-card p-4 sm:p-8 space-y-6">
-           <div className="flex items-center justify-between">
-              <div className="flex items-center gap-3">
-                 <div className="p-2 bg-secondary ledger-border">
-                    <History className="h-4 w-4" />
-                 </div>
-                 <div>
-                    <h3 className="text-xs font-bold uppercase tracking-[0.2em]">Transaction Ledger Node</h3>
-                    <p className="technical-label opacity-40">
-                       {activeFilters ? "Filtering cycle items based on AI diagnostics" : "All cycle transactions synchronised"}
-                    </p>
-                 </div>
+                      )
+                    })}
+                  </div>
+                )}
               </div>
-              
-              {activeFilters && (
-                 <MagneticButton 
-                   onClick={() => setActiveFilters(null)}
-                   variant="outline" 
-                   size="sm"
-                   strength={0.2}
-                   className="text-[9px] font-mono uppercase tracking-widest h-7 border-destructive/30 text-destructive hover:bg-destructive/5 rounded-none text-destructive"
-                 >
-                    Clear Filters [X]
-                 </MagneticButton>
-              )}
-           </div>
-
-           <div className="overflow-x-auto">
-              <table className="w-full text-left font-mono text-[10px]">
-                 <thead>
-                    <tr className="border-b border-border text-muted-foreground uppercase text-[8px] tracking-wider">
-                       <th className="pb-3">Date</th>
-                       <th className="pb-3">Merchant</th>
-                       <th className="pb-3">Category</th>
-                       <th className="pb-3 text-right">Amount</th>
-                    </tr>
-                 </thead>
-                 <tbody className="divide-y divide-border/40">
-                    {filteredExpenses.length === 0 ? (
-                       <tr>
-                          <td colSpan={4} className="py-8 text-center text-muted-foreground uppercase italic">No matching records found in this cycle.</td>
-                       </tr>
-                    ) : (
-                       filteredExpenses.map((tx: any) => {
-                          const cat = categories.find((c: any) => c.id === tx.category_id)
-                          const amt = parseFloat(tx.amount)
-                          return (
-                             <tr key={tx.id} className="hover:bg-secondary/10 transition-colors">
-                                <td className="py-3 text-muted-foreground">{new Date(tx.date).toLocaleDateString(language, {month: 'short', day: '2-digit'})}</td>
-                                <td className="py-3 font-bold uppercase text-foreground max-w-[120px] sm:max-w-none truncate" title={tx.merchant}>{tx.merchant}</td>
-                                <td className="py-3">
-                                   <span className="px-1.5 py-0.5 bg-secondary/50 border border-border text-[8px] uppercase font-bold tracking-tighter">
-                                      {cat?.name || "UNCLASSIFIED"}
-                                   </span>
-                                </td>
-                                <td className={cn("py-3 text-right font-bold", amt > 0 ? "text-emerald-600 dark:text-emerald-400" : "text-foreground")}>
-                                   {amt > 0 ? "+" : ""}{currencySymbol}{amt.toFixed(2)}
-                                </td>
-                             </tr>
-                          )
-                       })
-                    )}
-                 </tbody>
-              </table>
-           </div>
+            )
+          })}
         </div>
-      </section>
+      )}
+
+      {/* Edit Memory Modal */}
+      <Dialog open={selectedMemory !== null} onOpenChange={(open) => !open && setSelectedMemory(null)}>
+        <DialogContent className="max-w-[420px] bg-background border border-border ledger-border p-6 rounded-none font-sans">
+          <DialogHeader className="space-y-1.5">
+            <DialogTitle className="text-sm font-bold font-mono uppercase tracking-wider text-foreground">
+              Configure Memory
+            </DialogTitle>
+            <DialogDescription className="text-[11px] text-muted-foreground">
+              Directly adjust contextual parameter tags or extend duration.
+            </DialogDescription>
+          </DialogHeader>
+
+          {selectedMemory && (
+            <div className="space-y-4 py-3">
+              {/* Content input */}
+              <div className="space-y-1.5">
+                <label className="text-[9px] font-mono uppercase tracking-widest text-muted-foreground">Fact Content</label>
+                <input
+                  type="text"
+                  value={editContent}
+                  onChange={(e) => setEditContent(e.target.value)}
+                  className="w-full p-2.5 text-xs bg-secondary/30 border border-border/80 focus:outline-none focus:border-foreground/35 rounded-none text-foreground font-medium"
+                />
+              </div>
+
+              {/* Category Select */}
+              <div className="space-y-1.5">
+                <label className="text-[9px] font-mono uppercase tracking-widest text-muted-foreground">Category Class</label>
+                <select
+                  value={editCategory}
+                  onChange={(e) => setEditCategory(e.target.value)}
+                  className="w-full p-2.5 text-xs bg-secondary/30 border border-border/80 focus:outline-none focus:border-foreground/35 rounded-none text-foreground font-mono uppercase"
+                >
+                  {categories && categories.length > 0 && (
+                    <optgroup label="Financial Categories">
+                      {categories.map((cat: any) => (
+                        <option key={cat.id} value={cat.name}>{cat.name}</option>
+                      ))}
+                    </optgroup>
+                  )}
+                  <optgroup label="Context & Lifestyle Tags">
+                    <option value="goal">Goal</option>
+                    <option value="health">Health Condition</option>
+                    <option value="financial">Financial</option>
+                    <option value="other">Other</option>
+                  </optgroup>
+                </select>
+              </div>
+
+              {/* Expiry Selector */}
+              <div className="space-y-1.5">
+                <label className="text-[9px] font-mono uppercase tracking-widest text-muted-foreground">Context Duration / Expiration</label>
+                <select
+                  value={editExpiryOption}
+                  onChange={(e) => setEditExpiryOption(e.target.value)}
+                  className="w-full p-2.5 text-xs bg-secondary/30 border border-border/80 focus:outline-none focus:border-foreground/35 rounded-none text-foreground font-mono uppercase"
+                >
+                  <option value="keep">Keep Current ({selectedMemory.expiresAt ? `Expires: ${new Date(selectedMemory.expiresAt).toLocaleDateString("en-GB")}` : "Permanent"})</option>
+                  <option value="1day">Set Active for 1 Day (24 hrs)</option>
+                  <option value="3days">Set Active for 3 Days</option>
+                  <option value="7days">Set Active for 7 Days (1 Week)</option>
+                  <option value="14days">Set Active for 14 Days (2 Weeks)</option>
+                  <option value="30days">Set Active for 30 Days (1 Month)</option>
+                  <option value="90days">Set Active for 90 Days (3 Months)</option>
+                  <option value="permanent">Make Permanent (No Expiration)</option>
+                  <option value="custom">Custom Duration (In Days)...</option>
+                </select>
+              </div>
+
+              {/* Custom Days Input */}
+              {editExpiryOption === "custom" && (
+                <div className="space-y-1.5 animate-fade-in">
+                  <label className="text-[9px] font-mono uppercase tracking-widest text-muted-foreground">Active Duration (Number of Days)</label>
+                  <input
+                    type="number"
+                    min="1"
+                    max="365"
+                    value={customDays}
+                    onChange={(e) => setCustomDays(e.target.value)}
+                    placeholder="Enter days (e.g. 14)"
+                    className="w-full p-2.5 text-xs bg-secondary/30 border border-border/80 focus:outline-none focus:border-foreground/35 rounded-none text-foreground font-mono"
+                  />
+                </div>
+              )}
+            </div>
+          )}
+
+          <DialogFooter className="flex flex-col sm:flex-row gap-2 mt-4 pt-3 border-t border-border/25">
+            <Button
+              variant="outline"
+              onClick={(e) => selectedMemory && handleDeleteMemory(selectedMemory.id)}
+              className="h-8 rounded-none border border-destructive/30 hover:bg-destructive/10 text-destructive font-mono text-[9px] uppercase font-bold tracking-wider px-4 sm:mr-auto cursor-pointer"
+            >
+              <Trash2 className="h-3 w-3 mr-1.5" />
+              Forget
+            </Button>
+            <Button
+              variant="ghost"
+              onClick={() => setSelectedMemory(null)}
+              className="h-8 rounded-none border border-border hover:bg-muted font-mono text-[9px] uppercase font-bold tracking-wider px-4 cursor-pointer"
+            >
+              Cancel
+            </Button>
+            <Button
+              onClick={handleUpdateMemory}
+              disabled={isUpdating || !editContent.trim()}
+              className="h-8 rounded-none bg-foreground text-background hover:bg-muted font-mono text-[9px] uppercase font-bold tracking-wider px-5 cursor-pointer"
+            >
+              {isUpdating && <RefreshCcw className="h-3 w-3 animate-spin mr-1.5" />}
+              Save Changes
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+      </div>
     </motion.div>
   )
 }
