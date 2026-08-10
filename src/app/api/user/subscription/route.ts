@@ -1,6 +1,7 @@
 import { getAdminClient } from "@/lib/supabase-admin"
 import { createClient as createServerClient } from "@/lib/supabase-server"
 import { NextResponse } from "next/server"
+import { buildSubscriptionUpdatedJournal } from "@/lib/journal-utils"
 
 export async function POST(request: Request) {
   try {
@@ -36,20 +37,18 @@ export async function POST(request: Request) {
         .eq("id", user.id)
         .single()
 
-      const journal = profile?.ai_journal || {}
-
-      if (journal.retention_discount_claimed_at) {
+      const rawJournal = profile?.ai_journal
+      if (rawJournal && typeof rawJournal === "object" && rawJournal.retention_discount_claimed_at) {
         return NextResponse.json(
           { error: "This exclusive offer has already been redeemed on your account." },
           { status: 409 }
         )
       }
 
-      // Record the claim timestamp and keep PRO active
-      const updatedJournal = {
-        ...journal,
+      // Record the claim timestamp while preserving memories safely
+      const updatedJournal = buildSubscriptionUpdatedJournal(rawJournal, {
         retention_discount_claimed_at: new Date().toISOString()
-      }
+      })
 
       const { error } = await supabaseAdmin
         .from("profiles")
@@ -72,19 +71,18 @@ export async function POST(request: Request) {
         .eq("id", user.id)
         .single()
 
-      const existingJournal = profile?.ai_journal || {}
+      const rawJournal = profile?.ai_journal
       const dataRetentionDeadline = new Date()
       dataRetentionDeadline.setDate(dataRetentionDeadline.getDate() + 90)
 
-      const updatedJournal = {
-        ...existingJournal,
+      const updatedJournal = buildSubscriptionUpdatedJournal(rawJournal, {
         churn_survey: {
           reason: reason || "unspecified",
           feedback: feedback || "",
           cancelled_at: new Date().toISOString()
         },
         pro_data_retention_deadline: dataRetentionDeadline.toISOString()
-      }
+      })
 
       const { error } = await supabaseAdmin
         .from("profiles")

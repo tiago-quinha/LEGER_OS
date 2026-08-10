@@ -2,6 +2,7 @@ import { getAdminClient } from "@/lib/supabase-admin"
 import { stripe } from "@/lib/stripe"
 import { NextResponse } from "next/server"
 import Stripe from "stripe"
+import { buildSubscriptionUpdatedJournal } from "@/lib/journal-utils"
 
 export async function POST(request: Request) {
   const body = await request.text()
@@ -38,10 +39,13 @@ export async function POST(request: Request) {
             .eq("id", userId)
             .single()
 
-          const journal = profile?.ai_journal || {}
+          const rawJournal = profile?.ai_journal
+          const metadataUpdates: Record<string, any> = {}
           if (isDiscountClaim) {
-            journal.retention_discount_claimed_at = new Date().toISOString()
+            metadataUpdates.retention_discount_claimed_at = new Date().toISOString()
           }
+
+          const journal = buildSubscriptionUpdatedJournal(rawJournal, metadataUpdates)
 
           await supabaseAdmin
             .from("profiles")
@@ -72,8 +76,10 @@ export async function POST(request: Request) {
           const retentionDeadline = new Date()
           retentionDeadline.setDate(retentionDeadline.getDate() + 90)
 
-          const journal = profile.ai_journal || {}
-          journal.pro_data_retention_deadline = retentionDeadline.toISOString()
+          const rawJournal = profile.ai_journal
+          const journal = buildSubscriptionUpdatedJournal(rawJournal, {
+            pro_data_retention_deadline: retentionDeadline.toISOString()
+          })
 
           await supabaseAdmin
             .from("profiles")

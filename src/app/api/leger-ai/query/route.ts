@@ -3,6 +3,7 @@ import { generateAIContent } from "@/lib/ai-bridge";
 import { verifyAndConsumeQuota } from "@/lib/server-auth";
 import { getAdminClient } from "@/lib/supabase-admin";
 import { calculateServerTelemetry } from "@/lib/server-telemetry";
+import { normalizeJournal, buildUpdatedJournal } from "@/lib/journal-utils";
 
 export async function POST(request: Request) {
   try {
@@ -30,23 +31,35 @@ export async function POST(request: Request) {
     let finalTelemetry = telemetry;
     let finalCategories = categories;
     let profileData: any = null;
+    let allUserCategories: any[] = [];
+    let allUserBudgets: any[] = [];
 
     if (userId) {
       try {
-        const [serverDataRes, profileRes] = await Promise.all([
+        const [serverDataRes, profileRes, catsRes, budgetsRes] = await Promise.all([
           calculateServerTelemetry(supabaseAdmin, userId, clientDate).catch(telErr => {
             console.error("Failed to calculate server-side telemetry:", telErr);
             return null;
           }),
-          supabaseAdmin.from("profiles").select("ai_yap_level, ai_journal, subscription_tier").eq("id", userId).single()
+          supabaseAdmin.from("profiles").select("*").eq("id", userId).single(),
+          supabaseAdmin.from("categories").select("*").eq("user_id", userId),
+          supabaseAdmin.from("budgets").select("*").eq("user_id", userId)
         ]);
 
-        if (serverDataRes) {
+        if (telemetry && Object.keys(telemetry).length > 0) {
+          finalTelemetry = telemetry;
+        } else if (serverDataRes) {
           finalTelemetry = serverDataRes;
           finalCategories = serverDataRes.categoriesDetailed;
         }
         if (profileRes.data) {
           profileData = profileRes.data;
+        }
+        if (catsRes.data) {
+          allUserCategories = catsRes.data;
+        }
+        if (budgetsRes.data) {
+          allUserBudgets = budgetsRes.data;
         }
       } catch (err) {
         console.error("Failed to load server-side context:", err);
@@ -313,9 +326,52 @@ export async function POST(request: Request) {
       `;
     }
 
-    const categoriesContext = (finalCategories || [])
-      .map((c: any) => `- ID: ${c.id}, Name: ${c.name}, Spent so far: €${parseFloat(c.value || 0).toFixed(2)}, Limit: €${parseFloat(c.limit || 0).toFixed(2)}`)
+    // Merge all user categories (including 0-spend categories) with assigned budget limits & spent totals
+    const activeCatMap = new Map<string, any>((finalCategories || []).map((c: any) => [c.id?.toString(), c]));
+    const budgetMap = new Map<string, number>((allUserBudgets || []).map((b: any) => [b.category_id?.toString(), parseFloat(b.amount || 0)]));
+
+    const completeCategoriesList = allUserCategories.length > 0 ? allUserCategories : (finalCategories || []);
+
+    const categoriesContext = completeCategoriesList
+      .map((c: any) => {
+        const catIdStr = c.id?.toString();
+        const activeItem = activeCatMap.get(catIdStr);
+        const spent = activeItem ? parseFloat(activeItem.value || 0) : 0;
+        const limit = budgetMap.get(catIdStr) ?? (activeItem ? parseFloat(activeItem.limit || 0) : 0);
+        const remaining = limit > 0 ? limit - spent : 0;
+        const pctUsed = limit > 0 ? Math.round((spent / limit) * 100) : 0;
+
+        return `- Category [ID: ${c.id}] "${c.name}": Spent so far €${spent.toFixed(2)} / Monthly Budget Limit: €${limit.toFixed(2)} (${limit > 0 ? `${pctUsed}% used, €${remaining.toFixed(2)} remaining` : 'No budget limit set'})`;
+      })
       .join("\n");
+
+    // Profile & Financial Parameters Context
+    let profileParametersContext = "";
+    if (profileData) {
+      profileParametersContext = `
+      USER PROFILE & SYSTEM CONFIGURATION:
+      - Name / Handle: ${profileData.full_name || profileData.username || name}
+      - Account ID: ${userId}
+      - Preferred Currency: ${profileData.preferred_currency || "EUR (€)"}
+      - Monthly Target Income Baseline: €${parseFloat(profileData.target_monthly_income || 0).toFixed(2)}
+      - Monthly Target Spend Baseline: €${parseFloat(profileData.target_monthly_spend || 1500).toFixed(2)}
+      - Subscription Tier: ${profileData.subscription_tier || "PRO"}
+      - AI Engine Provider: ${profileData.ai_provider || "gemini"}
+      `;
+    }
+
+    // Active Projection Overrides Context
+    let overridesContext = "";
+    if (profileData && profileData.projection_overrides && Array.isArray(profileData.projection_overrides) && profileData.projection_overrides.length > 0) {
+      overridesContext = `
+      ACTIVE PROJECTION OVERRIDES & SPENDING MULTIPLIERS:
+      ${profileData.projection_overrides.map((ov: any) => {
+        const multText = ov.multiplier !== undefined && ov.multiplier !== null ? `${ov.multiplier}x multiplier (${Math.round((1 - ov.multiplier) * 100)}% reduction)` : '';
+        const fixedText = ov.fixedDelta !== undefined ? `Fixed Delta €${ov.fixedDelta}` : '';
+        return `- Category: "${ov.categoryName || "Unknown"}" [ID: ${ov.categoryId}] | ${multText || fixedText} | Reason: "${ov.reason || "Override set"}"`;
+      }).join("\n")}
+      `;
+    }
 
     // Dynamic yap level instructions
     let yapLevelInstruction = "";
@@ -350,11 +406,11 @@ export async function POST(request: Request) {
     // Dynamic user status journal facts injection
     let journalContext = "";
     if (profileData && profileData.ai_journal) {
-      const journalArray = Array.isArray(profileData.ai_journal) ? profileData.ai_journal : [];
-      if (journalArray.length > 0) {
+      const journalMemories = normalizeJournal(profileData.ai_journal).filter(m => m.status === "active");
+      if (journalMemories.length > 0) {
         journalContext = `
         USER STATUS JOURNAL (Personal context you learned in previous chats to keep in mind):
-        ${journalArray.map((fact: string) => `- ${fact}`).join("\n")}
+        ${journalMemories.map(m => `- ${m.content} (Category: ${m.category})`).join("\n")}
         
         CRITICAL: Always remember these facts! If the user's query relates to their current situation (e.g. they ask about spending projections and they are currently on vacation), seamlessly incorporate this context to personalize your reply.
         `;
@@ -368,7 +424,7 @@ export async function POST(request: Request) {
       The user is asking: "${query}"
 
       Speak directly to the user. Be helpful, concise, and clear. 
-      Use the provided client-computed telemetry, categories list, and dynamic database query results below to construct a complete, accurate, data-backed response.
+      Use the provided client-computed telemetry, complete categories & budget matrix, profile configuration, and dynamic database query results below to construct a complete, accurate, data-backed response.
       CRITICAL: Do NOT hallucinate transaction items. Use the DATABASE TABLE RECORDS to list specific expenses, calculate historical sums, or answer questions about past transactions.
 
       CRITICAL USER-INTERFACE INVARIANT:
@@ -379,9 +435,13 @@ export async function POST(request: Request) {
         2. Explicitly state the actual Projected Net Cash Flow Surplus (excluding starting balance, e.g., €476.51), explaining that this is the net surplus generated purely within the active cycle (income minus expenses).
       This way, the user sees a 100% match with their visual dashboard while also understanding the exact mathematical cash flow breakdown.
 
+      ${profileParametersContext}
+
       ${yapLevelInstruction}
 
       ${journalContext}
+
+      ${overridesContext}
 
       TYPOGRAPHY & FORMATTING RULES:
       - Use Proper Sentence Case.
@@ -391,7 +451,7 @@ export async function POST(request: Request) {
 
       ${telemetryContext || "No summary telemetry loaded."}
 
-      CATEGORIES STATUS:
+      COMPLETE USER CATEGORIES & BUDGET ALLOCATION MATRIX:
       ${categoriesContext || "No categories defined."}
 
       ${dbContextStr ? `DYNAMICAL DATABASE QUERY RESULTS:\n${dbContextStr}` : "No additional database records queried."}
@@ -465,28 +525,22 @@ export async function POST(request: Request) {
       // Automatic memory journaling processing
       if (parsedRes.newJournalEntry && userId) {
         try {
-          let existingJournal: any[] = [];
-          if (profileData && Array.isArray(profileData.ai_journal)) {
-            existingJournal = profileData.ai_journal;
-          } else {
+          let rawJournal = profileData?.ai_journal;
+          if (!rawJournal) {
             const { data: prof } = await supabaseAdmin
               .from("profiles")
               .select("ai_journal")
               .eq("id", userId)
               .single();
-            if (prof && Array.isArray(prof.ai_journal)) {
-              existingJournal = prof.ai_journal;
-            }
+            rawJournal = prof?.ai_journal;
           }
           
+          const existingMemories = normalizeJournal(rawJournal);
           const content = typeof parsedRes.newJournalEntry === "string" 
             ? parsedRes.newJournalEntry.trim()
             : parsedRes.newJournalEntry.content?.trim();
 
-          const exists = existingJournal.some((item: any) => {
-            const existingContent = typeof item === "string" ? item.trim() : item.content?.trim();
-            return existingContent?.toLowerCase() === content?.toLowerCase();
-          });
+          const exists = existingMemories.some((item) => item.content?.toLowerCase() === content?.toLowerCase());
 
           if (content && !exists) {
             const durationDays = typeof parsedRes.newJournalEntry === "object" ? parsedRes.newJournalEntry.durationDays : null;
@@ -501,7 +555,8 @@ export async function POST(request: Request) {
               status: "active"
             };
 
-            const updatedJournal = [...existingJournal, newFactObj];
+            const updatedMemories = [newFactObj, ...existingMemories];
+            const updatedJournal = buildUpdatedJournal(rawJournal, updatedMemories);
             await supabaseAdmin
               .from("profiles")
               .update({ ai_journal: updatedJournal })

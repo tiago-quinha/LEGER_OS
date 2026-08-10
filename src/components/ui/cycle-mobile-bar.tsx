@@ -70,8 +70,9 @@ export function CycleMobileBar({
 
   return (
     <div
+      data-cycle-bar="true"
       className={cn(
-        "md:hidden fixed bottom-14 left-0 right-0 z-40",
+        "cycle-mobile-bar md:hidden fixed bottom-14 left-0 right-0 z-40",
         "flex items-center justify-between gap-0",
         "bg-background/90 backdrop-blur-md border-t border-border/60",
         "h-9 px-2 select-none",

@@ -115,7 +115,7 @@ export function LegerAIIntelligence({ cycleData }: LegerAIIntelligenceProps) {
         <div className="space-y-2 max-w-md z-10 font-mono">
           <div className="flex items-center justify-center gap-2">
             <Brain className="h-4 w-4 text-emerald-500" />
-            <p className="font-mono text-[9px] font-bold text-emerald-500 uppercase tracking-widest">LEGER_AI // NEURAL STRATEGY LOCKED</p>
+            <p className="font-mono text-[9px] font-bold text-emerald-500 uppercase tracking-widest">LEGER AI PRO STRATEGY LOCKED</p>
           </div>
           <p className="text-[10px] text-muted-foreground leading-normal uppercase">
             Upgrade to PRO to unlock real-time cycle anomaly synthesis, automated category advisory, and neural cash flow forecasting.

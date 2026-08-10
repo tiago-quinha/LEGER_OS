@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect, useRef, useMemo } from "react"
 import { motion, AnimatePresence, useAnimation, useMotionValue, useDragControls } from "framer-motion"
-import { Brain, Cpu, MessageSquare, Mic, MicOff, Send, X, RefreshCcw, Sparkles, Lock } from "lucide-react"
+import { Brain, Cpu, MessageSquare, Mic, MicOff, Send, X, RefreshCcw, Sparkles, Lock, ChevronUp, ChevronDown } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { useSystem } from "@/lib/SystemContext"
 import { getAIHeaders } from "@/lib/ai-client"
@@ -198,6 +198,234 @@ function TypewriterText({ text, speed = 6, onComplete }: { text: string; speed?:
   return <>{renderFormattedText(displayedText)}</>
 }
 
+const THINKING_MESSAGES = [
+  "Analyzing spending velocity...",
+  "Evaluating recency burn rates...",
+  "Auditing transaction anomalies...",
+  "Cross-referencing category budgets...",
+  "Simulating end-of-cycle balance...",
+  "Processing telemetry data...",
+  "Calculating safe daily pace...",
+  "Formulating financial insights...",
+  "Synthesizing income & outflow...",
+  "Optimizing cash flow forecasts..."
+]
+
+function ThinkingIndicator() {
+  const [index, setIndex] = useState(0)
+
+  useEffect(() => {
+    const timer = setInterval(() => {
+      setIndex((prev) => (prev + 1) % THINKING_MESSAGES.length)
+    }, 2200)
+    return () => clearInterval(timer)
+  }, [])
+
+  return (
+    <motion.div 
+      initial={{ opacity: 0, y: 10 }}
+      animate={{ opacity: 1, y: 0 }}
+      exit={{ opacity: 0, y: -10 }}
+      className="flex gap-3 max-w-[85%] mr-auto items-start shrink-0"
+    >
+      <div className="p-1.5 bg-foreground text-background border border-border h-9 w-9 flex items-center justify-center shrink-0 rounded-md shadow-sm">
+        <Brain className="h-4 w-4 animate-pulse" />
+      </div>
+      <div className="w-[260px] sm:w-[280px] h-9 px-3 bg-secondary/40 text-muted-foreground border border-border/60 rounded-lg rounded-tl-none text-xs italic animate-pulse flex items-center justify-between gap-2 overflow-hidden shrink-0">
+        <div className="flex-1 min-w-0 overflow-hidden relative">
+          <AnimatePresence mode="wait">
+            <motion.span
+              key={index}
+              initial={{ opacity: 0, y: 6, filter: "blur(2px)" }}
+              animate={{ opacity: 1, y: 0, filter: "blur(0px)" }}
+              exit={{ opacity: 0, y: -6, filter: "blur(2px)" }}
+              transition={{ duration: 0.28, ease: "easeInOut" }}
+              className="truncate block w-full whitespace-nowrap"
+            >
+              {THINKING_MESSAGES[index]}
+            </motion.span>
+          </AnimatePresence>
+        </div>
+        <span className="flex gap-1 shrink-0 ml-1.5">
+          <span className="w-1 h-1 bg-muted-foreground rounded-full animate-bounce [animation-delay:-0.3s]" />
+          <span className="w-1 h-1 bg-muted-foreground rounded-full animate-bounce [animation-delay:-0.15s]" />
+          <span className="w-1 h-1 bg-muted-foreground rounded-full animate-bounce" />
+        </span>
+      </div>
+    </motion.div>
+  )
+}
+
+// Empirical Real-Data Telemetry Detector Generator (Strictly Per-Route, Zero Speculative Suggestions, Zero Emojis)
+function getPagePillVariations(pathname: string, telemetry: any, profile: any, aiProvider: string) {
+  const unclassified = telemetry?.unclassifiedCount || 0
+  const overrides = profile?.projection_overrides || []
+  const journalMemories = (profile?.ai_journal?.memories || []).filter((m: any) => m.status === "active")
+  const topCat = telemetry?.categories && telemetry.categories.length > 0 ? telemetry.categories[0] : null
+  const lowestCat = telemetry?.categories && telemetry.categories.length > 1 ? telemetry.categories[telemetry.categories.length - 1] : null
+  const recentExp = telemetry?.recentExpense
+  const daysElapsed = telemetry?.daysElapsed || 1
+  const daysLeft = Math.max(1, 30 - daysElapsed)
+  const surplus = telemetry?.projectedSurplus !== undefined ? Math.round(telemetry.projectedSurplus) : 0
+  const netDelta = telemetry?.netDelta !== undefined ? Math.round(telemetry.netDelta) : 0
+  const velocity = telemetry?.velocity || 1.0
+  const totalIn = telemetry?.totalIn || 0
+  const totalOut = telemetry?.totalOut || 0
+  const spendingLimit = telemetry?.spendingLimit || profile?.target_monthly_spend || 1500
+  const budgetPct = spendingLimit > 0 ? Math.round((totalOut / spendingLimit) * 100) : 0
+  const safeDaily = Math.max(0, spendingLimit - totalOut) / daysLeft
+  const hasCustomKey = !!(profile?.custom_api_key)
+
+  switch (pathname) {
+    case "/":
+      // DASHBOARD ONLY: Projection Engine, Spending Velocity & Paycheck Cycle Pace
+      return [
+        {
+          banner: surplus >= 0 ? `Cycle on track — projected surplus +€${surplus}...` : `Projected cycle deficit of €${Math.abs(surplus)}...`,
+          query: surplus >= 0 ? `How is my projected cycle surplus of €${surplus} calculated?` : `What adjustments can I make to eliminate my projected cycle deficit of €${Math.abs(surplus)}?`
+        },
+        {
+          banner: velocity > 1.15 ? `Spending velocity elevated at ${velocity.toFixed(2)}x baseline for day ${daysElapsed}...` : `Spending velocity steady at ${velocity.toFixed(2)}x baseline for day ${daysElapsed}...`,
+          query: `Why is my spending velocity at ${velocity.toFixed(2)}x baseline for day ${daysElapsed} of this cycle?`
+        },
+        {
+          banner: `Safe daily variable burn pace is €${safeDaily.toFixed(2)} for ${daysLeft}d left...`,
+          query: `What is my target daily variable spend limit for the remaining ${daysLeft} days of this cycle?`
+        },
+        {
+          banner: `Day ${daysElapsed} of 30 — ${daysLeft} days remaining until next paycheck...`,
+          query: `Analyze my cash flow pace for the remaining ${daysLeft} days until my next paycheck.`
+        },
+        {
+          banner: `Net cash flow is €${netDelta > 0 ? '+' : ''}${netDelta} (€${Math.round(totalIn)} in / €${Math.round(totalOut)} out)...`,
+          query: `Break down my total income (€${Math.round(totalIn)}) vs total expenses (€${Math.round(totalOut)}) so far this cycle.`
+        },
+        ...(overrides.length > 0 ? [{
+          banner: `Routine override active: ${overrides[0].reason || overrides[0].categoryName}...`,
+          query: `How is my active ${overrides[0].categoryName || 'spending'} override modifying my projected cycle end balance?`
+        }] : [])
+      ]
+
+    case "/expenses":
+      // LEDGER ONLY: Uncategorized Items, Recent Purchases & Raw Outflow Logged
+      return [
+        ...(unclassified > 0 ? [{
+          banner: `${unclassified} uncategorized ${unclassified === 1 ? 'transaction needs' : 'transactions need'} review in ledger...`,
+          query: `Help me classify my ${unclassified} uncategorized transactions in my ledger.`
+        }] : []),
+        ...(recentExp && recentExp.merchant ? [{
+          banner: `Recent ledger entry: ${recentExp.merchant} (€${Math.abs(parseFloat(recentExp.amount) || 0).toFixed(2)})...`,
+          query: `Audit my recent purchase at ${recentExp.merchant} (€${Math.abs(parseFloat(recentExp.amount) || 0).toFixed(2)}) and check its projection impact.`
+        }] : []),
+        {
+          banner: `Total outflow registered in ledger this cycle: €${totalOut.toFixed(2)}...`,
+          query: `Summarize my total ledger outflow of €${totalOut.toFixed(2)} and list my top 5 largest expenses.`
+        },
+        ...(topCat ? [{
+          banner: `Top expense category in ledger: ${topCat.name} (€${Math.round(topCat.value)})...`,
+          query: `List all recent transactions in category ${topCat.name} and check for repeated charges.`
+        }] : [])
+      ]
+
+    case "/categories":
+      // CATEGORIES ONLY: Category Spend Allocation & Breakdown Matrix
+      return [
+        ...(topCat ? [{
+          banner: `Highest spend category: ${topCat.name} (€${Math.round(topCat.value)})...`,
+          query: `Analyze my spending in ${topCat.name} (€${Math.round(topCat.value)}) and compare it to my baseline.`
+        }] : []),
+        ...(lowestCat ? [{
+          banner: `Lowest burn category: ${lowestCat.name} (€${Math.round(lowestCat.value)})...`,
+          query: `Show my lowest spending categories and analyze potential budget reallocation options.`
+        }] : []),
+        ...(topCat && totalOut > 0 ? [{
+          banner: `${topCat.name} represents ${Math.round((topCat.value / totalOut) * 100)}% of total cycle expenses...`,
+          query: `Give me a full percentage breakdown of all expense categories in this active cycle.`
+        }] : []),
+        {
+          banner: `Total category spend allocation across categories: €${Math.round(totalOut)}...`,
+          query: `Summarize my user-defined expense categories and budget allocations.`
+        }
+      ]
+
+    case "/budgets":
+      // BUDGETS ONLY: Monthly Target Spend Limits & Capacity Planning
+      return [
+        {
+          banner: `Target monthly budget is ${budgetPct}% consumed (€${Math.round(totalOut)} of €${spendingLimit})...`,
+          query: `My target budget is ${budgetPct}% used. Should I adjust my category budget limits?`
+        },
+        {
+          banner: `Remaining unallocated budget buffer: €${Math.max(0, spendingLimit - totalOut).toFixed(2)} for ${daysLeft}d left...`,
+          query: `Calculate my remaining unallocated budget buffer for the rest of this cycle.`
+        },
+        {
+          banner: `Monthly target spending limit set to €${spendingLimit}...`,
+          query: `Is my monthly spending limit of €${spendingLimit} realistic based on current velocity?`
+        }
+      ]
+
+    case "/analytics":
+      // ANALYTICS ONLY: Recency Decay Model (λ = 0.12) & Cash Flow Graphs
+      return [
+        {
+          banner: `Projection engine applying recency decay weighting (λ = 0.12)...`,
+          query: `Explain how recency decay weighting (λ = 0.12) affects my cash flow forecast.`
+        },
+        {
+          banner: `Current cycle alpha weighting α = ${Math.min(1.0, 0.65 + 0.35 * (daysElapsed / 30)).toFixed(2)}...`,
+          query: `How does current cycle velocity weighting (α = ${Math.min(1.0, 0.65 + 0.35 * (daysElapsed / 30)).toFixed(2)}) favor current spending over baselines?`
+        },
+        ...(totalIn > 0 ? [{
+          banner: `Income to outflow coverage ratio is ${(totalIn / Math.max(1, totalOut)).toFixed(2)}x...`,
+          query: `Compare my total income received vs total outflow trends across recent cycles.`
+        }] : [])
+      ]
+
+    case "/memory":
+      // MEMORY JOURNAL ONLY: Routine Overrides & Conversational Memories
+      return [
+        ...(journalMemories.length > 0 ? [{
+          banner: `${journalMemories.length} active routine ${journalMemories.length === 1 ? 'memory' : 'memories'} adjusting projections...`,
+          query: `Summarize how my active routine memories are modifying my financial projection.`
+        }] : []),
+        ...(overrides.length > 0 ? [{
+          banner: `Active routine override: ${overrides[0].reason || overrides[0].categoryName}...`,
+          query: `How is my active ${overrides[0].categoryName || 'spending'} override modifying my projected cycle end balance?`
+        }] : []),
+        ...(journalMemories.length === 0 ? [{
+          banner: `0 active routine memories stored in profile journal...`,
+          query: `How do conversational context memories and routine updates modify my cycle projections?`
+        }] : [])
+      ]
+
+    case "/system":
+      // SYSTEM CONFIG ONLY: Infrastructure, API Key Status & Health
+      return [
+        {
+          banner: `AI engine provider active: ${aiProvider || 'Gemini'}...`,
+          query: `Check my AI engine provider status and telemetry integration.`
+        },
+        {
+          banner: `Custom API key status: ${hasCustomKey ? 'Custom Key Active' : 'System Default Key'}...`,
+          query: `Verify my AI API key quotas and response performance.`
+        },
+        {
+          banner: `Account subscription tier: ${profile?.subscription_tier || 'PRO'}...`,
+          query: `What features are unlocked with my LEGER_OS PRO subscription?`
+        }
+      ]
+
+    default:
+      return [
+        {
+          banner: `Analyzing live financial telemetry...`,
+          query: `How is my paycheck cycle progressing?`
+        }
+      ]
+  }
+}
+
 export function LegerAIAssistant() {
   const { profile, user, refreshProfile, currencySymbol, language, aiProvider, customApiKey, isPro, isSettingsOpen, setSettingsOpen, setSettingsActiveTab, setSubscriptionOnly } = useSystem()
   const pathname = usePathname()
@@ -229,10 +457,155 @@ export function LegerAIAssistant() {
   const dragRef = useRef<HTMLDivElement>(null)
   const recognitionRef = useRef<any>(null)
 
-  // Framer Motion animation values for edge snapping magnetism
+  // Dynamic Floaty AI Pill Banner States (starts CLOSED by default)
+  const [isPillExpanded, setIsPillExpanded] = useState(false)
+  const userClickedPillRef = useRef(false)
+
+  // Listen for active bulk selection mode to dynamically adjust floating height
+  const [isBulkActive, setIsBulkActive] = useState(false)
+
+  useEffect(() => {
+    const checkBulk = () => {
+      setIsBulkActive(document.body.getAttribute("data-bulk-active") === "true")
+    }
+    checkBulk()
+    const observer = new MutationObserver(checkBulk)
+    observer.observe(document.body, { attributes: true, attributeFilter: ["data-bulk-active"] })
+    return () => observer.disconnect()
+  }, [])
+
+  // Listen for cycle mobile bar presence to dynamically adjust floating height above lowest element
+  const [hasCycleBar, setHasCycleBar] = useState(false)
+
+  useEffect(() => {
+    const checkCycleBar = () => {
+      const el = document.querySelector('[data-cycle-bar="true"]') ||
+                 document.querySelector('.cycle-mobile-bar') ||
+                 document.querySelector('button[aria-label*="paycheck cycle"]')
+      setHasCycleBar(!!el)
+    }
+    checkCycleBar()
+    const t1 = setTimeout(checkCycleBar, 100)
+    const t2 = setTimeout(checkCycleBar, 400)
+    const observer = new MutationObserver(checkCycleBar)
+    observer.observe(document.body, { childList: true, subtree: true, attributes: true })
+    return () => {
+      clearTimeout(t1)
+      clearTimeout(t2)
+      observer.disconnect()
+    }
+  }, [pathname])
+
+  // State counter for smooth variation rotation across page visits
+  const [variationIndex, setVariationIndex] = useState(0)
+
+  // Rotate variation on route changes or when banner re-expands
+  useEffect(() => {
+    setVariationIndex(prev => prev + 1)
+  }, [pathname])
+
+  // Dynamic Page-Conscious Proactive AI Insight Generator (10+ Variations per Page)
+  const pillScenario = useMemo(() => {
+    const variations = getPagePillVariations(pathname, telemetry, profile, aiProvider)
+    const idx = variationIndex % variations.length
+    return variations[idx] || variations[0]
+  }, [pathname, telemetry, profile, aiProvider, variationIndex])
+
+  // Ref to track last banner auto-expansion timestamp (token & attention efficiency)
+  const lastExpandedTimeRef = useRef(0)
+
+  // Smart handlePillClick helper: Starts a FRESH new chat initiated by the AI Assistant
+  const handlePillClick = () => {
+    userClickedPillRef.current = true
+    setIsOpen(true)
+    setIsPillExpanded(false)
+
+    if (pillScenario.banner) {
+      const cleanInsightTitle = pillScenario.banner.replace(/\.\.\.$/, "")
+      const initialAiMsg: Message = {
+        sender: "assistant",
+        text: `**LEGER AI Mainframe Alert**\n\nI've analyzed your cycle telemetry: **${cleanInsightTitle}**.\n\n*${pillScenario.query}*\n\nWould you like me to simulate spending adjustments or run an in-depth audit?`,
+        timestamp: Date.now()
+      }
+      setMessages([initialAiMsg])
+      saveHistory([initialAiMsg])
+    }
+  }
+
+  // Smart Event-Driven & Token-Efficient Auto-Expansion (Triggers on high-priority events or throttled probability)
+  useEffect(() => {
+    userClickedPillRef.current = false
+    setIsPillExpanded(false)
+
+    // Evaluate urgent high-priority financial telemetry conditions
+    const unclassified = telemetry?.unclassifiedCount || 0
+    const velocity = telemetry?.velocity || 1.0
+    const totalOut = telemetry?.totalOut || 0
+    const limit = telemetry?.spendingLimit || profile?.target_monthly_spend || 1500
+    const budgetPct = limit > 0 ? (totalOut / limit) * 100 : 0
+
+    // High priority events always qualify for notification
+    const isUrgentEvent = unclassified > 0 || velocity > 1.25 || budgetPct > 85
+    const now = Date.now()
+    const timeSinceLast = now - lastExpandedTimeRef.current
+
+    // Only auto-expand if an urgent event occurred, OR (35% random chance AND >= 3 minutes elapsed)
+    const shouldAutoExpand = isUrgentEvent || (timeSinceLast > 180000 && Math.random() < 0.35)
+
+    if (!shouldAutoExpand) return
+
+    lastExpandedTimeRef.current = now
+
+    const openTimer = setTimeout(() => {
+      setIsPillExpanded(true)
+    }, 1500)
+
+    const closeTimer = setTimeout(() => {
+      if (!userClickedPillRef.current) {
+        setIsPillExpanded(false)
+      }
+    }, 8500)
+
+    return () => {
+      clearTimeout(openTimer)
+      clearTimeout(closeTimer)
+    }
+  }, [pathname, pillScenario.banner, telemetry])
+
+  useEffect(() => {
+    const handleExpand = () => setIsPillExpanded(true)
+    window.addEventListener("leger_overrides_updated", handleExpand)
+    return () => window.removeEventListener("leger_overrides_updated", handleExpand)
+  }, [])
+
+  // Framer Motion animation values for side-edge snapping magnetism
   const dragControls = useAnimation()
   const dragX = useMotionValue(0)
   const dragY = useMotionValue(0)
+
+  const handleTriggerDragEnd = (_event: any, _info: any) => {
+    if (typeof window === "undefined") return
+    const screenWidth = window.innerWidth
+    
+    const curX = dragX.get()
+    const curY = dragY.get()
+    
+    const buttonRightEdgeMargin = 16
+    const buttonWidth = 48
+    const initialRightX = screenWidth - buttonWidth - buttonRightEdgeMargin
+    const currentAbsoluteX = initialRightX + curX
+    
+    // Snap to nearest side edge (left vs right half of screen)
+    const targetX = currentAbsoluteX < (screenWidth / 2) 
+      ? -(screenWidth - buttonWidth - (buttonRightEdgeMargin * 2)) 
+      : 0
+    
+    dragControls.start({
+      x: targetX,
+      y: curY,
+      transition: { type: "spring", stiffness: 380, damping: 25 }
+    })
+  }
 
   const userName = profile?.username || profile?.full_name || "User"
   const historyKey = `leger_chat_history_${profile?.id || "guest"}`
@@ -315,7 +688,7 @@ export function LegerAIAssistant() {
         setMessages([
           {
             sender: "assistant",
-            text: `System online. Hello **${userName}**, I am the **LEGER_OS** central intelligence assistant. How can I protect your wealth today?`,
+            text: `Hello **${userName}**, how can I help you manage your finances today?`,
             timestamp: Date.now()
           }
         ])
@@ -572,7 +945,7 @@ export function LegerAIAssistant() {
       const welcome: Message[] = [
         {
           sender: "assistant",
-          text: `Terminal re-initialised. Hello **${userName}**, I am the **LEGER_OS** central intelligence assistant.`,
+          text: `Hello **${userName}**, how can I help you manage your finances today?`,
           timestamp: Date.now()
         }
       ]
@@ -633,7 +1006,7 @@ export function LegerAIAssistant() {
                     <Brain className="h-4 w-4 text-foreground animate-pulse" />
                   </div>
                   <div>
-                    <h3 className="text-xs font-bold uppercase tracking-wider font-sans">LEGER_AI // Assistant</h3>
+                    <h3 className="text-xs font-bold uppercase tracking-wider font-sans">Leger AI</h3>
                     <p className="text-[8px] font-mono text-muted-foreground uppercase">Active Context: {pageContext.name}</p>
                   </div>
                 </div>
@@ -658,7 +1031,7 @@ export function LegerAIAssistant() {
               {!isPro ? (
                 <div className="flex-1 p-4 flex items-center justify-center">
                   <ProLockOverlay 
-                    title="LEGER_AI ASSISTANT (PRO)"
+                    title="LEGER AI ASSISTANT (PRO)"
                     description="Conversational queries, natural language habit overrides, and dynamic projection simulation adjustments are exclusive to LEGER_OS PRO nodes."
                     className="w-full max-w-sm rounded-none shadow-xl border border-emerald-500/30"
                     onUpgrade={() => setIsOpen(false)}
@@ -705,25 +1078,7 @@ export function LegerAIAssistant() {
                       </motion.div>
                     )
                   })}
-                  {isLoading && (
-                    <motion.div 
-                      initial={{ opacity: 0, y: 10 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      className="flex gap-3 max-w-[85%] mr-auto items-start"
-                    >
-                      <div className="p-1.5 bg-foreground text-background border border-border h-fit shrink-0 rounded-md">
-                        <Cpu className="h-3 w-3 animate-spin" />
-                      </div>
-                      <div className="p-3 bg-secondary/40 text-muted-foreground border border-border/60 rounded-lg rounded-tl-none text-xs italic animate-pulse flex items-center gap-2">
-                        <span>Analyzing cycle delta variables</span>
-                        <span className="flex gap-1">
-                          <span className="w-1 h-1 bg-muted-foreground rounded-full animate-bounce [animation-delay:-0.3s]" />
-                          <span className="w-1 h-1 bg-muted-foreground rounded-full animate-bounce [animation-delay:-0.15s]" />
-                          <span className="w-1 h-1 bg-muted-foreground rounded-full animate-bounce" />
-                        </span>
-                      </div>
-                    </motion.div>
-                  )}
+                  {isLoading && <ThinkingIndicator />}
                   <div ref={chatEndRef} />
                 </div>
               )}
@@ -805,75 +1160,111 @@ export function LegerAIAssistant() {
           )}
         </AnimatePresence>
 
-        {/* Floating Triggable AI Node (Magnetic snap to Edge) */}
+        {/* Dynamic Floaty AI Banner Trigger Node (Floaty Elastic + Side Edge Snapping) */}
         <motion.div
           drag
           dragMomentum={false}
-          dragElastic={0.08}
+          dragElastic={0.12}
           style={{ x: dragX, y: dragY }}
           animate={dragControls}
-          onDragEnd={(event, info) => {
-            const screenWidth = window.innerWidth
-            const screenHeight = window.innerHeight
-            
-            // Initial positioning offsets depending on breakpoint
-            const isMobile = screenWidth < 768
-            const bottomOffset = isMobile ? 144 : 24
-            const rightOffset = 24
-            
-            // Current relative translation values
-            const curX = dragX.get()
-            const curY = dragY.get()
-            
-            // Calculate absolute coordinate positions relative to viewport
-            const startX = screenWidth - 48 - rightOffset
-            const absX = startX + curX
-            
-            const startY = screenHeight - 48 - bottomOffset
-            
-            // Snap to physically closest edge
-            const targetX = absX < (screenWidth / 2) ? -(screenWidth - 48 - (rightOffset * 2)) : 0
-            
-            // Constrain vertical coordinate to prevent overflow
-            const targetY = Math.max(-startY + 24, Math.min(16, curY))
-            
-            dragControls.start({
-              x: targetX,
-              y: targetY,
-              transition: { type: "spring", stiffness: 300, damping: 22 }
-            })
-          }}
+          onDragEnd={handleTriggerDragEnd}
+          whileDrag={{ scale: 1.04, cursor: "grabbing" }}
+          whileHover={{ scale: 1.02 }}
           className={cn(
-            "absolute pointer-events-auto bottom-36 md:bottom-6 right-6 z-[9999] cursor-grab active:cursor-grabbing",
+            "fixed pointer-events-auto left-4 right-4 sm:left-6 sm:right-6 md:left-auto md:right-6 z-[99998] flex justify-end cursor-grab active:cursor-grabbing transition-[bottom] duration-200",
+            isBulkActive 
+              ? "bottom-36 sm:bottom-24" 
+              : hasCycleBar || pathname === "/" || pathname === "/budgets" || pathname === "/categories"
+              ? "bottom-28" 
+              : "bottom-20",
+            "md:bottom-6",
             (isOpen || isSettingsOpen || pathname === "/leger-ai") && "hidden"
           )}
-          whileHover={{ scale: 1.05 }}
-          whileTap={{ scale: 0.95 }}
         >
-          <button
-            onClick={() => setIsOpen(!isOpen)}
-            className="w-12 h-12 rounded-full bg-foreground text-background flex items-center justify-center shadow-2xl relative border border-border border-white/20 select-none overflow-hidden transition-all duration-300 hover:shadow-[0_0_15px_rgba(255,255,255,0.25)]"
-          >
-            {isOpen ? (
-              <X className="h-5 w-5 animate-pulse" />
-            ) : !isPro ? (
-              <div className="relative flex items-center justify-center">
-                <Brain className="h-5 w-5 text-background/80" />
-                <span className="absolute -top-1.5 -right-1.5 w-4 h-4 bg-card text-foreground rounded-full flex items-center justify-center border border-border shadow-md">
-                  <Lock className="h-2.5 w-2.5 text-muted-foreground" />
-                </span>
-              </div>
+          <AnimatePresence mode="wait">
+            {isPillExpanded ? (
+              <motion.div
+                key="expanded-pill"
+                initial={{ opacity: 0, scale: 0.95, y: 14 }}
+                animate={{ opacity: 1, scale: 1, y: 0 }}
+                exit={{ opacity: 0, scale: 0.95, y: 14 }}
+                transition={{ type: "spring", stiffness: 380, damping: 26 }}
+                className="group flex items-center gap-3 h-11 px-3 bg-card/95 dark:bg-zinc-900/95 backdrop-blur-xl border border-border shadow-[0_12px_40px_rgba(0,0,0,0.4)] rounded-full text-foreground w-full md:w-[480px] max-w-full select-none relative overflow-hidden"
+              >
+                {/* Left Emblem Avatar Badge */}
+                <button
+                  onClick={handlePillClick}
+                  className="w-7 h-7 rounded-full bg-foreground text-background flex items-center justify-center font-bold text-xs shrink-0 shadow-md cursor-pointer hover:scale-105 transition-transform"
+                >
+                  {!isPro ? (
+                    <Lock className="h-3.5 w-3.5" />
+                  ) : (
+                    <Brain className="h-3.5 w-3.5 animate-pulse" />
+                  )}
+                </button>
+
+                {/* Center Natural Context Insight (Full width text) */}
+                <div
+                  onClick={handlePillClick}
+                  className="flex-1 min-w-0 cursor-pointer pr-1"
+                >
+                  <p className="text-xs font-semibold tracking-tight text-foreground truncate w-full">
+                    {pillScenario.banner}
+                  </p>
+                </div>
+
+                {/* Right Action Icons */}
+                <div className="flex items-center gap-1.5 shrink-0 pl-2 border-l border-border/40">
+                  <button
+                    onClick={handlePillClick}
+                    className="p-1 text-muted-foreground hover:text-foreground transition-colors cursor-pointer"
+                    title="Open Assistant"
+                  >
+                    <ChevronUp className="h-4 w-4" />
+                  </button>
+                  <button
+                    onClick={() => setIsPillExpanded(false)}
+                    className="p-1 text-muted-foreground/60 hover:text-foreground transition-colors cursor-pointer"
+                    title="Minimize"
+                  >
+                    <X className="h-3.5 w-3.5" />
+                  </button>
+                </div>
+
+                {/* Subtle bottom accent glow */}
+                <div className="absolute bottom-0 left-4 right-4 h-[1px] bg-gradient-to-r from-transparent via-emerald-500/30 to-transparent" />
+              </motion.div>
             ) : (
-              <div className="relative">
-                <Brain className="h-5 w-5 text-background animate-pulse" />
-                <span className="absolute -top-1 -right-1 w-2 h-2 bg-emerald-500 rounded-full border border-foreground animate-ping" />
-                <span className="absolute -top-1 -right-1 w-2 h-2 bg-emerald-500 rounded-full border border-foreground" />
-              </div>
+              <motion.button
+                key="collapsed-pill"
+                initial={{ opacity: 0, scale: 0.8 }}
+                animate={{ opacity: 1, scale: 1 }}
+                exit={{ opacity: 0, scale: 0.8 }}
+                transition={{ type: "spring", stiffness: 380, damping: 26 }}
+                onClick={() => {
+                  userClickedPillRef.current = true
+                  setIsOpen(true)
+                }}
+                onMouseEnter={() => setIsPillExpanded(true)}
+                className="w-12 h-12 rounded-full bg-foreground text-background flex items-center justify-center shadow-2xl relative border border-border border-white/20 select-none overflow-hidden transition-all duration-300 hover:scale-105 hover:shadow-[0_0_20px_rgba(255,255,255,0.2)] cursor-pointer"
+              >
+                {!isPro ? (
+                  <div className="relative flex items-center justify-center">
+                    <Brain className="h-5 w-5 text-background/80" />
+                    <span className="absolute -top-1.5 -right-1.5 w-4 h-4 bg-card text-foreground rounded-full flex items-center justify-center border border-border shadow-md">
+                      <Lock className="h-2.5 w-2.5 text-muted-foreground" />
+                    </span>
+                  </div>
+                ) : (
+                  <div className="relative">
+                    <Brain className="h-5 w-5 text-background animate-pulse" />
+                    <span className="absolute -top-1 -right-1 w-2 h-2 bg-emerald-500 rounded-full border border-foreground animate-ping" />
+                    <span className="absolute -top-1 -right-1 w-2 h-2 bg-emerald-500 rounded-full border border-foreground" />
+                  </div>
+                )}
+              </motion.button>
             )}
-            
-            {/* Scanline overlay */}
-            <div className="absolute inset-0 bg-gradient-to-b from-transparent via-background/[0.05] to-transparent h-4 w-full animate-scan pointer-events-none" />
-          </button>
+          </AnimatePresence>
         </motion.div>
         
       </div>

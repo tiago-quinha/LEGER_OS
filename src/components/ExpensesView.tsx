@@ -26,7 +26,7 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { Sparkles, Plus, Trash2, Search, Upload, FileText, Check, Loader2, Landmark, Edit2, X, ChevronDown, SlidersHorizontal, Filter, AlertTriangle } from "lucide-react"
+import { Sparkles, Plus, Trash2, Search, Upload, FileText, Check, Loader2, Landmark, Edit2, X, ChevronDown, SlidersHorizontal, Filter, AlertTriangle, RotateCcw } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { AuditTracePanel } from "@/components/AuditTracePanel"
 import { useSystem } from "@/lib/SystemContext"
@@ -265,6 +265,17 @@ export function ExpensesView({ initialExpenses, categories: initialCategories, i
 
     return { start, end }
   }, [filterDatePreset, activeCycle, filterStartDate, filterEndDate])
+
+  useEffect(() => {
+    if (selectedIds.size > 0) {
+      document.body.setAttribute("data-bulk-active", "true")
+    } else {
+      document.body.removeAttribute("data-bulk-active")
+    }
+    return () => {
+      document.body.removeAttribute("data-bulk-active")
+    }
+  }, [selectedIds.size])
 
   const filteredExpenses = useMemo(() => {
     return expenses.filter(exp => {
@@ -1023,6 +1034,16 @@ export function ExpensesView({ initialExpenses, categories: initialCategories, i
     }
   }
 
+  const handleSelectAllFiltered = () => {
+    const filteredIds = filteredExpenses.map(e => e.id)
+    const allFilteredSelected = filteredIds.length > 0 && filteredIds.every(id => selectedIds.has(id))
+    if (allFilteredSelected) {
+      setSelectedIds(new Set())
+    } else {
+      setSelectedIds(new Set(filteredIds))
+    }
+  }
+
   const handleSelectOne = (id: string) => {
     const next = new Set(selectedIds)
     if (next.has(id)) next.delete(id)
@@ -1613,107 +1634,166 @@ export function ExpensesView({ initialExpenses, categories: initialCategories, i
           </div>
 
           <TabsContent value="history" className="space-y-4">
-            {/* Sleek Floating Glassmorphism Bulk Action Dock (Mobile Responsive) */}
+            {/* Full-width Glassmorphism Bulk Action Dock (Flush with Bottom Navbar) */}
             {selectedIds.size > 0 && (
-              <div className="fixed bottom-20 md:bottom-6 left-1/2 -translate-x-1/2 z-50 w-[94vw] max-w-md sm:w-auto sm:max-w-none bg-card/98 dark:bg-zinc-900/98 backdrop-blur-md border border-border shadow-[0_12px_40px_rgb(0,0,0,0.35)] p-2.5 sm:px-4 sm:py-2.5 flex flex-wrap sm:flex-nowrap items-center justify-between sm:justify-start gap-2 sm:gap-4 transition-all duration-300 animate-in fade-in slide-in-from-bottom-6">
-                <div className="flex items-center gap-2 font-mono text-xs font-bold">
-                  <span className="bg-foreground text-background px-2 py-0.5">{selectedIds.size}</span>
-                  <span className="text-muted-foreground uppercase tracking-wider text-[11px] hidden sm:inline">Selected</span>
-                </div>
-                
-                <div className="h-4 w-px bg-border hidden sm:block" />
+              <div className="fixed bottom-14 md:bottom-0 left-0 right-0 z-[99990] w-full bg-card/98 dark:bg-zinc-950/98 backdrop-blur-xl border-t border-b sm:border-b-0 border-border shadow-[0_-12px_40px_rgba(0,0,0,0.5)] px-3 py-2 sm:px-6 animate-in fade-in slide-in-from-bottom-4 duration-200">
+                <div className="mx-auto max-w-[1500px] flex items-center justify-between gap-1.5 sm:gap-3">
+                  
+                  {/* Left: Selection Count & Filtered Select Box */}
+                  <div className="flex items-center gap-1.5 sm:gap-2.5 shrink-0">
+                    <button
+                      type="button"
+                      onClick={handleSelectAllFiltered}
+                      className={cn(
+                        "h-4 w-4 sm:h-5 sm:w-5 border flex items-center justify-center transition-all cursor-pointer rounded-none shrink-0",
+                        filteredExpenses.length > 0 && filteredExpenses.every(e => selectedIds.has(e.id))
+                          ? "bg-foreground border-foreground text-background shadow-sm"
+                          : "border-border/80 bg-card/40 hover:border-foreground/50 text-transparent"
+                      )}
+                      title="Toggle select all matching active filter"
+                    >
+                      <Check className="h-3 w-3 stroke-[3]" />
+                    </button>
 
-                <div className="flex items-center gap-2 flex-1 sm:flex-initial justify-end">
-                  <Button
-                    size="sm"
-                    variant="ghost"
-                    className="h-8 rounded-none text-xs font-mono text-foreground hover:bg-secondary transition-colors cursor-pointer px-2 sm:px-3 flex-shrink-0 border border-border/60"
-                    onClick={handleBulkAiCleanse}
-                    disabled={isCategorizing}
-                    title="AI Cleanse & Categorize selected"
-                  >
-                    <Sparkles className="h-3.5 w-3.5 sm:mr-1 text-emerald-500" /> <span>AI Cleanse</span>
-                  </Button>
+                    <div className="flex items-center gap-1.5 font-mono text-xs">
+                      <span className="bg-foreground text-background px-1.5 py-0.5 font-bold text-[11px] sm:text-xs">{selectedIds.size}</span>
+                      <span className="text-muted-foreground uppercase tracking-wider text-[10px] sm:text-[11px] hidden sm:inline">Selected</span>
 
-                  <Select onValueChange={(val: string | null) => {
-                    handleBulkCategoryChange(val)
-                  }}>
-                    <SelectTrigger className="w-full sm:w-[180px] flex-1 min-w-[130px] h-8 text-xs font-mono bg-secondary/60 border-border hover:bg-secondary transition-colors rounded-none cursor-pointer">
-                      <SelectValue placeholder="Categorize..." />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="none">Uncategorized</SelectItem>
-                      {categories.map((cat) => (
-                        <SelectItem key={cat.id} value={cat.id.toString()}>
-                          <div className="flex items-center gap-2">
-                            <div className="h-2 w-2 rounded-full" style={{ backgroundColor: cat.color }} />
-                            {cat.name}
-                          </div>
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
+                      {filteredExpenses.length > 0 && (
+                        <Select
+                          value={
+                            filteredExpenses.every(e => selectedIds.has(e.id))
+                              ? "all_filtered"
+                              : paginatedExpenses.every(e => selectedIds.has(e.id))
+                              ? "current_page"
+                              : "custom"
+                          }
+                          onValueChange={(val: string | null) => {
+                            if (val === "all_filtered") {
+                              setSelectedIds(new Set(filteredExpenses.map(e => e.id)))
+                            } else if (val === "current_page") {
+                              setSelectedIds(new Set(paginatedExpenses.map(e => e.id)))
+                            } else if (val === "none") {
+                              setSelectedIds(new Set())
+                            }
+                          }}
+                        >
+                          <SelectTrigger className="h-7 text-[10px] font-mono uppercase tracking-wider bg-secondary/40 border-border/60 hover:bg-secondary/70 rounded-none cursor-pointer px-1.5 w-[90px] xs:w-[110px] sm:w-[160px]">
+                            <SelectValue placeholder="Scope..." />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="all_filtered">
+                              All {filteredExpenses.length} Filtered
+                            </SelectItem>
+                            <SelectItem value="current_page">
+                              Current Page ({paginatedExpenses.length})
+                            </SelectItem>
+                            <SelectItem value="none">
+                              Clear Selection
+                            </SelectItem>
+                          </SelectContent>
+                        </Select>
+                      )}
+                    </div>
+                  </div>
 
-                  <Button
-                    size="sm"
-                    variant="ghost"
-                    className="h-8 rounded-none text-xs font-mono text-muted-foreground hover:text-destructive hover:bg-destructive/10 transition-colors cursor-pointer px-2 sm:px-3 flex-shrink-0"
-                    onClick={handleBulkDelete}
-                    title="Delete selected"
-                  >
-                    <Trash2 className="h-3.5 w-3.5 sm:mr-1" /> <span>Delete</span>
-                  </Button>
+                  {/* Right: Actions (AI Cleanse, Categorize Dropdown, Delete, Close) */}
+                  <div className="flex items-center gap-1 sm:gap-2 justify-end shrink-0">
+                    <Button
+                      size="sm"
+                      variant="ghost"
+                      className="h-7 sm:h-8 rounded-none text-[11px] sm:text-xs font-mono text-foreground hover:bg-secondary transition-colors cursor-pointer px-1.5 sm:px-3 shrink-0 border border-border/60"
+                      onClick={handleBulkAiCleanse}
+                      disabled={isCategorizing}
+                      title="AI Cleanse & Categorize selected"
+                    >
+                      <Sparkles className="h-3 w-3 text-emerald-500 sm:mr-1" />
+                      <span className="hidden sm:inline">AI Cleanse</span>
+                    </Button>
 
-                  <div className="h-4 w-px bg-border ml-0.5 sm:ml-1" />
+                    <Select onValueChange={(val: string | null) => {
+                      handleBulkCategoryChange(val)
+                    }}>
+                      <SelectTrigger className="w-[100px] sm:w-[170px] h-7 sm:h-8 text-[10px] sm:text-xs font-mono bg-secondary/60 border-border hover:bg-secondary transition-colors rounded-none cursor-pointer px-1.5">
+                        <SelectValue placeholder="Categorize..." />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="none">Uncategorized</SelectItem>
+                        {categories.map((cat) => (
+                          <SelectItem key={cat.id} value={cat.id.toString()}>
+                            <div className="flex items-center gap-2">
+                              <div className="h-2 w-2 rounded-full" style={{ backgroundColor: cat.color }} />
+                              {cat.name}
+                            </div>
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
 
-                  <Button
-                    size="icon-xs"
-                    variant="ghost"
-                    className="h-7 w-7 text-muted-foreground hover:text-foreground cursor-pointer flex-shrink-0"
-                    onClick={() => setSelectedIds(new Set())}
-                    title="Clear selection"
-                  >
-                    <X className="h-3.5 w-3.5" />
-                  </Button>
+                    <Button
+                      size="sm"
+                      variant="ghost"
+                      className="h-7 sm:h-8 rounded-none text-xs font-mono text-muted-foreground hover:text-destructive hover:bg-destructive/10 transition-colors cursor-pointer px-1.5 sm:px-3 shrink-0"
+                      onClick={handleBulkDelete}
+                      title="Delete selected"
+                    >
+                      <Trash2 className="h-3.5 w-3.5 sm:mr-1" />
+                      <span className="hidden sm:inline">Delete</span>
+                    </Button>
+
+                    <div className="h-4 w-px bg-border hidden sm:block" />
+
+                    <Button
+                      size="icon-xs"
+                      variant="ghost"
+                      className="h-7 w-7 text-muted-foreground hover:text-foreground cursor-pointer shrink-0"
+                      onClick={() => setSelectedIds(new Set())}
+                      title="Clear selection"
+                    >
+                      <X className="h-3.5 w-3.5" />
+                    </Button>
+                  </div>
                 </div>
               </div>
             )}
             <Card className="rounded-none border-border ledger-border">
-              <CardHeader className="flex flex-row items-center justify-between pb-4 border-b border-border/40">
-                <CardTitle className="text-base sm:text-lg font-mono tracking-tight flex items-center gap-2">
+              <CardHeader className="flex flex-row items-center justify-between pb-4 border-b border-border/40 gap-2 flex-wrap sm:flex-nowrap">
+                <CardTitle className="text-base sm:text-lg font-mono tracking-tight flex items-center gap-2 shrink-0">
                   Transactions
                 </CardTitle>
-                <div className="flex items-center gap-2">
+                <div className="flex flex-wrap items-center justify-end gap-1.5 sm:gap-2 shrink-0 max-w-full">
                   {hasActiveFilters && (
                     <Button
                       variant="ghost"
                       onClick={handleResetFilters}
-                      className="h-8 text-[9px] uppercase font-mono tracking-widest text-muted-foreground hover:text-foreground hover:bg-secondary/40 rounded-none border border-border/30 px-3 cursor-pointer"
+                      className="h-8 text-[9px] uppercase font-mono tracking-widest text-amber-500 hover:text-amber-400 bg-amber-500/10 hover:bg-amber-500/20 rounded-none border border-amber-500/30 px-2 sm:px-3 cursor-pointer shrink-0 flex items-center gap-1"
+                      title="Reset active filters"
                     >
-                      Clear Filters
+                      <RotateCcw className="h-3 w-3" />
+                      <span className="hidden xs:inline">Clear Filters</span>
                     </Button>
                   )}
                   <Button
                     variant="ghost"
                     onClick={smartCategorize}
                     disabled={isCategorizing}
-                    className="md:hidden h-8 text-[9px] uppercase font-mono tracking-widest border border-border hover:bg-secondary/20 text-muted-foreground hover:text-foreground rounded-none px-3 cursor-pointer flex items-center gap-1.5 transition-all select-none"
+                    className="md:hidden h-8 text-[9px] uppercase font-mono tracking-widest border border-border hover:bg-secondary/20 text-muted-foreground hover:text-foreground rounded-none px-2 sm:px-3 cursor-pointer flex items-center gap-1.5 transition-all select-none shrink-0"
                   >
                     <Sparkles className="h-3 w-3 text-emerald-500" />
-                    {isCategorizing ? "Cleansing..." : "AI Cleanse"}
+                    <span className="hidden xs:inline">{isCategorizing ? "Cleansing..." : "AI Cleanse"}</span>
                   </Button>
                   <Button
                     variant="ghost"
                     onClick={() => setIsFiltersVisible(!isFiltersVisible)}
                     className={cn(
-                      "h-8 text-[9px] uppercase font-mono tracking-widest rounded-none border px-2.5 sm:px-3 cursor-pointer flex items-center justify-center sm:justify-start gap-0 sm:gap-1.5 transition-all select-none",
+                      "h-8 text-[9px] uppercase font-mono tracking-widest rounded-none border px-2 sm:px-3 cursor-pointer flex items-center gap-1 sm:gap-1.5 transition-all select-none shrink-0",
                       isFiltersVisible 
                         ? "border-foreground bg-secondary/35 text-foreground" 
                         : "border-border hover:bg-secondary/20 text-muted-foreground hover:text-foreground"
                     )}
                   >
                     <Filter className="h-3.5 w-3.5" />
-                    <span className="hidden sm:inline">Filters {isFiltersVisible ? "[Close]" : "[Open]"}</span>
+                    <span className="hidden xs:inline">Filters {isFiltersVisible ? "[Close]" : "[Open]"}</span>
                   </Button>
                 </div>
               </CardHeader>

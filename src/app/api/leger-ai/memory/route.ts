@@ -3,8 +3,8 @@ import { generateAIContent } from "@/lib/ai-bridge";
 import { verifyAndConsumeQuota } from "@/lib/server-auth";
 import { getAdminClient } from "@/lib/supabase-admin";
 import { calculateServerTelemetry } from "@/lib/server-telemetry";
-
 import { createClient } from "@/lib/supabase-server";
+import { normalizeJournal, buildUpdatedJournal, MemoryItem } from "@/lib/journal-utils";
 
 // GET: Fetch all memories (structured and converted legacy string records)
 export async function GET(request: Request) {
@@ -27,8 +27,7 @@ export async function GET(request: Request) {
       return NextResponse.json({ error: "Failed to fetch profile" }, { status: 500 });
     }
 
-    const rawJournal = profile?.ai_journal || [];
-    const normalizedMemories = normalizeJournal(rawJournal);
+    const normalizedMemories = normalizeJournal(profile?.ai_journal);
 
     return NextResponse.json({ memories: normalizedMemories });
   } catch (error: any) {
@@ -55,6 +54,9 @@ export async function POST(request: Request) {
     const totalDaysInCycle = serverDataRes?.totalDaysInCycle || 30;
     const remainingDaysInCycle = Math.max(1, totalDaysInCycle - daysElapsed);
 
+    const userCategories = serverDataRes?.categoriesDetailed || [];
+    const categoriesListStr = userCategories.map((c: any) => `- "${c.name}" (ID: ${c.id})`).join("\n");
+
     const prompt = `
       You are the memory parsing node of LEGER_OS, a personal finance terminal.
       I will provide a natural language statement about a user's current situation, routine changes, goals, or lifestyle updates.
@@ -62,10 +64,14 @@ export async function POST(request: Request) {
 
       Input: "${text}"
 
+      User's Active Financial Categories:
+      ${categoriesListStr.length > 0 ? categoriesListStr : "- No custom categories defined"}
+
       Determine:
-      1. "content": A clean, concise summary of the fact (e.g. "Low grade fever reported", "Working hybrid", "Started saving for Tokyo trip").
-      2. "category": Choose the most logical one: "lifestyle" | "goal" | "health" | "financial" | "other".
-      3. "durationDays": A reasonable number of days this fact will remain active/relevant. 
+      1. "content": A clean, concise summary of the fact (e.g. "Working hybrid - 30% lower gas spend", "Low grade fever reported", "Saving for Tokyo trip").
+      2. "category": If the input relates directly to an expense category in the User's Active Financial Categories above, set "category" to that category name (e.g., "${userCategories[0]?.name || "Transportation"}"). If it is a general health/goal fact without a direct budget category match, set "category" to one of: "goal" | "health" | "financial" | "other".
+      3. "categoryId": The numerical ID of the matched User Category if applicable, or null if it's a general context memory.
+      4. "durationDays": A reasonable number of days this fact will remain active/relevant. 
          CRITICAL PAYCHECK CYCLE DURATION RULE:
          Current Cycle Status: Day ${daysElapsed} of ${totalDaysInCycle} Total Days (${remainingDaysInCycle} Days Remaining in current cycle).
          If the user input mentions "this cycle", "for this cycle", "until next paycheck", "the rest of the cycle", or "this month's cycle", set "durationDays" to EXACTLY ${remainingDaysInCycle}.
@@ -74,12 +80,23 @@ export async function POST(request: Request) {
          - "fever/flu today" -> 5
          - "rehab for my knee for a month" -> 30
          - Permanent updates (e.g., "got a dog", "new job", "started hybrid work") -> null (representing infinite/long-term duration)
+      5. "projectionOverride": CRITICAL — If the input implies a QUANTIFIABLE spending change for a specific category, you MUST extract it as a projection override object. This is how the memory actually affects the financial projection engine. Rules:
+         - If the user says "reducing [category] by X%", "X% less [category]", "cutting [category] in half", etc.:
+           Set "projectionOverride" to { "multiplier": <decimal>, "reason": "<short reason>" }
+           Examples: "30% less gas" -> multiplier: 0.70. "Cut groceries in half" -> multiplier: 0.50. "Double entertainment spend" -> multiplier: 2.0. "No more uber" -> multiplier: 0.0
+         - If the user says "saving €X on [category]" or "spending €X more on [category]" (a fixed euro/dollar amount change, NOT a percentage):
+           Set "projectionOverride" to { "fixedDelta": <number>, "reason": "<short reason>" }
+           Examples: "Saving €50 on food" -> fixedDelta: -50. "Extra €100 on rent" -> fixedDelta: 100
+         - If the input has NO quantifiable spending change (e.g. "got a cold", "thinking about saving", "started gym"), set "projectionOverride" to null.
+         - The override MUST reference the same categoryId as field 3. If categoryId is null (no matched category), set projectionOverride to null.
 
       Format your response as a strict JSON object:
       {
         "content": "string",
-        "category": "lifestyle" | "goal" | "health" | "financial" | "other",
-        "durationDays": number | null
+        "category": "string",
+        "categoryId": number | null,
+        "durationDays": number | null,
+        "projectionOverride": { "multiplier": number, "reason": "string" } | { "fixedDelta": number, "reason": "string" } | null
       }
     `;
 
@@ -99,7 +116,7 @@ export async function POST(request: Request) {
 
     const { data: profile, error: getErr } = await supabaseAdmin
       .from("profiles")
-      .select("ai_journal")
+      .select("ai_journal, projection_overrides")
       .eq("id", userId)
       .single();
 
@@ -107,23 +124,65 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: "Failed to fetch profile journal" }, { status: 500 });
     }
 
-    const existingJournal = profile?.ai_journal || [];
+    const rawJournal = profile?.ai_journal;
+    const existingMemories = normalizeJournal(rawJournal);
     
+    const memoryId = `mem_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+
     // Create new structured memory object
-    const newMemory = {
-      id: `mem_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+    const newMemory: MemoryItem = {
+      id: memoryId,
       content: content,
       category: parsed.category || "other",
+      categoryId: parsed.categoryId || null,
       createdAt: new Date().toISOString(),
       expiresAt: parsed.durationDays ? new Date(Date.now() + parsed.durationDays * 24 * 60 * 60 * 1000).toISOString() : null,
       status: "active"
     };
 
-    const updatedJournal = [...existingJournal, newMemory];
+    const newMemoriesList = [newMemory, ...existingMemories];
+    const updatedJournal = buildUpdatedJournal(rawJournal, newMemoriesList);
     
+    // Build the update payload — always update ai_journal
+    const updatePayload: Record<string, any> = { ai_journal: updatedJournal };
+
+    // If the AI extracted a projection override, merge it into projection_overrides
+    let appliedOverride: any = null;
+    if (parsed.projectionOverride && parsed.categoryId) {
+      const existingOverrides: any[] = profile?.projection_overrides || [];
+      const catIdStr = String(parsed.categoryId);
+      const matchedCat = userCategories.find((c: any) => String(c.id) === catIdStr);
+
+      const newOverride: Record<string, any> = {
+        id: `ov_${Date.now()}_${Math.random().toString(36).substring(2, 6)}`,
+        memoryId: memoryId,
+        categoryId: catIdStr,
+        categoryName: matchedCat?.name || parsed.category,
+        reason: parsed.projectionOverride.reason || content,
+      };
+
+      if (parsed.projectionOverride.multiplier !== undefined) {
+        newOverride.multiplier = parsed.projectionOverride.multiplier;
+      } else {
+        newOverride.multiplier = 1.0;
+      }
+
+      if (parsed.projectionOverride.fixedDelta !== undefined) {
+        newOverride.fixedDelta = parsed.projectionOverride.fixedDelta;
+      }
+
+      // Replace any existing override for this category (from a previous memory), then append
+      const updatedOverrides = existingOverrides.filter(
+        (o: any) => !(o.categoryId && String(o.categoryId) === catIdStr && o.memoryId)
+      );
+      updatedOverrides.push(newOverride);
+      updatePayload.projection_overrides = updatedOverrides;
+      appliedOverride = newOverride;
+    }
+
     const { error: updateErr } = await supabaseAdmin
       .from("profiles")
-      .update({ ai_journal: updatedJournal })
+      .update(updatePayload)
       .eq("id", userId);
 
     if (updateErr) {
@@ -133,7 +192,8 @@ export async function POST(request: Request) {
     return NextResponse.json({ 
       success: true, 
       memory: newMemory,
-      memories: normalizeJournal(updatedJournal) 
+      memories: newMemoriesList,
+      override: appliedOverride
     });
   } catch (error: any) {
     return NextResponse.json({ error: error.message || "Mainframe error" }, { status: 500 });
@@ -167,11 +227,10 @@ export async function DELETE(request: Request) {
       return NextResponse.json({ error: "Failed to fetch profile journal" }, { status: 500 });
     }
 
-    const existingJournal = profile?.ai_journal || [];
-    const normalizedExisting = normalizeJournal(existingJournal);
-    
-    // Filter out the deleted memory
-    const updatedJournal = normalizedExisting.filter((item: any) => item.id !== id);
+    const rawJournal = profile?.ai_journal;
+    const existingMemories = normalizeJournal(rawJournal);
+    const updatedMemories = existingMemories.filter((item: MemoryItem) => item.id !== id);
+    const updatedJournal = buildUpdatedJournal(rawJournal, updatedMemories);
 
     const { error: updateErr } = await supabaseAdmin
       .from("profiles")
@@ -184,7 +243,7 @@ export async function DELETE(request: Request) {
 
     return NextResponse.json({ 
       success: true, 
-      memories: normalizeJournal(updatedJournal) 
+      memories: updatedMemories 
     });
   } catch (error: any) {
     return NextResponse.json({ error: error.message || "Mainframe error" }, { status: 500 });
@@ -216,10 +275,10 @@ export async function PUT(request: Request) {
       return NextResponse.json({ error: "Failed to fetch profile journal" }, { status: 500 });
     }
 
-    const existingJournal = profile?.ai_journal || [];
-    const normalizedExisting = normalizeJournal(existingJournal);
+    const rawJournal = profile?.ai_journal;
+    const existingMemories = normalizeJournal(rawJournal);
 
-    const updatedJournal = normalizedExisting.map((item: any) => {
+    const updatedMemories = existingMemories.map((item: MemoryItem) => {
       if (item.id === id) {
         const newExpiresAt = expiresAt !== undefined ? expiresAt : item.expiresAt;
         let newStatus = "active";
@@ -237,6 +296,8 @@ export async function PUT(request: Request) {
       return item;
     });
 
+    const updatedJournal = buildUpdatedJournal(rawJournal, updatedMemories);
+
     const { error: updateErr } = await supabaseAdmin
       .from("profiles")
       .update({ ai_journal: updatedJournal })
@@ -248,41 +309,9 @@ export async function PUT(request: Request) {
 
     return NextResponse.json({ 
       success: true, 
-      memories: normalizeJournal(updatedJournal) 
+      memories: updatedMemories 
     });
   } catch (error: any) {
     return NextResponse.json({ error: error.message || "Mainframe error" }, { status: 500 });
   }
-}
-
-// Helper to normalize mixed string/object journals and resolve active/expired states
-function normalizeJournal(journal: any[]): any[] {
-  const now = new Date();
-  return journal.map((item: any, idx: number) => {
-    if (typeof item === "string") {
-      return {
-        id: `legacy-${idx}`,
-        content: item,
-        category: "other",
-        createdAt: new Date().toISOString(),
-        expiresAt: null,
-        status: "active"
-      };
-    }
-
-    // Determine status based on expiration date
-    let status = item.status || "active";
-    if (item.expiresAt && new Date(item.expiresAt) < now) {
-      status = "expired";
-    }
-
-    return {
-      id: item.id || `mem-${idx}`,
-      content: item.content || "",
-      category: item.category || "other",
-      createdAt: item.createdAt || new Date().toISOString(),
-      expiresAt: item.expiresAt || null,
-      status: status
-    };
-  }).sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
 }
