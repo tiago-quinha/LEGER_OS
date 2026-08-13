@@ -58,15 +58,6 @@ export async function GET(req: Request) {
 
     let balanceData = balanceRes?.data;
     let liquidBalance = 0;
-    if (!balanceData) {
-      const { data: fallbackBalance } = await adminDb
-        .from("account_balance")
-        .select("amount, date")
-        .order("date", { ascending: false })
-        .limit(1)
-        .maybeSingle();
-      balanceData = fallbackBalance;
-    }
 
     if (balanceData?.amount) {
       const baseSnap = parseFloat(balanceData.amount) || 0;

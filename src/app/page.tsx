@@ -64,6 +64,7 @@ export default async function DashboardPage({ searchParams }: PageProps) {
     supabase
       .from("tracker_expense")
       .select("*")
+      .eq("user_id", user.id)
       .gte("date", startDateStr)
       .lt("date", endDateStr)
       .order("date", { ascending: false }),
@@ -71,22 +72,26 @@ export default async function DashboardPage({ searchParams }: PageProps) {
     supabase
       .from("categories")
       .select("*")
+      .eq("user_id", user.id)
       .order("name"),
     // Budgets for the selected cycle's month/year
     supabase
       .from("budgets")
       .select("*")
+      .eq("user_id", user.id)
       .eq("month", cycleMonth)
       .eq("year", cycleYear),
     // All balance snapshots
     supabase
       .from("account_balance")
       .select("*")
+      .eq("user_id", user.id)
       .order("date", { ascending: false }),
     // All transactions before the selected cycle
     supabase
       .from("tracker_expense")
       .select("*")
+      .eq("user_id", user.id)
       .lt("date", startDateStr)
       .order("date", { ascending: true })
   ])

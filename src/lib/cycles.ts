@@ -22,6 +22,7 @@ export async function getCycles(supabase: SupabaseClient, userId: string): Promi
   const { data: paychecks } = await supabase
     .from("tracker_expense")
     .select("*")
+    .eq("user_id", userId)
     .ilike("merchant", `%${keyword}%`)
     .order("date", { ascending: true })
 
@@ -62,6 +63,7 @@ export async function getCycles(supabase: SupabaseClient, userId: string): Promi
       const { data: anyExpenses } = await supabase
         .from("tracker_expense")
         .select("date")
+        .eq("user_id", userId)
         .order("date", { ascending: true })
         .limit(1)
 

@@ -19,11 +19,13 @@ export default async function Analytics() {
   const { data: expenses } = await supabase
     .from("tracker_expense")
     .select("id, amount, date, category_id")
+    .eq("user_id", user.id)
     .order("date", { ascending: false })
 
   const { data: categories } = await supabase
     .from("categories")
     .select("*")
+    .eq("user_id", user.id)
     .order("name")
 
   return (

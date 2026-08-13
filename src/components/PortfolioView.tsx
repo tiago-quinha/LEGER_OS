@@ -562,8 +562,8 @@ export function PortfolioView() {
           return {
             date: dateStr,
             valuation: parseFloat(currentVal.toFixed(2)),
-            invested: parseFloat((metrics.totalInvestedCapital || 0).toFixed(2)),
-            gainLoss: parseFloat((currentVal - (metrics.totalInvestedCapital || 0)).toFixed(2)),
+            invested: parseFloat((metrics.totalInvested || 0).toFixed(2)),
+            gainLoss: parseFloat((currentVal - (metrics.totalInvested || 0)).toFixed(2)),
           };
         });
       }

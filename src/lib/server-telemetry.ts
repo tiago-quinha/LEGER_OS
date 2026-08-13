@@ -239,6 +239,7 @@ export async function calculateServerTelemetry(supabase: SupabaseClient, userId:
     supabase
       .from("categories")
       .select("*")
+      .eq("user_id", userId)
       .order("name"),
     supabase
       .from("budgets")

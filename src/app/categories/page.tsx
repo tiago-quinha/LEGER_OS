@@ -23,10 +23,12 @@ export default async function CategoriesPage({ searchParams }: PageProps) {
     supabase
       .from("tracker_expense")
       .select("*")
+      .eq("user_id", user.id)
       .order("date", { ascending: false }),
     supabase
       .from("categories")
       .select("*")
+      .eq("user_id", user.id)
       .order("name")
   ])
 

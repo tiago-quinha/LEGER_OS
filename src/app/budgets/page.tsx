@@ -24,15 +24,18 @@ export default async function BudgetsPage({ searchParams }: PageProps) {
       supabase
         .from("categories")
         .select("*")
+        .eq("user_id", user.id)
         .order("name"),
       supabase
         .from("budgets")
         .select("*")
+        .eq("user_id", user.id)
         .eq("month", currentMonth + 1)
         .eq("year", currentYear),
       supabase
         .from("tracker_expense")
         .select("*")
+        .eq("user_id", user.id)
         .gte("date", new Date(currentYear, currentMonth, 1).toISOString())
         .lte("date", new Date(currentYear, currentMonth + 1, 0).toISOString())
     ])
@@ -61,6 +64,7 @@ export default async function BudgetsPage({ searchParams }: PageProps) {
   const query = supabase
     .from("tracker_expense")
     .select("*")
+    .eq("user_id", user.id)
     .gte("date", selectedCycle.startDate)
     .order("date", { ascending: false })
 
@@ -72,10 +76,12 @@ export default async function BudgetsPage({ searchParams }: PageProps) {
     supabase
       .from("categories")
       .select("*")
+      .eq("user_id", user.id)
       .order("name"),
     supabase
       .from("budgets")
       .select("*")
+      .eq("user_id", user.id)
       .eq("month", cycleMonth)
       .eq("year", cycleYear),
     query
