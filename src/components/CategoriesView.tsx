@@ -503,6 +503,7 @@ export function CategoriesView({ expenses, categories, cycles, currentCycleId }:
       <header className="flex items-center justify-between gap-6 border-b border-foreground/10 pb-6 md:pb-8 relative flex-wrap sm:flex-nowrap">
         <div className="space-y-3">
           <div className="flex items-center gap-3 text-[9px] md:text-[10px] font-mono tracking-[0.2em] uppercase text-muted-foreground">
+            <Tag className="h-3.5 w-3.5" />
             <span>Category Explorer {currentCycle ? `[${currentCycle.label.replace('Cycle: ', '')}]` : ''}</span>
           </div>
           <h1 className="text-4xl md:text-5xl font-bold tracking-tighter uppercase leading-none break-words">

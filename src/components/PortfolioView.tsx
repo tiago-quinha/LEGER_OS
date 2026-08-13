@@ -542,25 +542,35 @@ export function PortfolioView() {
   const chartData = useMemo(() => {
     const hasSnapshots = snapshots && snapshots.length > 0;
 
+    const formatChartDate = (dateStr: string) => {
+      if (!dateStr) return "";
+      const d = new Date(dateStr);
+      if (isNaN(d.getTime())) return dateStr;
+      return d.toLocaleDateString("en-GB", { day: "2-digit", month: "short" });
+    };
+
     if (selectedChartMode === "all") {
       if (hasSnapshots) {
         return snapshots.map((s) => ({
           date: s.snapshot_date,
+          dateLabel: formatChartDate(s.snapshot_date),
           valuation: s.total_net_worth || 0,
           invested: s.invested_capital || 0,
           gainLoss: s.total_gain_loss || 0,
         }));
       } else {
         const today = new Date();
+        const netWorth = metrics.totalNetWorth || 0;
         return Array.from({ length: 30 }).map((_, i) => {
           const d = new Date(today);
           d.setDate(d.getDate() - (29 - i));
           const dateStr = d.toISOString().split("T")[0];
           const progress = i / 29;
-          const startVal = (metrics.totalNetWorth || 1000) * 0.92;
-          const currentVal = startVal + ((metrics.totalNetWorth || 1000) - startVal) * progress;
+          const startVal = netWorth > 0 ? netWorth * 0.92 : 0;
+          const currentVal = netWorth > 0 ? startVal + (netWorth - startVal) * progress : 0;
           return {
             date: dateStr,
+            dateLabel: formatChartDate(dateStr),
             valuation: parseFloat(currentVal.toFixed(2)),
             invested: parseFloat((metrics.totalInvested || 0).toFixed(2)),
             gainLoss: parseFloat((currentVal - (metrics.totalInvested || 0)).toFixed(2)),
@@ -578,6 +588,7 @@ export function PortfolioView() {
           const val = typeBreakdown ? typeBreakdown.valuation : 0;
           return {
             date: s.snapshot_date,
+            dateLabel: formatChartDate(s.snapshot_date),
             valuation: val,
             invested: categoryInvested,
             gainLoss: val - categoryInvested,
@@ -594,6 +605,7 @@ export function PortfolioView() {
           const currentVal = startVal + (categoryValuation - startVal) * progress;
           return {
             date: dateStr,
+            dateLabel: formatChartDate(dateStr),
             valuation: parseFloat(currentVal.toFixed(2)),
             invested: parseFloat(categoryInvested.toFixed(2)),
             gainLoss: parseFloat((categoryValuation - categoryInvested).toFixed(2)),
@@ -625,6 +637,7 @@ export function PortfolioView() {
 
         return {
           date: dateStr,
+          dateLabel: formatChartDate(dateStr),
           valuation: parseFloat(historicalValuation.toFixed(2)),
           invested: parseFloat(costBasis.toFixed(2)),
           gainLoss: parseFloat((historicalValuation - costBasis).toFixed(2)),
@@ -706,6 +719,7 @@ export function PortfolioView() {
       <header className="flex flex-col md:flex-row md:items-center justify-between gap-6 md:gap-8 border-b border-foreground/10 pb-6 md:pb-8 relative">
         <div className="space-y-3">
           <div className="flex items-center gap-3 text-[9px] md:text-[10px] font-mono tracking-[0.2em] uppercase text-muted-foreground">
+            <TrendingUp className="h-3.5 w-3.5" />
             <span>PORTFOLIO MANAGEMENT</span>
           </div>
           <h1 className="text-4xl md:text-5xl font-bold tracking-tighter uppercase leading-none break-words">
@@ -714,94 +728,26 @@ export function PortfolioView() {
         </div>
       </header>
 
-      {/* 2. Executive Ledger Summary Cards with 24H Indicators */}
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-6">
-        <Tilt rotationFactor={6} className="p-6 md:p-8 space-y-3 bg-card/20 border border-border relative group overflow-hidden flex flex-col justify-between glow-card">
-          <span className="technical-label text-[9px] border-b border-dotted border-muted-foreground/30 w-fit z-10">TOTAL NET WORTH</span>
-          <div className="space-y-1 z-10">
-            <div className="text-3xl md:text-5xl font-mono font-bold tracking-tighter">
-              <PrivacyValue>{formatCurrency(metrics.totalNetWorth)}</PrivacyValue>
-            </div>
-            <div className="flex items-center gap-1.5 pt-1">
-              <span className={cn(
-                "px-1.5 py-0.5 border text-[9px] font-mono font-bold uppercase",
-                metrics.total24hChange >= 0
-                  ? "text-emerald-500 border-emerald-500/20 bg-emerald-500/5"
-                  : "text-rose-500 border-rose-500/20 bg-rose-500/5"
-              )}>
-                <PrivacyValue>
-                  {metrics.total24hChange >= 0 ? "+" : ""}{formatCurrency(metrics.total24hChange)} ({metrics.total24hChangePct >= 0 ? "+" : ""}{format2Decimals(metrics.total24hChangePct)}%)
-                </PrivacyValue>
-              </span>
-              <span className="text-[9px] text-muted-foreground/70 uppercase font-mono tracking-widest font-semibold">24H</span>
-            </div>
+      {/* 2. Portfolio & Individual Asset Valuation Graph FIRST (Exact Dashboard Layout) */}
+      <section className="space-y-4 border border-border ledger-border p-4 md:p-6 bg-card/20 relative" data-no-swipe="true">
+        {!isPro && (
+          <div className="absolute inset-0 z-30 bg-background/95 backdrop-blur-md flex flex-col items-center justify-center p-4 text-center">
+            <ProLockOverlay
+              title="PORTFOLIO TRAJECTORY & ANALYTICS"
+              description="Upgrade to LEGER_OS PRO to unlock multi-asset historical valuation charts and holdings analytics."
+            />
           </div>
-          <ClippedCircle circleClassName="bg-foreground/5" circleSize={400} />
-        </Tilt>
-
-        <Tilt rotationFactor={6} className="p-6 md:p-8 space-y-3 bg-card/20 border border-border relative group overflow-hidden flex flex-col justify-between glow-card">
-          <span className="technical-label text-[9px] border-b border-dotted border-muted-foreground/30 w-fit z-10">PORTFOLIO VALUATION</span>
-          <div className="space-y-1 z-10">
-            <div className="text-3xl md:text-5xl font-mono font-bold tracking-tighter">
-              <PrivacyValue>{formatCurrency(metrics.totalValuation)}</PrivacyValue>
-            </div>
-            <div className="flex items-center gap-1.5 pt-1">
-              <span className={cn(
-                "px-1.5 py-0.5 border text-[9px] font-mono font-bold uppercase",
-                metrics.total24hChange >= 0
-                  ? "text-emerald-500 border-emerald-500/20 bg-emerald-500/5"
-                  : "text-rose-500 border-rose-500/20 bg-rose-500/5"
-              )}>
-                <PrivacyValue>
-                  {metrics.total24hChange >= 0 ? "+" : ""}{formatCurrency(metrics.total24hChange)} ({metrics.total24hChangePct >= 0 ? "+" : ""}{format2Decimals(metrics.total24hChangePct)}%)
-                </PrivacyValue>
-              </span>
-              <span className="text-[9px] text-muted-foreground/70 uppercase font-mono tracking-widest font-semibold">24H</span>
-            </div>
-          </div>
-          <ClippedCircle circleClassName="bg-foreground/5" circleSize={400} />
-        </Tilt>
-
-        <Tilt rotationFactor={6} className="p-6 md:p-8 space-y-3 bg-card/20 border border-border relative group overflow-hidden flex flex-col justify-between glow-card">
-          <span className="technical-label text-[9px] border-b border-dotted border-muted-foreground/30 w-fit z-10">ALL-TIME RETURN</span>
-          <div className="space-y-1 z-10">
-            <div className="text-3xl md:text-5xl font-mono font-bold tracking-tighter flex items-baseline gap-2">
-              <PrivacyValue>
-                {metrics.totalPnL >= 0 ? "+" : ""}
-                {formatCurrency(metrics.totalPnL)}
-              </PrivacyValue>
-            </div>
-            <div className="flex items-center gap-1.5 pt-1">
-              <span className={cn(
-                "px-1.5 py-0.5 border text-[9px] font-mono font-bold uppercase",
-                metrics.total24hChange >= 0
-                  ? "text-emerald-500 border-emerald-500/20 bg-emerald-500/5"
-                  : "text-rose-500 border-rose-500/20 bg-rose-500/5"
-              )}>
-                <PrivacyValue>
-                  {metrics.total24hChange >= 0 ? "+" : ""}{formatCurrency(metrics.total24hChange)} ({metrics.total24hChangePct >= 0 ? "+" : ""}{format2Decimals(metrics.total24hChangePct)}%)
-                </PrivacyValue>
-              </span>
-              <span className="text-[9px] text-muted-foreground/70 uppercase font-mono tracking-widest font-semibold">24H</span>
-            </div>
-          </div>
-          <ClippedCircle circleClassName="bg-foreground/5" circleSize={400} />
-        </Tilt>
-      </div>
-
-      {/* 3. Portfolio & Individual Asset Valuation Graph */}
-      <Tilt rotationFactor={4} className="p-6 md:p-8 bg-card/20 border border-border relative group overflow-hidden glow-card space-y-6">
-        {!isPro && <ProLockOverlay />}
+        )}
 
         {/* Header & Mode Selector Bar */}
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 z-10 relative">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-border/40 pb-4">
           <div className="space-y-1">
             <span className="technical-label text-[9px] border-b border-dotted border-muted-foreground/30 w-fit">
-              PORTFOLIO TRAJECTORY & ASSET PERFORMANCE
+              TOTAL NET WORTH TRAJECTORY
             </span>
             <h2 className="text-xl font-bold uppercase tracking-tight font-mono">
               {selectedChartMode === "all"
-                ? "Total Net Worth & Portfolio Valuation"
+                ? "Total Net Worth"
                 : selectedChartMode === "stock_etf"
                 ? "Stocks & ETFs Valuation"
                 : selectedChartMode === "crypto"
@@ -870,49 +816,48 @@ export function PortfolioView() {
         </div>
 
         {/* Recharts Area Chart */}
-        <div className="h-[260px] md:h-[280px] w-full z-10 relative">
+        <div className="h-[280px] md:h-[320px] w-full mt-4 cursor-pointer">
           <ResponsiveContainer width="100%" height="100%">
             <RechartsAreaChart data={chartData} margin={{ top: 10, right: 10, left: -25, bottom: 0 }}>
               <defs>
                 <linearGradient id="portfolioValuationGrad" x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="5%" stopColor="#10b981" stopOpacity={0.35} />
-                  <stop offset="95%" stopColor="#10b981" stopOpacity={0.0} />
+                  <stop offset="5%" stopColor="var(--foreground)" stopOpacity={0.15} />
+                  <stop offset="95%" stopColor="var(--foreground)" stopOpacity={0.0} />
                 </linearGradient>
               </defs>
-              <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.05)" vertical={false} />
+              <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="var(--border)" />
               <XAxis
-                dataKey="date"
-                stroke="rgba(255,255,255,0.3)"
-                fontSize={9}
-                fontFamily="var(--font-geist-mono)"
-                tickLine={false}
+                dataKey="dateLabel"
                 axisLine={false}
+                tickLine={false}
+                interval={5}
+                style={{ fontSize: "9px", fontFamily: "var(--font-geist-mono)", fill: "#86868B" }}
+                dy={10}
               />
               <YAxis
-                stroke="rgba(255,255,255,0.3)"
-                fontSize={9}
-                fontFamily="var(--font-geist-mono)"
-                tickLine={false}
                 axisLine={false}
-                tickFormatter={(val) => `${currencySymbol}${val}`}
+                tickLine={false}
+                style={{ fontSize: "9px", fontFamily: "var(--font-geist-mono)", fill: "#86868B" }}
+                tickFormatter={(val) => `${currencySymbol}${Math.round(val)}`}
               />
               <RechartsTooltip content={<CustomPortfolioTooltip formatCurrency={formatCurrency} />} />
               <RechartsArea
                 type="monotone"
                 dataKey="valuation"
-                stroke="#10b981"
+                stroke="var(--foreground)"
                 strokeWidth={2}
-                fillOpacity={1}
                 fill="url(#portfolioValuationGrad)"
+                fillOpacity={1}
+                connectNulls={true}
               />
               {chartData.some((d) => d.invested > 0) && (
                 <ReferenceLine
                   y={chartData[chartData.length - 1]?.invested || 0}
-                  stroke="rgba(255,255,255,0.25)"
-                  strokeDasharray="4 4"
+                  stroke="var(--border)"
+                  strokeDasharray="3 3"
                   label={{
                     value: "Cost Basis",
-                    fill: "rgba(255,255,255,0.4)",
+                    fill: "#86868B",
                     fontSize: 8,
                     fontFamily: "var(--font-geist-mono)",
                     position: "right",
@@ -922,8 +867,91 @@ export function PortfolioView() {
             </RechartsAreaChart>
           </ResponsiveContainer>
         </div>
-        <ClippedCircle circleClassName="bg-foreground/5" circleSize={500} />
-      </Tilt>
+      </section>
+
+      {/* 3. Executive Ledger Summary Cards SECOND (1 Big, 2 Side by Side - Exact Dashboard Layout) */}
+      <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+        {/* Card 1: Total Net Worth (Big - col-span-2 on mobile, col-span-1 on desktop) */}
+        <div className="col-span-2 md:col-span-1">
+          <Tilt rotationFactor={6} className="p-6 md:p-8 space-y-3 bg-card/20 border border-border relative group overflow-hidden flex flex-col justify-between glow-card h-full">
+            <span className="technical-label text-[9px] border-b border-dotted border-muted-foreground/30 w-fit z-10">TOTAL NET WORTH</span>
+            <div className="space-y-1 z-10">
+              <div className="text-3xl md:text-5xl font-mono font-bold tracking-tighter">
+                <PrivacyValue>{formatCurrency(metrics.totalNetWorth)}</PrivacyValue>
+              </div>
+              <div className="flex items-center gap-1.5 pt-1">
+                <span className={cn(
+                  "px-1.5 py-0.5 border text-[9px] font-mono font-bold uppercase",
+                  metrics.total24hChange >= 0
+                    ? "text-emerald-500 border-emerald-500/20 bg-emerald-500/5"
+                    : "text-rose-500 border-rose-500/20 bg-rose-500/5"
+                )}>
+                  <PrivacyValue>
+                    {metrics.total24hChange >= 0 ? "+" : ""}{formatCurrency(metrics.total24hChange)} ({metrics.total24hChangePct >= 0 ? "+" : ""}{format2Decimals(metrics.total24hChangePct)}%)
+                  </PrivacyValue>
+                </span>
+                <span className="text-[9px] text-muted-foreground/70 uppercase font-mono tracking-widest font-semibold">24H</span>
+              </div>
+            </div>
+            <ClippedCircle circleClassName="bg-foreground/5" circleSize={400} />
+          </Tilt>
+        </div>
+
+        {/* Card 2: Portfolio Valuation (col-span-1) */}
+        <div className="col-span-1">
+          <Tilt rotationFactor={6} className="p-6 md:p-8 space-y-3 bg-card/20 border border-border relative group overflow-hidden flex flex-col justify-between glow-card h-full">
+            <span className="technical-label text-[9px] border-b border-dotted border-muted-foreground/30 w-fit z-10">PORTFOLIO VALUATION</span>
+            <div className="space-y-1 z-10">
+              <div className="text-3xl md:text-5xl font-mono font-bold tracking-tighter">
+                <PrivacyValue>{formatCurrency(metrics.totalValuation)}</PrivacyValue>
+              </div>
+              <div className="flex items-center gap-1.5 pt-1">
+                <span className={cn(
+                  "px-1.5 py-0.5 border text-[9px] font-mono font-bold uppercase",
+                  metrics.total24hChange >= 0
+                    ? "text-emerald-500 border-emerald-500/20 bg-emerald-500/5"
+                    : "text-rose-500 border-rose-500/20 bg-rose-500/5"
+                )}>
+                  <PrivacyValue>
+                    {metrics.total24hChange >= 0 ? "+" : ""}{formatCurrency(metrics.total24hChange)} ({metrics.total24hChangePct >= 0 ? "+" : ""}{format2Decimals(metrics.total24hChangePct)}%)
+                  </PrivacyValue>
+                </span>
+                <span className="text-[9px] text-muted-foreground/70 uppercase font-mono tracking-widest font-semibold">24H</span>
+              </div>
+            </div>
+            <ClippedCircle circleClassName="bg-foreground/5" circleSize={400} />
+          </Tilt>
+        </div>
+
+        {/* Card 3: All-Time Return (col-span-1) */}
+        <div className="col-span-1">
+          <Tilt rotationFactor={6} className="p-6 md:p-8 space-y-3 bg-card/20 border border-border relative group overflow-hidden flex flex-col justify-between glow-card h-full">
+            <span className="technical-label text-[9px] border-b border-dotted border-muted-foreground/30 w-fit z-10">ALL-TIME RETURN</span>
+            <div className="space-y-1 z-10">
+              <div className="text-3xl md:text-5xl font-mono font-bold tracking-tighter flex items-baseline gap-2">
+                <PrivacyValue>
+                  {metrics.totalPnL >= 0 ? "+" : ""}
+                  {formatCurrency(metrics.totalPnL)}
+                </PrivacyValue>
+              </div>
+              <div className="flex items-center gap-1.5 pt-1">
+                <span className={cn(
+                  "px-1.5 py-0.5 border text-[9px] font-mono font-bold uppercase",
+                  metrics.total24hChange >= 0
+                    ? "text-emerald-500 border-emerald-500/20 bg-emerald-500/5"
+                    : "text-rose-500 border-rose-500/20 bg-rose-500/5"
+                )}>
+                  <PrivacyValue>
+                    {metrics.total24hChange >= 0 ? "+" : ""}{formatCurrency(metrics.total24hChange)} ({metrics.total24hChangePct >= 0 ? "+" : ""}{format2Decimals(metrics.total24hChangePct)}%)
+                  </PrivacyValue>
+                </span>
+                <span className="text-[9px] text-muted-foreground/70 uppercase font-mono tracking-widest font-semibold">24H</span>
+              </div>
+            </div>
+            <ClippedCircle circleClassName="bg-foreground/5" circleSize={400} />
+          </Tilt>
+        </div>
+      </div>
 
       {/* 3. Search + Dynamic Filter Tabs (Exact match to /memory page) */}
       <div className="space-y-3">
