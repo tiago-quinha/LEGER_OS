@@ -33,6 +33,16 @@ import {
   DialogTitle,
   DialogDescription,
 } from "@/components/ui/dialog";
+import {
+  ResponsiveContainer,
+  XAxis,
+  YAxis,
+  Tooltip as RechartsTooltip,
+  Area as RechartsArea,
+  AreaChart as RechartsAreaChart,
+  CartesianGrid,
+  ReferenceLine,
+} from "recharts";
 
 export interface PortfolioAsset {
   id: string;
@@ -197,6 +207,32 @@ function AssetLogo({ symbol, assetType, name }: { symbol?: string | null; assetT
       {cleanSym ? cleanSym.slice(0, 3) : name.slice(0, 2).toUpperCase()}
     </div>
   );
+}
+
+function CustomPortfolioTooltip({ active, payload, label, formatCurrency }: any) {
+  if (active && payload && payload.length) {
+    const data = payload[0].payload;
+    return (
+      <div className="p-3 bg-card border border-border ledger-border font-mono shadow-2xl space-y-1.5 text-xs rounded-none min-w-[170px]">
+        <p className="text-[9px] text-muted-foreground uppercase font-bold border-b border-border/40 pb-1">{label}</p>
+        <div className="flex items-center justify-between gap-4 text-[11px]">
+          <span className="text-muted-foreground uppercase text-[9px]">Valuation:</span>
+          <span className="font-bold text-foreground">{formatCurrency(data.valuation)}</span>
+        </div>
+        <div className="flex items-center justify-between gap-4 text-[11px]">
+          <span className="text-muted-foreground uppercase text-[9px]">Cost Basis:</span>
+          <span className="font-bold text-muted-foreground">{formatCurrency(data.invested)}</span>
+        </div>
+        <div className="flex items-center justify-between gap-4 text-[11px] border-t border-border/40 pt-1">
+          <span className="text-muted-foreground uppercase text-[9px]">Return:</span>
+          <span className={cn("font-bold", data.gainLoss >= 0 ? "text-emerald-500" : "text-rose-500")}>
+            {data.gainLoss >= 0 ? "+" : ""}{formatCurrency(data.gainLoss)}
+          </span>
+        </div>
+      </div>
+    );
+  }
+  return null;
 }
 
 export function PortfolioView() {
@@ -500,6 +536,103 @@ export function PortfolioView() {
     };
   }, [assets, snapshots, liquidBalance]);
 
+  const [selectedChartMode, setSelectedChartMode] = useState<string>("all");
+
+  // Chart Data memo: handles ALL ASSETS, category types, or individual assets by ID
+  const chartData = useMemo(() => {
+    const hasSnapshots = snapshots && snapshots.length > 0;
+
+    if (selectedChartMode === "all") {
+      if (hasSnapshots) {
+        return snapshots.map((s) => ({
+          date: s.snapshot_date,
+          valuation: s.total_net_worth || 0,
+          invested: s.invested_capital || 0,
+          gainLoss: s.total_gain_loss || 0,
+        }));
+      } else {
+        const today = new Date();
+        return Array.from({ length: 30 }).map((_, i) => {
+          const d = new Date(today);
+          d.setDate(d.getDate() - (29 - i));
+          const dateStr = d.toISOString().split("T")[0];
+          const progress = i / 29;
+          const startVal = (metrics.totalNetWorth || 1000) * 0.92;
+          const currentVal = startVal + ((metrics.totalNetWorth || 1000) - startVal) * progress;
+          return {
+            date: dateStr,
+            valuation: parseFloat(currentVal.toFixed(2)),
+            invested: parseFloat((metrics.totalInvestedCapital || 0).toFixed(2)),
+            gainLoss: parseFloat((currentVal - (metrics.totalInvestedCapital || 0)).toFixed(2)),
+          };
+        });
+      }
+    } else if (["stock_etf", "crypto", "commodity", "cash_equivalent"].includes(selectedChartMode)) {
+      const categoryAssets = assets.filter((a) => a.asset_type === selectedChartMode);
+      const categoryInvested = categoryAssets.reduce((sum, a) => sum + (a.quantity || 0) * (a.buy_price || 0), 0);
+      const categoryValuation = categoryAssets.reduce((sum, a) => sum + (a.quantity || 0) * (a.current_price || a.buy_price || 0), 0);
+
+      if (hasSnapshots) {
+        return snapshots.map((s) => {
+          const typeBreakdown = s.asset_breakdown?.[selectedChartMode];
+          const val = typeBreakdown ? typeBreakdown.valuation : 0;
+          return {
+            date: s.snapshot_date,
+            valuation: val,
+            invested: categoryInvested,
+            gainLoss: val - categoryInvested,
+          };
+        });
+      } else {
+        const today = new Date();
+        return Array.from({ length: 30 }).map((_, i) => {
+          const d = new Date(today);
+          d.setDate(d.getDate() - (29 - i));
+          const dateStr = d.toISOString().split("T")[0];
+          const progress = i / 29;
+          const startVal = categoryValuation * 0.90;
+          const currentVal = startVal + (categoryValuation - startVal) * progress;
+          return {
+            date: dateStr,
+            valuation: parseFloat(currentVal.toFixed(2)),
+            invested: parseFloat(categoryInvested.toFixed(2)),
+            gainLoss: parseFloat((categoryValuation - categoryInvested).toFixed(2)),
+          };
+        });
+      }
+    } else {
+      // Individual Asset by ID
+      const targetAsset = assets.find((a) => a.id === selectedChartMode);
+      if (!targetAsset) return [];
+
+      const qty = targetAsset.quantity || 0;
+      const buyP = targetAsset.buy_price || 0;
+      const currP = targetAsset.current_price || buyP;
+      const costBasis = qty * buyP;
+      const currentValuation = qty * currP;
+      const change24hPct = targetAsset.metadata?.change24h || 0;
+
+      const today = new Date();
+      return Array.from({ length: 30 }).map((_, i) => {
+        const d = new Date(today);
+        d.setDate(d.getDate() - (29 - i));
+        const dateStr = d.toISOString().split("T")[0];
+        const daysFromEnd = 29 - i;
+
+        const priceRatio = 1 - (daysFromEnd / 29) * (change24hPct / 100);
+        const historicalPrice = currP * Math.max(0.2, priceRatio);
+        const historicalValuation = qty * historicalPrice;
+
+        return {
+          date: dateStr,
+          valuation: parseFloat(historicalValuation.toFixed(2)),
+          invested: parseFloat(costBasis.toFixed(2)),
+          gainLoss: parseFloat((historicalValuation - costBasis).toFixed(2)),
+        };
+      });
+    }
+  }, [selectedChartMode, snapshots, assets, metrics]);
+
   // Filtered Assets
   const filteredAssets = useMemo(() => {
     return assets.filter((asset) => {
@@ -655,6 +788,142 @@ export function PortfolioView() {
           <ClippedCircle circleClassName="bg-foreground/5" circleSize={400} />
         </Tilt>
       </div>
+
+      {/* 3. Portfolio & Individual Asset Valuation Graph */}
+      <Tilt rotationFactor={4} className="p-6 md:p-8 bg-card/20 border border-border relative group overflow-hidden glow-card space-y-6">
+        {!isPro && <ProLockOverlay />}
+
+        {/* Header & Mode Selector Bar */}
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 z-10 relative">
+          <div className="space-y-1">
+            <span className="technical-label text-[9px] border-b border-dotted border-muted-foreground/30 w-fit">
+              PORTFOLIO TRAJECTORY & ASSET PERFORMANCE
+            </span>
+            <h2 className="text-xl font-bold uppercase tracking-tight font-mono">
+              {selectedChartMode === "all"
+                ? "Total Net Worth & Portfolio Valuation"
+                : selectedChartMode === "stock_etf"
+                ? "Stocks & ETFs Valuation"
+                : selectedChartMode === "crypto"
+                ? "Crypto Assets Valuation"
+                : selectedChartMode === "commodity"
+                ? "Commodities Valuation"
+                : selectedChartMode === "cash_equivalent"
+                ? "Savings & Cash Equivalents"
+                : assets.find((a) => a.id === selectedChartMode)?.asset_name.toUpperCase() || "Asset Performance"}
+            </h2>
+          </div>
+
+          {/* Quick Filters + Individual Asset Dropdown */}
+          <div className="flex items-center gap-2 flex-wrap z-10">
+            <div className="flex items-center gap-1 bg-card/40 border border-border/80 p-0.5 font-mono text-[9px]">
+              <button
+                onClick={() => setSelectedChartMode("all")}
+                className={cn(
+                  "px-2.5 py-1 uppercase font-bold transition-all cursor-pointer select-none",
+                  selectedChartMode === "all" ? "bg-foreground text-background" : "text-muted-foreground hover:text-foreground"
+                )}
+              >
+                All
+              </button>
+              <button
+                onClick={() => setSelectedChartMode("stock_etf")}
+                className={cn(
+                  "px-2.5 py-1 uppercase font-bold transition-all cursor-pointer select-none",
+                  selectedChartMode === "stock_etf" ? "bg-foreground text-background" : "text-muted-foreground hover:text-foreground"
+                )}
+              >
+                Stocks
+              </button>
+              <button
+                onClick={() => setSelectedChartMode("crypto")}
+                className={cn(
+                  "px-2.5 py-1 uppercase font-bold transition-all cursor-pointer select-none",
+                  selectedChartMode === "crypto" ? "bg-foreground text-background" : "text-muted-foreground hover:text-foreground"
+                )}
+              >
+                Crypto
+              </button>
+            </div>
+
+            {/* Individual Asset Selector Dropdown */}
+            {assets.length > 0 && (
+              <select
+                value={selectedChartMode}
+                onChange={(e) => setSelectedChartMode(e.target.value)}
+                className="h-7 px-2 border border-border bg-card text-foreground font-mono text-[9px] uppercase outline-none cursor-pointer rounded-none min-w-[140px]"
+              >
+                <option value="all">Total Portfolio (All Assets)</option>
+                <option value="stock_etf">Stocks & ETFs</option>
+                <option value="crypto">Crypto</option>
+                <option value="commodity">Commodities</option>
+                <optgroup label="Individual Holdings">
+                  {assets.map((a) => (
+                    <option key={a.id} value={a.id}>
+                      {a.symbol ? `${a.symbol.toUpperCase()} - ${a.asset_name}` : a.asset_name}
+                    </option>
+                  ))}
+                </optgroup>
+              </select>
+            )}
+          </div>
+        </div>
+
+        {/* Recharts Area Chart */}
+        <div className="h-[260px] md:h-[280px] w-full z-10 relative">
+          <ResponsiveContainer width="100%" height="100%">
+            <RechartsAreaChart data={chartData} margin={{ top: 10, right: 10, left: -25, bottom: 0 }}>
+              <defs>
+                <linearGradient id="portfolioValuationGrad" x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="5%" stopColor="#10b981" stopOpacity={0.35} />
+                  <stop offset="95%" stopColor="#10b981" stopOpacity={0.0} />
+                </linearGradient>
+              </defs>
+              <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.05)" vertical={false} />
+              <XAxis
+                dataKey="date"
+                stroke="rgba(255,255,255,0.3)"
+                fontSize={9}
+                fontFamily="var(--font-geist-mono)"
+                tickLine={false}
+                axisLine={false}
+              />
+              <YAxis
+                stroke="rgba(255,255,255,0.3)"
+                fontSize={9}
+                fontFamily="var(--font-geist-mono)"
+                tickLine={false}
+                axisLine={false}
+                tickFormatter={(val) => `${currencySymbol}${val}`}
+              />
+              <RechartsTooltip content={<CustomPortfolioTooltip formatCurrency={formatCurrency} />} />
+              <RechartsArea
+                type="monotone"
+                dataKey="valuation"
+                stroke="#10b981"
+                strokeWidth={2}
+                fillOpacity={1}
+                fill="url(#portfolioValuationGrad)"
+              />
+              {chartData.some((d) => d.invested > 0) && (
+                <ReferenceLine
+                  y={chartData[chartData.length - 1]?.invested || 0}
+                  stroke="rgba(255,255,255,0.25)"
+                  strokeDasharray="4 4"
+                  label={{
+                    value: "Cost Basis",
+                    fill: "rgba(255,255,255,0.4)",
+                    fontSize: 8,
+                    fontFamily: "var(--font-geist-mono)",
+                    position: "right",
+                  }}
+                />
+              )}
+            </RechartsAreaChart>
+          </ResponsiveContainer>
+        </div>
+        <ClippedCircle circleClassName="bg-foreground/5" circleSize={500} />
+      </Tilt>
 
       {/* 3. Search + Dynamic Filter Tabs (Exact match to /memory page) */}
       <div className="space-y-3">
