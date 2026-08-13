@@ -22,6 +22,7 @@ export default async function ExpensesPage({ searchParams }: PageProps) {
     supabase
       .from("categories")
       .select("*")
+      .eq("user_id", user.id)
       .order("name"),
     supabase
       .from("merchant_rules")

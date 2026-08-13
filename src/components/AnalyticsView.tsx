@@ -2,6 +2,8 @@
 
 import { useMemo } from "react"
 import { motion } from "framer-motion"
+import { useRouter } from "next/navigation"
+import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
 import { 
   AreaChart, 
@@ -43,7 +45,8 @@ interface AnalyticsViewProps {
 }
 
 export function AnalyticsView({ expenses, categories, paychecks: initialPaychecks }: AnalyticsViewProps) {
-  const { currencySymbol } = useSystem()
+  const router = useRouter()
+  const { currencySymbol, setSettingsOpen } = useSystem()
 
   // 1. Sort paychecks chronologically (OLDEST FIRST)
   const sortedPaychecks = useMemo(() => {
@@ -172,7 +175,74 @@ export function AnalyticsView({ expenses, categories, paychecks: initialPaycheck
 
 
   if (!analyticsData.hasData || !analyticsData.currentCycle) {
-    return <div className="p-8 text-center text-muted-foreground font-mono uppercase text-xs">Insufficient data for node synchronization.</div>
+    return (
+      <motion.div
+        initial={{ opacity: 0, y: 4 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.45, ease: [0.16, 1, 0.3, 1] }}
+        className="mx-auto max-w-[1500px] p-4 md:p-8 space-y-6 md:space-y-8 pb-4 w-full font-mono overflow-hidden max-h-[calc(100vh-5rem)] flex flex-col justify-start"
+      >
+        {/* Header */}
+        <header className="space-y-3 border-b border-foreground/10 pb-4 md:pb-5 relative">
+          <div className="space-y-2">
+            <div className="flex items-center gap-3 text-[9px] md:text-[10px] font-mono tracking-[0.2em] uppercase text-muted-foreground">
+              <BarChart3 className="h-3.5 w-3.5" />
+              <span>Financial Analytics</span>
+            </div>
+            <h1 className="text-4xl md:text-5xl font-bold tracking-tighter uppercase leading-none break-words">
+              Analytics
+            </h1>
+          </div>
+        </header>
+
+        {/* Executive Empty State Banner - Perfectly Height Calibrated */}
+        <Tilt rotationFactor={4} className="p-6 md:p-8 border border-border/80 bg-card/20 relative overflow-hidden text-center flex flex-col items-center justify-center min-h-[300px] md:min-h-[330px] space-y-4 md:space-y-5 glow-card">
+          <div className="w-12 h-12 rounded-xl bg-secondary/40 border border-border/80 flex items-center justify-center text-muted-foreground shrink-0 shadow-md">
+            <BarChart3 className="h-6 w-6 stroke-[1.5]" />
+          </div>
+
+          <div className="space-y-1.5 max-w-md mx-auto">
+            <h2 className="text-lg md:text-xl font-bold uppercase tracking-tight font-mono text-foreground">
+              Awaiting Financial Data Stream
+            </h2>
+            <p className="text-[11px] md:text-xs text-muted-foreground font-mono leading-relaxed uppercase">
+              Analytics require at least 1 recorded paycheck cycle or transaction history to model spending velocity, cash flow trajectory, and multi-cycle performance trends.
+            </p>
+          </div>
+
+          {/* Quick Guidance Steps */}
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5 w-full max-w-2xl text-left font-mono pt-1">
+            <div className="p-3 bg-card/40 border border-border/80 space-y-0.5">
+              <span className="technical-label text-[8px] text-muted-foreground">STEP 01</span>
+              <p className="text-[10px] md:text-[11px] font-bold text-foreground uppercase">Add Transactions</p>
+              <p className="text-[8px] md:text-[9px] text-muted-foreground uppercase leading-normal">Import bank extract or add ledger entries</p>
+            </div>
+            <div className="p-3 bg-card/40 border border-border/80 space-y-0.5">
+              <span className="technical-label text-[8px] text-muted-foreground">STEP 02</span>
+              <p className="text-[11px] font-bold text-foreground uppercase">Define Paychecks</p>
+              <p className="text-[8px] md:text-[9px] text-muted-foreground uppercase leading-normal">Set paycheck keyword to trigger cycles</p>
+            </div>
+            <div className="p-3 bg-card/40 border border-border/80 space-y-0.5">
+              <span className="technical-label text-[8px] text-muted-foreground">STEP 03</span>
+              <p className="text-[11px] font-bold text-foreground uppercase">Auto Models</p>
+              <p className="text-[8px] md:text-[9px] text-muted-foreground uppercase leading-normal">Interactive trajectory models build automatically</p>
+            </div>
+          </div>
+
+          {/* Action CTA */}
+          <div className="flex items-center justify-center pt-2 font-mono text-xs z-10">
+            <Button
+              onClick={() => router.push("/expenses?tab=ingest")}
+              className="rounded-none h-10 px-6 font-bold uppercase tracking-wider bg-foreground text-background hover:bg-foreground/80 cursor-pointer text-xs"
+            >
+              Import Statement / Add Transactions
+            </Button>
+          </div>
+
+          <ClippedCircle circleClassName="bg-foreground/5" circleSize={400} />
+        </Tilt>
+      </motion.div>
+    );
   }
 
   const { 

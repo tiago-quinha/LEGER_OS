@@ -33,17 +33,19 @@ export async function POST(request: Request) {
     let profileData: any = null;
     let allUserCategories: any[] = [];
     let allUserBudgets: any[] = [];
+    let userPortfolioAssets: any[] = [];
 
     if (userId) {
       try {
-        const [serverDataRes, profileRes, catsRes, budgetsRes] = await Promise.all([
+        const [serverDataRes, profileRes, catsRes, budgetsRes, portfolioRes] = await Promise.all([
           calculateServerTelemetry(supabaseAdmin, userId, clientDate).catch(telErr => {
             console.error("Failed to calculate server-side telemetry:", telErr);
             return null;
           }),
           supabaseAdmin.from("profiles").select("*").eq("id", userId).single(),
           supabaseAdmin.from("categories").select("*").eq("user_id", userId),
-          supabaseAdmin.from("budgets").select("*").eq("user_id", userId)
+          supabaseAdmin.from("budgets").select("*").eq("user_id", userId),
+          supabaseAdmin.from("portfolio_assets").select("*").eq("user_id", userId)
         ]);
 
         if (telemetry && Object.keys(telemetry).length > 0) {
@@ -60,6 +62,9 @@ export async function POST(request: Request) {
         }
         if (budgetsRes.data) {
           allUserBudgets = budgetsRes.data;
+        }
+        if (portfolioRes.data) {
+          userPortfolioAssets = portfolioRes.data;
         }
       } catch (err) {
         console.error("Failed to load server-side context:", err);
@@ -183,6 +188,8 @@ export async function POST(request: Request) {
       income: ["amount", "date", "source", "user_id"],
       account_balance: ["balance", "recorded_at", "date", "user_id"],
       merchant_rules: ["keyword", "category_id", "user_id"],
+      portfolio_assets: ["id", "asset_name", "symbol", "asset_type", "quantity", "buy_price", "current_price", "currency", "institution", "notes", "user_id"],
+      portfolio_snapshots: ["id", "snapshot_date", "total_net_worth", "liquid_cash", "invested_capital", "total_gain_loss", "asset_breakdown", "user_id"],
       profiles: ["id", "ai_journal", "subscription_tier", "ai_yap_level", "projection_overrides"]
     };
 

@@ -416,6 +416,23 @@ function getPagePillVariations(pathname: string, telemetry: any, profile: any, a
         }
       ]
 
+    case "/portfolio":
+      // PORTFOLIO ONLY: Net Worth, Asset Allocations & Position Telemetry
+      return [
+        {
+          banner: `Total Net Worth tracked across bank cash & portfolio holdings...`,
+          query: `Analyze my total net worth breakdown across my bank account cash and investment portfolio holdings.`
+        },
+        {
+          banner: `Multi-asset class holdings tracked across Stocks, ETFs, Crypto & Cash...`,
+          query: `Summarize my asset allocation strategy across stocks, ETFs, crypto, and cash positions.`
+        },
+        {
+          banner: `Market price sync active for portfolio asset positions...`,
+          query: `Check my investment portfolio return (unrealized PnL) and list my top performing asset.`
+        }
+      ]
+
     default:
       return [
         {
@@ -1171,8 +1188,8 @@ export function LegerAIAssistant() {
           whileDrag={{ scale: 1.04, cursor: "grabbing" }}
           whileHover={{ scale: 1.02 }}
           className={cn(
-            "fixed pointer-events-auto left-4 right-4 sm:left-6 sm:right-6 md:left-auto md:right-6 z-[99998] flex justify-end cursor-grab active:cursor-grabbing transition-[bottom] duration-200",
-            isBulkActive 
+            "fixed pointer-events-auto left-4 right-4 sm:left-6 sm:right-6 md:left-auto md:right-6 z-[99998] flex justify-end cursor-grab active:cursor-grabbing",
+            isBulkActive || pathname === "/expenses" || pathname === "/portfolio"
               ? "bottom-36 sm:bottom-24" 
               : hasCycleBar || pathname === "/" || pathname === "/budgets" || pathname === "/categories"
               ? "bottom-28" 

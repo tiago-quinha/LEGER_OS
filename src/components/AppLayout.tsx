@@ -6,6 +6,7 @@ import { Navigation } from "@/components/Navigation"
 import { Toaster } from "@/components/ui/sonner"
 import { FloatingTooltipProvider } from "@/components/unlumen-ui/floating-tooltip"
 import { LegerAIAssistant } from "@/components/LegerAIAssistant"
+import { IngestSpotlightOverlay } from "@/components/IngestSpotlightOverlay"
 
 export function AppLayout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname()
@@ -31,6 +32,7 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
         </main>
         <Toaster />
         <LegerAIAssistant />
+        <IngestSpotlightOverlay />
       </div>
     </FloatingTooltipProvider>
   )

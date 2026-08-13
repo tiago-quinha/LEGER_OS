@@ -3,7 +3,7 @@
 import React, { useState, useEffect, useRef } from "react"
 import Link from "next/link"
 import { usePathname, useRouter, useSearchParams } from "next/navigation"
-import { Home, List, PieChart, BarChart3, Landmark, Shield, ShieldOff, Cpu, Activity, Database, LogOut, User, Sun, Moon, Sliders, Menu, X, ChevronRight, Tag, Brain } from "lucide-react"
+import { Home, List, PieChart, BarChart3, Briefcase, Landmark, Shield, ShieldOff, Cpu, Activity, Database, LogOut, User, Sun, Moon, Sliders, Menu, X, ChevronRight, Tag, Brain } from "lucide-react"
 import { useTheme } from "next-themes"
 import { cn } from "@/lib/utils"
 import { useSystem } from "@/lib/SystemContext"
@@ -17,19 +17,21 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } f
 const navigation = [
   { name: "Dashboard", href: "/", icon: Home, desc: "Global Overview" },
   { name: "Ledger", href: "/expenses", icon: List, desc: "Transaction history" },
+  { name: "Portfolio", href: "/portfolio", icon: Briefcase, desc: "Investments & Net Worth" },
   { name: "Categories", href: "/categories", icon: Tag, desc: "Category analysis" },
   { name: "Budgets", href: "/budgets", icon: PieChart, desc: "Budget planning" },
   { name: "Analytics", href: "/analytics", icon: BarChart3, desc: "Cash flow trends" },
   { name: "Memory", href: "/memory", icon: Brain, desc: "AI Context Memory" },
 ]
 
-// Mobile bottom bar shows 5 core routes
+// Mobile bottom bar routes
 const mobileNavigation = [
   { name: "Dashboard", href: "/", icon: Home },
   { name: "Ledger", href: "/expenses", icon: List },
-  { name: "Memory", href: "/memory", icon: Brain },
+  { name: "Portfolio", href: "/portfolio", icon: Briefcase },
   { name: "Categories", href: "/categories", icon: Tag },
   { name: "Analytics", href: "/analytics", icon: BarChart3 },
+  { name: "Memory", href: "/memory", icon: Brain },
 ]
 
 export function Navigation() {
@@ -152,6 +154,7 @@ export function Navigation() {
                 <div key={item.name}>
                   <button
                     onClick={() => navigateTo(targetHref)}
+                    data-tour={item.name === "Ledger" ? "nav-ledger" : undefined}
                     className={cn(
                       "group relative flex items-center justify-between w-full px-4 py-3 transition-all duration-300 border border-transparent",
                       isActive ? "bg-secondary/70 border-border/50 text-foreground" : "text-muted-foreground hover:bg-muted/30 hover:text-foreground"
@@ -164,7 +167,7 @@ export function Navigation() {
                       />
                     )}
                     <div className="flex items-center gap-3">
-                      <item.icon className={cn("h-4 w-4 transition-colors shrink-0", isActive ? "text-foreground" : "text-muted-foreground group-hover:text-foreground")} />
+                      <item.icon data-tour={item.name === "Ledger" ? "nav-ledger-icon" : undefined} className={cn("h-4 w-4 transition-colors shrink-0", isActive ? "text-foreground" : "text-muted-foreground group-hover:text-foreground")} />
                       <span className="text-[11px] font-bold uppercase tracking-[0.15em]">
                         {item.name}
                       </span>
@@ -241,6 +244,7 @@ export function Navigation() {
                 <button
                   key={item.name}
                   onClick={() => navigateTo(targetHref)}
+                  data-tour={item.name === "Ledger" ? "nav-ledger-mobile" : undefined}
                   className={cn(
                     "flex flex-col items-center justify-center flex-1 w-0 h-full transition-colors relative min-w-0 px-2 py-1 select-none",
                     isActive ? "text-foreground font-bold" : "text-muted-foreground hover:text-foreground"

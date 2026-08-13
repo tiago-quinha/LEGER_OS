@@ -151,6 +151,76 @@ CREATE INDEX IF NOT EXISTS idx_tracker_expense_merchant_trgm ON tracker_expense 
 -- Expand source column to TEXT to prevent VARCHAR(20) truncation errors
 ALTER TABLE tracker_expense ALTER COLUMN source TYPE TEXT;
 
+-- Portfolio assets table
+CREATE TABLE IF NOT EXISTS public.portfolio_assets (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    user_id UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
+    asset_name TEXT NOT NULL,
+    symbol TEXT,
+    asset_type TEXT NOT NULL CHECK (asset_type IN ('stock_etf', 'crypto', 'cash_equivalent', 'commodity', 'other')),
+    quantity NUMERIC(18, 8) NOT NULL DEFAULT 0,
+    buy_price NUMERIC(14, 2) NOT NULL DEFAULT 0,
+    current_price NUMERIC(14, 2) NOT NULL DEFAULT 0,
+    currency TEXT NOT NULL DEFAULT 'EUR',
+    institution TEXT DEFAULT '',
+    notes TEXT DEFAULT '',
+    metadata JSONB DEFAULT '{}'::jsonb,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
+
+-- Portfolio historical valuation snapshots table
+CREATE TABLE IF NOT EXISTS public.portfolio_snapshots (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    user_id UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
+    snapshot_date DATE NOT NULL DEFAULT CURRENT_DATE,
+    total_net_worth NUMERIC(14, 2) NOT NULL,
+    liquid_cash NUMERIC(14, 2) NOT NULL,
+    invested_capital NUMERIC(14, 2) NOT NULL,
+    total_gain_loss NUMERIC(14, 2) NOT NULL,
+    asset_breakdown JSONB NOT NULL DEFAULT '{}'::jsonb,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+    UNIQUE(user_id, snapshot_date)
+);
+
+-- Enable RLS on portfolio tables
+ALTER TABLE public.portfolio_assets ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.portfolio_snapshots ENABLE ROW LEVEL SECURITY;
+
+-- Create policies for portfolio_assets if they do not exist
+DO $$
+BEGIN
+    IF NOT EXISTS (SELECT 1 FROM pg_policies WHERE tablename = 'portfolio_assets' AND policyname = 'Users can view their own portfolio assets') THEN
+        CREATE POLICY "Users can view their own portfolio assets" ON public.portfolio_assets FOR SELECT USING (auth.uid() = user_id);
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM pg_policies WHERE tablename = 'portfolio_assets' AND policyname = 'Users can insert their own portfolio assets') THEN
+        CREATE POLICY "Users can insert their own portfolio assets" ON public.portfolio_assets FOR INSERT WITH CHECK (auth.uid() = user_id);
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM pg_policies WHERE tablename = 'portfolio_assets' AND policyname = 'Users can update their own portfolio assets') THEN
+        CREATE POLICY "Users can update their own portfolio assets" ON public.portfolio_assets FOR UPDATE USING (auth.uid() = user_id);
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM pg_policies WHERE tablename = 'portfolio_assets' AND policyname = 'Users can delete their own portfolio assets') THEN
+        CREATE POLICY "Users can delete their own portfolio assets" ON public.portfolio_assets FOR DELETE USING (auth.uid() = user_id);
+    END IF;
+
+    IF NOT EXISTS (SELECT 1 FROM pg_policies WHERE tablename = 'portfolio_snapshots' AND policyname = 'Users can view their own portfolio snapshots') THEN
+        CREATE POLICY "Users can view their own portfolio snapshots" ON public.portfolio_snapshots FOR SELECT USING (auth.uid() = user_id);
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM pg_policies WHERE tablename = 'portfolio_snapshots' AND policyname = 'Users can insert their own portfolio snapshots') THEN
+        CREATE POLICY "Users can insert their own portfolio snapshots" ON public.portfolio_snapshots FOR INSERT WITH CHECK (auth.uid() = user_id);
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM pg_policies WHERE tablename = 'portfolio_snapshots' AND policyname = 'Users can update their own portfolio snapshots') THEN
+        CREATE POLICY "Users can update their own portfolio snapshots" ON public.portfolio_snapshots FOR UPDATE USING (auth.uid() = user_id);
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM pg_policies WHERE tablename = 'portfolio_snapshots' AND policyname = 'Users can delete their own portfolio snapshots') THEN
+        CREATE POLICY "Users can delete their own portfolio snapshots" ON public.portfolio_snapshots FOR DELETE USING (auth.uid() = user_id);
+    END IF;
+END $$;
+
+-- Indexes for fast query performance
+CREATE INDEX IF NOT EXISTS idx_portfolio_assets_user_type ON public.portfolio_assets (user_id, asset_type);
+CREATE INDEX IF NOT EXISTS idx_portfolio_snapshots_user_date ON public.portfolio_snapshots (user_id, snapshot_date);
+
 -- Reload PostgREST schema cache in Supabase so new columns and indexes are immediately recognized by the API
 NOTIFY pgrst, 'reload schema';
 """

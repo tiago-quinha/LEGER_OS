@@ -1,6 +1,7 @@
 "use client"
 
 import { useState, useMemo, useEffect, useTransition } from "react"
+import { useSearchParams } from "next/navigation"
 import { motion, AnimatePresence } from "framer-motion"
 import { supabase } from "@/lib/supabase"
 import { Skeleton } from "@/components/ui/skeleton"
@@ -32,6 +33,7 @@ import { AuditTracePanel } from "@/components/AuditTracePanel"
 import { useSystem } from "@/lib/SystemContext"
 import { getAIHeaders } from "@/lib/ai-client"
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogDescription } from "@/components/ui/dialog"
+import { Checkbox } from "@/components/ui/checkbox"
 
 import { MagneticButton } from "@/components/unlumen-ui/magnetic-button"
 import { GlowingBadge } from "@/components/unlumen-ui/glowing-badge"
@@ -81,6 +83,7 @@ interface ExpensesViewProps {
 
 export function ExpensesView({ initialExpenses, categories: initialCategories, initialRules, cycles, currentCycleId }: ExpensesViewProps) {
   const [categories, setCategories] = useState<Category[]>(initialCategories)
+
   const [expenses, setExpenses] = useState<Expense[]>(() => {
     if (typeof window !== "undefined") {
       const cached = sessionStorage.getItem("leger_os_cache_expenses")
@@ -91,7 +94,15 @@ export function ExpensesView({ initialExpenses, categories: initialCategories, i
     return initialExpenses
   })
   const [rules, setRules] = useState<Rule[]>(initialRules)
-  const [activeTab, setActiveTab] = useState("history")
+  const searchParams = useSearchParams()
+  const [activeTab, setActiveTab] = useState(() => searchParams?.get("tab") || "history")
+
+  useEffect(() => {
+    const tabParam = searchParams?.get("tab")
+    if (tabParam && (tabParam === "history" || tabParam === "rules" || tabParam === "ingest")) {
+      setActiveTab(tabParam)
+    }
+  }, [searchParams])
   const [isCategorizing, setIsCategorizing] = useState(false)
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set())
   const [editingMerchantId, setEditingMerchantId] = useState<string | null>(null)
@@ -114,7 +125,17 @@ export function ExpensesView({ initialExpenses, categories: initialCategories, i
   }, [initialExpenses])
 
   useEffect(() => {
-    setCategories(initialCategories)
+    if (initialCategories && initialCategories.length > 0) {
+      setCategories(initialCategories)
+    } else {
+      supabase
+        .from("categories")
+        .select("*")
+        .order("name")
+        .then(({ data }) => {
+          if (data && data.length > 0) setCategories(data)
+        })
+    }
   }, [initialCategories])
 
   useEffect(() => {
@@ -1466,119 +1487,164 @@ export function ExpensesView({ initialExpenses, categories: initialCategories, i
           </div>
           
           <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 w-full sm:w-auto">
-             <Dialog open={isAddOpen} onOpenChange={setIsAddOpen}>
-                 <DialogTrigger className="hidden sm:inline-flex rounded-none px-6 font-mono text-[10px] uppercase tracking-widest h-10 border border-border ledger-border bg-card hover:bg-secondary items-center justify-center cursor-pointer select-none transition-all whitespace-nowrap outline-none w-full sm:w-auto">
-                    <Plus className="mr-2 h-4 w-4" /> Add Entry
-                 </DialogTrigger>
-                 <DialogContent className="bg-card border border-border rounded-none p-4 sm:p-6 font-mono text-xs w-[95vw] max-w-sm max-h-[90dvh] sm:max-h-[85dvh] overflow-y-auto">
-                   <DialogHeader className="border-b border-border pb-4">
-                      <DialogTitle className="text-xs uppercase tracking-widest font-mono flex items-center gap-2">
-                         <Landmark className="h-4 w-4" /> Add Entry
-                      </DialogTitle>
-                      <DialogDescription className="text-[9px] uppercase font-mono tracking-wider opacity-60 text-muted-foreground">
-                         Register transaction details manually
-                      </DialogDescription>
-                   </DialogHeader>
-                   
-                   <form onSubmit={handleAddManualExpense} className="space-y-4 pt-4">
-                      {/* Segmented Transaction Type Selector */}
-                      <div className="grid grid-cols-2 gap-1 bg-secondary/15 border border-border/80 p-0.5 font-mono text-[9px] uppercase tracking-wider">
+              <Button
+                onClick={() => setIsAddOpen(true)}
+                className="hidden sm:inline-flex rounded-none px-6 font-mono text-[10px] uppercase tracking-widest h-10 border border-border ledger-border bg-card hover:bg-secondary items-center justify-center cursor-pointer select-none transition-all whitespace-nowrap outline-none w-full sm:w-auto"
+              >
+                <Plus className="mr-2 h-4 w-4" /> Add Entry
+              </Button>
+
+              <AnimatePresence mode="wait">
+                {isAddOpen && (
+                  <motion.div
+                    key="expenses-backdrop"
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    exit={{ opacity: 0 }}
+                    transition={{ duration: 0.12 }}
+                    onClick={() => setIsAddOpen(false)}
+                    className="fixed inset-0 z-[100010] bg-background/80 backdrop-blur-sm flex items-end justify-center font-mono p-0 sm:p-6 select-none"
+                  >
+                    <motion.div
+                      key="expenses-drawer"
+                      onClick={(e) => e.stopPropagation()}
+                      initial={{ y: "100%", opacity: 0.95 }}
+                      animate={{ y: 0, opacity: 1 }}
+                      exit={{ y: "100%", opacity: 0 }}
+                      transition={{ type: "spring", damping: 25, stiffness: 300 }}
+                      drag="y"
+                      dragConstraints={{ top: 0, bottom: 0 }}
+                      dragElastic={{ top: 0, bottom: 0.6 }}
+                      onDragEnd={(_, info) => {
+                        if (info.offset.y > 80 || info.velocity.y > 250) {
+                          setIsAddOpen(false);
+                        }
+                      }}
+                      className="w-full max-w-md bg-[#09090b] border-t sm:border border-border text-foreground shadow-2xl flex flex-col overflow-hidden max-h-[92vh] rounded-t-2xl sm:rounded-2xl"
+                    >
+                      {/* Top Drag Handle */}
+                      <div className="w-12 h-1 bg-muted-foreground/30 rounded-full mx-auto my-2.5 cursor-grab active:cursor-grabbing shrink-0" />
+
+                      {/* Drawer Header */}
+                      <div className="px-5 py-3 border-b border-border flex items-center justify-between bg-card/40 shrink-0">
+                        <div>
+                          <h3 className="text-xs uppercase tracking-widest font-mono font-bold">
+                            Add Entry
+                          </h3>
+                          <p className="text-[10px] text-muted-foreground uppercase font-mono mt-0.5">
+                            Register transaction details manually
+                          </p>
+                        </div>
                         <button
                           type="button"
-                          onClick={() => setIsIncome(false)}
-                          className={cn(
-                            "py-2 px-3 text-center transition-all cursor-pointer font-bold select-none border",
-                            !isIncome 
-                              ? "bg-foreground text-background border-foreground" 
-                              : "text-muted-foreground hover:text-foreground border-transparent hover:bg-secondary/20"
-                          )}
+                          onClick={() => setIsAddOpen(false)}
+                          className="p-1.5 hover:bg-secondary border border-transparent hover:border-border transition-all cursor-pointer rounded"
                         >
-                          Outflow (Debit)
-                        </button>
-                        <button
-                          type="button"
-                          onClick={() => setIsIncome(true)}
-                          className={cn(
-                            "py-2 px-3 text-center transition-all cursor-pointer font-bold select-none border",
-                            isIncome 
-                              ? "bg-emerald-500 text-white border-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.2)]" 
-                              : "text-muted-foreground hover:text-foreground border-transparent hover:bg-secondary/20"
-                          )}
-                        >
-                          Inflow (Income)
+                          <X className="h-3.5 w-3.5 text-muted-foreground hover:text-foreground" />
                         </button>
                       </div>
 
-                      <div className="space-y-1.5">
-                         <Label htmlFor="manualMerchant" className="technical-label">Merchant / Payee</Label>
-                         <Input 
-                            id="manualMerchant" 
-                            type="text" 
-                            required
-                            placeholder="e.g. LIDL" 
-                            value={manualMerchant}
-                            onChange={(e) => setManualMerchant(e.target.value)}
-                            className="rounded-none h-10 sm:h-9 text-base sm:text-xs uppercase"
-                         />
-                      </div>
-                      
-                      <div className="grid grid-cols-2 gap-4">
-                         <div className="space-y-1.5">
-                            <Label htmlFor="manualAmount" className="technical-label">Amount ({currencySymbol})</Label>
-                            <Input 
-                               id="manualAmount" 
-                               type="number" 
-                               step="0.01"
-                               inputMode="decimal"
-                               pattern="[0-9]*"
-                               required
-                               placeholder="15.50" 
-                               value={manualAmount}
-                               onChange={(e) => setManualAmount(e.target.value)}
-                               className="rounded-none h-10 sm:h-9 text-base sm:text-xs"
-                            />
-                         </div>
-                         <div className="space-y-1.5">
-                            <Label htmlFor="manualDate" className="technical-label">Value Date</Label>
-                            <Input 
-                               id="manualDate" 
-                               type="date" 
-                               required
-                               value={manualDate}
-                               onChange={(e) => setManualDate(e.target.value)}
-                               className="rounded-none h-10 sm:h-9 text-base sm:text-xs"
-                            />
-                         </div>
-                      </div>
+                      <form onSubmit={handleAddManualExpense} className="p-5 overflow-y-auto space-y-4 font-mono text-xs">
+                        {/* Segmented Transaction Type Selector */}
+                        <div className="grid grid-cols-2 gap-1 bg-secondary/15 border border-border/80 p-0.5 font-mono text-[9px] uppercase tracking-wider">
+                          <button
+                            type="button"
+                            onClick={() => setIsIncome(false)}
+                            className={cn(
+                              "py-2 px-3 text-center transition-all cursor-pointer font-bold select-none border",
+                              !isIncome 
+                                ? "bg-foreground text-background border-foreground" 
+                                : "text-muted-foreground hover:text-foreground border-transparent hover:bg-secondary/20"
+                            )}
+                          >
+                            Outflow (Debit)
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => setIsIncome(true)}
+                            className={cn(
+                              "py-2 px-3 text-center transition-all cursor-pointer font-bold select-none border",
+                              isIncome 
+                                ? "bg-emerald-500 text-white border-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.2)]" 
+                                : "text-muted-foreground hover:text-foreground border-transparent hover:bg-secondary/20"
+                            )}
+                          >
+                            Inflow (Income)
+                          </button>
+                        </div>
 
-                      <div className="space-y-1.5">
-                         <Label htmlFor="manualCategory" className="technical-label">Target Category</Label>
-                         <div className="relative">
-                            <select
-                               id="manualCategory"
-                               value={manualCategoryId}
-                               onChange={(e) => setManualCategoryId(e.target.value)}
-                               className="w-full h-10 sm:h-9 px-2 pr-8 border border-border bg-secondary/15 rounded-none text-base sm:text-xs uppercase text-foreground outline-none appearance-none"
-                            >
-                               <option value="">Unclassified</option>
-                               {categories.map((cat) => (
-                                  <option key={cat.id} value={cat.id}>{cat.name}</option>
-                               ))}
-                            </select>
-                            <ChevronDown className="absolute right-2.5 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground pointer-events-none" />
-                         </div>
-                      </div>
+                        <div className="space-y-1.5">
+                           <Label htmlFor="manualMerchant" className="technical-label">Merchant / Payee</Label>
+                           <Input 
+                              id="manualMerchant" 
+                              type="text" 
+                              required
+                              placeholder="e.g. LIDL" 
+                              value={manualMerchant}
+                              onChange={(e) => setManualMerchant(e.target.value)}
+                              className="rounded-none h-10 sm:h-9 text-base sm:text-xs uppercase"
+                           />
+                        </div>
+                        
+                        <div className="grid grid-cols-2 gap-4">
+                           <div className="space-y-1.5">
+                              <Label htmlFor="manualAmount" className="technical-label">Amount ({currencySymbol})</Label>
+                              <Input 
+                                 id="manualAmount" 
+                                 type="number" 
+                                 step="0.01"
+                                 inputMode="decimal"
+                                 pattern="[0-9]*"
+                                 required
+                                 placeholder="15.50" 
+                                 value={manualAmount}
+                                 onChange={(e) => setManualAmount(e.target.value)}
+                                 className="rounded-none h-10 sm:h-9 text-base sm:text-xs"
+                              />
+                           </div>
+                           <div className="space-y-1.5">
+                              <Label htmlFor="manualDate" className="technical-label">Value Date</Label>
+                              <Input 
+                                 id="manualDate" 
+                                 type="date" 
+                                 required
+                                 value={manualDate}
+                                 onChange={(e) => setManualDate(e.target.value)}
+                                 className="rounded-none h-10 sm:h-9 text-base sm:text-xs"
+                              />
+                           </div>
+                        </div>
 
-                      <Button 
-                         type="submit" 
-                         disabled={isSavingManual}
-                         className="w-full rounded-none h-10 font-mono text-[9px] uppercase tracking-widest font-bold bg-foreground text-background hover:bg-foreground/80 mt-2"
-                      >
-                         {isSavingManual ? "Saving..." : "Add Entry"}
-                      </Button>
-                   </form>
-                </DialogContent>
-             </Dialog>
+                        <div className="space-y-1.5">
+                           <Label htmlFor="manualCategory" className="technical-label">Target Category</Label>
+                           <div className="relative">
+                              <select
+                                 id="manualCategory"
+                                 value={manualCategoryId}
+                                 onChange={(e) => setManualCategoryId(e.target.value)}
+                                 className="w-full h-10 sm:h-9 px-2 pr-8 border border-border bg-secondary/15 rounded-none text-base sm:text-xs uppercase text-foreground outline-none appearance-none"
+                              >
+                                 <option value="">Unclassified</option>
+                                 {categories.map((cat) => (
+                                    <option key={cat.id} value={cat.id}>{cat.name}</option>
+                                 ))}
+                              </select>
+                              <ChevronDown className="absolute right-2.5 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground pointer-events-none" />
+                           </div>
+                        </div>
+
+                        <Button 
+                           type="submit" 
+                           disabled={isSavingManual}
+                           className="w-full rounded-none h-10 font-mono text-[9px] uppercase tracking-widest font-bold bg-foreground text-background hover:bg-foreground/80 mt-2"
+                        >
+                           {isSavingManual ? "Saving..." : "Add Entry"}
+                        </Button>
+                      </form>
+                    </motion.div>
+                  </motion.div>
+                )}
+              </AnimatePresence>
 
              <MagneticButton 
                onClick={smartCategorize} 
@@ -1624,12 +1690,12 @@ export function ExpensesView({ initialExpenses, categories: initialCategories, i
           </Tilt>
         </div>
 
-        <Tabs defaultValue="history" className="space-y-4">
+        <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-4">
           <div className="w-full min-w-0">
             <TabsList className="bg-card/40 border border-border p-1 grid grid-cols-3 w-full gap-1">
               <TabsTrigger value="history" className="rounded-none px-1 sm:px-6 py-2.5 uppercase tracking-tighter sm:tracking-widest font-mono text-[11px] sm:text-xs font-bold truncate">History</TabsTrigger>
               <TabsTrigger value="rules" className="rounded-none px-1 sm:px-6 py-2.5 uppercase tracking-tighter sm:tracking-widest font-mono text-[11px] sm:text-xs font-bold truncate">Rules</TabsTrigger>
-              <TabsTrigger value="ingest" className="rounded-none px-1 sm:px-6 py-2.5 uppercase tracking-widest font-mono text-[11px] sm:text-xs font-bold truncate">Ingest</TabsTrigger>
+              <TabsTrigger value="ingest" data-tour="ingest-tab" className="rounded-none px-1 sm:px-6 py-2.5 uppercase tracking-widest font-mono text-[11px] sm:text-xs font-bold truncate">Ingest</TabsTrigger>
             </TabsList>
           </div>
 
@@ -2492,57 +2558,63 @@ export function ExpensesView({ initialExpenses, categories: initialCategories, i
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
               {/* Text / File Input Column */}
               <Card className="lg:col-span-1 rounded-none border-border ledger-border">
-                <CardHeader>
-                  <CardTitle className="text-sm font-bold uppercase tracking-widest flex items-center gap-2">
-                    <Upload className="h-4 w-4" /> Universal File Importer (.txt, .csv, .pdf)
+                <CardHeader className="border-b border-border/40 pb-4">
+                  <CardTitle className="text-sm font-bold uppercase tracking-widest">
+                    Import Bank Statement
                   </CardTitle>
-                  <CardDescription className="font-mono text-[9px] uppercase">
-                    Upload .txt, .csv, .json, .pdf statement files or paste extract text. Fast Regex matches: [Date] [Merchant] [Amount (+/-)]
+                  <CardDescription className="font-mono text-[9px] uppercase text-muted-foreground">
+                    Supports Santander, CGD, Millennium bcp, Revolut, and all PDF / TXT / CSV extracts
                   </CardDescription>
                 </CardHeader>
-                <CardContent className="space-y-4">
-                  <div className="border border-dashed border-border p-6 flex flex-col items-center justify-center text-center cursor-pointer hover:bg-secondary/10 transition-colors relative">
+                <CardContent className="space-y-4 pt-4">
+                  {/* Main File Dropzone */}
+                  <div data-tour="ingest-dropzone" className="border border-dashed border-border p-6 flex flex-col items-center justify-center text-center cursor-pointer hover:bg-secondary/20 transition-all relative">
                     <input 
                       type="file" 
                       accept=".txt,.csv,.json,.pdf" 
                       onChange={handleFileUpload} 
                       className="absolute inset-0 opacity-0 cursor-pointer"
                     />
-                    <FileText className="h-8 w-8 text-muted-foreground mb-2" />
-                    <p className="text-[10px] font-mono font-bold uppercase">Select File (.txt, .csv, .json, .pdf)</p>
-                    <p className="text-[8px] font-mono text-muted-foreground uppercase mt-1">or drag & drop universal bank statement</p>
+                    <Upload className="h-6 w-6 text-muted-foreground/70 mb-2 stroke-[1.5]" />
+                    <p className="text-[10px] font-mono font-bold uppercase">Upload Statement File (.pdf, .txt, .csv)</p>
+                    <p className="text-[8px] font-mono text-muted-foreground uppercase mt-1">Click to browse or drag & drop file here</p>
                   </div>
 
+                  {/* Raw Text Box */}
                   <div className="space-y-2">
-                    <Label htmlFor="extractText" className="technical-label opacity-60">Or Paste Extract / CSV Text</Label>
+                    <Label htmlFor="extractText" className="technical-label opacity-70">Or Paste Statement Text</Label>
                     <textarea
                       id="extractText"
-                      rows={12}
-                      className="w-full p-4 border border-border ledger-border font-mono text-[10px] bg-secondary/5 focus:bg-card focus:outline-none transition-all resize-none"
-                      placeholder={"Paste text from any bank statement, CSV, or PDF extract...\n\nFast Regex Format:\n[Date] [Optional Second Date] [Merchant Description] [Amount (+/-)] [Optional Balance]\n\nExamples:\n- 26-06-2026 ContinenteAlbufeira -13,86\n- 04-05 04-05 PINGO DOCE -6,98 526,73"}
+                      rows={8}
+                      className="w-full p-3 border border-border ledger-border font-mono text-[10px] bg-secondary/5 focus:bg-card focus:outline-none transition-all resize-none"
+                      placeholder={"Paste text copied from your bank app or extract...\n\nExample:\n01-06-2026 PREVIOUS BALANCE 616.18\n02-06-2026 SALARY PAYCHECK +2450.00\n03-06-2026 SUPERMARKET SPEND -45.80"}
                       value={extractText}
                       onChange={(e) => setExtractText(e.target.value)}
                     />
                   </div>
 
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-                    <MagneticButton 
-                      onClick={handleParseExtract} 
+                  <div className="grid grid-cols-2 gap-2">
+                    <Button 
+                      onClick={() => handleParseExtract()} 
                       variant="outline"
-                      className="w-full uppercase font-mono text-[9px] py-3 font-bold tracking-widest justify-center border border-border"
-                      strength={0.1}
+                      className="w-full rounded-none h-10 uppercase font-mono text-[9px] font-bold tracking-widest border border-border cursor-pointer"
                     >
-                      Fast Regex (.txt)
-                    </MagneticButton>
-                    <MagneticButton 
+                      Parse Text
+                    </Button>
+                    <Button 
                       onClick={handleAiSmartParse} 
-                      variant="none"
                       disabled={isAiParsing}
-                      className="w-full uppercase font-mono text-[9px] py-3 bg-foreground text-background font-bold tracking-widest border border-transparent hover:bg-foreground/80 justify-center"
-                      strength={0.15}
+                      className="w-full rounded-none h-10 uppercase font-mono text-[9px] font-bold tracking-widest cursor-pointer flex items-center justify-center transition-all leading-none bg-emerald-500/10 border border-emerald-500/30 text-emerald-500 hover:bg-emerald-500/20 shadow-sm"
                     >
-                      {isAiParsing ? "AI Analyzing..." : "AI Universal Parse"}
-                    </MagneticButton>
+                      {isAiParsing ? (
+                        "AI Parsing..."
+                      ) : (
+                        <div className="flex items-center justify-center gap-1.5 leading-none">
+                          <Sparkles className="h-3.5 w-3.5 text-emerald-500 shrink-0" />
+                          <span className="leading-none pt-[1px]">AI Smart Parse</span>
+                        </div>
+                      )}
+                    </Button>
                   </div>
                 </CardContent>
               </Card>
@@ -2551,27 +2623,29 @@ export function ExpensesView({ initialExpenses, categories: initialCategories, i
               <Card className="lg:col-span-2 rounded-none border-border ledger-border">
                 <CardHeader className="border-b border-border">
                   <CardTitle className="text-sm font-bold uppercase tracking-widest flex items-center justify-between">
-                    <span>Parsed Preview Node</span>
+                    <span>Statement Preview</span>
                     {parsedData && (
                       <span className="font-mono text-[9px] text-muted-foreground uppercase">
-                        Month: {parsedData.month}/{parsedData.year}
+                        Period: {parsedData.month}/{parsedData.year}
                       </span>
                     )}
                   </CardTitle>
                   <CardDescription className="font-mono text-[9px] uppercase">
-                    Verify transactions before database ingestion commit
+                    Review your transactions before importing to your ledger
                   </CardDescription>
                 </CardHeader>
                 <CardContent className="pt-6 space-y-6">
                   {!parsedData ? (
-                    <div className="h-64 flex flex-col items-center justify-center text-center text-muted-foreground opacity-50 space-y-3 font-mono">
-                      <Landmark className="h-10 w-10 text-muted-foreground" />
-                      <p className="text-xs uppercase font-bold">Waiting for parse trigger...</p>
-                      <p className="text-[9px] max-w-xs uppercase">No telemetry parsed. Provide input on the left panel to begin verification sequence.</p>
+                    <div className="h-64 flex flex-col items-center justify-center text-center text-muted-foreground space-y-2 font-mono">
+                      <Landmark className="h-10 w-10 text-muted-foreground/60" />
+                      <div className="space-y-1">
+                        <p className="text-xs uppercase font-bold text-foreground">No statement loaded yet</p>
+                        <p className="text-[10px] max-w-sm uppercase text-muted-foreground">Upload a PDF, TXT, or CSV statement file or paste extract text to preview transactions.</p>
+                      </div>
                     </div>
                   ) : (
                     <div className="space-y-6">
-                      {/* Telemetry Summary */}
+                      {/* Statement Summary Cards */}
                       {(() => {
                         const checkedTxs = parsedData.transactions.filter(t => t.checked)
                         const inflows = checkedTxs.filter(t => t.amount > 0)
@@ -2584,82 +2658,81 @@ export function ExpensesView({ initialExpenses, categories: initialCategories, i
 
                         return (
                           <>
-                            <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 p-5 bg-secondary/20 border border-border border-dashed font-mono">
+                            <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 p-4 bg-card/40 border border-border font-mono">
                               <div className="space-y-1">
-                                <span className="technical-label text-[9px]">Est. Start Balance</span>
+                                <span className="technical-label text-[9px]">Starting Balance</span>
                                 <p className="text-base sm:text-lg font-bold">{currencySymbol}{parsedData.startBalance.toFixed(2)}</p>
                               </div>
                               <div className="space-y-1">
-                                <span className="technical-label text-[9px] text-emerald-500">Total Inflow (Entry)</span>
+                                <span className="technical-label text-[9px] text-emerald-500">Total Income</span>
                                 <p className="text-base sm:text-lg font-bold text-emerald-500">
                                   +{currencySymbol}{totalInflow.toFixed(2)}
                                 </p>
                                 <p className="text-[9px] text-muted-foreground">{inflows.length} items</p>
                               </div>
                               <div className="space-y-1">
-                                <span className="technical-label text-[9px] text-destructive">Total Outflow (Exit)</span>
+                                <span className="technical-label text-[9px] text-destructive">Total Expenses</span>
                                 <p className="text-base sm:text-lg font-bold text-destructive">
                                   -{currencySymbol}{totalOutflow.toFixed(2)}
                                 </p>
                                 <p className="text-[9px] text-muted-foreground">{outflows.length} items</p>
                               </div>
                               <div className="space-y-1">
-                                <span className="technical-label text-[9px]">Net Flow / Selected</span>
+                                <span className="technical-label text-[9px]">Net Cash Flow</span>
                                 <p className="text-base sm:text-lg font-bold">
                                   {netFlow >= 0 ? "+" : ""}{currencySymbol}{netFlow.toFixed(2)}
                                 </p>
                                 <p className="text-[9px] text-muted-foreground">
-                                  {checkedTxs.length}/{parsedData.transactions.length} selected ({uncategorizedCount} uncategorized)
+                                  {checkedTxs.length}/{parsedData.transactions.length} selected
                                 </p>
                               </div>
                             </div>
 
                             {/* Preview Table */}
-                            <div className="border border-border max-h-[300px] overflow-y-auto overflow-x-auto">
-                              <Table>
-                                <TableHeader className="bg-secondary/40 sticky top-0 z-10">
-                                  <TableRow>
-                                    <TableHead className="w-12 text-center">
-                                      <input 
-                                        type="checkbox"
-                                        checked={allChecked}
-                                        onChange={(e) => {
-                                          const checkedVal = e.target.checked
-                                          const updatedTxs = parsedData.transactions.map(t => ({ ...t, checked: checkedVal }))
-                                          setParsedData({ ...parsedData, transactions: updatedTxs })
-                                        }}
-                                        className="cursor-pointer"
-                                        title="Select / Deselect All"
-                                      />
-                                    </TableHead>
-                                    <TableHead className="text-xs font-mono font-bold uppercase tracking-wider">Date</TableHead>
-                                    <TableHead className="text-xs font-mono font-bold uppercase tracking-wider">Merchant</TableHead>
-                                    <TableHead className="text-xs font-mono font-bold uppercase tracking-wider">Category</TableHead>
-                                    <TableHead className="text-right text-xs font-mono font-bold uppercase tracking-wider">Amount</TableHead>
-                                  </TableRow>
-                                </TableHeader>
-                                <TableBody>
-                                  {parsedData.transactions.map((tx, idx) => (
-                                    <TableRow key={tx.id} className={cn(!tx.checked && "opacity-40 bg-muted/10")}>
-                                      <TableCell className="text-center p-2">
-                                        <input 
-                                          type="checkbox" 
-                                          checked={tx.checked}
-                                          onChange={(e) => {
-                                            const updatedTxs = [...parsedData.transactions]
-                                            updatedTxs[idx].checked = e.target.checked
+                            <div className="border border-border max-h-[360px] overflow-y-auto w-full relative p-0">
+                              <table className="w-full font-mono text-[9px] table-fixed border-collapse border-spacing-0 m-0 p-0">
+                                <thead className="sticky top-[-1px] z-30 bg-card shadow-sm border-b border-border m-0 p-0">
+                                  <tr className="bg-card m-0 p-0">
+                                    <th className="w-7 p-2 text-center sticky top-[-1px] bg-card z-30 border-b border-border align-middle m-0">
+                                      <div className="flex items-center justify-center">
+                                        <Checkbox 
+                                          checked={allChecked}
+                                          onCheckedChange={(checkedVal) => {
+                                            const updatedTxs = parsedData.transactions.map(t => ({ ...t, checked: checkedVal }))
                                             setParsedData({ ...parsedData, transactions: updatedTxs })
                                           }}
-                                          className="cursor-pointer"
+                                          title="Select / Deselect All"
                                         />
-                                      </TableCell>
-                                      <TableCell className="font-mono text-[9px] p-2">
+                                      </div>
+                                    </th>
+                                    <th className="w-14 sm:w-16 text-[9px] font-mono font-bold uppercase tracking-wider p-2 whitespace-nowrap sticky top-[-1px] bg-card z-30 border-b border-border text-left align-middle m-0">Date</th>
+                                    <th className="text-[9px] font-mono font-bold uppercase tracking-wider p-2 sticky top-[-1px] bg-card z-30 border-b border-border text-left align-middle m-0">Merchant</th>
+                                    <th className="w-24 sm:w-28 text-[9px] font-mono font-bold uppercase tracking-wider p-2 sticky top-[-1px] bg-card z-30 border-b border-border text-left align-middle m-0">Category</th>
+                                    <th className="w-20 sm:w-24 text-right text-[9px] font-mono font-bold uppercase tracking-wider p-2 whitespace-nowrap sticky top-[-1px] bg-card z-30 border-b border-border align-middle m-0">Amount</th>
+                                  </tr>
+                                </thead>
+                                <tbody>
+                                  {parsedData.transactions.map((tx, idx) => (
+                                    <tr key={tx.id} className={cn("border-b border-border/40 transition-colors hover:bg-muted/30", !tx.checked && "opacity-40 bg-muted/10")}>
+                                      <td className="text-center p-1.5 w-7">
+                                        <div className="flex items-center justify-center">
+                                          <Checkbox 
+                                            checked={tx.checked}
+                                            onCheckedChange={(checkedVal) => {
+                                              const updatedTxs = [...parsedData.transactions]
+                                              updatedTxs[idx].checked = checkedVal
+                                              setParsedData({ ...parsedData, transactions: updatedTxs })
+                                            }}
+                                          />
+                                        </div>
+                                      </td>
+                                      <td className="font-mono text-[9px] p-1.5 whitespace-nowrap">
                                         {new Date(tx.date).toLocaleDateString("en-GB", { day: '2-digit', month: 'short' })}
-                                      </TableCell>
-                                      <TableCell className="font-mono text-[9px] p-2 uppercase max-w-[100px] sm:max-w-[150px] truncate" title={tx.merchant}>
+                                      </td>
+                                      <td className="font-mono text-[9px] p-1.5 uppercase truncate" title={tx.merchant}>
                                         {tx.merchant}
-                                      </TableCell>
-                                      <TableCell className="p-2">
+                                      </td>
+                                      <td className="p-1.5">
                                         <Select
                                           value={tx.category_id?.toString() || "none"}
                                           onValueChange={(val: string | null) => {
@@ -2669,13 +2742,13 @@ export function ExpensesView({ initialExpenses, categories: initialCategories, i
                                             setParsedData({ ...parsedData, transactions: updatedTxs })
                                           }}
                                         >
-                                          <SelectTrigger className="h-6 text-[8px] font-mono uppercase bg-transparent border-border rounded-none p-1 shrink-0 w-24">
+                                          <SelectTrigger className="h-6 text-[8px] font-mono uppercase bg-transparent border-border rounded-none px-1 py-0 w-full">
                                             {tx.category_id ? (
                                               (() => {
                                                 const cat = categories.find(c => c.id === tx.category_id)
                                                 if (!cat) return <span className="truncate text-muted-foreground">Categorize</span>
                                                 return (
-                                                  <div className="flex items-center gap-1.5 overflow-hidden w-full text-[8px] font-mono">
+                                                  <div className="flex items-center gap-1 overflow-hidden w-full text-[8px] font-mono">
                                                     <div 
                                                       className="h-1.5 w-1.5 rounded-full shrink-0" 
                                                       style={{ backgroundColor: cat.color }} 
@@ -2697,14 +2770,14 @@ export function ExpensesView({ initialExpenses, categories: initialCategories, i
                                             ))}
                                           </SelectContent>
                                         </Select>
-                                      </TableCell>
-                                      <TableCell className={cn("text-right font-mono text-[10px] font-bold p-2", tx.amount > 0 ? "text-emerald-500" : "text-foreground")}>
+                                      </td>
+                                      <td className={cn("text-right font-mono text-[9px] sm:text-[10px] font-bold p-1.5 whitespace-nowrap", tx.amount > 0 ? "text-emerald-500" : "text-foreground")}>
                                         {tx.amount > 0 ? "+" : ""}{currencySymbol}{tx.amount.toFixed(2)}
-                                      </TableCell>
-                                    </TableRow>
+                                      </td>
+                                    </tr>
                                   ))}
-                                </TableBody>
-                              </Table>
+                                </tbody>
+                              </table>
                             </div>
                           </>
                         )
@@ -2721,12 +2794,12 @@ export function ExpensesView({ initialExpenses, categories: initialCategories, i
                         {isIngesting ? (
                           <>
                             <Loader2 className="h-4.5 w-4.5 animate-spin" />
-                            Ingesting Nodes to Mainframe...
+                            Importing Transactions...
                           </>
                         ) : (
                           <>
                             <Check className="h-4.5 w-4.5" />
-                            Commit Ingestion Node (Ready)
+                            Import Transactions to Ledger
                           </>
                         )}
                       </MagneticButton>
@@ -2738,16 +2811,14 @@ export function ExpensesView({ initialExpenses, categories: initialCategories, i
           </TabsContent>
         </Tabs>
       </motion.div>
-      {/* Mobile Floating Action Button (FAB) for Thumb Zone accessibility */}
-      <div className="md:hidden fixed bottom-20 right-6 z-40">
-        <button
-          onClick={() => setIsAddOpen(true)}
-          className="h-14 w-14 rounded-none bg-foreground text-background border border-border flex items-center justify-center shadow-[0_4px_20px_rgba(0,0,0,0.3)] active:scale-95 transition-all select-none cursor-pointer ledger-border"
-          aria-label="Add Transaction manual entry"
-        >
-          <Plus className="h-6 w-6" />
-        </button>
-      </div>
+      {/* Mobile Floating Action Button (FAB) matching Portfolio style */}
+      <button
+        onClick={() => setIsAddOpen(true)}
+        className="fixed bottom-20 right-4 z-50 h-12 w-12 rounded-xl bg-white text-black font-extrabold shadow-2xl flex items-center justify-center hover:bg-gray-100 border border-white/20 cursor-pointer select-none"
+        aria-label="Add Transaction manual entry"
+      >
+        <Plus className="h-6 w-6 stroke-[3]" />
+      </button>
 
       <AuditTracePanel expenses={expenses} categories={categories} />
 

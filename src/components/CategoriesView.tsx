@@ -503,7 +503,6 @@ export function CategoriesView({ expenses, categories, cycles, currentCycleId }:
       <header className="flex items-center justify-between gap-6 border-b border-foreground/10 pb-6 md:pb-8 relative flex-wrap sm:flex-nowrap">
         <div className="space-y-3">
           <div className="flex items-center gap-3 text-[9px] md:text-[10px] font-mono tracking-[0.2em] uppercase text-muted-foreground">
-            <Tag className="h-3.5 w-3.5" />
             <span>Category Explorer {currentCycle ? `[${currentCycle.label.replace('Cycle: ', '')}]` : ''}</span>
           </div>
           <h1 className="text-4xl md:text-5xl font-bold tracking-tighter uppercase leading-none break-words">
@@ -557,7 +556,6 @@ export function CategoriesView({ expenses, categories, cycles, currentCycleId }:
           >
             <div className="flex items-center justify-between z-10">
               <div className="flex items-center gap-1.5">
-                <Grid className="h-3.5 w-3.5 text-muted-foreground" />
                 <span className="font-bold text-[11px] uppercase tracking-tight truncate max-w-[100px]">ALL CATEGORIES</span>
               </div>
               {selectedCategoryId === "ALL" && (
@@ -614,67 +612,42 @@ export function CategoriesView({ expenses, categories, cycles, currentCycleId }:
       {/* 3. Metrics Summary Bento Grid (Outflow, Inflow, Net) */}
       <section className="grid grid-cols-1 md:grid-cols-3 gap-6">
         {/* Net Profit/Loss Card */}
-        <Tilt rotationFactor={4} className="p-6 md:p-8 space-y-4 bg-card/20 border border-border relative group overflow-hidden flex flex-col justify-between glow-card">
-          <div className="flex items-center justify-between opacity-40 group-hover:opacity-100 transition-opacity">
-            <span className="technical-label text-[8px] md:text-[9px]">Net Position</span>
-            <ArrowLeftRight className={cn("h-3.5 w-3.5", metrics.net >= 0 ? "text-emerald-500" : "text-destructive")} />
+        <Tilt rotationFactor={6} className="p-6 md:p-8 space-y-3 bg-card/20 border border-border relative group overflow-hidden flex flex-col justify-between glow-card">
+          <span className="technical-label text-[9px] border-b border-dotted border-muted-foreground/30 w-fit z-10">Net Position</span>
+          <div className={cn("text-3xl md:text-5xl font-mono font-bold tracking-tighter z-10", metrics.net >= 0 ? "text-emerald-500" : "text-destructive")}>
+            <PrivacyValue>
+              <span>{metrics.net >= 0 ? "+" : ""}{currencySymbol}{metrics.net.toFixed(2)}</span>
+            </PrivacyValue>
           </div>
-          <div>
-            <span className="text-[10px] text-muted-foreground uppercase font-mono block mb-1">NET POSITION</span>
-            <div className={cn("text-2xl lg:text-3xl font-mono font-bold tracking-tighter", metrics.net >= 0 ? "text-emerald-500" : "text-destructive")}>
-              <PrivacyValue>
-                <span>{metrics.net >= 0 ? "+" : ""}{currencySymbol}{metrics.net.toFixed(2)}</span>
-              </PrivacyValue>
-            </div>
-          </div>
-          <p className="text-[8px] md:text-[9px] font-mono uppercase tracking-widest font-bold">
-            <span className={cn(
-              "px-1.5 py-0.5 border text-[8px] font-mono",
-              metrics.net >= 0 
-                ? "text-emerald-500 border-emerald-500/20 bg-emerald-500/5" 
-                : "text-destructive border-destructive/20 bg-destructive/5"
-            )}>
-              {metrics.net >= 0 ? "Surplus" : "Deficit"}
-            </span>
-          </p>
+          <ClippedCircle circleClassName="bg-foreground/5" circleSize={400} />
         </Tilt>
 
         {/* Inflow Card */}
-        <Tilt rotationFactor={4} className="p-6 md:p-8 space-y-4 bg-card/20 border border-border relative group overflow-hidden flex flex-col justify-between glow-card">
-          <div className="flex items-center justify-between opacity-40 group-hover:opacity-100 transition-opacity">
-            <span className="technical-label text-[8px] md:text-[9px]">Inflow</span>
-            <TrendingUp className="h-3.5 w-3.5 text-emerald-500" />
+        <Tilt rotationFactor={6} className="p-6 md:p-8 space-y-3 bg-card/20 border border-border relative group overflow-hidden flex flex-col justify-between glow-card">
+          <span className="technical-label text-[9px] border-b border-dotted border-muted-foreground/30 w-fit z-10">Total Inflow</span>
+          <div className="text-3xl md:text-5xl font-mono font-bold tracking-tighter text-foreground z-10">
+            <PrivacyValue>
+              <NumberTicker value={metrics.inflow} prefix={currencySymbol} />
+            </PrivacyValue>
           </div>
-          <div>
-            <span className="text-[10px] text-muted-foreground uppercase font-mono block mb-1">TOTAL INFLOW</span>
-            <div className="text-2xl lg:text-3xl font-mono font-bold tracking-tighter text-foreground">
-              <PrivacyValue>
-                <NumberTicker value={metrics.inflow} prefix={currencySymbol} />
-              </PrivacyValue>
-            </div>
-          </div>
-          <p className="text-[8px] md:text-[9px] font-mono text-muted-foreground uppercase tracking-widest">
+          <p className="text-[8px] md:text-[9px] font-mono text-muted-foreground uppercase tracking-widest z-10">
             {filteredExpenses.filter(e => (Number(e.amount) || 0) > 0).length} Credit Records
           </p>
+          <ClippedCircle circleClassName="bg-foreground/5" circleSize={400} />
         </Tilt>
 
         {/* Outflow Card */}
-        <Tilt rotationFactor={4} className="p-6 md:p-8 space-y-4 bg-card/20 border border-border relative group overflow-hidden flex flex-col justify-between glow-card">
-          <div className="flex items-center justify-between opacity-40 group-hover:opacity-100 transition-opacity">
-            <span className="technical-label text-[8px] md:text-[9px]">Outflow</span>
-            <TrendingDown className="h-3.5 w-3.5 text-destructive" />
+        <Tilt rotationFactor={6} className="p-6 md:p-8 space-y-3 bg-card/20 border border-border relative group overflow-hidden flex flex-col justify-between glow-card">
+          <span className="technical-label text-[9px] border-b border-dotted border-muted-foreground/30 w-fit z-10">Total Spending</span>
+          <div className="text-3xl md:text-5xl font-mono font-bold tracking-tighter text-foreground z-10">
+            <PrivacyValue>
+              <NumberTicker value={metrics.outflow} prefix={currencySymbol} />
+            </PrivacyValue>
           </div>
-          <div>
-            <span className="text-[10px] text-muted-foreground uppercase font-mono block mb-1">TOTAL SPENDING</span>
-            <div className="text-2xl lg:text-3xl font-mono font-bold tracking-tighter text-foreground">
-              <PrivacyValue>
-                <NumberTicker value={metrics.outflow} prefix={currencySymbol} />
-              </PrivacyValue>
-            </div>
-          </div>
-          <p className="text-[8px] md:text-[9px] font-mono text-muted-foreground uppercase tracking-widest">
+          <p className="text-[8px] md:text-[9px] font-mono text-muted-foreground uppercase tracking-widest z-10">
             {filteredExpenses.filter(e => (Number(e.amount) || 0) < 0).length} Debit Records
           </p>
+          <ClippedCircle circleClassName="bg-foreground/5" circleSize={400} />
         </Tilt>
       </section>
 

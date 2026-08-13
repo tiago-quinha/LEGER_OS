@@ -27,12 +27,12 @@
             "state": {
               "type": "markdown",
               "state": {
-                "file": "00 - System & AI/Mathematical Projection Engine.md",
+                "file": "05 - Execution Tools/activate_auto_sign.py Reference.md",
                 "mode": "source",
                 "source": false
               },
               "icon": "lucide-file",
-              "title": "Mathematical Projection Engine"
+              "title": "activate_auto_sign.py Reference"
             }
           }
         ],
@@ -56,7 +56,9 @@
               "type": "file-explorer",
               "state": {
                 "sortOrder": "alphabetical",
-                "autoReveal": false
+                "autoReveal": false,
+                "showSearch": false,
+                "searchQuery": ""
               },
               "icon": "lucide-folder-closed",
               "title": "Files"
@@ -200,11 +202,17 @@
   },
   "active": "1dff237e824dfb46",
   "lastOpenFiles": [
-    "00 - System & AI/LEGER_OS Mainframe.md",
+    "07 - Templates/Paycheck Cycle Template.md",
+    "learn/Memory_Page_Design_Standard.md",
+    "learn/Transcript_Recovery_And_No_Rewrite_Invariants.md",
+    "learn/AI_Pill_Banner_Invariants.md",
+    "LEGER_OS.canvas",
+    "Welcome.md",
+    "05 - Execution Tools/05.00 - Layer 3 Scripts Overview.md",
     "00 - System & AI/Mathematical Projection Engine.md",
+    "00 - System & AI/LEGER_OS Mainframe.md",
     "00 - System & AI/Multi-Provider AI Bridge & Ingestion.md",
     "00 - System & AI/UX & Domain Principles.md",
-    "LEGER_OS.canvas",
     "01 - Directives (SOPs)/01.02 - Paycheck Cycle Reconciliation SOP.md",
     "01 - Directives (SOPs)/01.01 - Statement Ingestion SOP.md",
     "01 - Directives (SOPs)/01.03 - Database Migrations & Schema Sync.md",
@@ -222,12 +230,7 @@
     "06 - Architecture & UI Components/DashboardView.tsx Reference.md",
     "06 - Architecture & UI Components/CategoriesView.tsx Reference.md",
     "06 - Architecture & UI Components/BudgetsView.tsx Reference.md",
-    "06 - Architecture & UI Components/AnalyticsView.tsx Reference.md",
-    "06 - Architecture & UI Components/06.00 - Frontend Architecture Index.md",
     "06 - Architecture & UI Components",
-    "00 - System & AI/Cycle Overrides Reference.md",
-    "00 - System & AI/AI Prompts & Rules.md",
-    "02 - Paycheck Cycles/2026-07 (DELOITTE Cycle).md",
     "07 - Templates",
     "06 - Dashboards & Kanbans",
     "03 - Accounts & Statements/Statements Archive",
