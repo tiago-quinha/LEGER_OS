@@ -16,6 +16,12 @@ Where:
 - $t_{\text{current}}$ is the current day of the cycle.
 - $t_i$ is the timestamp of transaction $i$.
 
+To prevent "zero-spend" days from crashing the projection artificially low on lumpy expense patterns (e.g. weekly grocery trips), the raw exponential decay burn is blended $50/50$ with the cycle's unweighted daily average burn ($v_{\text{unweighted}} = \frac{\text{unweighted variable spend}}{\text{days elapsed}}$):
+
+$$
+v_{\text{current}} = \frac{v_{\text{decay}} + v_{\text{unweighted}}}{2}
+$$
+
 ---
 
 ## 2. Heavy Current Cycle Alpha ($\alpha$)

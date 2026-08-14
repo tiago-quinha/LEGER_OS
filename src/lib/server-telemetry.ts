@@ -73,12 +73,23 @@ function simulateExpertDailyProjection(
 
   const unweightedVariableSpend = Math.max(0, currentActualOut - currentRecurringSpent)
   const standardDailyBurn = unweightedVariableSpend / effectiveElapsed
-  const currentDailyVariableBurn = totalDailyWeight > 0 ? (weightedDailySpend / totalDailyWeight) : standardDailyBurn
+  
+  const rawDecayBurn = totalDailyWeight > 0 ? (weightedDailySpend / totalDailyWeight) : standardDailyBurn
+  // Smooth the aggressive exponential decay with the unweighted average to handle lumpy spend (e.g. weekly groceries)
+  const currentDailyVariableBurn = (rawDecayBurn + standardDailyBurn) / 2
 
   const pastVariableTotal = pastExpenses
     .filter((e: any) => parseFloat(e.amount) < 0 && !recurringNames.has((e.merchant || "").trim().toUpperCase()))
     .reduce((sum: number, e: any) => sum + Math.abs(parseFloat(e.amount)), 0)
-  const histDaysCount = Math.max(30, totalDaysInCycle)
+    
+  let histDaysCount = Math.max(30, totalDaysInCycle)
+  if (pastExpenses.length > 0) {
+    const oldestDate = Math.min(...pastExpenses.map((e: any) => new Date(e.date).getTime()))
+    const newestDate = Math.max(...pastExpenses.map((e: any) => new Date(e.date).getTime()))
+    const spanDays = Math.max(30, (newestDate - oldestDate) / (1000 * 60 * 60 * 24))
+    histDaysCount = spanDays
+  }
+  
   const histDailyVariableBurn = pastExpenses.length > 0 ? (pastVariableTotal / histDaysCount) : (currentDailyVariableBurn || 20)
 
   const alpha = Math.min(1.0, 0.65 + 0.35 * (effectiveElapsed / totalDaysInCycle))

@@ -67,7 +67,8 @@ function simulateExpertDailyProjection(
   daysElapsed: number,
   totalDaysInCycle: number,
   overrides: any[] = [],
-  decayRate: number = 0.12
+  decayRate: number = 0.12,
+  targetMonthlySpend: number = 1500
 ) {
   // Use high-precision Automated Cadence Engine for recurring subscriptions & fixed bills
   const cadenceResult = detectRecurringCadence(pastExpenses, currentCycle?.startDate, currentCycle?.endDate);
@@ -133,13 +134,26 @@ function simulateExpertDailyProjection(
 
   const unweightedVariableSpend = Math.max(0, currentActualOut - currentRecurringSpent - currentAnomaliesSpent)
   const standardDailyBurn = unweightedVariableSpend / effectiveElapsed
-  const currentDailyVariableBurn = totalDailyWeight > 0 ? (weightedDailySpend / totalDailyWeight) : standardDailyBurn
+  
+  const rawDecayBurn = totalDailyWeight > 0 ? (weightedDailySpend / totalDailyWeight) : standardDailyBurn
+  // Smooth the aggressive exponential decay with the unweighted average to handle lumpy spend (e.g. weekly groceries)
+  const currentDailyVariableBurn = (rawDecayBurn + standardDailyBurn) / 2
 
   const pastVariableTotal = pastExpenses
     .filter((e: any) => parseFloat(e.amount) < 0 && !recurringNames.has((e.merchant || "").trim().toUpperCase()) && !e.is_anomaly)
     .reduce((sum: number, e: any) => sum + Math.abs(parseFloat(e.amount)), 0)
-  const histDaysCount = Math.max(30, totalDaysInCycle)
-  const histDailyVariableBurn = pastExpenses.length > 0 ? (pastVariableTotal / histDaysCount) : (currentDailyVariableBurn || 20)
+    
+  let histDaysCount = Math.max(30, totalDaysInCycle)
+  if (pastExpenses.length > 0) {
+    const oldestDate = Math.min(...pastExpenses.map((e: any) => new Date(e.date).getTime()))
+    const newestDate = Math.max(...pastExpenses.map((e: any) => new Date(e.date).getTime()))
+    const spanDays = Math.max(30, (newestDate - oldestDate) / (1000 * 60 * 60 * 24))
+    histDaysCount = spanDays
+  }
+  
+  // Use target monthly spend as a safety floor if there is no history, assuming ~50% is variable
+  const safeFallbackBurn = targetMonthlySpend ? (targetMonthlySpend * 0.5) / 30 : 20
+  const histDailyVariableBurn = pastExpenses.length > 0 ? (pastVariableTotal / histDaysCount) : (currentDailyVariableBurn > 0 ? currentDailyVariableBurn : safeFallbackBurn)
 
   // Heavily favor current cycle velocity (starts at 65% weight on day 1, approaching 100% by cycle end)
   const alpha = Math.min(1.0, 0.65 + 0.35 * (effectiveElapsed / totalDaysInCycle))
@@ -335,8 +349,8 @@ export function DashboardView({
   // Predictive Expert Data Analyst Daily Simulation
   const expertProjection = useMemo(() => {
     const past = allPastExpenses || previousExpenses || []
-    return simulateExpertDailyProjection(past, expenses, currentCycle, today, daysElapsed, totalDaysInCycle, overrides, decayWeight || 0.12)
-  }, [allPastExpenses, previousExpenses, expenses, currentCycle, today, daysElapsed, totalDaysInCycle, overrides, decayWeight])
+    return simulateExpertDailyProjection(past, expenses, currentCycle, today, daysElapsed, totalDaysInCycle, overrides, decayWeight || 0.12, targetMonthlySpend)
+  }, [allPastExpenses, previousExpenses, expenses, currentCycle, today, daysElapsed, totalDaysInCycle, overrides, decayWeight, targetMonthlySpend])
 
   const projectedTotalOut = useMemo(() => {
     if (!isCurrentCycle) return totalOut
