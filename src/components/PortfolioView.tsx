@@ -15,6 +15,7 @@ import { toast } from "sonner";
 import { useCycleSwipe } from "@/hooks/useCycleSwipe";
 import { CycleMobileBar } from "@/components/ui/cycle-mobile-bar";
 import { SwipeCycleWrapper } from "@/components/ui/swipe-cycle-wrapper";
+import type { Cycle } from "@/lib/cycles";
 import {
   TrendingUp,
   Coins,
@@ -770,7 +771,7 @@ export function PortfolioView({
         if (recordedSnap && recordedSnap.asset_breakdown?.[selectedChartMode]) {
           const catBreakdown = recordedSnap.asset_breakdown[selectedChartMode];
           val = catBreakdown.valuation || 0;
-          invested = catBreakdown.invested || 0;
+          invested = (catBreakdown as any).invested || 0;
         } else if (selectedChartMode === "cash_equivalent") {
           if (expenses && expenses.length > 0) {
             const sumTx = expenses
@@ -871,7 +872,12 @@ export function PortfolioView({
   }
 
   return (
-    <SwipeCycleWrapper onCycleChange={handleCycleSelect} isSwipeDisabled={false}>
+    <SwipeCycleWrapper
+      cycles={cycles}
+      currentCycleId={selectedCycleId}
+      route="/portfolio"
+      onCycleChange={handleCycleSelect}
+    >
       <div className="mx-auto max-w-[1500px] p-4 md:p-8 space-y-10 md:space-y-12 pb-36 md:pb-8 w-full">
       {/* 1. Header (Matching Dashboard Layout) */}
       <header className="flex flex-col md:flex-row md:items-center justify-between gap-6 md:gap-8 border-b border-foreground/10 pb-6 md:pb-8 relative">
