@@ -14,7 +14,7 @@ export default function AuthConfirmPage() {
   const router = useRouter()
 
   useEffect(() => {
-    toast.success("CRYPTO-ID VERIFIED: Welcome to LEGER_OS")
+    toast.success("Welcome to LEGER_OS")
   }, [])
 
   return (
@@ -31,10 +31,10 @@ export default function AuthConfirmPage() {
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2 font-mono text-[10px] text-muted-foreground uppercase tracking-widest">
               <Terminal className="h-3 w-3 text-emerald-600 dark:text-emerald-400" />
-              <span>SECURITY // PROTOCOL_01</span>
+              <span>Session Security Protocol</span>
             </div>
             <span className="text-[9px] font-mono font-bold uppercase tracking-wider text-muted-foreground bg-secondary/80 border border-border px-2 py-0.5">
-              VERIFIED LOGGED IN
+              Verified
             </span>
           </div>
 
@@ -43,10 +43,10 @@ export default function AuthConfirmPage() {
               <ShieldCheck className="h-8 w-8 text-emerald-600 dark:text-emerald-400" />
             </div>
             <CardTitle className="text-2xl font-mono font-bold tracking-tight uppercase">
-              ID VERIFIED // ACCESS AUTHORIZED
+              Account Confirmed
             </CardTitle>
             <CardDescription className="text-xs font-mono text-muted-foreground">
-              Your email address has been cryptographically confirmed. Your personal financial ledger workspace is synchronized and online.
+              Your email address has been verified. Your personal financial workspace is synchronized and ready.
             </CardDescription>
           </div>
         </CardHeader>
@@ -54,23 +54,23 @@ export default function AuthConfirmPage() {
         <CardContent className="pt-6 pb-8 space-y-6">
           <div className="p-4 bg-secondary/30 border border-border space-y-3 font-mono text-xs">
             <div className="flex items-center justify-between border-b border-border/50 pb-2">
-              <span className="text-muted-foreground">STATUS:</span>
-              <span className="font-bold text-emerald-600 dark:text-emerald-400">AUTHENTICATED</span>
+              <span className="text-muted-foreground">Status:</span>
+              <span className="font-bold text-emerald-600 dark:text-emerald-400">Authenticated</span>
             </div>
             <div className="flex items-center justify-between border-b border-border/50 pb-2">
-              <span className="text-muted-foreground">RLS POLICIES:</span>
-              <span className="font-bold">ACTIVE // ISOLATED</span>
+              <span className="text-muted-foreground">Data Privacy:</span>
+              <span className="font-bold">Active</span>
             </div>
             <div className="flex items-center justify-between">
-              <span className="text-muted-foreground">WORKSPACE:</span>
-              <span className="font-bold">READY</span>
+              <span className="text-muted-foreground">Workspace:</span>
+              <span className="font-bold">Ready</span>
             </div>
           </div>
 
           <Link href="/" className="block w-full">
             <MagneticButton 
               variant="default" 
-              className="w-full rounded-none font-mono text-xs uppercase tracking-widest py-6 bg-foreground text-background hover:opacity-90 transition-all flex items-center justify-center gap-2 group"
+              className="w-full rounded-none font-mono text-xs uppercase tracking-widest py-6 bg-foreground text-background hover:opacity-90 transition-all flex items-center justify-center gap-2 group cursor-pointer"
             >
               Enter LEGER_OS Dashboard
               <ArrowRight className="h-4 w-4 group-hover:translate-x-1 transition-transform" />
@@ -81,10 +81,10 @@ export default function AuthConfirmPage() {
 
       {/* Footer technical signature */}
       <div className="absolute bottom-6 left-6 font-mono text-[9px] text-muted-foreground uppercase tracking-widest pointer-events-none hidden sm:block">
-        SYS_ID: 884-TX // SECURE_AUTH
+        Secure Authentication
       </div>
       <div className="absolute bottom-6 right-6 font-mono text-[9px] text-muted-foreground uppercase tracking-widest pointer-events-none hidden sm:block">
-        STATUS: CONNECTED
+        Connected
       </div>
     </div>
   )

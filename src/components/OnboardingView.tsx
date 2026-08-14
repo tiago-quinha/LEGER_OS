@@ -958,7 +958,7 @@ export function OnboardingView() {
                         </div>
                         <div className="flex items-center gap-2">
                           <Check className="h-3.5 w-3.5 text-emerald-500 shrink-0" />
-                          <span className="text-foreground text-[11px] font-mono">Gemini AI Transaction & Merchant Extraction</span>
+                          <span className="text-foreground text-[11px] font-mono">AI Neural Ingestion & Categorization</span>
                         </div>
                         <div className="flex items-center gap-2">
                           <Check className="h-3.5 w-3.5 text-emerald-500 shrink-0" />

@@ -107,28 +107,38 @@ function simulateExpertDailyProjection(
   const effectiveElapsed = Math.max(1, Math.min(daysElapsed, totalDaysInCycle))
   const todayTime = today.getTime()
 
-  // Recency-weighted daily variable burn rate (adapts daily and expense-by-expense with half-life decay)
-  let weightedSpend = 0
-  let totalWeight = 0
+  // Recency-weighted daily variable burn rate (aggregated by day offset, adapting with exponential decay half-life)
+  const dailyVariableMap = new Map<number, number>()
+  for (let d = 0; d <= effectiveElapsed; d++) {
+    dailyVariableMap.set(d, 0)
+  }
   currentExpenses.forEach((e: any) => {
     const amt = parseFloat(e.amount)
     if (amt < 0 && new Date(e.date) <= today && !recurringNames.has((e.merchant || "").trim().toUpperCase()) && !e.is_anomaly) {
       const daysAgo = Math.floor(Math.max(0, (todayTime - new Date(e.date).getTime()) / (1000 * 60 * 60 * 24)))
       if (daysAgo <= effectiveElapsed) {
-        const w = Math.exp(-decayRate * daysAgo) // Lambda decayRate = user configured decay weighting
-        weightedSpend += Math.abs(amt) * w
-        totalWeight += w
+        dailyVariableMap.set(daysAgo, (dailyVariableMap.get(daysAgo) || 0) + Math.abs(amt))
       }
     }
   })
+
+  let weightedDailySpend = 0
+  let totalDailyWeight = 0
+  dailyVariableMap.forEach((dailyTotal, daysAgo) => {
+    const w = Math.exp(-decayRate * daysAgo)
+    weightedDailySpend += dailyTotal * w
+    totalDailyWeight += w
+  })
+
   const unweightedVariableSpend = Math.max(0, currentActualOut - currentRecurringSpent - currentAnomaliesSpent)
   const standardDailyBurn = unweightedVariableSpend / effectiveElapsed
-  const currentDailyVariableBurn = totalWeight > 0 ? (weightedSpend / totalWeight) : standardDailyBurn
+  const currentDailyVariableBurn = totalDailyWeight > 0 ? (weightedDailySpend / totalDailyWeight) : standardDailyBurn
 
   const pastVariableTotal = pastExpenses
     .filter((e: any) => parseFloat(e.amount) < 0 && !recurringNames.has((e.merchant || "").trim().toUpperCase()) && !e.is_anomaly)
     .reduce((sum: number, e: any) => sum + Math.abs(parseFloat(e.amount)), 0)
-  const histDailyVariableBurn = pastExpenses.length > 0 ? (pastVariableTotal / Math.max(1, pastExpenses.length)) * 1.5 : currentDailyVariableBurn || 20
+  const histDaysCount = Math.max(30, totalDaysInCycle)
+  const histDailyVariableBurn = pastExpenses.length > 0 ? (pastVariableTotal / histDaysCount) : (currentDailyVariableBurn || 20)
 
   // Heavily favor current cycle velocity (starts at 65% weight on day 1, approaching 100% by cycle end)
   const alpha = Math.min(1.0, 0.65 + 0.35 * (effectiveElapsed / totalDaysInCycle))
@@ -145,58 +155,44 @@ function simulateExpertDailyProjection(
         let catWeightedSpend = 0
         let catTotalWeight = 0
         currentExpenses.forEach((e: any) => {
-          const amt = parseFloat(e.amount)
-          if (amt < 0 && new Date(e.date) <= today && (ov.categoryId ? e.category_id?.toString() === ov.categoryId?.toString() : true)) {
+          if (parseFloat(e.amount) < 0 && new Date(e.date) <= today && (!ov.categoryId || e.category_id === ov.categoryId)) {
             const daysAgo = Math.floor(Math.max(0, (todayTime - new Date(e.date).getTime()) / (1000 * 60 * 60 * 24)))
             if (daysAgo <= effectiveElapsed) {
               const w = Math.exp(-decayRate * daysAgo)
-              catWeightedSpend += Math.abs(amt) * w
+              catWeightedSpend += Math.abs(parseFloat(e.amount)) * w
               catTotalWeight += w
             }
           }
         })
-        const catSpentCurrent = currentExpenses
-          .filter((e: any) => new Date(e.date) <= today && parseFloat(e.amount) < 0 && (ov.categoryId ? e.category_id?.toString() === ov.categoryId?.toString() : true))
-          .reduce((sum: number, e: any) => sum + Math.abs(parseFloat(e.amount)), 0)
-        const catDailyCurrent = catTotalWeight > 0 ? (catWeightedSpend / catTotalWeight) : (catSpentCurrent / effectiveElapsed)
-
-        const catSpentPast = pastExpenses
-          .filter((e: any) => parseFloat(e.amount) < 0 && (ov.categoryId ? e.category_id?.toString() === ov.categoryId?.toString() : true))
-          .reduce((sum: number, e: any) => sum + Math.abs(parseFloat(e.amount)), 0)
-        const catDailyPast = pastExpenses.length > 0 ? (catSpentPast / Math.max(1, pastExpenses.length)) * 1.5 : catDailyCurrent || 5
-        const catBlendedBurn = alpha * catDailyCurrent + (1 - alpha) * catDailyPast
-        
-        dailyBurnAdjustment += catBlendedBurn * (ov.multiplier - 1.0)
+        const catDailyBurn = catTotalWeight > 0 ? (catWeightedSpend / catTotalWeight) : 0
+        dailyBurnAdjustment += (catDailyBurn * ov.multiplier) - catDailyBurn
       }
     })
   }
 
-  const dailySpend = new Array(totalDaysInCycle + 1).fill(0)
-  const dailySpendOptimistic = new Array(totalDaysInCycle + 1).fill(0)
-  const dailySpendPessimistic = new Array(totalDaysInCycle + 1).fill(0)
-  const dailyInflow = new Array(totalDaysInCycle + 1).fill(0)
-  const startDate = new Date(currentCycle.startDate)
   const remainingDays = Math.max(1, totalDaysInCycle - daysElapsed)
   const dailyFixedDelta = totalFixedDelta / remainingDays
 
-  for (let i = 0; i <= totalDaysInCycle; i++) {
-    const d = new Date(startDate)
-    d.setDate(d.getDate() + i)
-    const isSameDay = d.toDateString() === today.toDateString()
-    const isPastDay = d < today && !isSameDay
+  const dailySpend: number[] = []
+  const dailySpendOptimistic: number[] = []
+  const dailySpendPessimistic: number[] = []
+  const dailyInflow: number[] = []
 
-    if (isPastDay || isSameDay) {
-      const dEnd = new Date(d)
-      dEnd.setHours(23, 59, 59, 999)
-      const actualOut = currentExpenses
-        .filter((e: any) => new Date(e.date) <= dEnd && parseFloat(e.amount) < 0)
+  // Simulate every day in the cycle
+  for (let i = 0; i <= totalDaysInCycle; i++) {
+    const d = new Date(currentCycle.startDate)
+    d.setDate(d.getDate() + i)
+
+    if (i <= daysElapsed && d <= today) {
+      dailySpend[i] = currentExpenses
+        .filter((e: any) => new Date(e.date) <= d && parseFloat(e.amount) < 0)
         .reduce((sum: number, e: any) => sum + Math.abs(parseFloat(e.amount)), 0)
-      dailySpend[i] = actualOut
-      dailySpendOptimistic[i] = actualOut
-      dailySpendPessimistic[i] = actualOut
       
+      dailySpendOptimistic[i] = dailySpend[i]
+      dailySpendPessimistic[i] = dailySpend[i]
+
       dailyInflow[i] = currentExpenses
-        .filter((e: any) => new Date(e.date) <= dEnd && parseFloat(e.amount) > 0)
+        .filter((e: any) => new Date(e.date) <= d && parseFloat(e.amount) > 0)
         .reduce((sum: number, e: any) => sum + parseFloat(e.amount), 0)
     } else {
       const prevSpend = i > 0 ? dailySpend[i - 1] : currentActualOut
@@ -205,8 +201,9 @@ function simulateExpertDailyProjection(
       const prevInflow = i > 0 ? dailyInflow[i - 1] : currentActualIn
 
       let billsDueToday = 0
+      const currentCalDay = d.getDate()
       recurringMerchants.forEach(rm => {
-        if (rm.expectedDay === i && rm.expectedDay > daysElapsed) {
+        if (rm.expectedDay === currentCalDay) {
           billsDueToday += rm.amount
         }
       })

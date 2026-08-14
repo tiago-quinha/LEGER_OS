@@ -48,28 +48,38 @@ function simulateExpertDailyProjection(
   const effectiveElapsed = Math.max(1, Math.min(daysElapsed, totalDaysInCycle))
   const todayTime = today.getTime()
 
-  // Recency-weighted daily variable burn rate
-  let weightedSpend = 0
-  let totalWeight = 0
+  // Recency-weighted daily variable burn rate (aggregated by day offset, adapting with exponential decay half-life)
+  const dailyVariableMap = new Map<number, number>()
+  for (let d = 0; d <= effectiveElapsed; d++) {
+    dailyVariableMap.set(d, 0)
+  }
   currentExpenses.forEach((e: any) => {
     const amt = parseFloat(e.amount)
-    if (amt < 0 && new Date(e.date) <= today && !recurringNames.has((e.merchant || "").trim().toUpperCase())) {
+    if (amt < 0 && new Date(e.date) <= today && !recurringNames.has((e.merchant || "").trim().toUpperCase()) && !e.is_anomaly) {
       const daysAgo = Math.floor(Math.max(0, (todayTime - new Date(e.date).getTime()) / (1000 * 60 * 60 * 24)))
       if (daysAgo <= effectiveElapsed) {
-        const w = Math.exp(-decayRate * daysAgo)
-        weightedSpend += Math.abs(amt) * w
-        totalWeight += w
+        dailyVariableMap.set(daysAgo, (dailyVariableMap.get(daysAgo) || 0) + Math.abs(amt))
       }
     }
   })
+
+  let weightedDailySpend = 0
+  let totalDailyWeight = 0
+  dailyVariableMap.forEach((dailyTotal, daysAgo) => {
+    const w = Math.exp(-decayRate * daysAgo)
+    weightedDailySpend += dailyTotal * w
+    totalDailyWeight += w
+  })
+
   const unweightedVariableSpend = Math.max(0, currentActualOut - currentRecurringSpent)
   const standardDailyBurn = unweightedVariableSpend / effectiveElapsed
-  const currentDailyVariableBurn = totalWeight > 0 ? (weightedSpend / totalWeight) : standardDailyBurn
+  const currentDailyVariableBurn = totalDailyWeight > 0 ? (weightedDailySpend / totalDailyWeight) : standardDailyBurn
 
   const pastVariableTotal = pastExpenses
     .filter((e: any) => parseFloat(e.amount) < 0 && !recurringNames.has((e.merchant || "").trim().toUpperCase()))
     .reduce((sum: number, e: any) => sum + Math.abs(parseFloat(e.amount)), 0)
-  const histDailyVariableBurn = pastExpenses.length > 0 ? (pastVariableTotal / Math.max(1, pastExpenses.length)) * 1.5 : currentDailyVariableBurn || 20
+  const histDaysCount = Math.max(30, totalDaysInCycle)
+  const histDailyVariableBurn = pastExpenses.length > 0 ? (pastVariableTotal / histDaysCount) : (currentDailyVariableBurn || 20)
 
   const alpha = Math.min(1.0, 0.65 + 0.35 * (effectiveElapsed / totalDaysInCycle))
   const blendedDailyBurn = alpha * currentDailyVariableBurn + (1 - alpha) * histDailyVariableBurn
@@ -95,18 +105,8 @@ function simulateExpertDailyProjection(
             }
           }
         })
-        const catSpentCurrent = currentExpenses
-          .filter((e: any) => new Date(e.date) <= today && parseFloat(e.amount) < 0 && (ov.categoryId ? e.category_id === ov.categoryId : true))
-          .reduce((sum: number, e: any) => sum + Math.abs(parseFloat(e.amount)), 0)
-        const catDailyCurrent = catTotalWeight > 0 ? (catWeightedSpend / catTotalWeight) : (catSpentCurrent / effectiveElapsed)
-
-        const catSpentPast = pastExpenses
-          .filter((e: any) => parseFloat(e.amount) < 0 && (ov.categoryId ? e.category_id === ov.categoryId : true))
-          .reduce((sum: number, e: any) => sum + Math.abs(parseFloat(e.amount)), 0)
-        const catDailyPast = pastExpenses.length > 0 ? (catSpentPast / Math.max(1, pastExpenses.length)) * 1.5 : catDailyCurrent || 5
-        const catBlendedBurn = alpha * catDailyCurrent + (1 - alpha) * catDailyPast
-        
-        dailyBurnAdjustment += catBlendedBurn * (ov.multiplier - 1.0)
+        const catDailyBurn = catTotalWeight > 0 ? (catWeightedSpend / catTotalWeight) : 0
+        dailyBurnAdjustment += (catDailyBurn * ov.multiplier) - catDailyBurn
       }
     })
   }
@@ -145,8 +145,9 @@ function simulateExpertDailyProjection(
       const prevInflow = i > 0 ? dailyInflow[i - 1] : currentActualIn
 
       let billsDueToday = 0
+      const currentCalDay = d.getDate()
       recurringMerchants.forEach(rm => {
-        if (rm.expectedDay === i && rm.expectedDay > daysElapsed) {
+        if (rm.expectedDay === currentCalDay) {
           billsDueToday += rm.amount
         }
       })

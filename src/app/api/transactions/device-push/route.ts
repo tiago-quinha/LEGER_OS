@@ -164,7 +164,7 @@ export async function POST(request: Request) {
     if (!resolvedCategoryId) {
       // Check user merchant rules
       const { data: rules } = await supabaseAdmin
-        .from("rules")
+        .from("merchant_rules")
         .select("keyword, category_id")
         .eq("user_id", userId)
 
@@ -195,8 +195,29 @@ export async function POST(request: Request) {
       }
     }
 
-    // 6. Record Transaction to Supabase
+    // 6. Deduplication Check (within 3-minute window)
     const txDate = customDate ? new Date(customDate).toISOString() : new Date().toISOString()
+    const windowStart = new Date(Date.now() - 3 * 60 * 1000).toISOString()
+    
+    const { data: duplicateTx } = await supabaseAdmin
+      .from("tracker_expense")
+      .select("id, amount, merchant, date")
+      .eq("user_id", userId)
+      .eq("merchant", finalMerchant)
+      .eq("amount", finalAmount)
+      .gte("created_at", windowStart)
+      .limit(1)
+
+    if (duplicateTx && duplicateTx.length > 0) {
+      return NextResponse.json({
+        success: true,
+        deduplicated: true,
+        message: "Transaction already processed within deduplication window",
+        transaction: duplicateTx[0]
+      })
+    }
+
+    // 7. Record Transaction to Supabase
     const isIncome = finalAmount > 0
 
     const { data: insertedTx, error: insertErr } = await supabaseAdmin

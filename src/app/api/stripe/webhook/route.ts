@@ -14,9 +14,12 @@ export async function POST(request: Request) {
     const webhookSecret = process.env.STRIPE_WEBHOOK_SECRET
     if (webhookSecret && signature) {
       event = stripe.webhooks.constructEvent(body, signature, webhookSecret)
-    } else {
-      // Allow unverified events in local dev if secret is not set
+    } else if (process.env.NODE_ENV !== "production") {
+      // Allow unverified events ONLY in non-production local development
       event = JSON.parse(body) as Stripe.Event
+    } else {
+      console.error("Missing STRIPE_WEBHOOK_SECRET or stripe-signature in production")
+      return NextResponse.json({ error: "Missing webhook signature or secret" }, { status: 400 })
     }
   } catch (err: any) {
     console.error(`Webhook Signature Verification Failed: ${err.message}`)
