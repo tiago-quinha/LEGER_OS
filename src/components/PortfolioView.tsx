@@ -1,6 +1,7 @@
 "use client";
 
-import React, { useState, useEffect, useMemo } from "react";
+import { useState, useEffect, useMemo, useCallback, useTransition } from "react";
+import { useRouter } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
 import { useSystem } from "@/lib/SystemContext";
 import { PrivacyValue } from "@/components/ui/privacy-value";
@@ -9,7 +10,11 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Skeleton } from "@/components/ui/skeleton";
+import PortfolioLoading from "@/app/portfolio/loading";
 import { toast } from "sonner";
+import { useCycleSwipe } from "@/hooks/useCycleSwipe";
+import { CycleMobileBar } from "@/components/ui/cycle-mobile-bar";
+import { SwipeCycleWrapper } from "@/components/ui/swipe-cycle-wrapper";
 import {
   TrendingUp,
   Coins,
@@ -22,6 +27,8 @@ import {
   Edit2,
   X,
   AlertTriangle,
+  ChevronLeft,
+  ChevronRight,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Tilt } from "@/components/unlumen-ui/tilt";
@@ -144,6 +151,49 @@ function format2Decimals(num: number): string {
   });
 }
 
+function formatSmartPrice(num: number): string {
+  if (isNaN(num) || num === 0) return "0.00";
+  const abs = Math.abs(num);
+  if (abs < 0.0001) {
+    return num.toLocaleString("en-US", {
+      minimumFractionDigits: 6,
+      maximumFractionDigits: 8,
+    });
+  }
+  if (abs < 0.01) {
+    return num.toLocaleString("en-US", {
+      minimumFractionDigits: 4,
+      maximumFractionDigits: 6,
+    });
+  }
+  if (abs < 1) {
+    return num.toLocaleString("en-US", {
+      minimumFractionDigits: 2,
+      maximumFractionDigits: 4,
+    });
+  }
+  return num.toLocaleString("en-US", {
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
+  });
+}
+
+function formatSmartQuantity(num: number): string {
+  if (isNaN(num)) return "0";
+  if (Number.isInteger(num)) return num.toLocaleString("en-US");
+  return num.toLocaleString("en-US", {
+    maximumFractionDigits: 8,
+  });
+}
+
+function getRawPriceString(num: number): string {
+  if (isNaN(num) || num === 0) return "";
+  if (num < 0.01) {
+    return num.toFixed(8).replace(/\.?0+$/, "");
+  }
+  return num.toFixed(2);
+}
+
 const PRELOADED_ICONS: Record<string, string> = {
   BTC: "https://raw.githubusercontent.com/spothq/cryptocurrency-icons/master/svg/color/btc.svg",
   ETH: "https://raw.githubusercontent.com/spothq/cryptocurrency-icons/master/svg/color/eth.svg",
@@ -235,29 +285,77 @@ function CustomPortfolioTooltip({ active, payload, label, formatCurrency }: any)
   return null;
 }
 
-export function PortfolioView() {
+interface PortfolioViewProps {
+  cycles?: Cycle[];
+  currentCycleId?: string;
+  initialAssets?: PortfolioAsset[];
+  initialLiquidBalance?: number;
+  expenses?: any[];
+  injectedStartBalance?: number;
+}
+
+export function PortfolioView({
+  cycles = [],
+  currentCycleId,
+  initialAssets = [],
+  initialLiquidBalance = 0,
+  expenses = [],
+  injectedStartBalance = 0,
+}: PortfolioViewProps) {
+  const router = useRouter();
   const { formatCurrency, currencySymbol, isPro } = useSystem();
 
-  const [assets, setAssets] = useState<PortfolioAsset[]>([]);
+  const [isPending, startTransition] = useTransition();
+  const [selectedCycleId, setSelectedCycleId] = useState<string>(currentCycleId || cycles[0]?.id || "");
+
+  useEffect(() => {
+    if (currentCycleId) {
+      setSelectedCycleId(currentCycleId);
+    }
+  }, [currentCycleId]);
+
+  const currentCycle = cycles.find((c) => c.id === selectedCycleId) || cycles[0];
+  const currentIndex = cycles.findIndex((c) => c.id === (currentCycle?.id || ""));
+
+  const handleCycleSelect = (newCycleId: string) => {
+    setSelectedCycleId(newCycleId);
+    startTransition(() => {
+      router.replace(`/portfolio?cycleId=${newCycleId}`, { scroll: false });
+    });
+  };
+
+  const navigateCycle = (direction: "prev" | "next") => {
+    const nextIndex = direction === "prev" ? currentIndex + 1 : currentIndex - 1;
+    if (cycles[nextIndex]) {
+      handleCycleSelect(cycles[nextIndex].id);
+    }
+  };
+
+  useCycleSwipe({
+    cycles,
+    currentCycleId: selectedCycleId,
+    route: "/portfolio",
+    onCycleChange: handleCycleSelect,
+  });
+
+  const [assets, setAssets] = useState<PortfolioAsset[]>(initialAssets);
   const [snapshots, setSnapshots] = useState<PortfolioSnapshot[]>([]);
-  const [liquidBalance, setLiquidBalance] = useState<number>(0);
-  const [loading, setLoading] = useState(true);
+  const [liquidBalance, setLiquidBalance] = useState<number>(initialLiquidBalance);
+  const [loading, setLoading] = useState(false);
   const [refreshingPrices, setRefreshingPrices] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
   const [activeTab, setActiveTab] = useState<string>("all");
   const [expandedAssetId, setExpandedAssetId] = useState<string | null>(null);
 
-  // Modal State
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
   const [editingAsset, setEditingAsset] = useState<PortfolioAsset | null>(null);
   const [deletingId, setDeletingId] = useState<string | null>(null);
   const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
   const [deleteTargetId, setDeleteTargetId] = useState<string | null>(null);
   const [presetSearch, setPresetSearch] = useState("");
-  const [selectedPresetId, setSelectedPresetId] = useState<string | null>(null); // Start with NONE selected
+  const [selectedPresetId, setSelectedPresetId] = useState<string | null>(null);
   const [isCustomMode, setIsCustomMode] = useState(false);
 
-  // Form State
   const [formData, setFormData] = useState({
     asset_name: "",
     symbol: "",
@@ -270,10 +368,8 @@ export function PortfolioView() {
   });
   const [formSubmitting, setFormSubmitting] = useState(false);
 
-  // Fetch Data
-  const fetchData = async () => {
+  const fetchPortfolioData = useCallback(async () => {
     try {
-      setLoading(true);
       const [assetsRes, snapshotsRes] = await Promise.all([
         fetch("/api/portfolio/assets"),
         fetch("/api/portfolio/snapshots"),
@@ -282,57 +378,63 @@ export function PortfolioView() {
       if (assetsRes.ok) {
         const data = await assetsRes.json();
         setAssets(data.assets || []);
-        if (typeof data.liquidBalance === "number") {
+        if (typeof data.liquidBalance === "number" && data.liquidBalance > 0) {
           setLiquidBalance(data.liquidBalance);
         }
       }
 
       if (snapshotsRes.ok) {
-        const snapData = await snapshotsRes.json();
-        const snaps = snapData.snapshots || [];
-        setSnapshots(snaps);
-        if (snaps.length > 0 && snaps[snaps.length - 1]?.liquid_cash) {
-          setLiquidBalance(Number(snaps[snaps.length - 1].liquid_cash));
-        }
+        const data = await snapshotsRes.json();
+        setSnapshots(data.snapshots || []);
       }
     } catch (err) {
       console.error("Failed to load portfolio data:", err);
-      toast.error("Failed to load holdings.");
     } finally {
       setLoading(false);
     }
-  };
-
-  useEffect(() => {
-    fetchData();
-    // Silent automatic background price sync on page load (updates stale prices >1hr old)
-    fetch("/api/portfolio/market-data", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ force: false }),
-    }).then((res) => {
-      if (res.ok) {
-        fetchData();
-      }
-    }).catch(() => {});
   }, []);
 
-  // Open Add Drawer Modal (Start with NONE selected)
-  const handleOpenAddModal = () => {
-    if (!isPro && assets.length >= 15) {
-      toast.error("Core Free tier is limited to 15 assets. Upgrade to LEGER_OS PRO for unlimited asset tracking.");
-      return;
+  useEffect(() => {
+    fetchPortfolioData();
+  }, [fetchPortfolioData]);
+
+  const handleRefreshMarketPrices = async () => {
+    try {
+      setRefreshingPrices(true);
+      const res = await fetch("/api/portfolio/market-data", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ force: true }),
+      });
+
+      if (!res.ok) {
+        const errData = await res.json();
+        if (res.status === 429) {
+          toast.info(errData.error || "Prices are updated. Please wait a moment before refreshing again.");
+          return;
+        }
+        throw new Error(errData.error || "Failed to update market prices.");
+      }
+
+      const data = await res.json();
+      toast.success(data.message || `Updated live market prices for ${data.updatedCount || 0} assets.`);
+      fetchPortfolioData();
+    } catch (err: any) {
+      toast.error(err.message || "Failed to refresh market prices.");
+    } finally {
+      setRefreshingPrices(false);
     }
+  };
+
+  const handleOpenAddModal = () => {
     setEditingAsset(null);
-    setPresetSearch("");
+    setSelectedPresetId(null);
     setIsCustomMode(false);
-    setSelectedPresetId(null); // Start with NONE selected
-    
     setFormData({
       asset_name: "",
       symbol: "",
       asset_type: "stock_etf",
-      quantity: "1",
+      quantity: "",
       buy_price: "",
       current_price: "",
       institution: "",
@@ -341,23 +443,21 @@ export function PortfolioView() {
     setIsAddModalOpen(true);
   };
 
-  // Select Popular Preset Card
   const handleSelectPresetCard = (preset: PopularAssetPreset) => {
     setSelectedPresetId(preset.id);
     setIsCustomMode(false);
-    const estPriceStr = preset.estPrice.toFixed(2);
+    const estPriceStr = getRawPriceString(preset.estPrice);
     setFormData((prev) => ({
       ...prev,
       asset_name: preset.name,
       symbol: preset.symbol,
       asset_type: preset.type,
-      quantity: "1",
+      quantity: preset.symbol === "SHIB" ? "1000000" : "1",
       buy_price: estPriceStr,
       current_price: estPriceStr,
     }));
   };
 
-  // Switch to Custom Asset Entry
   const handleSelectCustomMode = () => {
     setIsCustomMode(true);
     setSelectedPresetId("custom");
@@ -373,7 +473,6 @@ export function PortfolioView() {
     });
   };
 
-  // Quick Quantity Step
   const handleStepQuantity = (delta: number) => {
     const cleanQtyStr = formData.quantity.replace(/,/g, "");
     const current = parseFloat(cleanQtyStr) || 0;
@@ -382,7 +481,6 @@ export function PortfolioView() {
     setFormData((prev) => ({ ...prev, quantity: valStr }));
   };
 
-  // Open Edit Drawer Modal
   const handleOpenEditModal = (asset: PortfolioAsset) => {
     setEditingAsset(asset);
     setIsCustomMode(true);
@@ -391,15 +489,14 @@ export function PortfolioView() {
       symbol: asset.symbol || "",
       asset_type: asset.asset_type,
       quantity: asset.quantity.toString(),
-      buy_price: format2Decimals(asset.buy_price),
-      current_price: format2Decimals(asset.current_price),
+      buy_price: getRawPriceString(asset.buy_price),
+      current_price: getRawPriceString(asset.current_price),
       institution: asset.institution || "",
       notes: asset.notes || "",
     });
     setIsAddModalOpen(true);
   };
 
-  // Form Submit
   const handleFormSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!formData.asset_name.trim()) {
@@ -407,37 +504,61 @@ export function PortfolioView() {
       return;
     }
     const qty = parseFloat(formData.quantity.replace(/,/g, ""));
-    const buyPrice = parseFloat(formData.buy_price.replace(/,/g, ""));
+    const buyP = parseFloat(formData.buy_price.replace(/,/g, ""));
+    const currP = formData.current_price ? parseFloat(formData.current_price.replace(/,/g, "")) : buyP;
+
     if (isNaN(qty) || qty <= 0) {
       toast.error("Quantity must be greater than zero.");
       return;
     }
-    if (isNaN(buyPrice) || buyPrice < 0) {
-      toast.error("Buy price must be a valid number.");
+    if (isNaN(buyP) || buyP < 0) {
+      toast.error("Please enter a valid buy price.");
       return;
     }
 
     try {
       setFormSubmitting(true);
-      const isEditing = !!editingAsset;
-      const method = isEditing ? "PATCH" : "POST";
-      const payload = isEditing ? { id: editingAsset.id, ...formData } : formData;
+      const payload = {
+        asset_name: formData.asset_name.trim(),
+        symbol: formData.symbol ? formData.symbol.trim().toUpperCase() : null,
+        asset_type: formData.asset_type,
+        quantity: qty,
+        buy_price: buyP,
+        current_price: isNaN(currP) ? buyP : currP,
+        institution: formData.institution ? formData.institution.trim() : null,
+        notes: formData.notes ? formData.notes.trim() : null,
+      };
 
-      const res = await fetch("/api/portfolio/assets", {
-        method,
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(payload),
-      });
-
-      const data = await res.json();
-      if (!res.ok) {
-        toast.error(data.error || "Failed to save asset.");
-        return;
+      if (editingAsset) {
+        const res = await fetch("/api/portfolio/assets", {
+          method: "PUT",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ id: editingAsset.id, ...payload }),
+        });
+        if (!res.ok) {
+          const errData = await res.json();
+          throw new Error(errData.error || "Failed to update asset.");
+        }
+        const data = await res.json();
+        toast.success("Position updated.");
+        setAssets((prev) => prev.map((a) => (a.id === editingAsset.id ? data.asset : a)));
+      } else {
+        const res = await fetch("/api/portfolio/assets", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(payload),
+        });
+        if (!res.ok) {
+          const errData = await res.json();
+          throw new Error(errData.error || "Failed to add asset.");
+        }
+        const data = await res.json();
+        toast.success("Position recorded in portfolio.");
+        setAssets((prev) => [data.asset, ...prev]);
       }
 
-      toast.success(isEditing ? "Asset updated." : "Asset position added.");
       setIsAddModalOpen(false);
-      await fetchData();
+      setEditingAsset(null);
       fetch("/api/portfolio/snapshots", { method: "POST" });
     } catch (err: any) {
       toast.error(err.message || "Failed to save asset.");
@@ -446,27 +567,34 @@ export function PortfolioView() {
     }
   };
 
-  // Delete Asset
   const handleDeleteAsset = async (id: string) => {
     try {
       setDeletingId(id);
+      // Optimistic instant state update
+      setAssets((prev) => prev.filter((a) => a.id !== id));
+      if (selectedChartMode === id) {
+        setSelectedChartMode("all");
+      }
+      setDeleteConfirmOpen(false);
+      setDeleteTargetId(null);
+
       const res = await fetch(`/api/portfolio/assets?id=${id}`, { method: "DELETE" });
       if (!res.ok) {
         const data = await res.json();
         toast.error(data.error || "Failed to delete asset.");
+        fetchPortfolioData();
         return;
       }
       toast.success("Asset removed.");
-      setAssets((prev) => prev.filter((a) => a.id !== id));
       fetch("/api/portfolio/snapshots", { method: "POST" });
     } catch (err: any) {
       toast.error(err.message || "Failed to delete asset.");
+      fetchPortfolioData();
     } finally {
       setDeletingId(null);
     }
   };
 
-  // Financial Metrics
   const metrics = useMemo(() => {
     let totalInvested = 0;
     let totalValuation = 0;
@@ -491,7 +619,6 @@ export function PortfolioView() {
       totalInvested += invested;
       totalValuation += valuation;
 
-      // 24h Change calculation from asset metadata
       const change24hPct = Number(asset.metadata?.change24h || 0);
       if (change24hPct !== 0) {
         const prevPrice = curr / (1 + change24hPct / 100);
@@ -502,19 +629,6 @@ export function PortfolioView() {
       breakdown[type] = (breakdown[type] || 0) + valuation;
     });
 
-    // Fallback to 24h snapshot delta if metadata is unpopulated
-    if (total24hChange === 0 && snapshots.length >= 2) {
-      const latestSnap = snapshots[0];
-      const yesterdaySnap = snapshots.find((s) => {
-        const d = new Date(s.snapshot_date).getTime();
-        return Date.now() - d >= 20 * 3600 * 1000;
-      }) || snapshots[1];
-
-      if (latestSnap && yesterdaySnap) {
-        total24hChange = latestSnap.total_net_worth - yesterdaySnap.total_net_worth;
-      }
-    }
-
     const total24hChangePct =
       totalValuation > 0 && totalValuation - total24hChange > 0
         ? (total24hChange / (totalValuation - total24hChange)) * 100
@@ -524,6 +638,8 @@ export function PortfolioView() {
     const totalPnLPercent = totalInvested > 0 ? (totalPnL / totalInvested) * 100 : 0;
     const totalNetWorth = liquidBalance + totalValuation;
 
+    const isCurrentCycle = !currentCycle || currentIndex === 0;
+
     return {
       totalInvested,
       totalValuation,
@@ -532,16 +648,19 @@ export function PortfolioView() {
       totalNetWorth,
       total24hChange,
       total24hChangePct,
+      displayNetWorth: totalNetWorth,
+      displayValuation: totalValuation,
+      displayChange: total24hChange,
+      displayChangePct: total24hChangePct,
+      isCurrentCycle,
       breakdown,
     };
-  }, [assets, snapshots, liquidBalance]);
+  }, [assets, liquidBalance, currentCycle, currentIndex]);
 
   const [selectedChartMode, setSelectedChartMode] = useState<string>("all");
 
-  // Chart Data memo: handles ALL ASSETS, category types, or individual assets by ID
+  // Chart Data memo: exact day-by-day trajectory reflecting asset purchase dates + future dashed separation
   const chartData = useMemo(() => {
-    const hasSnapshots = snapshots && snapshots.length > 0;
-
     const formatChartDate = (dateStr: string) => {
       if (!dateStr) return "";
       const d = new Date(dateStr);
@@ -549,104 +668,181 @@ export function PortfolioView() {
       return d.toLocaleDateString("en-GB", { day: "2-digit", month: "short" });
     };
 
+    const startD = currentCycle ? new Date(currentCycle.startDate) : new Date(Date.now() - 29 * 86400000);
+    const endD = currentCycle && currentCycle.endDate ? new Date(currentCycle.endDate) : new Date(startD.getTime() + 30 * 86400000);
+    
+    const diffDays = Math.round((endD.getTime() - startD.getTime()) / (1000 * 3600 * 24));
+    const cycleDaysCount = Math.max(30, Math.min(60, diffDays + 1));
+    const todayStr = new Date().toISOString().split("T")[0];
+
+    const snapMap = new Map<string, PortfolioSnapshot>();
+    (snapshots || []).forEach((s) => {
+      if (s.snapshot_date) {
+        snapMap.set(s.snapshot_date.split("T")[0], s);
+      }
+    });
+
     if (selectedChartMode === "all") {
-      if (hasSnapshots) {
-        return snapshots.map((s) => ({
-          date: s.snapshot_date,
-          dateLabel: formatChartDate(s.snapshot_date),
-          valuation: s.total_net_worth || 0,
-          invested: s.invested_capital || 0,
-          gainLoss: s.total_gain_loss || 0,
-        }));
-      } else {
-        const today = new Date();
-        const netWorth = metrics.totalNetWorth || 0;
-        return Array.from({ length: 30 }).map((_, i) => {
-          const d = new Date(today);
-          d.setDate(d.getDate() - (29 - i));
-          const dateStr = d.toISOString().split("T")[0];
-          const progress = i / 29;
-          const startVal = netWorth > 0 ? netWorth * 0.92 : 0;
-          const currentVal = netWorth > 0 ? startVal + (netWorth - startVal) * progress : 0;
-          return {
-            date: dateStr,
-            dateLabel: formatChartDate(dateStr),
-            valuation: parseFloat(currentVal.toFixed(2)),
-            invested: parseFloat((metrics.totalInvested || 0).toFixed(2)),
-            gainLoss: parseFloat((currentVal - (metrics.totalInvested || 0)).toFixed(2)),
-          };
-        });
-      }
-    } else if (["stock_etf", "crypto", "commodity", "cash_equivalent"].includes(selectedChartMode)) {
-      const categoryAssets = assets.filter((a) => a.asset_type === selectedChartMode);
-      const categoryInvested = categoryAssets.reduce((sum, a) => sum + (a.quantity || 0) * (a.buy_price || 0), 0);
-      const categoryValuation = categoryAssets.reduce((sum, a) => sum + (a.quantity || 0) * (a.current_price || a.buy_price || 0), 0);
-
-      if (hasSnapshots) {
-        return snapshots.map((s) => {
-          const typeBreakdown = s.asset_breakdown?.[selectedChartMode];
-          const val = typeBreakdown ? typeBreakdown.valuation : 0;
-          return {
-            date: s.snapshot_date,
-            dateLabel: formatChartDate(s.snapshot_date),
-            valuation: val,
-            invested: categoryInvested,
-            gainLoss: val - categoryInvested,
-          };
-        });
-      } else {
-        const today = new Date();
-        return Array.from({ length: 30 }).map((_, i) => {
-          const d = new Date(today);
-          d.setDate(d.getDate() - (29 - i));
-          const dateStr = d.toISOString().split("T")[0];
-          const progress = i / 29;
-          const startVal = categoryValuation * 0.90;
-          const currentVal = startVal + (categoryValuation - startVal) * progress;
-          return {
-            date: dateStr,
-            dateLabel: formatChartDate(dateStr),
-            valuation: parseFloat(currentVal.toFixed(2)),
-            invested: parseFloat(categoryInvested.toFixed(2)),
-            gainLoss: parseFloat((categoryValuation - categoryInvested).toFixed(2)),
-          };
-        });
-      }
-    } else {
-      // Individual Asset by ID
-      const targetAsset = assets.find((a) => a.id === selectedChartMode);
-      if (!targetAsset) return [];
-
-      const qty = targetAsset.quantity || 0;
-      const buyP = targetAsset.buy_price || 0;
-      const currP = targetAsset.current_price || buyP;
-      const costBasis = qty * buyP;
-      const currentValuation = qty * currP;
-      const change24hPct = targetAsset.metadata?.change24h || 0;
-
-      const today = new Date();
-      return Array.from({ length: 30 }).map((_, i) => {
-        const d = new Date(today);
-        d.setDate(d.getDate() - (29 - i));
+      return Array.from({ length: cycleDaysCount }).map((_, i) => {
+        const d = new Date(startD);
+        d.setDate(d.getDate() + i);
         const dateStr = d.toISOString().split("T")[0];
-        const daysFromEnd = 29 - i;
+        const dateLabel = formatChartDate(dateStr);
 
-        const priceRatio = 1 - (daysFromEnd / 29) * (change24hPct / 100);
-        const historicalPrice = currP * Math.max(0.2, priceRatio);
-        const historicalValuation = qty * historicalPrice;
+        const dateEnd = new Date(d);
+        dateEnd.setHours(23, 59, 59, 999);
+
+        const isPast = dateStr < todayStr;
+        const isToday = dateStr === todayStr;
+        const isFuture = dateStr > todayStr;
+
+        // For past days, check if a historical snapshot was recorded. Today and future days use live asset calculations.
+        const recordedSnap = isPast ? snapMap.get(dateStr) : null;
+        let dayValuation = 0;
+        let dayInvested = 0;
+        let dayGainLoss = 0;
+
+        if (recordedSnap && recordedSnap.total_net_worth) {
+          dayValuation = Number(recordedSnap.total_net_worth || 0);
+          dayInvested = Number(recordedSnap.invested_capital || 0);
+          dayGainLoss = Number(recordedSnap.total_gain_loss || 0);
+        } else {
+          let dayBankBalance = injectedStartBalance;
+          if (expenses && expenses.length > 0) {
+            const sumTx = expenses
+              .filter((e: any) => new Date(e.date) <= dateEnd)
+              .reduce((sum: number, e: any) => sum + (parseFloat(e.amount) || 0), 0);
+            dayBankBalance = injectedStartBalance + sumTx;
+          } else if (isPast || isToday) {
+            dayBankBalance = liquidBalance;
+          }
+
+          // Only include assets created/acquired on or before this day
+          const activeAssetsOnDay = assets.filter((a) => {
+            if (!a.created_at) return true;
+            return new Date(a.created_at) <= dateEnd;
+          });
+
+          const dayAssetValuation = activeAssetsOnDay.reduce(
+            (sum, a) => sum + (Number(a.quantity) || 0) * (Number(a.current_price) || Number(a.buy_price) || 0),
+            0
+          );
+          const dayAssetInvested = activeAssetsOnDay.reduce(
+            (sum, a) => sum + (Number(a.quantity) || 0) * (Number(a.buy_price) || 0),
+            0
+          );
+
+          dayValuation = parseFloat((dayBankBalance + dayAssetValuation).toFixed(2));
+          dayInvested = parseFloat(dayAssetInvested.toFixed(2));
+          dayGainLoss = parseFloat((dayValuation - dayInvested).toFixed(2));
+        }
 
         return {
           date: dateStr,
-          dateLabel: formatChartDate(dateStr),
-          valuation: parseFloat(historicalValuation.toFixed(2)),
-          invested: parseFloat(costBasis.toFixed(2)),
-          gainLoss: parseFloat((historicalValuation - costBasis).toFixed(2)),
+          dateLabel,
+          valuation: dayValuation,
+          actualValuation: isPast || isToday ? dayValuation : null,
+          projectionValuation: isToday || isFuture ? dayValuation : null,
+          invested: dayInvested,
+          gainLoss: dayGainLoss,
+        };
+      });
+    } else if (["stock_etf", "crypto", "commodity", "cash_equivalent"].includes(selectedChartMode)) {
+      const categoryAssets = assets.filter((a) => a.asset_type === selectedChartMode);
+
+      return Array.from({ length: cycleDaysCount }).map((_, i) => {
+        const d = new Date(startD);
+        d.setDate(d.getDate() + i);
+        const dateStr = d.toISOString().split("T")[0];
+        const dateLabel = formatChartDate(dateStr);
+
+        const dateEnd = new Date(d);
+        dateEnd.setHours(23, 59, 59, 999);
+
+        const isPast = dateStr < todayStr;
+        const isToday = dateStr === todayStr;
+        const isFuture = dateStr > todayStr;
+
+        const recordedSnap = isPast ? snapMap.get(dateStr) : null;
+        let val = 0;
+        let invested = 0;
+
+        if (recordedSnap && recordedSnap.asset_breakdown?.[selectedChartMode]) {
+          const catBreakdown = recordedSnap.asset_breakdown[selectedChartMode];
+          val = catBreakdown.valuation || 0;
+          invested = catBreakdown.invested || 0;
+        } else if (selectedChartMode === "cash_equivalent") {
+          if (expenses && expenses.length > 0) {
+            const sumTx = expenses
+              .filter((e: any) => new Date(e.date) <= dateEnd)
+              .reduce((sum: number, e: any) => sum + (parseFloat(e.amount) || 0), 0);
+            val = injectedStartBalance + sumTx;
+          } else if (isPast || isToday) {
+            val = liquidBalance;
+          } else {
+            val = injectedStartBalance;
+          }
+        } else {
+          const activeAssetsOnDay = categoryAssets.filter((a) => {
+            if (!a.created_at) return true;
+            return new Date(a.created_at) <= dateEnd;
+          });
+          val = activeAssetsOnDay.reduce(
+            (sum, a) => sum + (Number(a.quantity) || 0) * (Number(a.current_price) || Number(a.buy_price) || 0),
+            0
+          );
+          invested = activeAssetsOnDay.reduce((sum, a) => sum + (Number(a.quantity) || 0) * (Number(a.buy_price) || 0), 0);
+        }
+
+        const formattedVal = parseFloat(val.toFixed(2));
+        const formattedInvested = parseFloat(invested.toFixed(2));
+
+        return {
+          date: dateStr,
+          dateLabel,
+          valuation: formattedVal,
+          actualValuation: isPast || isToday ? formattedVal : null,
+          projectionValuation: isToday || isFuture ? formattedVal : null,
+          invested: formattedInvested,
+          gainLoss: parseFloat((val - invested).toFixed(2)),
+        };
+      });
+    } else {
+      const targetAsset = assets.find((a) => a.id === selectedChartMode);
+
+      return Array.from({ length: cycleDaysCount }).map((_, i) => {
+        const d = new Date(startD);
+        d.setDate(d.getDate() + i);
+        const dateStr = d.toISOString().split("T")[0];
+        const dateLabel = formatChartDate(dateStr);
+
+        const dateEnd = new Date(d);
+        dateEnd.setHours(23, 59, 59, 999);
+
+        const isPast = dateStr < todayStr;
+        const isToday = dateStr === todayStr;
+        const isFuture = dateStr > todayStr;
+
+        const isOwnedOnDay = targetAsset && (!targetAsset.created_at || new Date(targetAsset.created_at) <= dateEnd);
+        const assetInvested = isOwnedOnDay ? (targetAsset.quantity || 0) * (targetAsset.buy_price || 0) : 0;
+        const assetValuation = isOwnedOnDay ? (targetAsset.quantity || 0) * (targetAsset.current_price || targetAsset.buy_price || 0) : 0;
+
+        const formattedVal = parseFloat(assetValuation.toFixed(2));
+        const formattedInvested = parseFloat(assetInvested.toFixed(2));
+
+        return {
+          date: dateStr,
+          dateLabel,
+          valuation: formattedVal,
+          actualValuation: isPast || isToday ? formattedVal : null,
+          projectionValuation: isToday || isFuture ? formattedVal : null,
+          invested: formattedInvested,
+          gainLoss: parseFloat((assetValuation - assetInvested).toFixed(2)),
         };
       });
     }
-  }, [selectedChartMode, snapshots, assets, metrics]);
+  }, [selectedChartMode, assets, snapshots, currentCycle, expenses, injectedStartBalance, liquidBalance]);
 
-  // Filtered Assets
   const filteredAssets = useMemo(() => {
     return assets.filter((asset) => {
       const matchesTab = activeTab === "all" || asset.asset_type === activeTab;
@@ -671,64 +867,53 @@ export function PortfolioView() {
   }, [presetSearch]);
 
   if (loading) {
-    return (
-      <div className="mx-auto max-w-[1500px] p-4 md:p-8 space-y-10 md:space-y-12 pb-36 md:pb-8 w-full font-mono">
-        <div className="space-y-3">
-          <Skeleton className="h-4 w-36 bg-secondary/80" />
-          <Skeleton className="h-10 w-64 bg-secondary/80" />
-        </div>
-
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-6">
-          {Array.from({ length: 3 }).map((_, i) => (
-            <div key={i} className="p-6 md:p-8 bg-card/20 border border-border space-y-3">
-              <Skeleton className="h-3 w-28 bg-secondary/60" />
-              <Skeleton className="h-10 w-44 bg-secondary/80" />
-            </div>
-          ))}
-        </div>
-
-        <div className="space-y-3">
-          <Skeleton className="h-8 w-full bg-secondary/40" />
-          <div className="flex gap-2">
-            {Array.from({ length: 4 }).map((_, i) => (
-              <Skeleton key={i} className="h-7 w-20 bg-secondary/60" />
-            ))}
-          </div>
-        </div>
-
-        <div className="space-y-2">
-          {Array.from({ length: 4 }).map((_, i) => (
-            <div key={i} className="p-3.5 bg-card/40 border border-border/80 flex items-center justify-between">
-              <div className="flex items-center gap-3">
-                <Skeleton className="h-10 w-10 rounded-xl bg-secondary/60" />
-                <div className="space-y-1.5">
-                  <Skeleton className="h-4 w-28 bg-secondary/80" />
-                  <Skeleton className="h-3 w-20 bg-secondary/40" />
-                </div>
-              </div>
-            </div>
-          ))}
-        </div>
-      </div>
-    );
+    return <PortfolioLoading />;
   }
 
   return (
-    <div className="mx-auto max-w-[1500px] p-4 md:p-8 space-y-10 md:space-y-12 pb-36 md:pb-8 w-full">
-      {/* 1. Header */}
+    <SwipeCycleWrapper onCycleChange={handleCycleSelect} isSwipeDisabled={false}>
+      <div className="mx-auto max-w-[1500px] p-4 md:p-8 space-y-10 md:space-y-12 pb-36 md:pb-8 w-full">
+      {/* 1. Header (Matching Dashboard Layout) */}
       <header className="flex flex-col md:flex-row md:items-center justify-between gap-6 md:gap-8 border-b border-foreground/10 pb-6 md:pb-8 relative">
         <div className="space-y-3">
           <div className="flex items-center gap-3 text-[9px] md:text-[10px] font-mono tracking-[0.2em] uppercase text-muted-foreground">
             <TrendingUp className="h-3.5 w-3.5" />
-            <span>PORTFOLIO MANAGEMENT</span>
+            <span>Active Paycheck Cycle</span>
           </div>
           <h1 className="text-4xl md:text-5xl font-bold tracking-tighter uppercase leading-none break-words">
-            PORTFOLIO
+            {isPending ? (
+              <Skeleton className="h-10 w-64 rounded-none" />
+            ) : currentCycle ? (
+              currentCycle.label.replace("Cycle: ", "")
+            ) : (
+              "PORTFOLIO"
+            )}
           </h1>
         </div>
+
+        {cycles.length > 0 && (
+          <div className="hidden md:flex items-center border border-border ledger-border bg-card overflow-hidden shrink-0 font-mono">
+            <button 
+              onClick={() => navigateCycle('prev')} 
+              disabled={isPending || currentIndex >= cycles.length - 1} 
+              className="px-3.5 py-2 hover:bg-muted transition-colors disabled:opacity-40 border-r border-border cursor-pointer disabled:cursor-not-allowed"
+              aria-label="Previous paycheck cycle"
+            >
+              <ChevronLeft className="h-3.5 w-3.5 text-foreground" />
+            </button>
+            <button 
+              onClick={() => navigateCycle('next')} 
+              disabled={isPending || currentIndex <= 0} 
+              className="px-3.5 py-2 hover:bg-muted transition-colors disabled:opacity-40 cursor-pointer disabled:cursor-not-allowed"
+              aria-label="Next paycheck cycle"
+            >
+              <ChevronRight className="h-3.5 w-3.5 text-foreground" />
+            </button>
+          </div>
+        )}
       </header>
 
-      {/* 2. Portfolio & Individual Asset Valuation Graph FIRST (Exact Dashboard Layout) */}
+      {/* 2. Portfolio Valuation Graph FIRST (Clean Dashboard Layout) */}
       <section className="space-y-4 border border-border ledger-border p-4 md:p-6 bg-card/20 relative" data-no-swipe="true">
         {!isPro && (
           <div className="absolute inset-0 z-30 bg-background/95 backdrop-blur-md flex flex-col items-center justify-center p-4 text-center">
@@ -739,34 +924,29 @@ export function PortfolioView() {
           </div>
         )}
 
-        {/* Header & Mode Selector Bar */}
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-border/40 pb-4">
-          <div className="space-y-1">
-            <span className="technical-label text-[9px] border-b border-dotted border-muted-foreground/30 w-fit">
-              TOTAL NET WORTH TRAJECTORY
-            </span>
-            <h2 className="text-xl font-bold uppercase tracking-tight font-mono">
-              {selectedChartMode === "all"
-                ? "Total Net Worth"
-                : selectedChartMode === "stock_etf"
-                ? "Stocks & ETFs Valuation"
-                : selectedChartMode === "crypto"
-                ? "Crypto Assets Valuation"
-                : selectedChartMode === "commodity"
-                ? "Commodities Valuation"
-                : selectedChartMode === "cash_equivalent"
-                ? "Savings & Cash Equivalents"
-                : assets.find((a) => a.id === selectedChartMode)?.asset_name.toUpperCase() || "Asset Performance"}
-            </h2>
-          </div>
+        {/* Clean Header Bar with Title on Left and Filter Tabs on Right */}
+        <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4 border-b border-border/40 pb-4">
+          <h2 className="text-xl font-bold uppercase tracking-tight font-mono shrink-0">
+            {selectedChartMode === "all"
+              ? "Net Worth Trajectory"
+              : selectedChartMode === "stock_etf"
+              ? "Stocks & ETFs Trajectory"
+              : selectedChartMode === "crypto"
+              ? "Crypto Assets Trajectory"
+              : selectedChartMode === "commodity"
+              ? "Commodities Trajectory"
+              : selectedChartMode === "cash_equivalent"
+              ? "Savings & Cash Trajectory"
+              : assets.find((a) => a.id === selectedChartMode)?.asset_name.toUpperCase() || "Asset Performance"}
+          </h2>
 
-          {/* Quick Filters + Individual Asset Dropdown */}
-          <div className="flex items-center gap-2 flex-wrap z-10">
-            <div className="flex items-center gap-1 bg-card/40 border border-border/80 p-0.5 font-mono text-[9px]">
+          {/* Quick Category Filters + Individual Asset Dropdown */}
+          <div className="flex flex-wrap items-center gap-2 z-10">
+            <div className="flex items-center border border-border ledger-border bg-card overflow-x-auto scrollbar-hide shrink-0 font-mono text-[9px] p-0.5">
               <button
                 onClick={() => setSelectedChartMode("all")}
                 className={cn(
-                  "px-2.5 py-1 uppercase font-bold transition-all cursor-pointer select-none",
+                  "px-3 py-1 uppercase font-bold transition-all cursor-pointer select-none shrink-0",
                   selectedChartMode === "all" ? "bg-foreground text-background" : "text-muted-foreground hover:text-foreground"
                 )}
               >
@@ -775,7 +955,7 @@ export function PortfolioView() {
               <button
                 onClick={() => setSelectedChartMode("stock_etf")}
                 className={cn(
-                  "px-2.5 py-1 uppercase font-bold transition-all cursor-pointer select-none",
+                  "px-3 py-1 uppercase font-bold transition-all border-l border-border/60 cursor-pointer select-none shrink-0",
                   selectedChartMode === "stock_etf" ? "bg-foreground text-background" : "text-muted-foreground hover:text-foreground"
                 )}
               >
@@ -784,11 +964,29 @@ export function PortfolioView() {
               <button
                 onClick={() => setSelectedChartMode("crypto")}
                 className={cn(
-                  "px-2.5 py-1 uppercase font-bold transition-all cursor-pointer select-none",
+                  "px-3 py-1 uppercase font-bold transition-all border-l border-border/60 cursor-pointer select-none shrink-0",
                   selectedChartMode === "crypto" ? "bg-foreground text-background" : "text-muted-foreground hover:text-foreground"
                 )}
               >
                 Crypto
+              </button>
+              <button
+                onClick={() => setSelectedChartMode("cash_equivalent")}
+                className={cn(
+                  "px-3 py-1 uppercase font-bold transition-all border-l border-border/60 cursor-pointer select-none shrink-0",
+                  selectedChartMode === "cash_equivalent" ? "bg-foreground text-background" : "text-muted-foreground hover:text-foreground"
+                )}
+              >
+                Savings
+              </button>
+              <button
+                onClick={() => setSelectedChartMode("commodity")}
+                className={cn(
+                  "px-3 py-1 uppercase font-bold transition-all border-l border-border/60 cursor-pointer select-none shrink-0",
+                  selectedChartMode === "commodity" ? "bg-foreground text-background" : "text-muted-foreground hover:text-foreground"
+                )}
+              >
+                Commodities
               </button>
             </div>
 
@@ -797,11 +995,12 @@ export function PortfolioView() {
               <select
                 value={selectedChartMode}
                 onChange={(e) => setSelectedChartMode(e.target.value)}
-                className="h-7 px-2 border border-border bg-card text-foreground font-mono text-[9px] uppercase outline-none cursor-pointer rounded-none min-w-[140px]"
+                className="h-7 px-2 border border-border bg-card text-foreground font-mono text-[9px] uppercase outline-none cursor-pointer rounded-none min-w-[130px]"
               >
                 <option value="all">Total Portfolio (All Assets)</option>
                 <option value="stock_etf">Stocks & ETFs</option>
                 <option value="crypto">Crypto</option>
+                <option value="cash_equivalent">Savings & Cash</option>
                 <option value="commodity">Commodities</option>
                 <optgroup label="Individual Holdings">
                   {assets.map((a) => (
@@ -824,6 +1023,10 @@ export function PortfolioView() {
                   <stop offset="5%" stopColor="var(--foreground)" stopOpacity={0.15} />
                   <stop offset="95%" stopColor="var(--foreground)" stopOpacity={0.0} />
                 </linearGradient>
+                <linearGradient id="portfolioProjectionGrad" x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="5%" stopColor="var(--foreground)" stopOpacity={0.05} />
+                  <stop offset="95%" stopColor="var(--foreground)" stopOpacity={0.0} />
+                </linearGradient>
               </defs>
               <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="var(--border)" />
               <XAxis
@@ -842,11 +1045,22 @@ export function PortfolioView() {
               />
               <RechartsTooltip content={<CustomPortfolioTooltip formatCurrency={formatCurrency} />} />
               <RechartsArea
-                type="monotone"
-                dataKey="valuation"
+                type="stepAfter"
+                dataKey="actualValuation"
                 stroke="var(--foreground)"
                 strokeWidth={2}
                 fill="url(#portfolioValuationGrad)"
+                fillOpacity={1}
+                connectNulls={true}
+              />
+              <RechartsArea
+                type="monotone"
+                dataKey="projectionValuation"
+                stroke="var(--foreground)"
+                strokeOpacity={0.6}
+                strokeWidth={1.5}
+                strokeDasharray="5 5"
+                fill="url(#portfolioProjectionGrad)"
                 fillOpacity={1}
                 connectNulls={true}
               />
@@ -870,27 +1084,29 @@ export function PortfolioView() {
       </section>
 
       {/* 3. Executive Ledger Summary Cards SECOND (1 Big, 2 Side by Side - Exact Dashboard Layout) */}
-      <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+      <div className="grid grid-cols-2 md:grid-cols-3 gap-3 sm:gap-4">
         {/* Card 1: Total Net Worth (Big - col-span-2 on mobile, col-span-1 on desktop) */}
-        <div className="col-span-2 md:col-span-1">
-          <Tilt rotationFactor={6} className="p-6 md:p-8 space-y-3 bg-card/20 border border-border relative group overflow-hidden flex flex-col justify-between glow-card h-full">
-            <span className="technical-label text-[9px] border-b border-dotted border-muted-foreground/30 w-fit z-10">TOTAL NET WORTH</span>
-            <div className="space-y-1 z-10">
-              <div className="text-3xl md:text-5xl font-mono font-bold tracking-tighter">
-                <PrivacyValue>{formatCurrency(metrics.totalNetWorth)}</PrivacyValue>
+        <div className="col-span-2 md:col-span-1 min-w-0">
+          <Tilt rotationFactor={6} className="p-4 sm:p-6 md:p-8 space-y-3 bg-card/20 border border-border relative group overflow-hidden flex flex-col justify-between glow-card h-full min-w-0">
+            <span className="technical-label text-[8px] sm:text-[9px] border-b border-dotted border-muted-foreground/30 w-fit z-10 whitespace-nowrap truncate">TOTAL NET WORTH</span>
+            <div className="space-y-1 z-10 min-w-0">
+              <div className="text-2xl sm:text-3xl md:text-5xl font-mono font-bold tracking-tighter truncate tabular-nums">
+                <PrivacyValue>{formatCurrency(metrics.displayNetWorth)}</PrivacyValue>
               </div>
-              <div className="flex items-center gap-1.5 pt-1">
+              <div className="flex flex-wrap items-center gap-1.5 pt-0.5 min-w-0">
                 <span className={cn(
-                  "px-1.5 py-0.5 border text-[9px] font-mono font-bold uppercase",
-                  metrics.total24hChange >= 0
+                  "px-1.5 py-0.5 border text-[8px] sm:text-[9px] font-mono font-bold uppercase truncate max-w-full inline-block",
+                  metrics.displayChange >= 0
                     ? "text-emerald-500 border-emerald-500/20 bg-emerald-500/5"
                     : "text-rose-500 border-rose-500/20 bg-rose-500/5"
                 )}>
                   <PrivacyValue>
-                    {metrics.total24hChange >= 0 ? "+" : ""}{formatCurrency(metrics.total24hChange)} ({metrics.total24hChangePct >= 0 ? "+" : ""}{format2Decimals(metrics.total24hChangePct)}%)
+                    {metrics.displayChange >= 0 ? "+" : ""}{formatCurrency(metrics.displayChange)} ({metrics.displayChangePct >= 0 ? "+" : ""}{format2Decimals(metrics.displayChangePct)}%)
                   </PrivacyValue>
                 </span>
-                <span className="text-[9px] text-muted-foreground/70 uppercase font-mono tracking-widest font-semibold">24H</span>
+                <span className="text-[8px] sm:text-[9px] text-muted-foreground/70 uppercase font-mono tracking-widest font-semibold shrink-0">
+                  {metrics.isCurrentCycle ? "24H" : "CYCLE"}
+                </span>
               </div>
             </div>
             <ClippedCircle circleClassName="bg-foreground/5" circleSize={400} />
@@ -898,25 +1114,27 @@ export function PortfolioView() {
         </div>
 
         {/* Card 2: Portfolio Valuation (col-span-1) */}
-        <div className="col-span-1">
-          <Tilt rotationFactor={6} className="p-6 md:p-8 space-y-3 bg-card/20 border border-border relative group overflow-hidden flex flex-col justify-between glow-card h-full">
-            <span className="technical-label text-[9px] border-b border-dotted border-muted-foreground/30 w-fit z-10">PORTFOLIO VALUATION</span>
-            <div className="space-y-1 z-10">
-              <div className="text-3xl md:text-5xl font-mono font-bold tracking-tighter">
-                <PrivacyValue>{formatCurrency(metrics.totalValuation)}</PrivacyValue>
+        <div className="col-span-1 min-w-0">
+          <Tilt rotationFactor={6} className="p-3.5 sm:p-6 md:p-8 space-y-2 sm:space-y-3 bg-card/20 border border-border relative group overflow-hidden flex flex-col justify-between glow-card h-full min-w-0">
+            <span className="technical-label text-[8px] sm:text-[9px] border-b border-dotted border-muted-foreground/30 w-fit z-10 whitespace-nowrap truncate">PORTFOLIO VALUE</span>
+            <div className="space-y-1 z-10 min-w-0">
+              <div className="text-lg xs:text-xl sm:text-2xl md:text-3xl lg:text-4xl xl:text-5xl font-mono font-bold tracking-tighter truncate tabular-nums">
+                <PrivacyValue>{formatCurrency(metrics.displayValuation)}</PrivacyValue>
               </div>
-              <div className="flex items-center gap-1.5 pt-1">
+              <div className="flex flex-wrap items-center gap-1 sm:gap-1.5 pt-0.5 min-w-0">
                 <span className={cn(
-                  "px-1.5 py-0.5 border text-[9px] font-mono font-bold uppercase",
-                  metrics.total24hChange >= 0
+                  "px-1 sm:px-1.5 py-0.5 border text-[7.5px] sm:text-[9px] font-mono font-bold uppercase truncate max-w-full inline-block",
+                  metrics.displayChange >= 0
                     ? "text-emerald-500 border-emerald-500/20 bg-emerald-500/5"
                     : "text-rose-500 border-rose-500/20 bg-rose-500/5"
                 )}>
                   <PrivacyValue>
-                    {metrics.total24hChange >= 0 ? "+" : ""}{formatCurrency(metrics.total24hChange)} ({metrics.total24hChangePct >= 0 ? "+" : ""}{format2Decimals(metrics.total24hChangePct)}%)
+                    {metrics.displayChange >= 0 ? "+" : ""}{formatCurrency(metrics.displayChange)} ({metrics.displayChangePct >= 0 ? "+" : ""}{format2Decimals(metrics.displayChangePct)}%)
                   </PrivacyValue>
                 </span>
-                <span className="text-[9px] text-muted-foreground/70 uppercase font-mono tracking-widest font-semibold">24H</span>
+                <span className="text-[7.5px] sm:text-[9px] text-muted-foreground/70 uppercase font-mono tracking-widest font-semibold shrink-0 hidden xs:inline-block">
+                  {metrics.isCurrentCycle ? "24H" : "CYCLE"}
+                </span>
               </div>
             </div>
             <ClippedCircle circleClassName="bg-foreground/5" circleSize={400} />
@@ -924,28 +1142,36 @@ export function PortfolioView() {
         </div>
 
         {/* Card 3: All-Time Return (col-span-1) */}
-        <div className="col-span-1">
-          <Tilt rotationFactor={6} className="p-6 md:p-8 space-y-3 bg-card/20 border border-border relative group overflow-hidden flex flex-col justify-between glow-card h-full">
-            <span className="technical-label text-[9px] border-b border-dotted border-muted-foreground/30 w-fit z-10">ALL-TIME RETURN</span>
-            <div className="space-y-1 z-10">
-              <div className="text-3xl md:text-5xl font-mono font-bold tracking-tighter flex items-baseline gap-2">
+        <div className="col-span-1 min-w-0">
+          <Tilt rotationFactor={6} className="p-3.5 sm:p-6 md:p-8 space-y-2 sm:space-y-3 bg-card/20 border border-border relative group overflow-hidden flex flex-col justify-between glow-card h-full min-w-0">
+            <span className="technical-label text-[8px] sm:text-[9px] border-b border-dotted border-muted-foreground/30 w-fit z-10 whitespace-nowrap truncate">
+              {metrics.isCurrentCycle ? "ALL-TIME RETURN" : "CYCLE RETURN"}
+            </span>
+            <div className="space-y-1 z-10 min-w-0">
+              <div className={cn(
+                "text-lg xs:text-xl sm:text-2xl md:text-3xl lg:text-4xl xl:text-5xl font-mono font-bold tracking-tighter truncate tabular-nums",
+                (metrics.isCurrentCycle ? metrics.totalPnL : metrics.displayChange) >= 0 ? "text-emerald-500" : "text-rose-500"
+              )}>
                 <PrivacyValue>
-                  {metrics.totalPnL >= 0 ? "+" : ""}
-                  {formatCurrency(metrics.totalPnL)}
+                  {(metrics.isCurrentCycle ? metrics.totalPnL : metrics.displayChange) >= 0 ? "+" : ""}
+                  {formatCurrency(metrics.isCurrentCycle ? metrics.totalPnL : metrics.displayChange)}
                 </PrivacyValue>
               </div>
-              <div className="flex items-center gap-1.5 pt-1">
+              <div className="flex flex-wrap items-center gap-1 sm:gap-1.5 pt-0.5 min-w-0">
                 <span className={cn(
-                  "px-1.5 py-0.5 border text-[9px] font-mono font-bold uppercase",
-                  metrics.total24hChange >= 0
+                  "px-1 sm:px-1.5 py-0.5 border text-[7.5px] sm:text-[9px] font-mono font-bold uppercase truncate max-w-full inline-block",
+                  (metrics.isCurrentCycle ? metrics.totalPnLPercent : metrics.displayChangePct) >= 0
                     ? "text-emerald-500 border-emerald-500/20 bg-emerald-500/5"
                     : "text-rose-500 border-rose-500/20 bg-rose-500/5"
                 )}>
                   <PrivacyValue>
-                    {metrics.total24hChange >= 0 ? "+" : ""}{formatCurrency(metrics.total24hChange)} ({metrics.total24hChangePct >= 0 ? "+" : ""}{format2Decimals(metrics.total24hChangePct)}%)
+                    {(metrics.isCurrentCycle ? metrics.totalPnLPercent : metrics.displayChangePct) >= 0 ? "+" : ""}
+                    {format2Decimals(metrics.isCurrentCycle ? metrics.totalPnLPercent : metrics.displayChangePct)}%
                   </PrivacyValue>
                 </span>
-                <span className="text-[9px] text-muted-foreground/70 uppercase font-mono tracking-widest font-semibold">24H</span>
+                <span className="text-[7.5px] sm:text-[9px] text-muted-foreground/70 uppercase font-mono tracking-widest font-semibold shrink-0 hidden xs:inline-block">
+                  {metrics.isCurrentCycle ? "ALL" : "CYCLE"}
+                </span>
               </div>
             </div>
             <ClippedCircle circleClassName="bg-foreground/5" circleSize={400} />
@@ -1043,7 +1269,7 @@ export function PortfolioView() {
                           </span>
                         </div>
                         <p className="text-[11px] font-mono text-muted-foreground/80 mt-0.5 truncate">
-                          {qty} @ <PrivacyValue>{currencySymbol}{format2Decimals(currP)}</PrivacyValue>
+                          {formatSmartQuantity(qty)} @ <PrivacyValue>{currencySymbol}{formatSmartPrice(currP)}</PrivacyValue>
                         </p>
                       </div>
                     </div>
@@ -1051,7 +1277,7 @@ export function PortfolioView() {
                     {/* Right: Valuation on Top + PnL/Return on Bottom matching screenshot 100% */}
                     <div className="text-right shrink-0">
                       <p className="font-mono font-bold text-sm text-foreground">
-                        <PrivacyValue>{currencySymbol}{format2Decimals(valuation)}</PrivacyValue>
+                        <PrivacyValue>{currencySymbol}{valuation > 0 && valuation < 0.01 ? formatSmartPrice(valuation) : format2Decimals(valuation)}</PrivacyValue>
                       </p>
                       <p
                         className={cn(
@@ -1078,20 +1304,20 @@ export function PortfolioView() {
                         <div className="grid grid-cols-2 gap-3 text-[11px]">
                           <div>
                             <span className="technical-label text-[9px]">BUY PRICE:</span>{" "}
-                            <span className="text-foreground font-bold"><PrivacyValue>{currencySymbol}{format2Decimals(buyP)}</PrivacyValue></span>
+                            <span className="text-foreground font-bold"><PrivacyValue>{currencySymbol}{formatSmartPrice(buyP)}</PrivacyValue></span>
                           </div>
                           <div>
                             <span className="technical-label text-[9px]">MARKET PRICE:</span>{" "}
-                            <span className="text-foreground font-bold"><PrivacyValue>{currencySymbol}{format2Decimals(currP)}</PrivacyValue></span>
+                            <span className="text-foreground font-bold"><PrivacyValue>{currencySymbol}{formatSmartPrice(currP)}</PrivacyValue></span>
                           </div>
                           <div>
                             <span className="technical-label text-[9px]">COST BASIS:</span>{" "}
-                            <span className="text-foreground font-bold"><PrivacyValue>{currencySymbol}{format2Decimals(invested)}</PrivacyValue></span>
+                            <span className="text-foreground font-bold"><PrivacyValue>{currencySymbol}{invested > 0 && invested < 0.01 ? formatSmartPrice(invested) : format2Decimals(invested)}</PrivacyValue></span>
                           </div>
                           <div>
                             <span className="technical-label text-[9px]">UNREALIZED RETURN:</span>{" "}
                             <span className={cn("font-bold", pnl >= 0 ? "text-emerald-500" : "text-rose-500")}>
-                              <PrivacyValue>{pnl >= 0 ? "+" : ""}{currencySymbol}{format2Decimals(pnl)}</PrivacyValue>
+                              <PrivacyValue>{pnl >= 0 ? "+" : ""}{currencySymbol}{Math.abs(pnl) > 0 && Math.abs(pnl) < 0.01 ? formatSmartPrice(pnl) : format2Decimals(pnl)}</PrivacyValue>
                             </span>
                           </div>
                         </div>
@@ -1267,7 +1493,7 @@ export function PortfolioView() {
 
                             <div className="text-right shrink-0">
                               <p className="text-xs font-mono font-bold text-foreground">
-                                €{format2Decimals(preset.estPrice)}
+                                €{formatSmartPrice(preset.estPrice)}
                               </p>
                               {isSelected && (
                                 <span className="text-[8px] font-mono text-emerald-500 font-bold uppercase">
@@ -1340,8 +1566,8 @@ export function PortfolioView() {
                     </div>
 
                     {/* Quick Quantity Step Buttons */}
-                    <div className="space-y-1">
-                      <span className="text-[9px] font-mono text-muted-foreground uppercase font-semibold">Quick Quantity Adjust</span>
+                    <div className="space-y-2 pt-1.5">
+                      <Label className="technical-label block">Quick Quantity Adjust</Label>
                       <div className="grid grid-cols-6 gap-1.5">
                         {[-5, -2, -1, 1, 2, 5].map((delta) => (
                           <button
@@ -1372,8 +1598,16 @@ export function PortfolioView() {
                 <Button
                   type="submit"
                   form="portfolio-asset-form"
+                  onClick={(e) => {
+                    const form = document.getElementById("portfolio-asset-form") as HTMLFormElement;
+                    if (form && !form.checkValidity()) {
+                      form.reportValidity();
+                      return;
+                    }
+                    handleFormSubmit(e);
+                  }}
                   disabled={formSubmitting}
-                  className="w-full rounded-none h-11 font-mono text-[10px] uppercase tracking-widest font-bold bg-foreground text-background hover:bg-foreground/80 cursor-pointer"
+                  className="w-full rounded-none h-11 font-mono text-[10px] uppercase tracking-widest font-bold bg-foreground text-background hover:bg-foreground/80 cursor-pointer active:scale-95 transition-all"
                 >
                   {formSubmitting ? "SAVING..." : editingAsset ? "SAVE CHANGES" : "ADD POSITION"}
                 </Button>
@@ -1425,6 +1659,18 @@ export function PortfolioView() {
           </div>
         </DialogContent>
       </Dialog>
-    </div>
+
+      </div>
+
+      {/* 5. Mobile Sticky Cycle Bottom Navigation Bar */}
+      {cycles.length > 0 && (
+        <CycleMobileBar
+          cycles={cycles}
+          currentCycleId={selectedCycleId}
+          route="/portfolio"
+          onCycleChange={handleCycleSelect}
+        />
+      )}
+    </SwipeCycleWrapper>
   );
 }

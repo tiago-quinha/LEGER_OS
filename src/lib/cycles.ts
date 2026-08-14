@@ -87,9 +87,37 @@ export async function getCycles(supabase: SupabaseClient, userId: string): Promi
               current = new Date(current.getFullYear(), current.getMonth() - 1, 1)
               count++
           }
-          baseCycles.reverse() 
+          baseCycles.reverse();
       }
   }
 
-  return [...baseCycles].reverse() // Most recent first
+  // Fallback when user has 0 transactions: generate current and previous monthly cycles starting from Day 1
+  if (baseCycles.length === 0) {
+    const today = new Date();
+    for (let i = 0; i < 4; i++) {
+      const current = new Date(today.getFullYear(), today.getMonth() - i, 1);
+      const monthStart = new Date(Date.UTC(current.getFullYear(), current.getMonth(), 1));
+      const monthEnd = new Date(Date.UTC(current.getFullYear(), current.getMonth() + 1, 0, 23, 59, 59));
+
+      const isCurrentMonth = i === 0;
+      const startDay = "01";
+      const startMonth = monthStart.toLocaleDateString("en-GB", { month: "short", timeZone: "UTC" });
+      const endDay = monthEnd.getUTCDate().toString().padStart(2, "0");
+      const endMonth = monthEnd.toLocaleDateString("en-GB", { month: "short", timeZone: "UTC" });
+
+      baseCycles.push({
+        id: `mo-${current.getFullYear()}-${current.getMonth() + 1}`,
+        label: isCurrentMonth
+          ? `Cycle: ${startDay} ${startMonth} - Present`
+          : `Cycle: ${startDay} ${startMonth} - ${endDay} ${endMonth}`,
+        startDate: monthStart.toISOString(),
+        endDate: isCurrentMonth ? null : monthEnd.toISOString(),
+        paycheckAmount: 0,
+      });
+    }
+    // baseCycles was pushed newest to oldest, so return directly
+    return baseCycles;
+  }
+
+  return [...baseCycles].reverse(); // Most recent first
 }

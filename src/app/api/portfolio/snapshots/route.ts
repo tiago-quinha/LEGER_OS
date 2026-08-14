@@ -65,16 +65,31 @@ export async function POST(req: Request) {
 
     const adminDb = getAdminClient();
 
-    // 1. Fetch liquid cash balance snapshot
+    // 1. Fetch liquid cash balance snapshot + transactions
     const { data: balanceData } = await adminDb
       .from("account_balance")
-      .select("amount")
+      .select("amount, date")
       .eq("user_id", user.id)
       .order("date", { ascending: false })
       .limit(1)
       .maybeSingle();
 
-    const liquidCash = balanceData?.amount ? parseFloat(balanceData.amount) : 0;
+    let liquidCash = 0;
+    if (balanceData?.amount) {
+      const baseSnap = parseFloat(balanceData.amount) || 0;
+      const snapDateStr = typeof balanceData.date === "string" 
+        ? balanceData.date.split("T")[0] 
+        : new Date(balanceData.date).toISOString().split("T")[0];
+
+      const { data: txs } = await adminDb
+        .from("tracker_expense")
+        .select("amount")
+        .eq("user_id", user.id)
+        .gte("date", `${snapDateStr}T00:00:00.000Z`);
+
+      const netTx = (txs || []).reduce((sum: number, tx: any) => sum + (parseFloat(tx.amount) || 0), 0);
+      liquidCash = parseFloat((baseSnap + netTx).toFixed(2));
+    }
 
     // 2. Fetch portfolio assets
     const { data: assets } = await adminDb

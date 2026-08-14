@@ -156,7 +156,7 @@ export async function POST(req: Request) {
                   const change24h = asset.currency === "USD" ? coinInfo.usd_24h_change : coinInfo.eur_24h_change;
 
                   const priceObj: CachedPrice = {
-                    price: parseFloat(price.toFixed(4)),
+                    price: typeof price === "number" ? price : parseFloat(price),
                     change24h: parseFloat((change24h || 0).toFixed(2)),
                     currency: asset.currency || "EUR",
                     timestamp: now,

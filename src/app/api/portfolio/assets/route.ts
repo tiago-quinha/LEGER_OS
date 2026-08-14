@@ -61,16 +61,18 @@ export async function GET(req: Request) {
 
     if (balanceData?.amount) {
       const baseSnap = parseFloat(balanceData.amount) || 0;
-      const snapDate = balanceData.date;
+      const snapDateStr = typeof balanceData.date === "string" 
+        ? balanceData.date.split("T")[0] 
+        : new Date(balanceData.date).toISOString().split("T")[0];
 
       const { data: txs } = await adminDb
         .from("tracker_expense")
         .select("amount")
         .eq("user_id", user.id)
-        .gte("date", snapDate);
+        .gte("date", `${snapDateStr}T00:00:00.000Z`);
 
       const netTx = (txs || []).reduce((sum: number, tx: any) => sum + (parseFloat(tx.amount) || 0), 0);
-      liquidBalance = baseSnap + netTx;
+      liquidBalance = parseFloat((baseSnap + netTx).toFixed(2));
     }
 
     return NextResponse.json({ assets: assets || [], liquidBalance });
@@ -140,16 +142,16 @@ export async function POST(req: Request) {
       .from("portfolio_assets")
       .insert({
         user_id: user.id,
-        asset_name: asset_name.trim(),
-        symbol: symbol ? symbol.trim().toUpperCase() : null,
+        asset_name: typeof asset_name === "string" ? asset_name.trim() : String(asset_name || ""),
+        symbol: symbol && typeof symbol === "string" ? symbol.trim().toUpperCase() : null,
         asset_type,
         quantity: parsedQty,
         buy_price: parsedBuyPrice,
         current_price: parsedCurrentPrice,
         currency: currency || "EUR",
-        institution: institution ? institution.trim() : "",
-        notes: notes ? notes.trim() : "",
-        metadata: {}
+        institution: institution && typeof institution === "string" ? institution.trim() : "",
+        notes: notes && typeof notes === "string" ? notes.trim() : "",
+        metadata: {},
       })
       .select("*")
       .single();
@@ -196,15 +198,15 @@ export async function PATCH(req: Request) {
     }
 
     const updatePayload: Record<string, any> = { updated_at: new Date().toISOString() };
-    if (asset_name !== undefined) updatePayload.asset_name = asset_name.trim();
-    if (symbol !== undefined) updatePayload.symbol = symbol ? symbol.trim().toUpperCase() : null;
-    if (asset_type !== undefined) updatePayload.asset_type = asset_type;
-    if (quantity !== undefined) updatePayload.quantity = parseFloat(quantity);
-    if (buy_price !== undefined) updatePayload.buy_price = parseFloat(buy_price);
-    if (current_price !== undefined) updatePayload.current_price = parseFloat(current_price);
-    if (currency !== undefined) updatePayload.currency = currency;
-    if (institution !== undefined) updatePayload.institution = institution.trim();
-    if (notes !== undefined) updatePayload.notes = notes.trim();
+    if (asset_name !== undefined && asset_name !== null) updatePayload.asset_name = typeof asset_name === "string" ? asset_name.trim() : asset_name;
+    if (symbol !== undefined) updatePayload.symbol = symbol && typeof symbol === "string" ? symbol.trim().toUpperCase() : null;
+    if (asset_type !== undefined && asset_type !== null) updatePayload.asset_type = asset_type;
+    if (quantity !== undefined && quantity !== null) updatePayload.quantity = parseFloat(quantity);
+    if (buy_price !== undefined && buy_price !== null) updatePayload.buy_price = parseFloat(buy_price);
+    if (current_price !== undefined && current_price !== null) updatePayload.current_price = parseFloat(current_price);
+    if (currency !== undefined && currency !== null) updatePayload.currency = currency;
+    if (institution !== undefined) updatePayload.institution = institution && typeof institution === "string" ? institution.trim() : "";
+    if (notes !== undefined) updatePayload.notes = notes && typeof notes === "string" ? notes.trim() : "";
 
     const { data: updated, error: updateError } = await adminDb
       .from("portfolio_assets")
@@ -223,6 +225,11 @@ export async function PATCH(req: Request) {
     console.error("PATCH /api/portfolio/assets error:", error);
     return NextResponse.json({ error: error.message || "Internal server error" }, { status: 500 });
   }
+}
+
+// PUT: Alias to PATCH for position updates
+export async function PUT(req: Request) {
+  return PATCH(req);
 }
 
 // DELETE: Remove an asset
