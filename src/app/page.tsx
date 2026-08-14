@@ -2,6 +2,7 @@ import { createClient } from "@/lib/supabase-server"
 import { getCycles } from "@/lib/cycles"
 import { DashboardView } from "@/components/DashboardView"
 import { OnboardingView } from "@/components/OnboardingView"
+import { redirect } from "next/navigation"
 
 export const dynamic = "force-dynamic"
 
@@ -13,7 +14,9 @@ export default async function DashboardPage({ searchParams }: PageProps) {
   const params = await searchParams
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
-  if (!user) return null
+  if (!user) {
+    redirect("/login")
+  }
 
   // 1. Fetch user profile and cycles using utility
   const { data: profile } = await supabase
