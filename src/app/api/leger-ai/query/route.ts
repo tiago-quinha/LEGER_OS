@@ -147,35 +147,12 @@ export async function POST(request: Request) {
           }
         ] | null
       }
-         - amount: decimal number (expenses are negative, income is positive)
-         - category_id: integer (foreign key to categories)
-         - source: string (e.g. 'SANTANDER')
-      2. "categories" (expense categories):
-         Columns:
-         - id: integer
-         - name: string
-         - color: string
-      3. "budgets" (budget limits):
-         Columns:
-         - category_id: integer
-         - amount: decimal number
-      4. "income" (historical monthly income):
-         Columns:
-         - amount: decimal number
-         - date: date
-         - source: string
-      5. "account_balance" (account balance checkpoints):
-         Columns:
-         - balance: decimal number
-         - recorded_at: timestamp
-      6. "merchant_rules" (auto-categorization rules):
-         Columns:
-         - keyword: string
-         - category_id: integer
     `;
 
     let dbQueries: any[] = [];
     let requiresDb = false;
+    let requiresWebSearch = false;
+    let webSearchQuery = "";
 
     try {
       const intentResText = await generateAIContent(intentPrompt, {
@@ -187,6 +164,8 @@ export async function POST(request: Request) {
 
       const intentRes = JSON.parse(intentResText);
       requiresDb = !!intentRes.requiresDb;
+      requiresWebSearch = !!intentRes.requiresWebSearch;
+      webSearchQuery = (intentRes.webSearchQuery || "").trim();
       dbQueries = intentRes.dbQueries || [];
     } catch (e) {
       console.error("Failed to parse AI intent:", e);

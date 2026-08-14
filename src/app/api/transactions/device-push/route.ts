@@ -113,7 +113,7 @@ export async function POST(request: Request) {
           jsonMode: true,
           modelType: "flash",
           provider: userProfile.ai_provider || undefined,
-          apiKey: userProfile.custom_api_key || undefined
+          customKey: userProfile.custom_api_key || undefined
         })
         const parsed = JSON.parse(aiResText)
         if (!finalMerchant && parsed.merchant) {

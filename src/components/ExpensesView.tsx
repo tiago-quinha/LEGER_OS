@@ -2247,7 +2247,7 @@ export function ExpensesView({ initialExpenses, categories: initialCategories, i
                                 <Button
                                   type="button"
                                   variant="outline"
-                                  onClick={() => setIsAddModalOpen(true)}
+                                  onClick={() => setIsAddOpen(true)}
                                   className="h-10 rounded-none border-border bg-secondary/30 hover:bg-secondary text-foreground uppercase font-mono text-xs font-bold tracking-wider cursor-pointer flex items-center gap-2"
                                 >
                                   <Plus className="h-3.5 w-3.5" /> Add Transaction
@@ -2475,7 +2475,7 @@ export function ExpensesView({ initialExpenses, categories: initialCategories, i
                             <Button
                               type="button"
                               variant="outline"
-                              onClick={() => setIsAddModalOpen(true)}
+                              onClick={() => setIsAddOpen(true)}
                               className="h-10 rounded-none border-border bg-secondary/30 hover:bg-secondary text-foreground uppercase font-mono text-xs font-bold tracking-wider cursor-pointer flex items-center justify-center gap-2 w-full"
                             >
                               <Plus className="h-3.5 w-3.5" /> Add Transaction
