@@ -3,7 +3,7 @@
 import React, { useState, useEffect, useMemo } from "react"
 import { 
   Smartphone, Apple, Sparkles, Check, Copy, ShieldCheck, 
-  Terminal, Search, Filter, RotateCcw, Laptop, Layers
+  Terminal, Search, Filter, RotateCcw, Laptop, Layers, Bell, Send
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -12,6 +12,7 @@ import { toast } from "sonner"
 import { cn } from "@/lib/utils"
 import { ProLockOverlay } from "@/components/ProLockOverlay"
 import { useSystem } from "@/lib/SystemContext"
+import { useWebPush } from "@/hooks/useWebPush"
 
 interface DeviceSyncManagerProps {
   user?: any
@@ -148,6 +149,15 @@ export function DeviceSyncManager({ user: propUser, isPro: propIsPro, onUpgradeC
 
   const productionEndpoint = `${baseUrl}/api/transactions/device-push?userId=${user?.id || ""}`
   const legacyMacrodroidEndpoint = `${baseUrl}/api/transactions/macrodroid?userId=${user?.id || ""}`
+
+  const {
+    isSupported: isPushSupported,
+    isSubscribed: isPushSubscribed,
+    isLoading: isPushLoading,
+    subscribe: subscribePush,
+    unsubscribe: unsubscribePush,
+    sendTestNotification: sendTestPush
+  } = useWebPush()
 
   const toggleBankSelection = (bankId: string) => {
     if (selectedBanks.includes(bankId)) {
@@ -541,6 +551,70 @@ export function DeviceSyncManager({ user: propUser, isPro: propIsPro, onUpgradeC
           )}
         </div>
       )}
+
+      {/* Web Push Notification Card for Instant Transaction Alerts & Quick Naming */}
+      <div className="p-4 bg-card/40 border border-border space-y-3">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <div className="h-7 w-7 bg-foreground/10 border border-border flex items-center justify-center">
+              <Bell className="h-3.5 w-3.5 text-foreground" />
+            </div>
+            <div>
+              <h4 className="text-xs font-mono font-bold uppercase tracking-wider text-foreground flex items-center gap-2">
+                Actionable Web Push Alerts
+                {isPushSubscribed ? (
+                  <span className="text-[9px] font-mono px-1.5 py-0.2 bg-emerald-500/10 text-emerald-500 border border-emerald-500/30 font-bold uppercase">
+                    Active
+                  </span>
+                ) : (
+                  <span className="text-[9px] font-mono px-1.5 py-0.2 bg-secondary text-muted-foreground border border-border font-bold uppercase">
+                    Disabled
+                  </span>
+                )}
+              </h4>
+              <p className="text-[10px] font-sans text-muted-foreground">
+                Get an instant notification when Santander or MB WAY charges card debit, allowing 1-tap store naming.
+              </p>
+            </div>
+          </div>
+
+          <div className="flex items-center gap-2">
+            {isPushSubscribed ? (
+              <>
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={sendTestPush}
+                  className="h-8 rounded-none border-border font-mono text-[10px] uppercase cursor-pointer flex items-center gap-1.5"
+                >
+                  <Send className="h-3 w-3" /> Test
+                </Button>
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  disabled={isPushLoading}
+                  onClick={unsubscribePush}
+                  className="h-8 rounded-none border-border font-mono text-[10px] uppercase text-muted-foreground hover:text-foreground cursor-pointer"
+                >
+                  Disable
+                </Button>
+              </>
+            ) : (
+              <Button
+                type="button"
+                size="sm"
+                disabled={isPushLoading || !isPushSupported}
+                onClick={subscribePush}
+                className="h-8 rounded-none bg-foreground text-background hover:bg-foreground/90 font-mono text-[10px] uppercase font-bold tracking-wider cursor-pointer"
+              >
+                {isPushLoading ? "Enabling..." : "Enable Push"}
+              </Button>
+            )}
+          </div>
+        </div>
+      </div>
     </div>
   )
 }

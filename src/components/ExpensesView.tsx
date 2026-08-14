@@ -40,6 +40,7 @@ import { GlowingBadge } from "@/components/unlumen-ui/glowing-badge"
 import { PrivacyValue } from "@/components/ui/privacy-value"
 import { Tilt } from "@/components/unlumen-ui/tilt"
 import { ClippedCircle } from "@/components/unlumen-ui/clipped-circle"
+import { UnnamedTransactionResolver } from "@/components/UnnamedTransactionResolver"
 
 interface Category {
   id: number
@@ -1664,6 +1665,13 @@ export function ExpensesView({ initialExpenses, categories: initialCategories, i
              </MagneticButton>
            </div>
         </header>
+
+        {/* Unnamed Bank Transaction Resolver & Push Alert Banner */}
+        <UnnamedTransactionResolver 
+          expenses={expenses} 
+          categories={categories} 
+          onTransactionUpdated={(updatedTx) => setExpenses(prev => prev.map(e => e.id === updatedTx.id ? { ...e, ...updatedTx } : e))}
+        />
 
         {/* 3 Executive Ledger Summary Cards Up Top */}
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-6">

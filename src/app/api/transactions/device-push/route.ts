@@ -1,6 +1,7 @@
 import { getAdminClient } from "@/lib/supabase-admin"
 import { NextResponse } from "next/server"
 import { generateAIContent } from "@/lib/ai-bridge"
+import { sendPushToUser } from "@/lib/web-push"
 
 const supabaseAdmin = getAdminClient()
 
@@ -237,6 +238,47 @@ export async function POST(request: Request) {
     if (insertErr) {
       console.error("[Device Push] DB Insert Error:", insertErr)
       return NextResponse.json({ error: "Failed to persist transaction to database", details: insertErr.message }, { status: 500 })
+    }
+
+    // 8. Trigger Web Push Notification to User Phone / Browser
+    try {
+      const isGenericMerchant = 
+        !finalMerchant || 
+        finalMerchant.toLowerCase() === "unknown merchant" || 
+        finalMerchant.toLowerCase().startsWith("compra") || 
+        finalMerchant.toLowerCase().startsWith("movimento") ||
+        finalMerchant.toLowerCase().startsWith("pagamento")
+
+      const currencySymbol = userProfile?.currency === "USD" ? "$" : userProfile?.currency === "GBP" ? "£" : "€"
+      const amountStr = `${finalAmount < 0 ? "-" : "+"}${currencySymbol}${Math.abs(finalAmount).toFixed(2)}`
+      const bankTitle = bank_app ? bank_app.charAt(0).toUpperCase() + bank_app.slice(1) : "Bank Alert"
+
+      if (isGenericMerchant) {
+        await sendPushToUser(supabaseAdmin, userId, {
+          title: `💳 ${bankTitle}: ${amountStr}`,
+          body: "Tap to name this merchant (e.g. Continente, Pingo Doce, Uber)",
+          url: `/?resolveTxId=${insertedTx.id}`,
+          data: {
+            txId: insertedTx.id,
+            amount: finalAmount,
+            bankApp: bank_app,
+            needsName: true
+          }
+        })
+      } else {
+        await sendPushToUser(supabaseAdmin, userId, {
+          title: `💳 ${finalMerchant}: ${amountStr}`,
+          body: `Transaction recorded in LEGER_OS · Tap to view`,
+          url: `/?resolveTxId=${insertedTx.id}`,
+          data: {
+            txId: insertedTx.id,
+            amount: finalAmount,
+            merchant: finalMerchant
+          }
+        })
+      }
+    } catch (pushErr) {
+      console.error("[Device Push] Web push dispatch non-fatal error:", pushErr)
     }
 
     return NextResponse.json({

@@ -48,6 +48,7 @@ import { Tilt } from "@/components/unlumen-ui/tilt"
 import { ClippedCircle } from "@/components/unlumen-ui/clipped-circle"
 import { AnimatedList } from "@/components/unlumen-ui/animated-list"
 import { MagneticButton } from "@/components/unlumen-ui/magnetic-button"
+import { UnnamedTransactionResolver } from "@/components/UnnamedTransactionResolver"
 import { GlowingBadge } from "@/components/unlumen-ui/glowing-badge"
 import { FloatingTooltipTrigger } from "@/components/unlumen-ui/floating-tooltip"
 
@@ -821,6 +822,9 @@ export function DashboardView({
           </h1>
         </div>
       </header>
+
+      {/* Unnamed Bank Transaction Resolver & Push Alert Banner */}
+      <UnnamedTransactionResolver expenses={expenses} categories={categories} />
 
       {/* Core Financial Path */}
           
