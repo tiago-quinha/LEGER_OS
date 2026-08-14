@@ -33,7 +33,7 @@ const DashboardChart = dynamic(() => import("@/components/DashboardChart").then(
 })
 import { Button } from "@/components/ui/button"
 import { ProLockOverlay } from "@/components/ProLockOverlay"
-import { Download, TrendingUp, TrendingDown, Wallet, ArrowUpRight, Banknote, ChevronLeft, CalendarDays, ChevronRight, Landmark, Target, AlertTriangle, CheckCircle2, Zap, Brain, Sparkles, ChevronDown, Loader2, CalendarRange, CreditCard, Tag, Sliders, Smartphone, Shield, Cpu, LayoutDashboard, PiggyBank } from "lucide-react"
+import { Download, TrendingUp, TrendingDown, Wallet, ArrowUpRight, Banknote, ChevronLeft, CalendarDays, ChevronRight, Landmark, Target, AlertTriangle, CheckCircle2, Zap, Brain, Sparkles, ChevronDown, Loader2, CalendarRange, CreditCard, Tag, Sliders, Smartphone, Shield, Cpu, LayoutDashboard, PiggyBank, Upload, Plus } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { useRouter } from "next/navigation"
 import { NumberTicker } from "@/components/ui/number-ticker"
@@ -56,6 +56,8 @@ interface CurvePoint {
   outflow: number
 }
 
+import { detectRecurringCadence } from "@/lib/cadence-detector"
+
 function simulateExpertDailyProjection(
   pastExpenses: any[],
   currentExpenses: any[],
@@ -66,33 +68,14 @@ function simulateExpertDailyProjection(
   overrides: any[] = [],
   decayRate: number = 0.12
 ) {
-  const merchantMap = new Map<string, { amounts: number[], days: number[] }>()
-  pastExpenses.forEach((e: any) => {
-    const amt = parseFloat(e.amount)
-    if (amt < 0 && e.date) {
-      const m = (e.merchant || "").trim().toUpperCase()
-      if (!merchantMap.has(m)) merchantMap.set(m, { amounts: [], days: [] })
-      const entry = merchantMap.get(m)!
-      entry.amounts.push(Math.abs(amt))
-      const day = new Date(e.date).getDate() - 1
-      if (day >= 0 && day <= 31) entry.days.push(day)
-    }
-  })
-
-  const recurringMerchants: { merchant: string, amount: number, expectedDay: number }[] = []
-  merchantMap.forEach((val, key) => {
-    if (val.amounts.length >= 2) {
-      val.amounts.sort((a, b) => a - b)
-      val.days.sort((a, b) => a - b)
-      const medianAmt = val.amounts[Math.floor(val.amounts.length / 2)]
-      const medianDay = val.days[Math.floor(val.days.length / 2)]
-      if (val.amounts[0] >= medianAmt * 0.65 && val.amounts[val.amounts.length - 1] <= medianAmt * 1.35) {
-        recurringMerchants.push({ merchant: key, amount: medianAmt, expectedDay: medianDay })
-      }
-    }
-  })
-
-  const recurringNames = new Set(recurringMerchants.map(r => r.merchant))
+  // Use high-precision Automated Cadence Engine for recurring subscriptions & fixed bills
+  const cadenceResult = detectRecurringCadence(pastExpenses, currentCycle?.startDate, currentCycle?.endDate);
+  const recurringMerchants = cadenceResult.subscriptions.map(s => ({
+    merchant: s.normalizedMerchant,
+    amount: s.latestAmount,
+    expectedDay: s.expectedDayOfMonth || 15
+  }));
+  const recurringNames = new Set(cadenceResult.subscriptions.map(s => s.normalizedMerchant));
 
   const dowSpend = [1, 1, 1, 1, 1, 1, 1]
   pastExpenses.forEach((e: any) => {
@@ -582,19 +565,9 @@ export function DashboardView({
   }, [categoryGraphData])
 
   useEffect(() => {
-    // Generate a stable decision once per user session
-    const sessionKey = "leger_session_graph_lock"
-    let stored = sessionStorage.getItem(sessionKey)
-    if (!stored) {
-      // 40% chance of locking the graph to remind them of the PRO features
-      const decideLock = Math.random() < 0.4 ? "true" : "false"
-      sessionStorage.setItem(sessionKey, decideLock)
-      stored = decideLock
-    }
-    setShowGraphLock(stored === "true")
-
-    // Check if graph lock is currently dismissed (3-hour window)
+    // For non-PRO users, always lock the graph once transactions exist
     if (!isPro) {
+      setShowGraphLock(true)
       const dismissedUntil = localStorage.getItem('leger_pro_graph_dismissed_until')
       if (dismissedUntil) {
         const time = parseInt(dismissedUntil, 10)
@@ -602,6 +575,8 @@ export function DashboardView({
           setViewMode('calendar')
         }
       }
+    } else {
+      setShowGraphLock(false)
     }
   }, [isPro])
 
@@ -957,7 +932,47 @@ export function DashboardView({
                     }}
                     isPro={isPro}
                   />
-                  {!isPro && showGraphLock && (
+
+                  {/* Empty State Overlay when no transactions are recorded yet */}
+                  {expenses.length === 0 && (
+                    <div className="absolute inset-0 z-30 bg-background/95 backdrop-blur-md flex flex-col items-center justify-center p-6 text-center">
+                      <div className="max-w-md w-full space-y-4">
+                        <div className="w-11 h-11 rounded-none bg-secondary/40 border border-border flex items-center justify-center mx-auto text-foreground shadow-sm">
+                          <TrendingUp className="h-5 w-5" />
+                        </div>
+                        <div className="space-y-1.5">
+                          <h3 className="text-sm sm:text-base font-bold font-mono uppercase tracking-wider text-foreground">
+                            Projection Engine Calibrated
+                          </h3>
+                          <p className="text-xs text-muted-foreground font-sans leading-relaxed">
+                            You have no transactions in your ledger yet. Ingest your first bank statement or record an entry to generate your daily burn forecast.
+                          </p>
+                        </div>
+                        <div className="flex flex-col sm:flex-row items-center justify-center gap-2.5 pt-2">
+                          <Button
+                            type="button"
+                            onClick={() => router.push('/expenses')}
+                            className="w-full sm:w-auto h-11 rounded-none bg-foreground text-background hover:bg-foreground/90 font-mono text-xs uppercase font-bold tracking-wider cursor-pointer flex items-center justify-center gap-2 px-5 shadow-sm"
+                          >
+                            <Upload className="h-4 w-4" /> Upload Statement
+                          </Button>
+                          <Button
+                            type="button"
+                            variant="outline"
+                            onClick={() => {
+                              setSelectedDate(new Date())
+                              setModalOpen(true)
+                            }}
+                            className="w-full sm:w-auto h-11 rounded-none border-border bg-secondary/30 hover:bg-secondary text-foreground font-mono text-xs uppercase font-bold tracking-wider cursor-pointer flex items-center justify-center gap-2 px-4"
+                          >
+                            <Plus className="h-4 w-4" /> Add Expense
+                          </Button>
+                        </div>
+                      </div>
+                    </div>
+                  )}
+
+                  {!isPro && showGraphLock && expenses.length > 0 && (
                     <div className="absolute inset-0 z-30 bg-background/95 backdrop-blur-md flex flex-col items-center justify-center p-4 text-center">
                       <div className="max-w-md w-full space-y-3">
                         <ProLockOverlay 
@@ -1220,132 +1235,230 @@ export function DashboardView({
               <span className="text-[10px] font-mono text-muted-foreground">{activeBudgets.length} ACTIVE LIMITS</span>
             </div>
             
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-x-12 gap-y-10">
-              {activeBudgets.map((cat) => {
-                const netBalance = cat.netBalance !== undefined ? cat.netBalance : -cat.value
-                const isProfitable = netBalance > 0
-                const netSpent = netBalance < 0 ? Math.abs(netBalance) : 0
+            {activeBudgets.length === 0 ? (
+              <div className="p-6 border border-border ledger-border bg-card/20 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                <div className="space-y-1">
+                  <h3 className="text-xs font-mono font-bold uppercase text-foreground">
+                    No Budget Limits Configured
+                  </h3>
+                  <p className="text-xs text-muted-foreground font-sans max-w-xl">
+                    Establish category spending caps for dining, transport, subscriptions, or leisure to track real-time capacity and surplus.
+                  </p>
+                </div>
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() => router.push('/budgets')}
+                  className="h-9 rounded-none border-border bg-secondary/30 hover:bg-secondary text-foreground font-mono text-xs uppercase font-bold tracking-wider cursor-pointer shrink-0 self-start sm:self-auto flex items-center gap-1.5"
+                >
+                  <Target className="h-3.5 w-3.5" /> Configure Budgets
+                </Button>
+              </div>
+            ) : (
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-x-12 gap-y-10">
+                {activeBudgets.map((cat) => {
+                  const netBalance = cat.netBalance !== undefined ? cat.netBalance : -cat.value
+                  const isProfitable = netBalance > 0
+                  const netSpent = netBalance < 0 ? Math.abs(netBalance) : 0
 
-                const percentage = cat.limit > 0 ? (Math.abs(netBalance) / cat.limit) * 100 : 0
-                const isOver = !isProfitable && netSpent > cat.limit && cat.limit > 0
+                  const percentage = cat.limit > 0 ? (Math.abs(netBalance) / cat.limit) * 100 : 0
+                  const isOver = !isProfitable && netSpent > cat.limit && cat.limit > 0
 
-                return (
-                  <div 
-                    key={cat.name} 
-                    className="space-y-3 group cursor-pointer hover:bg-secondary/20 p-2.5 -mx-2.5 rounded-none transition-colors border border-transparent hover:border-border/40" 
-                    onClick={() => {
-                      setSelectedCategoryForGraph(cat)
-                      setBudgetGraphOpen(true)
-                    }}
-                  >
-                    <div className="flex justify-between items-end">
-                      <div className="space-y-0.5">
-                        <span className="text-xs font-bold uppercase tracking-tight block">{cat.name}</span>
-                        <span className="text-[9px] font-mono text-muted-foreground uppercase">
-                          {isProfitable 
-                            ? `+${currencySymbol}${netBalance.toFixed(0)} surplus` 
-                            : isOver 
-                              ? "limit exceeded" 
-                              : `${currencySymbol}${(cat.limit - netSpent).toFixed(0)} remaining`
-                          }
-                        </span>
-                      </div>
-                      <div className="text-right space-y-0.5">
-                        <div className={cn("text-xs font-mono font-bold", isProfitable ? "text-emerald-500" : "")}>
-                          <PrivacyValue>
-                            {isProfitable ? "+" : ""}{currencySymbol}{isProfitable ? Math.round(netBalance) : Math.round(netSpent)}
-                          </PrivacyValue>
-                          <span className="text-muted-foreground/60 font-normal"> / {currencySymbol}{cat.limit.toFixed(0)}</span>
+                  return (
+                    <div 
+                      key={cat.name} 
+                      className="space-y-3 group cursor-pointer hover:bg-secondary/20 p-2.5 -mx-2.5 rounded-none transition-colors border border-transparent hover:border-border/40" 
+                      onClick={() => {
+                        setSelectedCategoryForGraph(cat)
+                        setBudgetGraphOpen(true)
+                      }}
+                    >
+                      <div className="flex justify-between items-end">
+                        <div className="space-y-0.5">
+                          <span className="text-xs font-bold uppercase tracking-tight block">{cat.name}</span>
+                          <span className="text-[9px] font-mono text-muted-foreground uppercase">
+                            {isProfitable 
+                              ? `+${currencySymbol}${netBalance.toFixed(0)} surplus` 
+                              : isOver 
+                                ? "limit exceeded" 
+                                : `${currencySymbol}${(cat.limit - netSpent).toFixed(0)} remaining`
+                            }
+                          </span>
                         </div>
-                        <p className="text-[9px] font-mono text-muted-foreground uppercase">
-                          {isProfitable 
-                            ? `+${percentage.toFixed(0)}% surplus` 
-                            : `${percentage.toFixed(0)}% used`
-                          }
-                        </p>
+                        <div className="text-right space-y-0.5">
+                          <div className={cn("text-xs font-mono font-bold", isProfitable ? "text-emerald-500" : "")}>
+                            <PrivacyValue>
+                              {isProfitable ? "+" : ""}{currencySymbol}{isProfitable ? Math.round(netBalance) : Math.round(netSpent)}
+                            </PrivacyValue>
+                            <span className="text-muted-foreground/60 font-normal"> / {currencySymbol}{cat.limit.toFixed(0)}</span>
+                          </div>
+                          <p className="text-[9px] font-mono text-muted-foreground uppercase">
+                            {isProfitable 
+                              ? `+${percentage.toFixed(0)}% surplus` 
+                              : `${percentage.toFixed(0)}% used`
+                            }
+                          </p>
+                        </div>
+                      </div>
+                      
+                      <div className="relative w-full h-2 bg-secondary/30 rounded-none border border-border/40 flex items-center">
+                        {/* Zero center-line indicator */}
+                        <div className="absolute left-1/2 -top-0.5 -bottom-0.5 -translate-x-1/2 w-[1px] bg-foreground/50 z-20" />
+
+                        <div className="absolute inset-0 overflow-hidden">
+                          {isProfitable && (
+                            <div 
+                              className="absolute left-1/2 top-0 bottom-0 bg-emerald-500 transition-all duration-1000"
+                              style={{ width: `${Math.min(50, (netBalance / (cat.limit || 100)) * 50)}%` }}
+                            />
+                          )}
+
+                          {!isProfitable && netSpent > 0 && (
+                            <div 
+                              className={cn("absolute right-1/2 top-0 bottom-0 transition-all duration-1000", isOver ? "bg-destructive" : "bg-foreground")}
+                              style={{ width: `${Math.min(50, (netSpent / (cat.limit || 100)) * 50)}%` }}
+                            />
+                          )}
+                        </div>
                       </div>
                     </div>
-                    
-                    <div className="relative w-full h-2 bg-secondary/30 rounded-none border border-border/40 flex items-center">
-                      {/* Zero center-line indicator */}
-                      <div className="absolute left-1/2 -top-0.5 -bottom-0.5 -translate-x-1/2 w-[1px] bg-foreground/50 z-20" />
-
-                      <div className="absolute inset-0 overflow-hidden">
-                        {isProfitable && (
-                          <div 
-                            className="absolute left-1/2 top-0 bottom-0 bg-emerald-500 transition-all duration-1000"
-                            style={{ width: `${Math.min(50, (netBalance / (cat.limit || 100)) * 50)}%` }}
-                          />
-                        )}
-
-                        {!isProfitable && netSpent > 0 && (
-                          <div 
-                            className={cn("absolute right-1/2 top-0 bottom-0 transition-all duration-1000", isOver ? "bg-destructive" : "bg-foreground")}
-                            style={{ width: `${Math.min(50, (netSpent / (cat.limit || 100)) * 50)}%` }}
-                          />
-                        )}
-                      </div>
-                    </div>
-                  </div>
-                )
-              })}
-            </div>
+                  )
+                })}
+              </div>
+            )}
           </section>
 
-          {/* 5. Logs & Archive Grid */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-12 pb-10 [content-visibility:auto] [contain-intrinsic-size:1px_400px]">
-            <div className="space-y-6">
-              <h3 className="text-[10px] font-mono uppercase tracking-wider text-foreground font-bold border-b border-border pb-4">Category Breakdown</h3>
-              <div className="space-y-6">
-                {spendingByCategory.map((cat) => (
-                  <div key={cat.name} className="group cursor-default">
-                    <div className="flex justify-between items-end mb-2">
-                      <span className="text-xs font-bold uppercase tracking-tight group-hover:pl-2 transition-all duration-300 block">{cat.name}</span>
-                      <span className="text-xs font-mono font-bold uppercase">{currencySymbol}{cat.value.toFixed(2)}</span>
-                    </div>
-                    <div className="h-px w-full bg-border relative">
-                      <div className="absolute top-0 left-0 h-px bg-foreground transition-all duration-700" style={{ width: `${(cat.value / totalOut) * 100}%` }} />
-                    </div>
+          {/* 5. Logs & Archive Grid / First-Time Empty State */}
+          {expenses.length === 0 ? (
+            <div className="p-6 sm:p-8 bg-card/25 border border-border ledger-border space-y-6">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-border/40 pb-5">
+                <div className="space-y-1">
+                  <div className="flex items-center gap-2">
+                    <span className="h-2 w-2 bg-emerald-500 rounded-full animate-pulse inline-block" />
+                    <span className="text-xs font-mono font-bold uppercase tracking-wider text-foreground">
+                      Workspace Ready · Awaiting First Data Stream
+                    </span>
                   </div>
-                ))}
+                  <p className="text-xs text-muted-foreground font-sans leading-relaxed">
+                    Your paycheck cycle, habit categories, and projection engine are primed. Ingest your first statement or record a transaction to begin real-time forecasting:
+                  </p>
+                </div>
+                <span className="text-[10px] font-mono uppercase bg-secondary px-2.5 py-1 border border-border text-foreground font-bold shrink-0 self-start sm:self-auto">
+                  0 Recorded Entries
+                </span>
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 pt-1">
+                <div 
+                  onClick={() => router.push('/expenses')} 
+                  className="p-4 bg-secondary/15 border border-border hover:border-foreground/50 transition-all cursor-pointer space-y-3 group"
+                >
+                  <div className="p-2 bg-secondary/30 border border-border w-fit group-hover:bg-foreground group-hover:text-background transition-colors">
+                    <Upload className="h-4 w-4" />
+                  </div>
+                  <div className="space-y-1">
+                    <h4 className="text-xs font-bold font-mono uppercase text-foreground">Upload Bank Statement</h4>
+                    <p className="text-[10px] text-muted-foreground font-sans leading-relaxed">
+                      Drop your Santander, Revolut, or universal bank PDF/TXT statement for instant parsing.
+                    </p>
+                  </div>
+                  <span className="text-[10px] font-mono uppercase text-foreground font-bold flex items-center gap-1 group-hover:translate-x-1 transition-transform">
+                    Ingest File →
+                  </span>
+                </div>
+
+                <div 
+                  onClick={() => router.push('/system')} 
+                  className="p-4 bg-secondary/15 border border-border hover:border-foreground/50 transition-all cursor-pointer space-y-3 group"
+                >
+                  <div className="p-2 bg-secondary/30 border border-border w-fit group-hover:bg-foreground group-hover:text-background transition-colors">
+                    <Smartphone className="h-4 w-4" />
+                  </div>
+                  <div className="space-y-1">
+                    <h4 className="text-xs font-bold font-mono uppercase text-foreground">Connect Mobile Device</h4>
+                    <p className="text-[10px] text-muted-foreground font-sans leading-relaxed">
+                      Configure Apple Pay Shortcuts or the Android background listener for automated ingestion.
+                    </p>
+                  </div>
+                  <span className="text-[10px] font-mono uppercase text-foreground font-bold flex items-center gap-1 group-hover:translate-x-1 transition-transform">
+                    Sync Device →
+                  </span>
+                </div>
+
+                <div 
+                  onClick={() => router.push('/expenses')} 
+                  className="p-4 bg-secondary/15 border border-border hover:border-foreground/50 transition-all cursor-pointer space-y-3 group"
+                >
+                  <div className="p-2 bg-secondary/30 border border-border w-fit group-hover:bg-foreground group-hover:text-background transition-colors">
+                    <Plus className="h-4 w-4" />
+                  </div>
+                  <div className="space-y-1">
+                    <h4 className="text-xs font-bold font-mono uppercase text-foreground">Add Manual Entry</h4>
+                    <p className="text-[10px] text-muted-foreground font-sans leading-relaxed">
+                      Record a one-off expense or income deposit manually to calibrate your daily burn rate.
+                    </p>
+                  </div>
+                  <span className="text-[10px] font-mono uppercase text-foreground font-bold flex items-center gap-1 group-hover:translate-x-1 transition-transform">
+                    Record Entry →
+                  </span>
+                </div>
               </div>
             </div>
-
-            <div className="space-y-6">
-              <div className="flex items-center justify-between border-b border-border pb-4">
-                <h3 className="text-[10px] font-mono uppercase tracking-wider text-foreground font-bold">Recent Transactions</h3>
-                <span className="text-[10px] font-mono text-muted-foreground uppercase">{expenses.length} Entries</span>
-              </div>
-              <div className="space-y-0">
-                <AnimatedList
-                  items={expenses.slice(0, 10)}
-                  gap={0}
-                  animation="scale"
-                  renderItem={(exp) => (
-                    <div 
-                      onClick={() => openAudit(exp.id)}
-                      className="py-4 flex items-center justify-between group hover:bg-muted/30 transition-colors px-2 cursor-pointer border-b border-border/50"
-                    >
-                      <div className="space-y-1">
-                        <p className="text-xs font-bold uppercase truncate max-w-[180px] sm:max-w-xs tracking-tight group-hover:pl-1 transition-all">{exp.merchant || "UNSPECIFIED"}</p>
-                        <p className="text-[9px] font-mono text-muted-foreground uppercase">{new Date(exp.date).toLocaleDateString(language, { day: '2-digit', month: 'short' })}</p>
+          ) : (
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-12 pb-10 [content-visibility:auto] [contain-intrinsic-size:1px_400px]">
+              <div className="space-y-6">
+                <h3 className="text-[10px] font-mono uppercase tracking-wider text-foreground font-bold border-b border-border pb-4">Category Breakdown</h3>
+                <div className="space-y-6">
+                  {spendingByCategory.map((cat) => (
+                    <div key={cat.name} className="group cursor-default">
+                      <div className="flex justify-between items-end mb-2">
+                        <span className="text-xs font-bold uppercase tracking-tight group-hover:pl-2 transition-all duration-300 block">{cat.name}</span>
+                        <span className="text-xs font-mono font-bold uppercase">{currencySymbol}{cat.value.toFixed(2)}</span>
                       </div>
-                      <div className={cn("text-xs font-mono font-bold", parseFloat(exp.amount) > 0 ? "text-emerald-600 dark:text-emerald-400" : "")}>
-                        <PrivacyValue><NumberTicker value={Math.abs(parseFloat(exp.amount))} prefix={parseFloat(exp.amount) > 0 ? "+" : currencySymbol} /></PrivacyValue>
+                      <div className="h-px w-full bg-border relative">
+                        <div className="absolute top-0 left-0 h-px bg-foreground transition-all duration-700" style={{ width: `${(cat.value / totalOut) * 100}%` }} />
                       </div>
                     </div>
-                  )}
-                />
-                <MagneticButton 
-                  variant="outline" 
-                  className="w-full text-[10px] font-mono uppercase tracking-[0.2em] py-6 opacity-60 hover:opacity-100 border border-border mt-4 bg-background justify-center" 
-                  onClick={() => router.push('/expenses')}
-                >
-                  Access Full Archive <ArrowUpRight className="ml-2 h-3.5 w-3.5" />
-                </MagneticButton>
+                  ))}
+                </div>
+              </div>
+
+              <div className="space-y-6">
+                <div className="flex items-center justify-between border-b border-border pb-4">
+                  <h3 className="text-[10px] font-mono uppercase tracking-wider text-foreground font-bold">Recent Transactions</h3>
+                  <span className="text-[10px] font-mono text-muted-foreground uppercase">{expenses.length} Entries</span>
+                </div>
+                <div className="space-y-0">
+                  <AnimatedList
+                    items={expenses.slice(0, 10)}
+                    gap={0}
+                    animation="scale"
+                    renderItem={(exp) => (
+                      <div 
+                        onClick={() => openAudit(exp.id)}
+                        className="py-4 flex items-center justify-between group hover:bg-muted/30 transition-colors px-2 cursor-pointer border-b border-border/50"
+                      >
+                        <div className="space-y-1">
+                          <p className="text-xs font-bold uppercase truncate max-w-[180px] sm:max-w-xs tracking-tight group-hover:pl-1 transition-all">{exp.merchant || "UNSPECIFIED"}</p>
+                          <p className="text-[9px] font-mono text-muted-foreground uppercase">{new Date(exp.date).toLocaleDateString(language, { day: '2-digit', month: 'short' })}</p>
+                        </div>
+                        <div className={cn("text-xs font-mono font-bold", parseFloat(exp.amount) > 0 ? "text-emerald-600 dark:text-emerald-400" : "")}>
+                          <PrivacyValue><NumberTicker value={Math.abs(parseFloat(exp.amount))} prefix={parseFloat(exp.amount) > 0 ? "+" : currencySymbol} /></PrivacyValue>
+                        </div>
+                      </div>
+                    )}
+                  />
+                  <MagneticButton 
+                    variant="outline" 
+                    className="w-full text-[10px] font-mono uppercase tracking-[0.2em] py-6 opacity-60 hover:opacity-100 border border-border mt-4 bg-background justify-center" 
+                    onClick={() => router.push('/expenses')}
+                  >
+                    Access Full Archive <ArrowUpRight className="ml-2 h-3.5 w-3.5" />
+                  </MagneticButton>
+                </div>
               </div>
             </div>
-          </div>
+          )}
 
       {/* Clean Minimal App Footer */}
       <footer className="w-full border-t border-border/40 py-6 mt-16 relative z-10 font-mono text-[10px] text-muted-foreground">

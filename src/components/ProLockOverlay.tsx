@@ -17,7 +17,7 @@ interface ProLockOverlayProps {
 
 export function ProLockOverlay({ 
   title = "PRO TIER FEATURE", 
-  description = "This feature is reserved for LEGER_OS PRO nodes. Upgrade to unlock real-time neural automation and predictive simulations.", 
+  description = "This feature is reserved for LEGER_OS PRO. Upgrade to unlock real-time neural automation and predictive simulations.", 
   className,
   compact = false,
   onUpgrade

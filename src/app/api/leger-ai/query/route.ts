@@ -4,6 +4,8 @@ import { verifyAndConsumeQuota } from "@/lib/server-auth";
 import { getAdminClient } from "@/lib/supabase-admin";
 import { calculateServerTelemetry } from "@/lib/server-telemetry";
 import { normalizeJournal, buildUpdatedJournal } from "@/lib/journal-utils";
+import { searchFinancialWeb } from "@/lib/web-search";
+import { detectRecurringCadence } from "@/lib/cadence-detector";
 
 export async function POST(request: Request) {
   try {
@@ -34,10 +36,11 @@ export async function POST(request: Request) {
     let allUserCategories: any[] = [];
     let allUserBudgets: any[] = [];
     let userPortfolioAssets: any[] = [];
+    let cadenceSummaryContext = "";
 
     if (userId) {
       try {
-        const [serverDataRes, profileRes, catsRes, budgetsRes, portfolioRes] = await Promise.all([
+        const [serverDataRes, profileRes, catsRes, budgetsRes, portfolioRes, txRes] = await Promise.all([
           calculateServerTelemetry(supabaseAdmin, userId, clientDate).catch(telErr => {
             console.error("Failed to calculate server-side telemetry:", telErr);
             return null;
@@ -45,7 +48,8 @@ export async function POST(request: Request) {
           supabaseAdmin.from("profiles").select("*").eq("id", userId).single(),
           supabaseAdmin.from("categories").select("*").eq("user_id", userId),
           supabaseAdmin.from("budgets").select("*").eq("user_id", userId),
-          supabaseAdmin.from("portfolio_assets").select("*").eq("user_id", userId)
+          supabaseAdmin.from("portfolio_assets").select("*").eq("user_id", userId),
+          supabaseAdmin.from("tracker_expense").select("id, date, merchant, amount, category_id, raw_text").eq("user_id", userId).order("date", { ascending: false }).limit(300)
         ]);
 
         if (telemetry && Object.keys(telemetry).length > 0) {
@@ -65,6 +69,20 @@ export async function POST(request: Request) {
         }
         if (portfolioRes.data) {
           userPortfolioAssets = portfolioRes.data;
+        }
+
+        // Run automated cadence & recurring bill detector
+        if (txRes.data && txRes.data.length > 0) {
+          const cadenceResult = detectRecurringCadence(txRes.data, finalTelemetry?.cycleStartDate, finalTelemetry?.cycleEndDate);
+          if (cadenceResult.subscriptions.length > 0) {
+            cadenceSummaryContext = `
+            AUTOMATED RECURRING BILLS & CADENCE DETECTIONS:
+            - Total Monthly Fixed Commitments: €${cadenceResult.totalMonthlyCommitment.toFixed(2)}/mo
+            - Active Subscriptions (${cadenceResult.subscriptions.length}):
+            ${cadenceResult.subscriptions.slice(0, 10).map(s => `  * ${s.merchant}: €${s.latestAmount.toFixed(2)} (${s.cadence}, next: ${s.nextExpectedDate.split('T')[0]}, status: ${s.status})`).join("\n")}
+            ${cadenceResult.priceIncreases.length > 0 ? `- Price Hikes Detected:\n${cadenceResult.priceIncreases.map(p => `  * ${p.merchant}: was €${p.previousAmount.toFixed(2)} → now €${p.newAmount.toFixed(2)} (+${p.increasePercent}%)`).join("\n")}` : ""}
+            `;
+          }
         }
       } catch (err) {
         console.error("Failed to load server-side context:", err);
@@ -90,7 +108,7 @@ export async function POST(request: Request) {
 `;
     }
 
-    // --- STEP 1: Intent Analysis for Database Queries ---
+    // --- STEP 1: Intent Analysis for Database Queries & Live Web Search ---
     const intentPrompt = `
       You are the intent routing node of LEGER_OS, a personal finance terminal.
       
@@ -101,40 +119,34 @@ export async function POST(request: Request) {
       ${historyContext}
       The user is asking: "${query}"
       
-      Determine if this query requires retrieving database records to construct an accurate answer (e.g., historical transactions, list of categories, budgets, income logs, balance snapshots, merchant rules).
-      
-      CRITICAL OPTIMIZATION: If the user's question can be directly answered using the provided client-computed telemetry summary (such as total spend for a specific category, net cash flow, overall balance, daily velocity, target limits), set "requiresDb" to false. Do NOT query the database to sum up category totals if the telemetry categories array already provides the value. Only set "requiresDb" to true if the user explicitly asks to list individual transactions, search for specific merchant names, list rules, or check items outside the active cycle.
-      
-      When generating filters for "tracker_expense", you MUST use the correct category_id based on the AVAILABLE SYSTEM CATEGORIES provided above. If filtering by date, use the ACTIVE PAYCHECK CYCLE DATES as a reference.
+      Determine:
+      1. If this query requires database records (e.g., specific transactions, merchant history, budget records, portfolio holdings).
+      2. If this query requires LIVE WEB SEARCH GROUNDING for external world context (e.g. current ECB/Euribor/Fed interest rates, inflation numbers, specific stock/crypto price news, reasons for subscription price changes, merchant invoice checks, economic policies).
       
       Format your response as a strict JSON object:
       {
         "requiresDb": boolean,
+        "requiresWebSearch": boolean,
+        "webSearchQuery": string | null, // e.g. "ECB current deposit interest rate 2026", "Spotify price increase Portugal", "Euribor 3-month rate"
         "dbQueries": [
           {
-            "table": "tracker_expense" | "categories" | "budgets" | "income" | "account_balance" | "merchant_rules",
-            "select": "comma,separated,columns,to,select" | "*", // IMPORTANT: only select the specific columns needed (e.g. "date,merchant,amount") to maximize token effectiveness!
+            "table": "tracker_expense" | "categories" | "budgets" | "income" | "account_balance" | "merchant_rules" | "portfolio_assets",
+            "select": "comma,separated,columns,to,select" | "*",
             "filter": [
               {
                 "column": string,
                 "operator": "eq" | "ilike" | "gte" | "lte" | "is_null" | "is_not_null",
-                "value": any // (value is null for is_null and is_not_null operator types)
+                "value": any
               }
             ] | null,
             "orderBy": {
               "column": string,
               "ascending": boolean
             } | null,
-            "limit": number // default 100, max 200
+            "limit": number
           }
         ] | null
       }
-
-      AVAILABLE TABLES & COLUMNS FOR YOUR SELECT & FILTERS:
-      1. "tracker_expense" (historical transactions):
-         Columns:
-         - date: date (e.g. '2026-06-25')
-         - merchant: string (e.g. 'Lidl')
          - amount: decimal number (expenses are negative, income is positive)
          - category_id: integer (foreign key to categories)
          - source: string (e.g. 'SANTANDER')
@@ -293,6 +305,22 @@ export async function POST(request: Request) {
         } else if (error) {
           console.error(`Error querying database table ${table}:`, error);
         }
+      }
+    }
+
+    // --- STEP 2.5: Live Financial Web Search Grounding ---
+    let webGroundingContext = "";
+    let webSourcesList: any[] = [];
+    if (requiresWebSearch || webSearchQuery) {
+      try {
+        const targetSearch = webSearchQuery || query;
+        const webSearchRes = await searchFinancialWeb(targetSearch);
+        if (webSearchRes.results && webSearchRes.results.length > 0) {
+          webGroundingContext = webSearchRes.groundedSummary;
+          webSourcesList = webSearchRes.results;
+        }
+      } catch (searchErr) {
+        console.error("Failed to execute live web search:", searchErr);
       }
     }
 
@@ -456,6 +484,10 @@ export async function POST(request: Request) {
       - Never misspelt words (e.g. use "You" instead of "Yu").
       - CRITICAL: Whenever presenting multiple transactions, budget lines, income records, or category limits, you MUST format them as a Markdown Table (using standard | Column | Column | format) or a clean Bulleted List (using - Item format). Never output them as long inline paragraphs of text.
 
+      ${cadenceSummaryContext}
+
+      ${webGroundingContext}
+
       ${telemetryContext || "No summary telemetry loaded."}
 
       COMPLETE USER CATEGORIES & BUDGET ALLOCATION MATRIX:
@@ -575,7 +607,12 @@ export async function POST(request: Request) {
         }
       }
 
-      return NextResponse.json(parsedRes);
+      return NextResponse.json({
+        ...parsedRes,
+        webSearched: webSourcesList.length > 0,
+        webSearchQuery: webSearchQuery || null,
+        webSources: webSourcesList,
+      });
     } catch (parseError) {
       console.error("Leger AI Chat JSON Parse Error:", text);
       return NextResponse.json({ 

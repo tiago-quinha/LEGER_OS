@@ -7,17 +7,57 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Card, CardContent, CardHeader } from "@/components/ui/card"
-import { Landmark, Terminal, Lock, Mail, ArrowRight, ArrowUpRight, ShieldCheck, Zap } from "lucide-react"
-import { cn } from "@/lib/utils"
+import { Landmark, Lock, Mail, ArrowRight, ShieldCheck, EyeOff } from "lucide-react"
 import { toast } from "sonner"
 import Link from "next/link"
 import { AuthShowcase } from "@/components/AuthShowcase"
+
+function GoogleIcon() {
+  return (
+    <svg className="h-4 w-4 shrink-0" viewBox="0 0 24 24">
+      <path
+        fill="#4285F4"
+        d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"
+      />
+      <path
+        fill="#34A853"
+        d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"
+      />
+      <path
+        fill="#FBBC05"
+        d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.06H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.94l2.85-2.22.81-.63z"
+      />
+      <path
+        fill="#EA4335"
+        d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.06l3.66 2.84c.87-2.6 3.3-4.52 6.16-4.52z"
+      />
+    </svg>
+  )
+}
 
 export default function LoginPage() {
   const [email, setEmail] = useState("")
   const [password, setPassword] = useState("")
   const [isLoading, setIsLoading] = useState(false)
+  const [isGoogleLoading, setIsGoogleLoading] = useState(false)
   const router = useRouter()
+
+  const handleGoogleLogin = async () => {
+    setIsGoogleLoading(true)
+    try {
+      const origin = typeof window !== "undefined" ? window.location.origin : ""
+      const { error } = await supabase.auth.signInWithOAuth({
+        provider: "google",
+        options: {
+          redirectTo: `${origin}/`,
+        },
+      })
+      if (error) throw error
+    } catch (error: any) {
+      toast.error(error.message || "Failed to initialize Google Sign-In")
+      setIsGoogleLoading(false)
+    }
+  }
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -31,11 +71,11 @@ export default function LoginPage() {
 
       if (error) throw error
 
-      toast.success("ACCESS GRANTED: Session Initialized")
+      toast.success("Welcome back to LEGER_OS")
       router.push('/')
       router.refresh()
     } catch (error: any) {
-      toast.error(`ACCESS DENIED: ${error.message}`)
+      toast.error(error.message || "Invalid credentials")
     } finally {
       setIsLoading(false)
     }
@@ -48,34 +88,38 @@ export default function LoginPage() {
       
       {/* Left Side: Auth Form */}
       <div className="lg:col-span-5 flex items-center justify-center p-6 sm:p-12 min-h-[100dvh] lg:min-h-[100dvh] relative z-10 border-r border-border/40 bg-background/95">
-        <div className="w-full max-w-md space-y-8 my-auto py-4">
-          <div className="flex flex-col items-center text-center space-y-4">
-            <div className="w-16 h-16 bg-foreground flex items-center justify-center ledger-border rotate-45 group">
-              <Landmark className="h-8 w-8 text-background -rotate-45" />
+        <div className="w-full max-w-md space-y-6 my-auto py-4">
+          <div className="flex flex-col items-center text-center space-y-3">
+            <div className="w-14 h-14 bg-foreground flex items-center justify-center ledger-border rotate-45 group shadow-lg">
+              <Landmark className="h-7 w-7 text-background -rotate-45" />
             </div>
             <div className="space-y-1">
-              <h1 className="text-4xl font-bold tracking-[0.2em] uppercase leading-none">LEGER_OS</h1>
-              <p className="text-[10px] font-mono text-muted-foreground uppercase tracking-widest">Mainframe Authentication Required</p>
+              <h1 className="text-3xl sm:text-4xl font-bold tracking-[0.2em] uppercase leading-none">LEGER_OS</h1>
+              <p className="text-[10px] font-mono text-muted-foreground uppercase tracking-widest">Personal Finance Mainframe</p>
             </div>
           </div>
 
           <Card className="rounded-none border-border ledger-border bg-card shadow-2xl">
-            <CardHeader className="border-b border-border pb-6">
-              <div className="flex items-center gap-2 technical-label">
-                <Terminal className="h-3.5 w-3.5" />
-                <span>Login node // Initializing</span>
+            <CardHeader className="border-b border-border pb-4 pt-5 px-6">
+              <div className="flex items-center justify-between">
+                <span className="text-xs font-mono font-bold uppercase tracking-wider text-foreground">
+                  Sign In to Workspace
+                </span>
+                <span className="text-[9px] font-mono uppercase bg-secondary px-2 py-0.5 border border-border text-foreground font-bold">
+                  256-Bit SSL
+                </span>
               </div>
             </CardHeader>
-            <CardContent className="pt-8">
-              <form onSubmit={handleLogin} className="space-y-5">
+            <CardContent className="p-6 space-y-4">
+              <form onSubmit={handleLogin} className="space-y-4">
                 <div className="space-y-1.5">
-                  <Label htmlFor="email" className="technical-label opacity-80">System Email</Label>
+                  <Label htmlFor="email" className="text-[10px] font-mono uppercase text-muted-foreground font-bold">Email Address</Label>
                   <div className="relative group">
                     <Mail className="absolute left-3 top-3.5 h-4 w-4 text-muted-foreground group-focus-within:text-foreground transition-colors" />
                     <Input 
                       id="email" 
                       type="email" 
-                      placeholder="name@mainframe.com"
+                      placeholder="name@domain.com"
                       value={email}
                       onChange={(e) => setEmail(e.target.value)}
                       required
@@ -86,8 +130,8 @@ export default function LoginPage() {
 
                 <div className="space-y-1.5">
                   <div className="flex justify-between items-center">
-                     <Label htmlFor="password" title="password" className="technical-label opacity-80">Security Key</Label>
-                     <Link href="#" className="text-[9px] font-mono uppercase text-muted-foreground hover:text-foreground underline decoration-dashed">Key Recovery</Link>
+                     <Label htmlFor="password" title="password" className="text-[10px] font-mono uppercase text-muted-foreground font-bold">Password</Label>
+                     <Link href="#" className="text-[9px] font-mono uppercase text-muted-foreground hover:text-foreground underline decoration-dashed">Forgot Password?</Link>
                   </div>
                   <div className="relative group">
                     <Lock className="absolute left-3 top-3.5 h-4 w-4 text-muted-foreground group-focus-within:text-foreground transition-colors" />
@@ -105,55 +149,50 @@ export default function LoginPage() {
 
                 <Button 
                   type="submit" 
-                  disabled={isLoading}
-                  className="w-full h-11 rounded-none bg-foreground text-background hover:bg-foreground/90 uppercase text-[10px] font-bold tracking-[0.2em] gap-2 active:scale-[0.98] transition-all mt-2"
+                  disabled={isLoading || isGoogleLoading}
+                  className="w-full h-11 rounded-none bg-foreground text-background hover:bg-foreground/90 uppercase text-xs font-bold tracking-widest gap-2 cursor-pointer transition-all mt-1"
                 >
-                  {isLoading ? "AUTHENTICATING..." : (
+                  {isLoading ? "Signing In..." : (
                     <>
-                      Initialize Session <ArrowRight className="h-3.5 w-3.5" />
+                      Sign In to Account <ArrowRight className="h-3.5 w-3.5" />
                     </>
                   )}
                 </Button>
               </form>
 
-              <div className="mt-8 pt-6 border-t border-border/50 text-center space-y-4">
-                 <p className="text-[10px] font-mono text-muted-foreground uppercase">Unregistered Hardware detected?</p>
+              {/* Clean Line Divider */}
+              <div className="h-px bg-border/50" />
+
+              {/* Google 1-Tap OAuth Button */}
+              <Button
+                type="button"
+                onClick={handleGoogleLogin}
+                disabled={isGoogleLoading || isLoading}
+                className="w-full h-11 rounded-none bg-secondary/50 hover:bg-secondary border border-border text-foreground font-mono text-xs uppercase font-bold tracking-wider cursor-pointer shadow-sm flex items-center justify-center gap-2.5 transition-all hover:border-foreground/50"
+              >
+                <GoogleIcon />
+                <span>{isGoogleLoading ? "Connecting..." : "Continue with Google"}</span>
+              </Button>
+
+              <div className="pt-2 border-t border-border/40 text-center space-y-1.5">
+                 <p className="text-[10px] font-mono text-muted-foreground uppercase">Don't have an account yet?</p>
                  <Link 
                    href="/signup" 
-                   className="inline-flex items-center gap-2 text-xs font-bold uppercase tracking-widest hover:text-foreground transition-colors group"
+                   className="inline-flex items-center gap-1.5 text-xs font-bold uppercase tracking-wider text-foreground hover:underline"
                  >
-                   Create Mainframe ID <ArrowRight className="h-3 w-3 group-hover:translate-x-0.5 transition-transform" />
+                   Create Your Account <ArrowRight className="h-3 w-3" />
                  </Link>
               </div>
             </CardContent>
           </Card>
 
-          {/* Mobile-only Security Assurance Bar */}
-          <div className="lg:hidden grid grid-cols-3 gap-0 border border-border/80 bg-card/50 divide-x divide-border/80 text-[9px] sm:text-[10px] text-muted-foreground font-bold tracking-wider text-center">
-            <div className="p-2.5 flex items-center justify-center gap-1.5">
-              <ShieldCheck className="h-3.5 w-3.5 text-emerald-500 flex-shrink-0" />
-              <span className="truncate">Bank-Grade</span>
-            </div>
-            <div className="p-2.5 flex items-center justify-center gap-1.5">
-              <Lock className="h-3.5 w-3.5 text-emerald-500 flex-shrink-0" />
-              <span className="truncate">256-Bit</span>
-            </div>
-            <div className="p-2.5 flex items-center justify-center gap-1.5">
-              <Zap className="h-3.5 w-3.5 text-emerald-500 flex-shrink-0" />
-              <span className="truncate">Cloud Sync</span>
-            </div>
-          </div>
-
-          <div className="w-full border-t border-border/40 pt-4 flex flex-col sm:flex-row justify-between items-center gap-3 sm:gap-0 px-2 opacity-50 font-mono text-[8px] uppercase tracking-wider">
-             <div className="flex gap-4 items-center">
-                <span>Sys_Build: 1.0.4.A</span>
-                <span className="opacity-30">/</span>
-                <span>Node: US_EAST_01</span>
-             </div>
-             <span className="flex items-center gap-1.5 text-muted-foreground/80">
-                <span className="h-1.5 w-1.5 bg-emerald-500 rounded-none inline-block animate-pulse" />
-                Status: SECURE NODE
-             </span>
+          {/* Real Privacy & Security Guarantees */}
+          <div className="flex flex-wrap items-center justify-center gap-2 text-[9px] sm:text-[10px] font-mono text-muted-foreground/70 uppercase tracking-wider select-none py-1 text-center">
+            <span className="flex items-center gap-1"><Lock className="h-3 w-3 text-muted-foreground/60 shrink-0" /> 256-Bit SSL</span>
+            <span className="text-border">·</span>
+            <span className="flex items-center gap-1"><ShieldCheck className="h-3 w-3 text-muted-foreground/60 shrink-0" /> Zero Bank Passwords</span>
+            <span className="text-border">·</span>
+            <span className="flex items-center gap-1"><EyeOff className="h-3 w-3 text-muted-foreground/60 shrink-0" /> Private Data</span>
           </div>
         </div>
       </div>
@@ -165,4 +204,3 @@ export default function LoginPage() {
     </main>
   )
 }
-

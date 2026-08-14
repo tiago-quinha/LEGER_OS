@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect, useRef, useMemo } from "react"
 import { motion, AnimatePresence, useAnimation, useMotionValue, useDragControls } from "framer-motion"
-import { Brain, Cpu, MessageSquare, Mic, MicOff, Send, X, RefreshCcw, Sparkles, Lock, ChevronUp, ChevronDown } from "lucide-react"
+import { Brain, Cpu, MessageSquare, Mic, MicOff, Send, X, RefreshCcw, Sparkles, Lock, ChevronUp, ChevronDown, Globe, ArrowUpRight } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { useSystem } from "@/lib/SystemContext"
 import { getAIHeaders } from "@/lib/ai-client"
@@ -15,6 +15,9 @@ interface Message {
   sender: "user" | "assistant"
   text: string
   timestamp: number
+  webSearched?: boolean
+  webSearchQuery?: string | null
+  webSources?: { title: string; snippet: string; url: string; source: string }[]
 }
 
 // Shared Markdown-like React elements formatter supporting Lists, Blockquotes, HR lines, Tables and bold typography
@@ -200,26 +203,43 @@ function TypewriterText({ text, speed = 6, onComplete }: { text: string; speed?:
 
 const THINKING_MESSAGES = [
   "Analyzing spending velocity...",
-  "Evaluating recency burn rates...",
-  "Auditing transaction anomalies...",
+  "Searching the financial web...",
   "Cross-referencing category budgets...",
+  "Grounding live market telemetry...",
   "Simulating end-of-cycle balance...",
-  "Processing telemetry data...",
+  "Auditing transaction anomalies...",
   "Calculating safe daily pace...",
-  "Formulating financial insights...",
   "Synthesizing income & outflow...",
-  "Optimizing cash flow forecasts..."
+  "Formulating financial insights..."
 ]
 
-function ThinkingIndicator() {
+function ThinkingIndicator({ query = "" }: { query?: string }) {
   const [index, setIndex] = useState(0)
+
+  const isWebHeavy = useMemo(() => {
+    const q = query.toLowerCase()
+    return ["ecb", "euribor", "rate", "interest", "stock", "crypto", "bitcoin", "price", "inflation", "news", "hike", "increase", "spotify", "netflix", "why", "search"].some(kw => q.includes(kw))
+  }, [query])
+
+  const messages = useMemo(() => {
+    if (isWebHeavy) {
+      return [
+        "Searching the financial web...",
+        "Grounding live market telemetry...",
+        "Cross-referencing verified sources...",
+        "Analyzing spending velocity...",
+        "Synthesizing live financial strategy..."
+      ]
+    }
+    return THINKING_MESSAGES
+  }, [isWebHeavy])
 
   useEffect(() => {
     const timer = setInterval(() => {
-      setIndex((prev) => (prev + 1) % THINKING_MESSAGES.length)
-    }, 2200)
+      setIndex((prev) => (prev + 1) % messages.length)
+    }, 1800)
     return () => clearInterval(timer)
-  }, [])
+  }, [messages.length])
 
   return (
     <motion.div 
@@ -229,7 +249,7 @@ function ThinkingIndicator() {
       className="flex gap-3 max-w-[85%] mr-auto items-start shrink-0"
     >
       <div className="p-1.5 bg-foreground text-background border border-border h-9 w-9 flex items-center justify-center shrink-0 rounded-md shadow-sm">
-        <Brain className="h-4 w-4 animate-pulse" />
+        {isWebHeavy ? <Globe className="h-4 w-4 animate-spin [animation-duration:3s]" /> : <Brain className="h-4 w-4 animate-pulse" />}
       </div>
       <div className="w-[260px] sm:w-[280px] h-9 px-3 bg-secondary/40 text-muted-foreground border border-border/60 rounded-lg rounded-tl-none text-xs italic animate-pulse flex items-center justify-between gap-2 overflow-hidden shrink-0">
         <div className="flex-1 min-w-0 overflow-hidden relative">
@@ -242,7 +262,7 @@ function ThinkingIndicator() {
               transition={{ duration: 0.28, ease: "easeInOut" }}
               className="truncate block w-full whitespace-nowrap"
             >
-              {THINKING_MESSAGES[index]}
+              {messages[index]}
             </motion.span>
           </AnimatePresence>
         </div>
@@ -898,7 +918,10 @@ export function LegerAIAssistant() {
         const assistantMsg: Message = {
           sender: "assistant",
           text: data.message,
-          timestamp: Date.now()
+          timestamp: Date.now(),
+          webSearched: data.webSearched,
+          webSearchQuery: data.webSearchQuery,
+          webSources: data.webSources,
         }
         saveHistory([...currentMsgs, assistantMsg])
 
@@ -1091,11 +1114,35 @@ export function LegerAIAssistant() {
                           ) : (
                             renderFormattedText(msg.text)
                           )}
+
+                          {/* Live Web Search Sources Badge */}
+                          {msg.webSearched && msg.webSources && msg.webSources.length > 0 && (
+                            <div className="mt-2.5 pt-2 border-t border-border/40 space-y-1.5 font-mono text-[9px]">
+                              <div className="flex items-center gap-1.5 text-muted-foreground/80 font-bold uppercase tracking-wider">
+                                <Globe className="h-3 w-3 text-emerald-500 shrink-0" />
+                                <span>Grounded with Live Web Search ({msg.webSources.length} sources)</span>
+                              </div>
+                              <div className="flex flex-wrap gap-1.5">
+                                {msg.webSources.slice(0, 3).map((src: any, sIdx: number) => (
+                                  <a 
+                                    key={sIdx} 
+                                    href={src.url} 
+                                    target="_blank" 
+                                    rel="noopener noreferrer"
+                                    className="inline-flex items-center gap-1 px-2 py-0.5 bg-secondary/50 hover:bg-secondary border border-border text-muted-foreground hover:text-foreground transition-colors rounded-sm"
+                                  >
+                                    <span className="truncate max-w-[120px]">{src.source || src.title}</span>
+                                    <ArrowUpRight className="h-2.5 w-2.5 opacity-60" />
+                                  </a>
+                                ))}
+                              </div>
+                            </div>
+                          )}
                         </div>
                       </motion.div>
                     )
                   })}
-                  {isLoading && <ThinkingIndicator />}
+                  {isLoading && <ThinkingIndicator query={inputVal} />}
                   <div ref={chatEndRef} />
                 </div>
               )}

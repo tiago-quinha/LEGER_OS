@@ -1,6 +1,7 @@
 import { SupabaseClient } from "@supabase/supabase-js"
 import { getCycles } from "./cycles"
 import { cache } from "./cache"
+import { detectRecurringCadence } from "./cadence-detector"
 
 function simulateExpertDailyProjection(
   pastExpenses: any[],
@@ -12,33 +13,14 @@ function simulateExpertDailyProjection(
   overrides: any[] = [],
   decayRate: number = 0.12
 ) {
-  const merchantMap = new Map<string, { amounts: number[], days: number[] }>()
-  pastExpenses.forEach((e: any) => {
-    const amt = parseFloat(e.amount)
-    if (amt < 0 && e.date) {
-      const m = (e.merchant || "").trim().toUpperCase()
-      if (!merchantMap.has(m)) merchantMap.set(m, { amounts: [], days: [] })
-      const entry = merchantMap.get(m)!
-      entry.amounts.push(Math.abs(amt))
-      const day = new Date(e.date).getDate() - 1
-      if (day >= 0 && day <= 31) entry.days.push(day)
-    }
-  })
-
-  const recurringMerchants: { merchant: string, amount: number, expectedDay: number }[] = []
-  merchantMap.forEach((val, key) => {
-    if (val.amounts.length >= 2) {
-      val.amounts.sort((a, b) => a - b)
-      val.days.sort((a, b) => a - b)
-      const medianAmt = val.amounts[Math.floor(val.amounts.length / 2)]
-      const medianDay = val.days[Math.floor(val.days.length / 2)]
-      if (val.amounts[0] >= medianAmt * 0.65 && val.amounts[val.amounts.length - 1] <= medianAmt * 1.35) {
-        recurringMerchants.push({ merchant: key, amount: medianAmt, expectedDay: medianDay })
-      }
-    }
-  })
-
-  const recurringNames = new Set(recurringMerchants.map(r => r.merchant))
+  // Use high-precision Automated Cadence Engine for recurring subscriptions & fixed bills
+  const cadenceResult = detectRecurringCadence(pastExpenses, currentCycle?.startDate, currentCycle?.endDate);
+  const recurringMerchants = cadenceResult.subscriptions.map(s => ({
+    merchant: s.normalizedMerchant,
+    amount: s.latestAmount,
+    expectedDay: s.expectedDayOfMonth || 15
+  }));
+  const recurringNames = new Set(cadenceResult.subscriptions.map(s => s.normalizedMerchant));
 
   const dowSpend = [1, 1, 1, 1, 1, 1, 1]
   pastExpenses.forEach((e: any) => {

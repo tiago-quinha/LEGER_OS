@@ -24,6 +24,7 @@ import { PrivacyValue } from "@/components/ui/privacy-value"
 import { GlowingBadge } from "@/components/unlumen-ui/glowing-badge"
 import { ProLockOverlay } from "@/components/ProLockOverlay"
 import { CancelProModal } from "@/components/CancelProModal"
+import { DeviceSyncManager } from "@/components/DeviceSyncManager"
 import { SUPPORTED_CURRENCIES, SUPPORTED_LANGUAGES } from "@/lib/format"
 
 const HABIT_PRESETS = [
@@ -459,7 +460,7 @@ export function SystemConfigView() {
             <Sparkles className="h-4 w-4 shrink-0" /> <span>Habits & Rules</span>
           </TabsTrigger>
           <TabsTrigger value="phone" className="rounded-none h-10 px-3 text-xs uppercase tracking-wider font-bold flex items-center justify-center gap-2">
-            <Smartphone className="h-4 w-4 shrink-0" /> <span>Phone Sync</span>
+            <Smartphone className="h-4 w-4 shrink-0" /> <span>Device Sync</span>
           </TabsTrigger>
           <TabsTrigger value="pro" className="rounded-none h-10 px-3 text-xs uppercase tracking-wider font-bold flex items-center justify-center gap-2 bg-emerald-500/10 text-emerald-500 border border-emerald-500/30">
             <Sparkles className="h-4 w-4 shrink-0" /> <span>PRO Plan</span>
@@ -894,13 +895,13 @@ export function SystemConfigView() {
           </Card>
         </TabsContent>
 
-        {/* TAB 4: PHONE SYNC */}
+        {/* TAB 4: DEVICE NOTIFICATION & PUSH SYNC */}
         <TabsContent value="phone" className="space-y-6">
           <Card className="rounded-none border-border bg-card shadow-lg pt-0">
             <CardHeader className="border-b border-border px-6 py-5 bg-secondary/10">
               <div className="flex items-center justify-between">
                 <CardTitle className="text-base font-bold uppercase tracking-wider flex items-center gap-2 text-foreground">
-                  <Smartphone className="h-4 w-4" /> MacroDroid Android Push Sync Integration
+                  <Smartphone className="h-4 w-4" /> Device Push Notification & Bank Listener Sync
                 </CardTitle>
                 {!isPro ? (
                   <span className="text-[8px] font-mono uppercase font-bold text-emerald-500 bg-emerald-500/10 border border-emerald-500/30 px-2 py-0.5">
@@ -911,85 +912,17 @@ export function SystemConfigView() {
                 )}
               </div>
               <CardDescription className="text-xs uppercase tracking-wider text-muted-foreground mt-1">
-                Post transactions to LEGER_OS in real-time from bank push notifications on Android.
+                Autonomous real-time spending capture from Android Notification Listener, iOS Apple Shortcuts, or custom webhooks.
               </CardDescription>
             </CardHeader>
-            <CardContent className="px-6 py-6 space-y-6">
-              <div className="space-y-3">
-                <span className="text-xs font-bold uppercase tracking-widest text-foreground block">
-                  1. Your Unique Webhook Endpoint
-                </span>
-                {!isPro ? (
-                  <ProLockOverlay 
-                    compact
-                    title="LEGER_PHONE PUSH SYNC (PRO)"
-                    description="Automated real-time push notification ingestion is exclusive to LEGER_OS PRO nodes. Upgrade to PRO to activate your endpoint URL."
-                  />
-                ) : (
-                  <div className="flex flex-col sm:flex-row gap-2 items-stretch">
-                    <div className="bg-secondary/40 border border-border p-3 text-[10px] break-all select-all flex-1 flex items-center text-foreground font-bold">
-                      {typeof window !== 'undefined' 
-                        ? `${window.location.origin}/api/transactions/macrodroid?userId=${user?.id || ""}`
-                        : `https://leger-os.vercel.app/api/transactions/macrodroid?userId=${user?.id || ""}`
-                      }
-                    </div>
-                    <Button 
-                      variant="outline" 
-                      className="rounded-none text-[10px] uppercase tracking-widest shrink-0 cursor-pointer flex items-center gap-1.5 h-auto py-2.5 sm:py-0"
-                      onClick={() => {
-                        const url = typeof window !== 'undefined' 
-                          ? `${window.location.origin}/api/transactions/macrodroid?userId=${user?.id || ""}`
-                          : `https://leger-os.vercel.app/api/transactions/macrodroid?userId=${user?.id || ""}`
-                        navigator.clipboard.writeText(url)
-                        toast.success("MacroDroid URL copied to clipboard!")
-                      }}
-                    >
-                      <Copy className="h-3.5 w-3.5" /> Copy URL
-                    </Button>
-                  </div>
-                )}
-              </div>
-
-              <div className="border-t border-border/40 pt-4 space-y-4">
-                <span className="text-xs font-bold uppercase tracking-widest text-foreground block">
-                  2. MacroDroid Setup Protocol
-                </span>
-                
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                  <div className="p-4 bg-secondary/10 border border-border space-y-2">
-                    <span className="text-[10px] font-bold text-foreground uppercase tracking-widest block">Step A: Trigger</span>
-                    <p className="text-xs text-muted-foreground font-sans leading-relaxed">
-                      Add a **Notification Received** trigger for your banking app (Santander, Revolut, ActivoBank, etc.). Set content match to <code className="bg-secondary px-1 text-foreground">Any</code>.
-                    </p>
-                  </div>
-
-                  <div className="p-4 bg-secondary/10 border border-border space-y-2">
-                    <span className="text-[10px] font-bold text-foreground uppercase tracking-widest block">Step B: Variables</span>
-                    <p className="text-xs text-muted-foreground font-sans leading-relaxed">
-                      Configure local variables: <code className="bg-secondary px-1 text-foreground">raw_text</code> (String), <code className="bg-secondary px-1 text-foreground">amount</code> (String), and <code className="bg-secondary px-1 text-foreground">merchant</code> (String).
-                    </p>
-                  </div>
-
-                  <div className="p-4 bg-secondary/10 border border-border space-y-2">
-                    <span className="text-[10px] font-bold text-foreground uppercase tracking-widest block">Step C: Action</span>
-                    <p className="text-xs text-muted-foreground font-sans leading-relaxed">
-                      Add an **HTTP POST** action to your unique endpoint above with Content-Type <code className="bg-secondary px-1 text-foreground">application/json</code>.
-                    </p>
-                  </div>
-                </div>
-
-                <div className="space-y-2 pt-2">
-                  <span className="text-[10px] uppercase font-bold text-muted-foreground block">JSON Request Payload Structure:</span>
-                  <pre className="bg-secondary/20 border border-border p-4 text-[10px] text-foreground leading-normal whitespace-pre-wrap select-all max-w-lg">
-{`{
-  "amount": "{lv=amount}",
-  "merchant": "{lv=merchant}",
-  "raw_text": "{lv=raw_text}",
-  "source": "MacroDroid"
-}`}
-                  </pre>
-                </div>
-              </div>
+            <CardContent className="px-6 py-6">
+              <DeviceSyncManager 
+                user={user} 
+                isPro={isPro} 
+                onUpgradeClick={() => {
+                  setActiveTab("pro")
+                }} 
+              />
             </CardContent>
           </Card>
         </TabsContent>

@@ -30,20 +30,16 @@ export function IngestSpotlightOverlay() {
 
         const txCount = count !== null ? count : (data?.length || 0)
 
-        // If user has 0 transactions, ALWAYS show spotlight (clear any stale dismissal flag)
-        if (!error && txCount === 0) {
+        // If user has 0 transactions (< 1), ALWAYS show spotlight (clear any stale dismissal flag)
+        if (!error && txCount < 1) {
           localStorage.removeItem(storageKey)
           setIsVisible(true)
           return
         }
 
-        // If user has between 1 and 4 transactions, respect manual dismissal
+        // If user already has 1 or more transactions, respect manual dismissal and do not force
         const dismissed = localStorage.getItem(storageKey)
         if (dismissed === "true") return
-
-        if (!error && txCount < 5) {
-          setIsVisible(true)
-        }
       } catch (e) {
         console.error("Spotlight count check error:", e)
       }
@@ -268,7 +264,7 @@ export function IngestSpotlightOverlay() {
 
           <p className="text-xs text-foreground/80 font-mono leading-relaxed">
             {currentPhase === "nav"
-              ? "We noticed you have fewer than 5 transactions in your ledger. Click the Ledger button to import your bank statement extract."
+              ? "You have no transactions in your ledger yet. Click the Ledger button to import your first bank statement extract."
               : "Upload your PDF, TXT, or CSV statement extract here, or paste extract text below to import your transactions."}
           </p>
         </motion.div>

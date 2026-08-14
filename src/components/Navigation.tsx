@@ -30,6 +30,7 @@ const mobileNavigation = [
   { name: "Ledger", href: "/expenses", icon: List },
   { name: "Portfolio", href: "/portfolio", icon: Briefcase },
   { name: "Categories", href: "/categories", icon: Tag },
+  { name: "Budgets", href: "/budgets", icon: PieChart },
   { name: "Analytics", href: "/analytics", icon: BarChart3 },
   { name: "Memory", href: "/memory", icon: Brain },
 ]

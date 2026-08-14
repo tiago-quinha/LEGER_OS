@@ -398,87 +398,93 @@ export function BudgetsView({ categories, budgets: initialBudgets, expenses, cyc
                 </div>
               </CardHeader>
               <CardContent className="p-6 sm:p-8 pt-0 flex-1 space-y-4 z-10 flex flex-col justify-between">
-                {!isEditing ? (
-                  <div className="space-y-3">
-                    <div className="flex justify-between items-center text-xs font-mono">
-                      <span className="text-muted-foreground uppercase text-[10px]">
-                        {isProfitable ? "Net Surplus" : "Net Spent"}
-                      </span>
-                      <span className={cn("font-bold", isProfitable ? "text-emerald-600 dark:text-emerald-400" : "text-foreground")}>
-                        <PrivacyValue>
-                          {isProfitable ? `+${currencySymbol}${netProfit.toFixed(2)}` : `${currencySymbol}${netSpent.toFixed(2)}`}
-                        </PrivacyValue>
-                      </span>
-                    </div>
-                    <div className="flex justify-between items-center text-xs font-mono border-b border-border/50 pb-2">
-                      <span className="text-muted-foreground uppercase text-[10px]">Pocket Limit</span>
-                      <div className="flex items-center gap-1.5 group/edit font-bold text-foreground">
-                        <span><PrivacyValue>{currencySymbol}{budgetAmount.toFixed(2)}</PrivacyValue></span>
-                        <button 
-                          onClick={() => setActiveEditingId(cat.id)}
-                          className="opacity-0 group-hover:opacity-100 group-hover/edit:opacity-100 transition-opacity p-0.5 text-muted-foreground hover:text-foreground cursor-pointer"
-                          title="Edit target"
-                        >
-                          <Edit2 className="h-3.5 w-3.5" />
-                        </button>
-                      </div>
-                    </div>
+                <div className="space-y-3">
+                  <div className="flex justify-between items-center text-xs font-mono">
+                    <span className="text-muted-foreground uppercase text-[10px] tracking-wider font-semibold">
+                      {isProfitable ? "Net Surplus" : "Net Spent"}
+                    </span>
+                    <span className={cn("font-bold text-right tabular-nums", isProfitable ? "text-emerald-600 dark:text-emerald-400" : "text-foreground")}>
+                      <PrivacyValue>
+                        {isProfitable ? `+${currencySymbol}${netProfit.toFixed(2)}` : `${currencySymbol}${netSpent.toFixed(2)}`}
+                      </PrivacyValue>
+                    </span>
                   </div>
-                ) : (
-                  <div className="space-y-3">
-                    <div className="flex justify-between items-center text-xs font-mono">
-                      <span className="text-muted-foreground uppercase text-[10px]">
-                        {isProfitable ? "Net Surplus" : "Net Spent"}
+
+                  <div 
+                    onClick={() => !isEditing && setActiveEditingId(cat.id)}
+                    className={cn(
+                      "flex justify-between items-center text-xs font-mono border-b border-border/50 pb-2",
+                      !isEditing && "cursor-pointer group/limit hover:border-foreground/40 transition-colors select-none"
+                    )}
+                    title={!isEditing ? "Click to edit budget limit" : undefined}
+                  >
+                    <div className="flex items-center gap-1.5">
+                      <span className="text-muted-foreground uppercase text-[10px] tracking-wider font-semibold group-hover/limit:text-foreground transition-colors">
+                        Budget Limit
                       </span>
-                      <span className={cn("font-bold", isProfitable ? "text-emerald-600 dark:text-emerald-400" : "text-foreground")}>
-                        <PrivacyValue>
-                          {isProfitable ? `+${currencySymbol}${netProfit.toFixed(2)}` : `${currencySymbol}${netSpent.toFixed(2)}`}
-                        </PrivacyValue>
-                      </span>
+                      {!isEditing && (
+                        <Edit2 className="h-3 w-3 text-muted-foreground/50 opacity-0 group-hover/limit:opacity-100 transition-opacity" />
+                      )}
                     </div>
-                    <div className="flex items-center gap-2 pb-2">
-                      <div className="relative flex-1">
-                        <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground text-xs font-mono">{currencySymbol}</span>
-                        <Input
-                          type="number"
-                          step="0.01"
-                          className="pl-7 h-8 text-xs font-mono rounded-none"
-                          value={editingBudgets[cat.id]}
-                          onChange={(e) => handleBudgetChange(cat.id, e.target.value)}
-                          autoFocus
-                        />
-                      </div>
-                      <div className="flex gap-1">
-                        <Button 
-                          size="icon-xs" 
-                          variant="ghost" 
-                          className="h-8 w-8 rounded-none border border-border bg-card hover:bg-secondary flex items-center justify-center cursor-pointer"
-                          onClick={() => {
-                            handleSaveBudget(cat.id)
-                            setActiveEditingId(null)
-                          }}
+
+                    {!isEditing ? (
+                      <span className="font-bold text-right tabular-nums text-foreground group-hover/limit:underline decoration-dotted">
+                        <PrivacyValue>{currencySymbol}{budgetAmount.toFixed(2)}</PrivacyValue>
+                      </span>
+                    ) : (
+                      <form 
+                        onSubmit={(e) => {
+                          e.preventDefault()
+                          handleSaveBudget(cat.id)
+                          setActiveEditingId(null)
+                        }}
+                        className="flex items-center gap-1.5"
+                      >
+                        <div className="relative flex items-center">
+                          <span className="text-muted-foreground text-xs font-mono select-none mr-0.5">{currencySymbol}</span>
+                          <input
+                            type="number"
+                            step="any"
+                            inputMode="decimal"
+                            pattern="[0-9]*"
+                            className="w-20 h-6 px-1 text-right text-xs font-mono font-bold rounded-none tabular-nums bg-secondary/50 border border-foreground/50 focus:border-foreground focus:outline-none text-foreground"
+                            value={editingBudgets[cat.id]}
+                            onChange={(e) => handleBudgetChange(cat.id, e.target.value)}
+                            onKeyDown={(e) => {
+                              if (e.key === 'Escape') {
+                                handleBudgetChange(cat.id, budgetAmount.toString())
+                                setActiveEditingId(null)
+                              }
+                            }}
+                            autoFocus
+                          />
+                        </div>
+                        <button 
+                          type="submit"
+                          className="h-6 w-6 rounded-none border border-border bg-card hover:bg-emerald-500/20 hover:text-emerald-500 hover:border-emerald-500/40 flex items-center justify-center cursor-pointer transition-colors"
+                          title="Save"
                         >
-                          <Check className="h-3.5 w-3.5" />
-                        </Button>
-                        <Button 
-                          size="icon-xs" 
-                          variant="ghost" 
-                          className="h-8 w-8 rounded-none border border-border bg-card hover:bg-destructive/10 hover:text-destructive flex items-center justify-center cursor-pointer"
+                          <Check className="h-3 w-3" />
+                        </button>
+                        <button 
+                          type="button"
+                          className="h-6 w-6 rounded-none border border-border bg-card hover:bg-destructive/20 hover:text-destructive flex items-center justify-center cursor-pointer transition-colors"
                           onClick={() => {
                             handleBudgetChange(cat.id, budgetAmount.toString())
                             setActiveEditingId(null)
                           }}
+                          title="Cancel"
                         >
-                          <X className="h-3.5 w-3.5" />
-                        </Button>
-                      </div>
-                    </div>
+                          <X className="h-3 w-3" />
+                        </button>
+                      </form>
+                    )}
                   </div>
-                )}
+                </div>
 
                 <div className="space-y-1.5 mt-auto">
                   <div className="flex justify-between text-[9px] font-mono text-muted-foreground uppercase">
-                    <span>{isProfitable ? "Surplus Direction" : "Pocket Usage"}</span>
+                    <span>{isProfitable ? "Surplus Direction" : "Budget Usage"}</span>
                     <span className={cn(isProfitable ? "text-emerald-600 dark:text-emerald-400 font-bold" : isOverBudget ? "text-destructive font-bold" : "")}>
                       {isProfitable ? `+${progressPercent.toFixed(0)}% (PROFIT) →` : `← ${progressPercent.toFixed(0)}% (USED)`}
                     </span>

@@ -21,6 +21,7 @@ import { cn } from "@/lib/utils"
 import { GlowingBadge } from "@/components/unlumen-ui/glowing-badge"
 import { ProLockOverlay } from "@/components/ProLockOverlay"
 import { CancelProModal } from "@/components/CancelProModal"
+import { DeviceSyncManager } from "@/components/DeviceSyncManager"
 import { SUPPORTED_CURRENCIES, SUPPORTED_LANGUAGES, getProPrice } from "@/lib/format"
 
 const HABIT_PRESETS = [
@@ -446,7 +447,7 @@ export function SystemSettingsModal({ open, onOpenChange }: SystemSettingsModalP
                 <Sparkles className="h-3.5 w-3.5" /> <span>Rules</span>
               </TabsTrigger>
               <TabsTrigger value="phone" className="rounded-none h-9 px-2 text-[10px] uppercase tracking-wider font-mono font-bold flex items-center justify-center gap-1">
-                <Smartphone className="h-3.5 w-3.5" /> <span>Phone</span>
+                <Smartphone className="h-3.5 w-3.5" /> <span>Sync</span>
               </TabsTrigger>
               <TabsTrigger value="pro" className="rounded-none h-9 px-2 text-[10px] uppercase tracking-wider font-mono font-bold flex items-center justify-center gap-1 bg-emerald-500/10 text-emerald-500 border border-emerald-500/20">
                 <Sparkles className="h-3.5 w-3.5" /> <span>PRO</span>
@@ -883,70 +884,15 @@ export function SystemSettingsModal({ open, onOpenChange }: SystemSettingsModalP
               </div>
             </TabsContent>
 
-            {/* TAB 4: PHONE SYNC */}
+            {/* TAB 4: DEVICE NOTIFICATION & PUSH SYNC */}
             <TabsContent value="phone" className="space-y-4 flex-1 overflow-y-auto pr-1 min-h-0">
-              <div className="p-4 bg-card border border-border space-y-3">
-                <div className="space-y-1">
-                  <div className="flex items-center justify-between">
-                    <span className="text-xs uppercase tracking-wider font-mono text-foreground font-bold flex items-center gap-2">
-                      <Smartphone className="h-4 w-4" /> MacroDroid Android Push Sync
-                    </span>
-                    {!isPro ? (
-                      <span className="text-[8px] font-mono uppercase font-bold text-emerald-500 bg-emerald-500/10 border border-emerald-500/30 px-2 py-0.5">
-                        PRO TIER REQUIRED
-                      </span>
-                    ) : (
-                      <span className="text-[9px] font-mono font-bold uppercase text-emerald-500 bg-emerald-500/10 border border-emerald-500/30 px-2 py-0.5">ACTIVE</span>
-                    )}
-                  </div>
-                  <p className="text-[10px] text-muted-foreground font-sans leading-relaxed">
-                    Automatically post bank notifications to LEGER_OS in real-time.
-                  </p>
-                </div>
-
-                <div className="space-y-1.5 pt-1">
-                  <span className="text-[9px] font-mono uppercase font-bold text-muted-foreground">Unique Posting Endpoint</span>
-                  {!isPro ? (
-                    <ProLockOverlay 
-                      compact
-                      title="LEGER_PHONE PUSH SYNC (PRO)"
-                      description="Automated real-time push notification posting from MacroDroid requires a LEGER_OS PRO node."
-                    />
-                  ) : (
-                    <div className="bg-secondary/40 border border-border p-2.5 font-mono text-[9px] break-all select-all flex items-center justify-between gap-2 text-foreground">
-                      <span className="truncate">
-                        {typeof window !== 'undefined' 
-                          ? `${window.location.origin}/api/transactions/macrodroid?userId=${user?.id || ""}`
-                          : `https://leger-os.vercel.app/api/transactions/macrodroid?userId=${user?.id || ""}`
-                        }
-                      </span>
-                      <button
-                        type="button"
-                        onClick={() => {
-                          const url = typeof window !== 'undefined' 
-                            ? `${window.location.origin}/api/transactions/macrodroid?userId=${user?.id || ""}`
-                            : `https://leger-os.vercel.app/api/transactions/macrodroid?userId=${user?.id || ""}`
-                          navigator.clipboard.writeText(url)
-                          toast.success("MacroDroid URL copied!")
-                        }}
-                        className="hover:text-emerald-500 shrink-0 p-1 cursor-pointer"
-                        title="Copy URL"
-                      >
-                        <Copy className="h-3.5 w-3.5" />
-                      </button>
-                    </div>
-                  )}
-                </div>
-
-                <div className="space-y-2 pt-2 border-t border-border/40 text-[10px] font-sans text-muted-foreground leading-normal">
-                  <p className="font-mono text-[9px] font-bold text-foreground uppercase">Setup Steps:</p>
-                  <ol className="list-decimal list-inside space-y-1">
-                    <li>Create MacroDroid rule triggered on Bank Notification.</li>
-                    <li>Add HTTP POST action to your copied endpoint above.</li>
-                    <li>Set Content Type to <code className="font-mono bg-secondary px-1 text-foreground">application/json</code>.</li>
-                  </ol>
-                </div>
-              </div>
+              <DeviceSyncManager 
+                user={user} 
+                isPro={isPro} 
+                onUpgradeClick={() => {
+                  // Switch to Pro tab
+                }} 
+              />
             </TabsContent>
 
             {/* TAB 5: PRO PLAN */}

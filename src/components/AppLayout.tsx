@@ -1,23 +1,30 @@
 "use client"
 
 import React, { Suspense } from "react"
-import { usePathname } from "next/navigation"
+import { usePathname, useSearchParams } from "next/navigation"
 import { Navigation } from "@/components/Navigation"
 import { Toaster } from "@/components/ui/sonner"
 import { FloatingTooltipProvider } from "@/components/unlumen-ui/floating-tooltip"
 import { LegerAIAssistant } from "@/components/LegerAIAssistant"
 import { IngestSpotlightOverlay } from "@/components/IngestSpotlightOverlay"
+import { useSystem } from "@/lib/SystemContext"
 
-export function AppLayout({ children }: { children: React.ReactNode }) {
+function LayoutInner({ children }: { children: React.ReactNode }) {
   const pathname = usePathname()
-  const isPublicPage = pathname === '/login' || pathname === '/signup'
+  const searchParams = useSearchParams()
+  const { profile } = useSystem()
 
-  if (isPublicPage) {
+  const isPublicPage = pathname === '/login' || pathname === '/signup'
+  const isOnboarding = searchParams.get('onboarding') === 'true' || 
+                       searchParams.get('force_onboarding') === 'true' || 
+                       (pathname === '/' && profile && profile.onboarding_completed === false)
+
+  if (isPublicPage || isOnboarding) {
     return (
-      <>
+      <main id="main-content" className="w-full min-h-screen h-auto overflow-y-auto bg-background">
         {children}
         <Toaster />
-      </>
+      </main>
     )
   }
 
@@ -35,5 +42,13 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
         <IngestSpotlightOverlay />
       </div>
     </FloatingTooltipProvider>
+  )
+}
+
+export function AppLayout({ children }: { children: React.ReactNode }) {
+  return (
+    <Suspense fallback={<div className="min-h-screen bg-background" />}>
+      <LayoutInner>{children}</LayoutInner>
+    </Suspense>
   )
 }

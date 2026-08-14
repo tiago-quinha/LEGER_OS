@@ -2225,8 +2225,38 @@ export function ExpensesView({ initialExpenses, categories: initialCategories, i
                     ))}
                     {filteredExpenses.length === 0 && (
                       <TableRow>
-                        <TableCell colSpan={7} className="text-center py-10 text-muted-foreground">
-                          No transactions found.
+                        <TableCell colSpan={7} className="text-center py-12 text-muted-foreground">
+                          {expenses.length === 0 ? (
+                            <div className="max-w-md mx-auto space-y-4 py-4">
+                              <div className="space-y-1">
+                                <p className="text-sm font-bold uppercase font-mono text-foreground">
+                                  No Transactions Recorded Yet
+                                </p>
+                                <p className="text-xs font-sans text-muted-foreground">
+                                  Ingest your first bank extract or record a transaction to initialize your ledger archive.
+                                </p>
+                              </div>
+                              <div className="flex flex-wrap items-center justify-center gap-3 pt-1">
+                                <Button
+                                  type="button"
+                                  onClick={() => setActiveTab("ingest")}
+                                  className="h-10 rounded-none bg-foreground text-background hover:bg-foreground/90 uppercase font-mono text-xs font-bold tracking-wider cursor-pointer flex items-center gap-2"
+                                >
+                                  <Upload className="h-3.5 w-3.5" /> Upload Statement
+                                </Button>
+                                <Button
+                                  type="button"
+                                  variant="outline"
+                                  onClick={() => setIsAddModalOpen(true)}
+                                  className="h-10 rounded-none border-border bg-secondary/30 hover:bg-secondary text-foreground uppercase font-mono text-xs font-bold tracking-wider cursor-pointer flex items-center gap-2"
+                                >
+                                  <Plus className="h-3.5 w-3.5" /> Add Transaction
+                                </Button>
+                              </div>
+                            </div>
+                          ) : (
+                            <span className="font-mono text-xs uppercase">No transactions match current filters.</span>
+                          )}
                         </TableCell>
                       </TableRow>
                     )}
@@ -2423,8 +2453,38 @@ export function ExpensesView({ initialExpenses, categories: initialCategories, i
                     })}
                   </AnimatePresence>
                   {paginatedExpenses.length === 0 && (
-                    <div className="text-center py-10 text-muted-foreground font-mono text-xs uppercase">
-                      No transactions found.
+                    <div className="text-center py-8 px-4 text-muted-foreground">
+                      {expenses.length === 0 ? (
+                        <div className="space-y-4">
+                          <div className="space-y-1">
+                            <p className="text-xs font-bold uppercase font-mono text-foreground">
+                              No Transactions Recorded Yet
+                            </p>
+                            <p className="text-[11px] font-sans text-muted-foreground">
+                              Ingest your first statement or add a manual entry to get started.
+                            </p>
+                          </div>
+                          <div className="flex flex-col gap-2 pt-1">
+                            <Button
+                              type="button"
+                              onClick={() => setActiveTab("ingest")}
+                              className="h-10 rounded-none bg-foreground text-background hover:bg-foreground/90 uppercase font-mono text-xs font-bold tracking-wider cursor-pointer flex items-center justify-center gap-2 w-full"
+                            >
+                              <Upload className="h-3.5 w-3.5" /> Upload Statement
+                            </Button>
+                            <Button
+                              type="button"
+                              variant="outline"
+                              onClick={() => setIsAddModalOpen(true)}
+                              className="h-10 rounded-none border-border bg-secondary/30 hover:bg-secondary text-foreground uppercase font-mono text-xs font-bold tracking-wider cursor-pointer flex items-center justify-center gap-2 w-full"
+                            >
+                              <Plus className="h-3.5 w-3.5" /> Add Transaction
+                            </Button>
+                          </div>
+                        </div>
+                      ) : (
+                        <span className="font-mono text-xs uppercase">No transactions match current filters.</span>
+                      )}
                     </div>
                   )}
                 </div>

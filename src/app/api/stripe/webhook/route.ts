@@ -62,6 +62,40 @@ export async function POST(request: Request) {
         break
       }
 
+      case "payment_intent.succeeded": {
+        const paymentIntent = event.data.object as Stripe.PaymentIntent
+        const userId = paymentIntent.metadata?.supabase_user_id
+        const isDiscountClaim = paymentIntent.metadata?.is_discount_claim === "true"
+
+        if (userId) {
+          const { data: profile } = await supabaseAdmin
+            .from("profiles")
+            .select("ai_journal")
+            .eq("id", userId)
+            .single()
+
+          const rawJournal = profile?.ai_journal
+          const metadataUpdates: Record<string, any> = {}
+          if (isDiscountClaim) {
+            metadataUpdates.retention_discount_claimed_at = new Date().toISOString()
+          }
+
+          const journal = buildSubscriptionUpdatedJournal(rawJournal, metadataUpdates)
+
+          await supabaseAdmin
+            .from("profiles")
+            .update({
+              subscription_tier: "PRO",
+              ai_quota_limit: 300,
+              ai_quota_usage: 0,
+              stripe_customer_id: (paymentIntent.customer as string) || profile?.stripe_customer_id,
+              ai_journal: journal,
+            })
+            .eq("id", userId)
+        }
+        break
+      }
+
       case "customer.subscription.deleted": {
         const subscription = event.data.object as Stripe.Subscription
         const customerId = subscription.customer as string
