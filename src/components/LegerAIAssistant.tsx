@@ -292,8 +292,10 @@ function getPagePillVariations(pathname: string, telemetry: any, profile: any, a
   const totalIn = telemetry?.totalIn || 0
   const totalOut = telemetry?.totalOut || 0
   const spendingLimit = telemetry?.spendingLimit || profile?.target_monthly_spend || 1500
+  const remainingBudget = spendingLimit - totalOut
   const budgetPct = spendingLimit > 0 ? Math.round((totalOut / spendingLimit) * 100) : 0
-  const safeDaily = Math.max(0, spendingLimit - totalOut) / daysLeft
+  const safeDaily = remainingBudget > 0 ? (remainingBudget / daysLeft) : 0
+  const actualDailyBurn = daysElapsed > 0 ? (totalOut / daysElapsed) : 0
   const hasCustomKey = !!(profile?.custom_api_key)
 
   switch (pathname) {
@@ -308,10 +310,16 @@ function getPagePillVariations(pathname: string, telemetry: any, profile: any, a
           banner: velocity > 1.15 ? `Spending velocity elevated at ${velocity.toFixed(2)}x baseline for day ${daysElapsed}...` : `Spending velocity steady at ${velocity.toFixed(2)}x baseline for day ${daysElapsed}...`,
           query: `Why is my spending velocity at ${velocity.toFixed(2)}x baseline for day ${daysElapsed} of this cycle?`
         },
-        {
+        ...(safeDaily >= 1.0 ? [{
           banner: `Safe daily variable burn pace is €${safeDaily.toFixed(2)} for ${daysLeft}d left...`,
           query: `What is my target daily variable spend limit for the remaining ${daysLeft} days of this cycle?`
-        },
+        }] : remainingBudget <= 0 && totalOut > 0 ? [{
+          banner: `Monthly budget cap reached (€${Math.round(totalOut)} spent) — ${daysLeft}d remaining...`,
+          query: `My target monthly budget of €${spendingLimit} has been reached. Analyze my spending and recommend adjustments for the remaining ${daysLeft} days.`
+        }] : [{
+          banner: `Current average spending pace is €${actualDailyBurn.toFixed(2)}/day for ${daysLeft}d left...`,
+          query: `Analyze my current average daily spending pace of €${actualDailyBurn.toFixed(2)}/day.`
+        }]),
         {
           banner: `Day ${daysElapsed} of 30 — ${daysLeft} days remaining until next paycheck...`,
           query: `Analyze my cash flow pace for the remaining ${daysLeft} days until my next paycheck.`
@@ -375,10 +383,13 @@ function getPagePillVariations(pathname: string, telemetry: any, profile: any, a
           banner: `Target monthly budget is ${budgetPct}% consumed (€${Math.round(totalOut)} of €${spendingLimit})...`,
           query: `My target budget is ${budgetPct}% used. Should I adjust my category budget limits?`
         },
-        {
-          banner: `Remaining unallocated budget buffer: €${Math.max(0, spendingLimit - totalOut).toFixed(2)} for ${daysLeft}d left...`,
+        ...(remainingBudget > 0 ? [{
+          banner: `Remaining unallocated budget buffer: €${remainingBudget.toFixed(2)} for ${daysLeft}d left...`,
           query: `Calculate my remaining unallocated budget buffer for the rest of this cycle.`
-        },
+        }] : [{
+          banner: `Monthly budget cap exceeded by €${Math.abs(Math.round(remainingBudget))} with ${daysLeft}d left...`,
+          query: `My total outflow has exceeded my monthly budget target by €${Math.abs(Math.round(remainingBudget))}. How should I adjust my categories?`
+        }]),
         {
           banner: `Monthly target spending limit set to €${spendingLimit}...`,
           query: `Is my monthly spending limit of €${spendingLimit} realistic based on current velocity?`
