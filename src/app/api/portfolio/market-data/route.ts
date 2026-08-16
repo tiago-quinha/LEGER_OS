@@ -248,3 +248,144 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: error.message || "Internal server error" }, { status: 500 });
   }
 }
+
+export async function GET(req: Request) {
+  try {
+    const { user } = await getAuthUser(req);
+    if (!user) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
+    const { searchParams } = new URL(req.url);
+    const symbolsParam = searchParams.get("symbols");
+    const currency = (searchParams.get("currency") || "EUR").toUpperCase();
+
+    const targetSymbols = symbolsParam
+      ? symbolsParam.split(",").map((s) => s.trim().toUpperCase()).filter(Boolean)
+      : [
+          "BTC", "ETH", "SOL", "ADA", "XRP", "BNB", "LINK", "DOGE", "DOT", "AVAX", "MATIC", "SHIB", "UNI", "LTC", "NEAR", "SUI", "ATOM",
+          "AAPL", "MSFT", "NVDA", "TSLA", "AMZN", "GOOGL", "META", "AMD", "NFLX", "SPY", "QQQ", "VWCE.DE", "SXR8.DE", "XTB",
+          "XAU", "XAG", "WTI"
+        ];
+
+    const now = Date.now();
+    const resultPrices: Record<string, { price: number; change24h: number; currency: string }> = {};
+    const missingCryptoSymbols: string[] = [];
+    const missingStockSymbols: string[] = [];
+
+    for (const sym of targetSymbols) {
+      const isCrypto = CRYPTO_COINGECKO_MAP[sym] !== undefined;
+      const cacheKey = isCrypto ? `crypto:${sym}` : `stock_etf:${sym}`;
+      const cached = priceCache.get(cacheKey);
+
+      if (cached && now - cached.timestamp < CACHE_TTL_MS) {
+        resultPrices[sym] = {
+          price: cached.price,
+          change24h: cached.change24h,
+          currency: cached.currency,
+        };
+      } else {
+        if (isCrypto) {
+          missingCryptoSymbols.push(sym);
+        } else {
+          missingStockSymbols.push(sym);
+        }
+      }
+    }
+
+    // 1. Fetch missing crypto
+    if (missingCryptoSymbols.length > 0) {
+      const coinIds = missingCryptoSymbols
+        .map((s) => CRYPTO_COINGECKO_MAP[s])
+        .filter(Boolean);
+
+      if (coinIds.length > 0) {
+        try {
+          const cgUrl = `https://api.coingecko.com/api/v3/simple/price?ids=${coinIds.join(",")}&vs_currencies=eur,usd&include_24hr_change=true`;
+          const cgRes = await fetch(cgUrl, {
+            headers: { "User-Agent": "LEGER_OS/1.0" },
+            next: { revalidate: 300 },
+          });
+
+          if (cgRes.ok) {
+            const cgData = await cgRes.json();
+            missingCryptoSymbols.forEach((sym) => {
+              const coinId = CRYPTO_COINGECKO_MAP[sym];
+              const coinInfo = cgData[coinId];
+              if (coinInfo) {
+                const price = currency === "USD" ? coinInfo.usd : coinInfo.eur;
+                const change24h = currency === "USD" ? coinInfo.usd_24h_change : coinInfo.eur_24h_change;
+
+                const priceObj: CachedPrice = {
+                  price: typeof price === "number" ? price : parseFloat(price),
+                  change24h: parseFloat((change24h || 0).toFixed(2)),
+                  currency,
+                  timestamp: now,
+                };
+
+                priceCache.set(`crypto:${sym}`, priceObj);
+                resultPrices[sym] = {
+                  price: priceObj.price,
+                  change24h: priceObj.change24h,
+                  currency: priceObj.currency,
+                };
+              }
+            });
+          }
+        } catch (cgErr) {
+          console.error("GET market-data CoinGecko fetch error:", cgErr);
+        }
+      }
+    }
+
+    // 2. Fetch missing stocks / commodities
+    if (missingStockSymbols.length > 0) {
+      await Promise.allSettled(
+        missingStockSymbols.map(async (sym) => {
+          try {
+            const yfUrl = `https://query1.finance.yahoo.com/v8/finance/chart/${encodeURIComponent(sym)}?interval=1d&range=1d`;
+            const yfRes = await fetch(yfUrl, {
+              headers: {
+                "User-Agent":
+                  "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
+              },
+              next: { revalidate: 300 },
+            });
+
+            if (yfRes.ok) {
+              const yfData = await yfRes.json();
+              const meta = yfData?.chart?.result?.[0]?.meta;
+              if (meta && typeof meta.regularMarketPrice === "number") {
+                const currentPrice = meta.regularMarketPrice;
+                const prevClose = meta.chartPreviousClose || currentPrice;
+                const change24h = prevClose > 0 ? ((currentPrice - prevClose) / prevClose) * 100 : 0;
+
+                const priceObj: CachedPrice = {
+                  price: parseFloat(currentPrice.toFixed(2)),
+                  change24h: parseFloat(change24h.toFixed(2)),
+                  currency: meta.currency || currency,
+                  timestamp: now,
+                };
+
+                priceCache.set(`stock_etf:${sym}`, priceObj);
+                resultPrices[sym] = {
+                  price: priceObj.price,
+                  change24h: priceObj.change24h,
+                  currency: priceObj.currency,
+                };
+              }
+            }
+          } catch (yfErr) {
+            console.error(`GET market-data Yahoo Finance fetch error for ${sym}:`, yfErr);
+          }
+        })
+      );
+    }
+
+    return NextResponse.json({ prices: resultPrices });
+  } catch (error: any) {
+    console.error("GET /api/portfolio/market-data error:", error);
+    return NextResponse.json({ error: error.message || "Failed to fetch market data" }, { status: 500 });
+  }
+}
+

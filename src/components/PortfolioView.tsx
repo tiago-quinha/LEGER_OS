@@ -30,6 +30,7 @@ import {
   AlertTriangle,
   ChevronLeft,
   ChevronRight,
+  Loader2,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Tilt } from "@/components/unlumen-ui/tilt";
@@ -89,6 +90,17 @@ interface PopularAssetPreset {
   type: "stock_etf" | "crypto" | "commodity" | "cash_equivalent";
   estPrice: number;
   badgeLabel: string;
+}
+
+export interface SearchAssetResult {
+  id: string;
+  name: string;
+  symbol: string;
+  type: "stock_etf" | "crypto" | "commodity" | "cash_equivalent" | "other";
+  badgeLabel: string;
+  exchange?: string;
+  iconUrl?: string;
+  currency?: string;
 }
 
 const POPULAR_PRESETS: PopularAssetPreset[] = [
@@ -196,6 +208,7 @@ function getRawPriceString(num: number): string {
 }
 
 const PRELOADED_ICONS: Record<string, string> = {
+  // Top Cryptocurrencies (SpotHQ SVG CDN)
   BTC: "https://raw.githubusercontent.com/spothq/cryptocurrency-icons/master/svg/color/btc.svg",
   ETH: "https://raw.githubusercontent.com/spothq/cryptocurrency-icons/master/svg/color/eth.svg",
   SOL: "https://raw.githubusercontent.com/spothq/cryptocurrency-icons/master/svg/color/sol.svg",
@@ -207,12 +220,51 @@ const PRELOADED_ICONS: Record<string, string> = {
   DOT: "https://raw.githubusercontent.com/spothq/cryptocurrency-icons/master/svg/color/dot.svg",
   AVAX: "https://raw.githubusercontent.com/spothq/cryptocurrency-icons/master/svg/color/avax.svg",
   MATIC: "https://raw.githubusercontent.com/spothq/cryptocurrency-icons/master/svg/color/matic.svg",
+  POL: "https://raw.githubusercontent.com/spothq/cryptocurrency-icons/master/svg/color/matic.svg",
   SHIB: "https://raw.githubusercontent.com/spothq/cryptocurrency-icons/master/svg/color/shib.svg",
   UNI: "https://raw.githubusercontent.com/spothq/cryptocurrency-icons/master/svg/color/uni.svg",
   LTC: "https://raw.githubusercontent.com/spothq/cryptocurrency-icons/master/svg/color/ltc.svg",
   NEAR: "https://raw.githubusercontent.com/spothq/cryptocurrency-icons/master/svg/color/near.svg",
   ATOM: "https://raw.githubusercontent.com/spothq/cryptocurrency-icons/master/svg/color/atom.svg",
   ICP: "https://raw.githubusercontent.com/spothq/cryptocurrency-icons/master/svg/color/icp.svg",
+  TRX: "https://raw.githubusercontent.com/spothq/cryptocurrency-icons/master/svg/color/trx.svg",
+  XMR: "https://raw.githubusercontent.com/spothq/cryptocurrency-icons/master/svg/color/xmr.svg",
+  XLM: "https://raw.githubusercontent.com/spothq/cryptocurrency-icons/master/svg/color/xlm.svg",
+  BCH: "https://raw.githubusercontent.com/spothq/cryptocurrency-icons/master/svg/color/bch.svg",
+  ETC: "https://raw.githubusercontent.com/spothq/cryptocurrency-icons/master/svg/color/etc.svg",
+  FIL: "https://raw.githubusercontent.com/spothq/cryptocurrency-icons/master/svg/color/fil.svg",
+  ALGO: "https://raw.githubusercontent.com/spothq/cryptocurrency-icons/master/svg/color/algo.svg",
+  VET: "https://raw.githubusercontent.com/spothq/cryptocurrency-icons/master/svg/color/vet.svg",
+  AAVE: "https://raw.githubusercontent.com/spothq/cryptocurrency-icons/master/svg/color/aave.svg",
+  MKR: "https://raw.githubusercontent.com/spothq/cryptocurrency-icons/master/svg/color/mkr.svg",
+  CRV: "https://raw.githubusercontent.com/spothq/cryptocurrency-icons/master/svg/color/crv.svg",
+  GRT: "https://raw.githubusercontent.com/spothq/cryptocurrency-icons/master/svg/color/grt.svg",
+  USDT: "https://raw.githubusercontent.com/spothq/cryptocurrency-icons/master/svg/color/usdt.svg",
+  USDC: "https://raw.githubusercontent.com/spothq/cryptocurrency-icons/master/svg/color/usdc.svg",
+
+  // Stocks & ETFs Logos (High Resolution Parqet Financial CDN)
+  AAPL: "https://assets.parqet.com/logos/symbol/AAPL?format=png",
+  MSFT: "https://assets.parqet.com/logos/symbol/MSFT?format=png",
+  NVDA: "https://assets.parqet.com/logos/symbol/NVDA?format=png",
+  TSLA: "https://assets.parqet.com/logos/symbol/TSLA?format=png",
+  AMZN: "https://assets.parqet.com/logos/symbol/AMZN?format=png",
+  GOOGL: "https://assets.parqet.com/logos/symbol/GOOGL?format=png",
+  GOOG: "https://assets.parqet.com/logos/symbol/GOOG?format=png",
+  META: "https://assets.parqet.com/logos/symbol/META?format=png",
+  AMD: "https://assets.parqet.com/logos/symbol/AMD?format=png",
+  NFLX: "https://assets.parqet.com/logos/symbol/NFLX?format=png",
+  PLTR: "https://assets.parqet.com/logos/symbol/PLTR?format=png",
+  SPY: "https://assets.parqet.com/logos/symbol/SPY?format=png",
+  QQQ: "https://assets.parqet.com/logos/symbol/QQQ?format=png",
+  VOO: "https://assets.parqet.com/logos/symbol/VOO?format=png",
+  VTI: "https://assets.parqet.com/logos/symbol/VTI?format=png",
+  "VWCE.DE": "https://assets.parqet.com/logos/symbol/VWCE.DE?format=png",
+  "SXR8.DE": "https://assets.parqet.com/logos/symbol/SXR8.DE?format=png",
+  COIN: "https://assets.parqet.com/logos/symbol/COIN?format=png",
+  DIS: "https://assets.parqet.com/logos/symbol/DIS?format=png",
+  ARM: "https://assets.parqet.com/logos/symbol/ARM?format=png",
+  UBER: "https://assets.parqet.com/logos/symbol/UBER?format=png",
+  INTC: "https://assets.parqet.com/logos/symbol/INTC?format=png",
 };
 
 // Eagerly pre-warm browser memory cache on module load for 0ms instant rendering
@@ -223,20 +275,24 @@ if (typeof window !== "undefined") {
   });
 }
 
-function AssetLogo({ symbol, assetType, name }: { symbol?: string | null; assetType: string; name: string }) {
+function AssetLogo({ symbol, assetType, name, customIconUrl }: { symbol?: string | null; assetType: string; name: string; customIconUrl?: string }) {
   const [imgError, setImgError] = useState(false);
 
   const cleanSym = (symbol || "").toUpperCase().trim();
   const config = ASSET_TYPE_CONFIG[assetType] || ASSET_TYPE_CONFIG.other;
 
   const imageUrl = useMemo(() => {
+    if (customIconUrl && !imgError) return customIconUrl;
     if (!cleanSym || imgError) return null;
     if (PRELOADED_ICONS[cleanSym]) return PRELOADED_ICONS[cleanSym];
     if (assetType === "crypto") {
       return `https://raw.githubusercontent.com/spothq/cryptocurrency-icons/master/svg/color/${cleanSym.toLowerCase()}.svg`;
     }
+    if (assetType === "stock_etf") {
+      return `https://assets.parqet.com/logos/symbol/${cleanSym}?format=png`;
+    }
     return null;
-  }, [cleanSym, assetType, imgError]);
+  }, [cleanSym, assetType, imgError, customIconUrl]);
 
   if (imageUrl && !imgError) {
     return (
@@ -356,6 +412,39 @@ export function PortfolioView({
   const [presetSearch, setPresetSearch] = useState("");
   const [selectedPresetId, setSelectedPresetId] = useState<string | null>(null);
   const [isCustomMode, setIsCustomMode] = useState(false);
+  const [apiSearchResults, setApiSearchResults] = useState<SearchAssetResult[]>([]);
+  const [isSearchingApi, setIsSearchingApi] = useState(false);
+  const [fetchingPriceForSymbol, setFetchingPriceForSymbol] = useState<string | null>(null);
+
+  // 500ms debounced live multi-asset search querying Yahoo Finance & CoinGecko
+  useEffect(() => {
+    const q = presetSearch.trim();
+    if (q.length < 2) {
+      setApiSearchResults([]);
+      setIsSearchingApi(false);
+      return;
+    }
+
+    setIsSearchingApi(true);
+    const handler = setTimeout(async () => {
+      try {
+        const res = await fetch(`/api/portfolio/search?q=${encodeURIComponent(q)}`);
+        if (res.ok) {
+          const data = await res.json();
+          setApiSearchResults(data.results || []);
+        } else {
+          setApiSearchResults([]);
+        }
+      } catch (err) {
+        console.error("API asset search failed:", err);
+        setApiSearchResults([]);
+      } finally {
+        setIsSearchingApi(false);
+      }
+    }, 500);
+
+    return () => clearTimeout(handler);
+  }, [presetSearch]);
 
   const [formData, setFormData] = useState({
     asset_name: "",
@@ -368,6 +457,28 @@ export function PortfolioView({
     notes: "",
   });
   const [formSubmitting, setFormSubmitting] = useState(false);
+
+  const [presetLivePrices, setPresetLivePrices] = useState<Record<string, number>>({});
+
+  const fetchPresetLivePrices = useCallback(async () => {
+    try {
+      const res = await fetch("/api/portfolio/market-data");
+      if (res.ok) {
+        const data = await res.json();
+        if (data.prices) {
+          const mapped: Record<string, number> = {};
+          Object.entries(data.prices).forEach(([sym, p]: [string, any]) => {
+            if (p && typeof p.price === "number") {
+              mapped[sym.toUpperCase()] = p.price;
+            }
+          });
+          setPresetLivePrices((prev) => ({ ...prev, ...mapped }));
+        }
+      }
+    } catch (err) {
+      console.warn("Failed to fetch preset live prices:", err);
+    }
+  }, []);
 
   const fetchPortfolioData = useCallback(async () => {
     try {
@@ -397,7 +508,8 @@ export function PortfolioView({
 
   useEffect(() => {
     fetchPortfolioData();
-  }, [fetchPortfolioData]);
+    fetchPresetLivePrices();
+  }, [fetchPortfolioData, fetchPresetLivePrices]);
 
   const handleRefreshMarketPrices = async () => {
     try {
@@ -431,6 +543,8 @@ export function PortfolioView({
     setEditingAsset(null);
     setSelectedPresetId(null);
     setIsCustomMode(false);
+    setPresetSearch("");
+    setApiSearchResults([]);
     setFormData({
       asset_name: "",
       symbol: "",
@@ -447,7 +561,8 @@ export function PortfolioView({
   const handleSelectPresetCard = (preset: PopularAssetPreset) => {
     setSelectedPresetId(preset.id);
     setIsCustomMode(false);
-    const estPriceStr = getRawPriceString(preset.estPrice);
+    const livePrice = presetLivePrices[preset.symbol.toUpperCase()] || preset.estPrice;
+    const estPriceStr = getRawPriceString(livePrice);
     setFormData((prev) => ({
       ...prev,
       asset_name: preset.name,
@@ -457,6 +572,66 @@ export function PortfolioView({
       buy_price: estPriceStr,
       current_price: estPriceStr,
     }));
+  };
+
+  const handleSelectApiSearchResult = async (item: SearchAssetResult) => {
+    setSelectedPresetId(item.id);
+    setIsCustomMode(false);
+
+    // Set basic metadata immediately
+    setFormData((prev) => ({
+      ...prev,
+      asset_name: item.name,
+      symbol: item.symbol,
+      asset_type: item.type,
+      quantity: item.symbol === "SHIB" ? "1000000" : "1",
+      buy_price: "",
+      current_price: "",
+    }));
+
+    // Auto-fetch real live quote for the selected ticker to prepopulate buy/current price
+    if (item.symbol) {
+      setFetchingPriceForSymbol(item.symbol);
+      try {
+        if (item.type === "stock_etf" || item.type === "commodity") {
+          const yfUrl = `https://query1.finance.yahoo.com/v8/finance/chart/${encodeURIComponent(item.symbol)}?interval=1d&range=1d`;
+          const yfRes = await fetch(yfUrl);
+          if (yfRes.ok) {
+            const yfData = await yfRes.json();
+            const price = yfData?.chart?.result?.[0]?.meta?.regularMarketPrice;
+            if (typeof price === "number" && price > 0) {
+              const pStr = getRawPriceString(price);
+              setFormData((prev) => ({
+                ...prev,
+                buy_price: prev.buy_price || pStr,
+                current_price: pStr,
+              }));
+            }
+          }
+        } else if (item.type === "crypto") {
+          const cgId = item.id.replace(/^cg-/, "") || item.symbol.toLowerCase();
+          const cgUrl = `https://api.coingecko.com/api/v3/simple/price?ids=${encodeURIComponent(cgId)}&vs_currencies=eur,usd`;
+          const cgRes = await fetch(cgUrl);
+          if (cgRes.ok) {
+            const cgData = await cgRes.json();
+            const coinData = cgData[cgId];
+            const price = coinData ? (coinData.eur || coinData.usd) : null;
+            if (typeof price === "number" && price > 0) {
+              const pStr = getRawPriceString(price);
+              setFormData((prev) => ({
+                ...prev,
+                buy_price: prev.buy_price || pStr,
+                current_price: pStr,
+              }));
+            }
+          }
+        }
+      } catch (e) {
+        console.warn("Live quote quick-fill failed:", e);
+      } finally {
+        setFetchingPriceForSymbol(null);
+      }
+    }
   };
 
   const handleSelectCustomMode = () => {
@@ -1436,16 +1611,20 @@ export function PortfolioView({
 
               {/* Scrollable Form Content */}
               <div className="p-5 overflow-y-auto space-y-4 flex-1">
-                {/* Popular Asset Cards Selection List */}
+                {/* Asset Selection List (Live Search or Curated Picks) */}
                 {!editingAsset && (
                   <div className="space-y-3 border-b border-border/40 pb-4">
                     <div className="flex items-center justify-between">
-                      <span className="technical-label text-[9px]">SELECT ASSET (POPULAR PICKS)</span>
+                      <span className="technical-label text-[9px]">
+                        {presetSearch.trim().length >= 2
+                          ? "LIVE MARKET SEARCH RESULTS"
+                          : "SELECT ASSET (POPULAR PICKS)"}
+                      </span>
                       <button
                         type="button"
                         onClick={handleSelectCustomMode}
                         className={cn(
-                          "text-[9px] font-mono uppercase tracking-wider px-2 py-0.5 border transition-all",
+                          "text-[9px] font-mono uppercase tracking-wider px-2 py-0.5 border transition-all cursor-pointer",
                           isCustomMode
                             ? "bg-emerald-500/10 text-emerald-500 border-emerald-500/30 font-bold"
                             : "bg-secondary/20 text-muted-foreground hover:text-foreground border-border"
@@ -1456,60 +1635,190 @@ export function PortfolioView({
                     </div>
 
                     <div className="relative">
-                      <Search className="absolute left-2.5 top-2.5 h-3.5 w-3.5 text-muted-foreground/40" />
+                      {isSearchingApi ? (
+                        <Loader2 className="absolute left-2.5 top-2.5 h-3.5 w-3.5 text-muted-foreground/60 animate-spin" />
+                      ) : (
+                        <Search className="absolute left-2.5 top-2.5 h-3.5 w-3.5 text-muted-foreground/40" />
+                      )}
                       <Input
-                        placeholder="SEARCH POPULAR COINS & STOCKS..."
+                        placeholder="SEARCH ANY STOCK, ETF, CRYPTO, OR COMMODITY..."
                         value={presetSearch}
                         onChange={(e) => setPresetSearch(e.target.value)}
-                        className="pl-8 text-[11px] h-8 rounded-none border-border/60 bg-secondary/10 uppercase"
+                        className="pl-8 pr-8 text-[11px] h-8 rounded-none border-border/60 bg-secondary/10 uppercase"
                       />
+                      {presetSearch && (
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setPresetSearch("");
+                            setApiSearchResults([]);
+                          }}
+                          className="absolute right-2 top-2 p-0.5 text-muted-foreground hover:text-foreground cursor-pointer"
+                        >
+                          <X className="h-3 w-3" />
+                        </button>
+                      )}
                     </div>
 
-                    {/* Popular Asset Cards - Stacked List with Skeleton Support */}
+                    {/* Results List: Live API Results or Curated Presets */}
                     <div className="flex flex-col gap-1.5 max-h-[36vh] sm:max-h-[38vh] overflow-y-auto scrollbar-thin p-0.5">
-                      {filteredPresets.map((preset) => {
-                        const isSelected = !isCustomMode && selectedPresetId === preset.id;
-                        return (
-                          <div
-                            key={preset.id}
-                            onClick={() => handleSelectPresetCard(preset)}
-                            className={cn(
-                              "p-2 border rounded-none cursor-pointer select-none transition-all flex items-center justify-between gap-2.5 w-full",
-                              isSelected
-                                ? "bg-emerald-500/10 border-emerald-500 shadow-[0_0_10px_rgba(16,185,129,0.15)]"
-                                : "bg-card/40 border-border hover:border-foreground/40 hover:bg-secondary/20"
-                            )}
-                          >
-                            <div className="flex items-center gap-2.5 min-w-0">
-                              <AssetLogo symbol={preset.symbol} assetType={preset.type} name={preset.name} />
-                              <div className="min-w-0">
-                                <div className="flex items-center gap-1.5">
-                                  <span className="font-bold text-xs uppercase text-foreground truncate font-mono">
-                                    {preset.symbol}
-                                  </span>
-                                  <span className="text-[8px] font-mono px-1.5 py-0.2 rounded-full bg-secondary/60 border border-border text-muted-foreground uppercase shrink-0 font-semibold">
-                                    {preset.badgeLabel}
-                                  </span>
+                      {isSearchingApi ? (
+                        // Skeleton loading during API query
+                        <div className="space-y-1.5">
+                          {[1, 2, 3].map((idx) => (
+                            <div
+                              key={idx}
+                              className="p-2 border border-border/40 bg-card/20 flex items-center justify-between gap-2.5 w-full animate-pulse"
+                            >
+                              <div className="flex items-center gap-2.5 min-w-0">
+                                <div className="h-10 w-10 rounded-xl bg-secondary/40 shrink-0" />
+                                <div className="space-y-1.5 min-w-0">
+                                  <div className="h-3 w-16 bg-secondary/60 rounded" />
+                                  <div className="h-2.5 w-28 bg-secondary/30 rounded" />
                                 </div>
-                                <p className="text-[10px] text-muted-foreground uppercase truncate font-mono mt-0.5">
-                                  {preset.name}
+                              </div>
+                              <div className="h-3 w-12 bg-secondary/30 rounded" />
+                            </div>
+                          ))}
+                        </div>
+                      ) : presetSearch.trim().length >= 2 ? (
+                        // Live API search results
+                        apiSearchResults.length > 0 ? (
+                          apiSearchResults.map((item) => {
+                            const isSelected = !isCustomMode && selectedPresetId === item.id;
+                            const isFetchingPrice = fetchingPriceForSymbol === item.symbol;
+                            return (
+                              <div
+                                key={item.id}
+                                onClick={() => handleSelectApiSearchResult(item)}
+                                className={cn(
+                                  "p-2 border rounded-none cursor-pointer select-none transition-all flex items-center justify-between gap-2.5 w-full",
+                                  isSelected
+                                    ? "bg-emerald-500/10 border-emerald-500 shadow-[0_0_10px_rgba(16,185,129,0.15)]"
+                                    : "bg-card/40 border-border hover:border-foreground/40 hover:bg-secondary/20"
+                                )}
+                              >
+                                <div className="flex items-center gap-2.5 min-w-0">
+                                  <AssetLogo
+                                    symbol={item.symbol}
+                                    assetType={item.type}
+                                    name={item.name}
+                                    customIconUrl={item.iconUrl}
+                                  />
+                                  <div className="min-w-0">
+                                    <div className="flex items-center gap-1.5 flex-wrap">
+                                      <span className="font-bold text-xs uppercase text-foreground truncate font-mono">
+                                        {item.symbol}
+                                      </span>
+                                      <span className="text-[8px] font-mono px-1.5 py-0.2 rounded-full bg-secondary/60 border border-border text-muted-foreground uppercase shrink-0 font-semibold">
+                                        {item.badgeLabel}
+                                      </span>
+                                      {item.exchange && (
+                                        <span className="text-[8px] font-mono text-muted-foreground/60 uppercase truncate">
+                                          {item.exchange}
+                                        </span>
+                                      )}
+                                    </div>
+                                    <p className="text-[10px] text-muted-foreground uppercase truncate font-mono mt-0.5">
+                                      {item.name}
+                                    </p>
+                                  </div>
+                                </div>
+
+                                <div className="text-right shrink-0">
+                                  {isFetchingPrice ? (
+                                    <div className="flex items-center gap-1 text-[9px] font-mono text-muted-foreground">
+                                      <Loader2 className="h-2.5 w-2.5 animate-spin" />
+                                      <span>PRICE...</span>
+                                    </div>
+                                  ) : isSelected ? (
+                                    <span className="text-[8px] font-mono text-emerald-500 font-bold uppercase">
+                                      ✓ SELECTED
+                                    </span>
+                                  ) : (
+                                    <span className="text-[9px] font-mono text-muted-foreground uppercase hover:text-foreground">
+                                      SELECT →
+                                    </span>
+                                  )}
+                                </div>
+                              </div>
+                            );
+                          })
+                        ) : (
+                          // No results matched
+                          <div className="p-4 border border-dashed border-border bg-secondary/10 text-center space-y-2">
+                            <p className="text-[10px] text-muted-foreground uppercase font-mono">
+                              No live tickers found for &ldquo;{presetSearch.toUpperCase()}&rdquo;
+                            </p>
+                            <button
+                              type="button"
+                              onClick={() => {
+                                setIsCustomMode(true);
+                                setSelectedPresetId("custom");
+                                setFormData({
+                                  asset_name: presetSearch.toUpperCase(),
+                                  symbol: "",
+                                  asset_type: "stock_etf",
+                                  quantity: "1",
+                                  buy_price: "",
+                                  current_price: "",
+                                  institution: "",
+                                  notes: "",
+                                });
+                              }}
+                              className="text-[10px] font-mono uppercase px-3 py-1 bg-secondary text-foreground hover:bg-muted border border-border transition-colors cursor-pointer"
+                            >
+                              + Create Custom Asset &ldquo;{presetSearch.toUpperCase()}&rdquo;
+                            </button>
+                          </div>
+                        )
+                      ) : (
+                        // Default Curated Popular Presets
+                        filteredPresets.map((preset) => {
+                          const isSelected = !isCustomMode && selectedPresetId === preset.id;
+                          const livePrice = presetLivePrices[preset.symbol.toUpperCase()] || preset.estPrice;
+                          return (
+                            <div
+                              key={preset.id}
+                              onClick={() => handleSelectPresetCard(preset)}
+                              className={cn(
+                                "p-2 border rounded-none cursor-pointer select-none transition-all flex items-center justify-between gap-2.5 w-full",
+                                isSelected
+                                  ? "bg-emerald-500/10 border-emerald-500 shadow-[0_0_10px_rgba(16,185,129,0.15)]"
+                                  : "bg-card/40 border-border hover:border-foreground/40 hover:bg-secondary/20"
+                              )}
+                            >
+                              <div className="flex items-center gap-2.5 min-w-0">
+                                <AssetLogo symbol={preset.symbol} assetType={preset.type} name={preset.name} />
+                                <div className="min-w-0">
+                                  <div className="flex items-center gap-1.5">
+                                    <span className="font-bold text-xs uppercase text-foreground truncate font-mono">
+                                      {preset.symbol}
+                                    </span>
+                                    <span className="text-[8px] font-mono px-1.5 py-0.2 rounded-full bg-secondary/60 border border-border text-muted-foreground uppercase shrink-0 font-semibold">
+                                      {preset.badgeLabel}
+                                    </span>
+                                  </div>
+                                  <p className="text-[10px] text-muted-foreground uppercase truncate font-mono mt-0.5">
+                                    {preset.name}
+                                  </p>
+                                </div>
+                              </div>
+
+                              <div className="text-right shrink-0">
+                                <p className="text-xs font-mono font-bold text-foreground">
+                                  €{formatSmartPrice(livePrice)}
                                 </p>
+                                {isSelected && (
+                                  <span className="text-[8px] font-mono text-emerald-500 font-bold uppercase">
+                                    ✓ SELECTED
+                                  </span>
+                                )}
                               </div>
                             </div>
-
-                            <div className="text-right shrink-0">
-                              <p className="text-xs font-mono font-bold text-foreground">
-                                €{formatSmartPrice(preset.estPrice)}
-                              </p>
-                              {isSelected && (
-                                <span className="text-[8px] font-mono text-emerald-500 font-bold uppercase">
-                                  ✓ SELECTED
-                                </span>
-                              )}
-                            </div>
-                          </div>
-                        );
-                      })}
+                          );
+                        })
+                      )}
                     </div>
                   </div>
                 )}
