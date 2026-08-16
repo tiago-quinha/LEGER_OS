@@ -1316,7 +1316,7 @@ export function LegerAIAssistant() {
                     </div>
 
                     <div className="pt-2 border-t border-border/40 text-[9px] font-mono text-muted-foreground text-center">
-                      🔒 Sessions auto-expire after 30 days to keep your workspace fresh.
+                      Sessions auto-expire after 30 days.
                     </div>
                   </motion.div>
                 )}
