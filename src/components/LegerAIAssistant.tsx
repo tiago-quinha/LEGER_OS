@@ -504,6 +504,7 @@ export function LegerAIAssistant() {
   const chatEndRef = useRef<HTMLDivElement>(null)
   const dragRef = useRef<HTMLDivElement>(null)
   const recognitionRef = useRef<any>(null)
+  const handleQueryRef = useRef<((queryText: string) => Promise<void>) | null>(null)
 
   // Dynamic Floaty AI Pill Banner States (starts CLOSED by default)
   const [isPillExpanded, setIsPillExpanded] = useState(false)
@@ -562,21 +563,14 @@ export function LegerAIAssistant() {
   // Ref to track last banner auto-expansion timestamp (token & attention efficiency)
   const lastExpandedTimeRef = useRef(0)
 
-  // Smart handlePillClick helper: Starts a FRESH new chat initiated by the AI Assistant
+  // Smart handlePillClick helper: Starts a FRESH new chat and immediately executes the real data query
   const handlePillClick = () => {
     userClickedPillRef.current = true
     setIsOpen(true)
     setIsPillExpanded(false)
 
-    if (pillScenario.banner) {
-      const cleanInsightTitle = pillScenario.banner.replace(/\.\.\.$/, "")
-      const initialAiMsg: Message = {
-        sender: "assistant",
-        text: `**LEGER AI Mainframe Alert**\n\nI've analyzed your cycle telemetry: **${cleanInsightTitle}**.\n\n*${pillScenario.query}*\n\nWould you like me to simulate spending adjustments or run an in-depth audit?`,
-        timestamp: Date.now()
-      }
-      setMessages([initialAiMsg])
-      saveHistory([initialAiMsg])
+    if (pillScenario?.query && handleQueryRef.current) {
+      handleQueryRef.current(pillScenario.query)
     }
   }
 
@@ -980,7 +974,7 @@ export function LegerAIAssistant() {
     } catch (err) {
       const errVal: Message = {
         sender: "assistant",
-        text: "Error: Connection lost. mainframes are temporarily unreachable.",
+        text: "Connection lost. Unable to reach AI engine.",
         timestamp: Date.now()
       }
       saveHistory([...currentMsgs, errVal])
@@ -988,6 +982,10 @@ export function LegerAIAssistant() {
       setIsLoading(false)
     }
   }
+
+  useEffect(() => {
+    handleQueryRef.current = handleQuery
+  })
 
 
 
