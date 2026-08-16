@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect, useRef, useMemo } from "react"
 import { motion, AnimatePresence, useAnimation, useMotionValue, useDragControls } from "framer-motion"
-import { Brain, Cpu, MessageSquare, Mic, MicOff, Send, X, RefreshCcw, Sparkles, Lock, ChevronUp, ChevronDown, Globe, ArrowUpRight } from "lucide-react"
+import { Brain, Cpu, MessageSquare, Mic, MicOff, Send, X, RefreshCcw, Sparkles, Lock, ChevronUp, ChevronDown, Globe, ArrowUpRight, History, Plus, Trash2, Clock, MessageSquarePlus, MessagesSquare, ChevronRight } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { useSystem } from "@/lib/SystemContext"
 import { getAIHeaders } from "@/lib/ai-client"
@@ -11,13 +11,21 @@ import { supabase } from "@/lib/supabase"
 import { toast } from "sonner"
 import { ProLockOverlay } from "@/components/ProLockOverlay"
 
-interface Message {
+export interface Message {
   sender: "user" | "assistant"
   text: string
   timestamp: number
   webSearched?: boolean
   webSearchQuery?: string | null
   webSources?: { title: string; snippet: string; url: string; source: string }[]
+}
+
+export interface ChatSession {
+  id: string
+  title: string
+  createdAt: number
+  updatedAt: number
+  messages: Message[]
 }
 
 // Shared Markdown-like React elements formatter supporting Lists, Blockquotes, HR lines, Tables and bold typography
@@ -283,7 +291,6 @@ function getPagePillVariations(pathname: string, telemetry: any, profile: any, a
   const journalMemories = (profile?.ai_journal?.memories || []).filter((m: any) => m.status === "active")
   const topCat = telemetry?.categories && telemetry.categories.length > 0 ? telemetry.categories[0] : null
   const lowestCat = telemetry?.categories && telemetry.categories.length > 1 ? telemetry.categories[telemetry.categories.length - 1] : null
-  const recentExp = telemetry?.recentExpense
   const daysElapsed = telemetry?.daysElapsed || 1
   const daysLeft = Math.max(1, 30 - daysElapsed)
   const surplus = telemetry?.projectedSurplus !== undefined ? Math.round(telemetry.projectedSurplus) : 0
@@ -300,75 +307,68 @@ function getPagePillVariations(pathname: string, telemetry: any, profile: any, a
 
   switch (pathname) {
     case "/":
-      // DASHBOARD ONLY: Projection Engine, Spending Velocity & Paycheck Cycle Pace
+      // DASHBOARD ONLY: Projection Engine, Spending Velocity, Cash Runway & Surplus Deployment
       return [
         {
-          banner: surplus >= 0 ? `Cycle on track — projected surplus +€${surplus}...` : `Projected cycle deficit of €${Math.abs(surplus)}...`,
-          query: surplus >= 0 ? `How is my projected cycle surplus of €${surplus} calculated?` : `What adjustments can I make to eliminate my projected cycle deficit of €${Math.abs(surplus)}?`
+          banner: surplus >= 0 ? `Projected surplus +€${surplus} — ready for savings or investments...` : `Projected deficit of €${Math.abs(surplus)} — expense cuts required...`,
+          query: surplus >= 0 ? `How should I allocate my projected cycle surplus of €${surplus} toward savings or investments?` : `What specific variable expenses can I cut to eliminate my €${Math.abs(surplus)} projected deficit?`
         },
         {
-          banner: velocity > 1.15 ? `Spending velocity elevated at ${velocity.toFixed(2)}x baseline for day ${daysElapsed}...` : `Spending velocity steady at ${velocity.toFixed(2)}x baseline for day ${daysElapsed}...`,
-          query: `Why is my spending velocity at ${velocity.toFixed(2)}x baseline for day ${daysElapsed} of this cycle?`
+          banner: `€${actualDailyBurn.toFixed(2)}/day average burn — runway lasts through cycle end...`,
+          query: `Analyze my daily spending burn rate of €${actualDailyBurn.toFixed(2)}/day and projected cash runway.`
         },
+        ...(velocity > 1.15 ? [{
+          banner: `Spending velocity elevated at ${velocity.toFixed(2)}x baseline for day ${daysElapsed}...`,
+          query: `Why is my spending velocity elevated at ${velocity.toFixed(2)}x baseline for day ${daysElapsed} of this cycle?`
+        }] : []),
         ...(safeDaily >= 1.0 ? [{
-          banner: `Safe daily variable burn pace is €${safeDaily.toFixed(2)} for ${daysLeft}d left...`,
-          query: `What is my target daily variable spend limit for the remaining ${daysLeft} days of this cycle?`
+          banner: `Safe daily variable spend limit is €${safeDaily.toFixed(2)} for ${daysLeft}d left...`,
+          query: `What is my recommended daily spending cap to stay on budget for the remaining ${daysLeft} days?`
         }] : remainingBudget <= 0 && totalOut > 0 ? [{
-          banner: `Monthly budget cap reached (€${Math.round(totalOut)} spent) — ${daysLeft}d remaining...`,
+          banner: `Monthly budget target reached (€${Math.round(totalOut)} spent) — ${daysLeft}d remaining...`,
           query: `My target monthly budget of €${spendingLimit} has been reached. Analyze my spending and recommend adjustments for the remaining ${daysLeft} days.`
-        }] : [{
-          banner: `Current average spending pace is €${actualDailyBurn.toFixed(2)}/day for ${daysLeft}d left...`,
-          query: `Analyze my current average daily spending pace of €${actualDailyBurn.toFixed(2)}/day.`
-        }]),
-        {
-          banner: `Day ${daysElapsed} of 30 — ${daysLeft} days remaining until next paycheck...`,
-          query: `Analyze my cash flow pace for the remaining ${daysLeft} days until my next paycheck.`
-        },
+        }] : []),
         {
           banner: `Net cash flow is €${netDelta > 0 ? '+' : ''}${netDelta} (€${Math.round(totalIn)} in / €${Math.round(totalOut)} out)...`,
           query: `Break down my total income (€${Math.round(totalIn)}) vs total expenses (€${Math.round(totalOut)}) so far this cycle.`
         },
         ...(overrides.length > 0 ? [{
-          banner: `Routine override active: ${overrides[0].reason || overrides[0].categoryName}...`,
+          banner: `Active routine override: ${overrides[0].reason || overrides[0].categoryName}...`,
           query: `How is my active ${overrides[0].categoryName || 'spending'} override modifying my projected cycle end balance?`
         }] : [])
       ]
 
     case "/expenses":
-      // LEDGER ONLY: Uncategorized Items, Recent Purchases & Raw Outflow Logged
+      // LEDGER ONLY: Uncategorized Items, Top Spend Category Breakdown & Large Expense Audits
       return [
         ...(unclassified > 0 ? [{
-          banner: `${unclassified} uncategorized ${unclassified === 1 ? 'transaction needs' : 'transactions need'} review in ledger...`,
-          query: `Help me classify my ${unclassified} uncategorized transactions in my ledger.`
+          banner: `${unclassified} uncategorized ${unclassified === 1 ? 'transaction needs' : 'transactions need'} classification...`,
+          query: `Review and help me categorize my ${unclassified} uncategorized transactions in my ledger.`
         }] : []),
-        ...(recentExp && recentExp.merchant ? [{
-          banner: `Recent ledger entry: ${recentExp.merchant} (€${Math.abs(parseFloat(recentExp.amount) || 0).toFixed(2)})...`,
-          query: `Audit my recent purchase at ${recentExp.merchant} (€${Math.abs(parseFloat(recentExp.amount) || 0).toFixed(2)}) and check its projection impact.`
+        ...(topCat ? [{
+          banner: `${topCat.name} is your #1 expense category (€${Math.round(topCat.value)} spent)...`,
+          query: `Break down all transactions in category ${topCat.name} this cycle and check if it exceeds normal baseline.`
         }] : []),
         {
-          banner: `Total outflow registered in ledger this cycle: €${totalOut.toFixed(2)}...`,
-          query: `Summarize my total ledger outflow of €${totalOut.toFixed(2)} and list my top 5 largest expenses.`
+          banner: `Audit top single expenses and check for duplicate recurring charges...`,
+          query: `Audit my largest transactions this cycle and check for duplicate subscriptions or unusual charges.`
         },
-        ...(topCat ? [{
-          banner: `Top expense category in ledger: ${topCat.name} (€${Math.round(topCat.value)})...`,
-          query: `List all recent transactions in category ${topCat.name} and check for repeated charges.`
-        }] : [])
+        {
+          banner: `Total ledger outflow registered this cycle: €${totalOut.toFixed(2)}...`,
+          query: `Summarize my total ledger outflow of €${totalOut.toFixed(2)} and list my top 5 largest expenses.`
+        }
       ]
 
     case "/categories":
-      // CATEGORIES ONLY: Category Spend Allocation & Breakdown Matrix
+      // CATEGORIES ONLY: Category Spend Allocation, Pareto Concentration & Optimization
       return [
-        ...(topCat ? [{
-          banner: `Highest spend category: ${topCat.name} (€${Math.round(topCat.value)})...`,
-          query: `Analyze my spending in ${topCat.name} (€${Math.round(topCat.value)}) and compare it to my baseline.`
-        }] : []),
-        ...(lowestCat ? [{
-          banner: `Lowest burn category: ${lowestCat.name} (€${Math.round(lowestCat.value)})...`,
-          query: `Show my lowest spending categories and analyze potential budget reallocation options.`
-        }] : []),
         ...(topCat && totalOut > 0 ? [{
           banner: `${topCat.name} represents ${Math.round((topCat.value / totalOut) * 100)}% of total cycle expenses...`,
-          query: `Give me a full percentage breakdown of all expense categories in this active cycle.`
+          query: `Analyze my category spending concentration and suggest the highest impact areas to optimize.`
+        }] : []),
+        ...(lowestCat ? [{
+          banner: `Lowest burn category: ${lowestCat.name} (€${Math.round(lowestCat.value)}) — headroom available...`,
+          query: `Can I reallocate unspent budget from lower-spend categories to cover higher-velocity areas?`
         }] : []),
         {
           banner: `Total category spend allocation across categories: €${Math.round(totalOut)}...`,
@@ -380,8 +380,8 @@ function getPagePillVariations(pathname: string, telemetry: any, profile: any, a
       // BUDGETS ONLY: Monthly Target Spend Limits & Capacity Planning
       return [
         {
-          banner: `Target monthly budget is ${budgetPct}% consumed (€${Math.round(totalOut)} of €${spendingLimit})...`,
-          query: `My target budget is ${budgetPct}% used. Should I adjust my category budget limits?`
+          banner: `Target monthly budget is ${budgetPct}% consumed (${daysLeft}d left)...`,
+          query: `Which budget categories are at risk of exceeding limits before this cycle ends?`
         },
         ...(remainingBudget > 0 ? [{
           banner: `Remaining unallocated budget buffer: €${remainingBudget.toFixed(2)} for ${daysLeft}d left...`,
@@ -397,7 +397,7 @@ function getPagePillVariations(pathname: string, telemetry: any, profile: any, a
       ]
 
     case "/analytics":
-      // ANALYTICS ONLY: Recency Decay Model (λ = 0.12) & Cash Flow Graphs
+      // ANALYTICS ONLY: Recency Decay Model (λ = 0.12) & Cash Flow Trends
       return [
         {
           banner: `Projection engine applying recency decay weighting (λ = 0.12)...`,
@@ -417,8 +417,8 @@ function getPagePillVariations(pathname: string, telemetry: any, profile: any, a
       // MEMORY JOURNAL ONLY: Routine Overrides & Conversational Memories
       return [
         ...(journalMemories.length > 0 ? [{
-          banner: `${journalMemories.length} active routine ${journalMemories.length === 1 ? 'memory' : 'memories'} adjusting projections...`,
-          query: `Summarize how my active routine memories are modifying my financial projection.`
+          banner: `${journalMemories.length} active lifestyle context ${journalMemories.length === 1 ? 'memory' : 'memories'} adjusting forecast...`,
+          query: `Summarize how my active lifestyle context memories are modifying my financial projection.`
         }] : []),
         ...(overrides.length > 0 ? [{
           banner: `Active routine override: ${overrides[0].reason || overrides[0].categoryName}...`,
@@ -459,7 +459,7 @@ function getPagePillVariations(pathname: string, telemetry: any, profile: any, a
           query: `Summarize my asset allocation strategy across stocks, ETFs, crypto, and cash positions.`
         },
         {
-          banner: `Market price sync active for portfolio asset positions...`,
+          banner: `Live market quotes syncing across portfolio asset positions...`,
           query: `Check my investment portfolio return (unrealized PnL) and list my top performing asset.`
         }
       ]
@@ -480,9 +480,20 @@ export function LegerAIAssistant() {
   const sheetDragControls = useDragControls()
   
   const [isOpen, setIsOpen] = useState(false)
-  const [messages, setMessages] = useState<Message[]>([])
+  const [sessions, setSessions] = useState<ChatSession[]>([])
+  const [activeSessionId, setActiveSessionId] = useState<string>("")
+  const [isHistoryViewOpen, setIsHistoryViewOpen] = useState(false)
   const [suggestionsVisible, setSuggestionsVisible] = useState(true)
   const [isMobile, setIsMobile] = useState(false)
+
+  const sessionsStorageKey = `leger_chat_sessions_${profile?.id || "guest"}`
+  const THIRTY_DAYS_MS = 30 * 24 * 60 * 60 * 1000
+
+  const activeSession = useMemo(() => {
+    return sessions.find(s => s.id === activeSessionId) || sessions[0] || null
+  }, [sessions, activeSessionId])
+
+  const messages = activeSession ? activeSession.messages : []
 
   useEffect(() => {
     if (typeof window !== "undefined") {
@@ -504,7 +515,7 @@ export function LegerAIAssistant() {
   const chatEndRef = useRef<HTMLDivElement>(null)
   const dragRef = useRef<HTMLDivElement>(null)
   const recognitionRef = useRef<any>(null)
-  const handleQueryRef = useRef<((queryText: string) => Promise<void>) | null>(null)
+  const handleQueryRef = useRef<((queryText: string, targetSessionId?: string) => Promise<void>) | null>(null)
 
   // Dynamic Floaty AI Pill Banner States (starts CLOSED by default)
   const [isPillExpanded, setIsPillExpanded] = useState(false)
@@ -563,15 +574,84 @@ export function LegerAIAssistant() {
   // Ref to track last banner auto-expansion timestamp (token & attention efficiency)
   const lastExpandedTimeRef = useRef(0)
 
-  // Smart handlePillClick helper: Starts a FRESH new chat and immediately executes the real data query
+  // Create a brand new chat session helper (30-day lifetime retention)
+  const createNewChat = (customTitle?: string, initialMsgs?: Message[]) => {
+    const now = Date.now()
+    const newId = `session_${now}_${Math.random().toString(36).substr(2, 6)}`
+    const initial = initialMsgs || [
+      {
+        sender: "assistant",
+        text: `Hello **${userName}**, how can I help you manage your finances today?`,
+        timestamp: now
+      }
+    ]
+    const newSession: ChatSession = {
+      id: newId,
+      title: customTitle || "New Chat",
+      createdAt: now,
+      updatedAt: now,
+      messages: initial
+    }
+    setSessions(prev => {
+      const pruned = [newSession, ...prev.filter(s => now - (s.updatedAt || s.createdAt || now) <= THIRTY_DAYS_MS)]
+      if (typeof window !== "undefined") {
+        localStorage.setItem(sessionsStorageKey, JSON.stringify(pruned))
+      }
+      return pruned
+    })
+    setActiveSessionId(newId)
+    setIsHistoryViewOpen(false)
+    return newId
+  }
+
+  // Smart handlePillClick helper: Instantly creates a NEW chat session and executes the query
   const handlePillClick = () => {
     userClickedPillRef.current = true
     setIsOpen(true)
     setIsPillExpanded(false)
 
-    if (pillScenario?.query && handleQueryRef.current) {
-      handleQueryRef.current(pillScenario.query)
+    if (pillScenario?.query) {
+      const cleanTitle = pillScenario.banner ? pillScenario.banner.replace(/\.\.\.$/, "") : "Financial Telemetry"
+      const newSessionId = createNewChat(cleanTitle)
+      if (handleQueryRef.current) {
+        handleQueryRef.current(pillScenario.query, newSessionId)
+      }
     }
+  }
+
+  // Delete a chat session helper
+  const deleteSession = (sessionId: string, e?: React.MouseEvent) => {
+    if (e) e.stopPropagation()
+    setSessions(prev => {
+      const filtered = prev.filter(s => s.id !== sessionId)
+      if (filtered.length === 0) {
+        const fallback: ChatSession = {
+          id: `session_${Date.now()}`,
+          title: "New Chat",
+          createdAt: Date.now(),
+          updatedAt: Date.now(),
+          messages: [
+            {
+              sender: "assistant",
+              text: `Hello **${userName}**, how can I help you manage your finances today?`,
+              timestamp: Date.now()
+            }
+          ]
+        }
+        if (typeof window !== "undefined") {
+          localStorage.setItem(sessionsStorageKey, JSON.stringify([fallback]))
+        }
+        setActiveSessionId(fallback.id)
+        return [fallback]
+      }
+      if (typeof window !== "undefined") {
+        localStorage.setItem(sessionsStorageKey, JSON.stringify(filtered))
+      }
+      if (activeSessionId === sessionId) {
+        setActiveSessionId(filtered[0].id)
+      }
+      return filtered
+    })
   }
 
   // Smart Event-Driven & Token-Efficient Auto-Expansion (Triggers on high-priority events or throttled probability)
@@ -650,7 +730,6 @@ export function LegerAIAssistant() {
   }
 
   const userName = profile?.username || profile?.full_name || "User"
-  const historyKey = `leger_chat_history_${profile?.id || "guest"}`
 
   // 1. Initialise reactive global telemetry & open-event listeners
   useEffect(() => {
@@ -693,7 +772,6 @@ export function LegerAIAssistant() {
         recognition.onerror = (event: any) => {
           setIsListening(false)
           if (event?.error === "language-not-supported" && speechLang.startsWith("pt")) {
-            // Fall back to closest available Portuguese locale
             try {
               recognition.lang = "pt-BR"
               recognition.start()
@@ -716,40 +794,114 @@ export function LegerAIAssistant() {
     return () => window.removeEventListener("open_leger_assistant", handleOpen)
   }, [])
 
-  // Load chat history on user mount
+  // Load chat sessions on user mount with 30-day auto-pruning
   useEffect(() => {
-    if (profile?.id) {
-      const cached = localStorage.getItem(historyKey)
-      if (cached) {
-        try {
-          setMessages(JSON.parse(cached))
-        } catch (e) {
-          setMessages([])
-        }
+    if (typeof window === "undefined") return
+    try {
+      const raw = localStorage.getItem(sessionsStorageKey)
+      let parsedSessions: ChatSession[] = []
+      if (raw) {
+        parsedSessions = JSON.parse(raw)
       } else {
-        setMessages([
-          {
-            sender: "assistant",
-            text: `Hello **${userName}**, how can I help you manage your finances today?`,
-            timestamp: Date.now()
-          }
-        ])
+        // Migration from legacy single chat history
+        const legacyRaw = localStorage.getItem(`leger_chat_history_${profile?.id || "guest"}`)
+        if (legacyRaw) {
+          try {
+            const legacyMsgs = JSON.parse(legacyRaw)
+            if (Array.isArray(legacyMsgs) && legacyMsgs.length > 0) {
+              parsedSessions = [{
+                id: `session_${Date.now()}`,
+                title: "Previous conversation",
+                createdAt: Date.now(),
+                updatedAt: Date.now(),
+                messages: legacyMsgs
+              }]
+            }
+          } catch (e) {}
+        }
       }
+
+      // Auto-prune sessions older than 30 days
+      const now = Date.now()
+      const validSessions = parsedSessions.filter(s => now - (s.updatedAt || s.createdAt || now) <= THIRTY_DAYS_MS)
+
+      if (validSessions.length === 0) {
+        const defaultSession: ChatSession = {
+          id: `session_${Date.now()}`,
+          title: "New Chat",
+          createdAt: now,
+          updatedAt: now,
+          messages: [
+            {
+              sender: "assistant",
+              text: `Hello **${userName}**, how can I help you manage your finances today?`,
+              timestamp: now
+            }
+          ]
+        }
+        setSessions([defaultSession])
+        setActiveSessionId(defaultSession.id)
+        localStorage.setItem(sessionsStorageKey, JSON.stringify([defaultSession]))
+      } else {
+        setSessions(validSessions)
+        setActiveSessionId(validSessions[0].id)
+        localStorage.setItem(sessionsStorageKey, JSON.stringify(validSessions))
+      }
+    } catch (err) {
+      console.error("Failed to load AI chat sessions:", err)
     }
   }, [profile?.id, userName])
 
-  // Save chat history helper
-  const saveHistory = (msgs: Message[]) => {
-    setMessages(msgs)
-    if (profile?.id) {
-      localStorage.setItem(historyKey, JSON.stringify(msgs))
-    }
+  // Save session messages helper
+  const saveSessionMessages = (sessionId: string, newMessages: Message[], titleOverride?: string) => {
+    setSessions(prev => {
+      const now = Date.now()
+      const exists = prev.some(s => s.id === sessionId)
+      let updated: ChatSession[]
+      if (exists) {
+        updated = prev.map(s => {
+          if (s.id === sessionId) {
+            let sessionTitle = s.title
+            if (titleOverride) {
+              sessionTitle = titleOverride
+            } else if ((s.title === "New Chat" || s.title.startsWith("New Conversation")) && newMessages.length > 1) {
+              const firstUserMsg = newMessages.find(m => m.sender === "user")
+              if (firstUserMsg) {
+                sessionTitle = firstUserMsg.text.slice(0, 32).trim() + (firstUserMsg.text.length > 32 ? "..." : "")
+              }
+            }
+            return {
+              ...s,
+              title: sessionTitle,
+              updatedAt: now,
+              messages: newMessages
+            }
+          }
+          return s
+        })
+      } else {
+        const newSession: ChatSession = {
+          id: sessionId,
+          title: titleOverride || "New Chat",
+          createdAt: now,
+          updatedAt: now,
+          messages: newMessages
+        }
+        updated = [newSession, ...prev]
+      }
+      
+      const pruned = updated.filter(s => now - (s.updatedAt || s.createdAt || now) <= THIRTY_DAYS_MS)
+      if (typeof window !== "undefined") {
+        localStorage.setItem(sessionsStorageKey, JSON.stringify(pruned))
+      }
+      return pruned
+    })
   }
 
   // Scroll to bottom on new messages
   useEffect(() => {
     chatEndRef.current?.scrollIntoView({ behavior: "smooth" })
-  }, [messages, isOpen])
+  }, [messages, isOpen, isHistoryViewOpen])
 
   // Static Fallback Page Context recommendations
   const pageContext = useMemo(() => {
@@ -820,22 +972,22 @@ export function LegerAIAssistant() {
 
   // Trigger page-aware context welcome if chat is empty or context switches
   const handleAssistantWelcome = () => {
-    const welcomeText = `I noticed you are currently viewing your **${pageContext.name}** page. I have sync access to your client telemetry. What analysis would you like to run?`
+    const welcomeText = `You're viewing your **${pageContext.name}**. I'm synced to your active cycle telemetry. What would you like to inspect or analyze?`
     
-    // Check if the last message is already about this page to prevent greeting spam
     if (messages.length > 0 && messages[messages.length - 1].text.includes(pageContext.name)) {
       return
     }
 
-    const updated: Message[] = [
-      ...messages,
-      {
-        sender: "assistant",
-        text: welcomeText,
-        timestamp: Date.now()
-      }
-    ]
-    saveHistory(updated)
+    if (activeSessionId) {
+      saveSessionMessages(activeSessionId, [
+        ...messages,
+        {
+          sender: "assistant",
+          text: welcomeText,
+          timestamp: Date.now()
+        }
+      ])
+    }
     setSuggestedQueries(pageContext.suggestions)
   }
 
@@ -843,7 +995,6 @@ export function LegerAIAssistant() {
   useEffect(() => {
     if (isOpen && messages.length > 0) {
       const lastMsg = messages[messages.length - 1]
-      // Trigger greeting if last message is older than 5 minutes or context changed
       if (Date.now() - lastMsg.timestamp > 5 * 60 * 1000) {
         handleAssistantWelcome()
       }
@@ -863,9 +1014,11 @@ export function LegerAIAssistant() {
     }
   }
 
-  // Handle Query Submission
-  const handleQuery = async (queryText: string) => {
+  // Handle Query Submission (session-aware)
+  const handleQuery = async (queryText: string, targetSessionId?: string) => {
     if (!queryText.trim() || isLoading) return
+    const currentSessionId = targetSessionId || activeSessionId || (sessions[0]?.id)
+    if (!currentSessionId) return
 
     if (!isPro) {
       toast.error("Conversational AI Queries are a LEGER_OS PRO feature.", {
@@ -877,13 +1030,16 @@ export function LegerAIAssistant() {
       return
     }
 
+    const currentSessionObj = sessions.find(s => s.id === currentSessionId)
+    const existingMsgs = currentSessionObj ? currentSessionObj.messages : []
+
     const userMsg: Message = {
       sender: "user",
       text: queryText,
       timestamp: Date.now()
     }
-    const currentMsgs = [...messages, userMsg]
-    saveHistory(currentMsgs)
+    const currentMsgs = [...existingMsgs, userMsg]
+    saveSessionMessages(currentSessionId, currentMsgs)
     setInputVal("")
     setIsLoading(true)
 
@@ -892,7 +1048,6 @@ export function LegerAIAssistant() {
         .from("categories")
         .select("*")
 
-      // Use window-computed telemetry stats directly to avoid math hallucinations/token waste
       const statsPayload = telemetry || {
         currentBalance: 0,
         velocity: 1.0,
@@ -911,7 +1066,7 @@ export function LegerAIAssistant() {
           categories: categoriesData || [],
           userName,
           clientDate: new Date().toISOString(),
-          history: messages.map(m => ({
+          history: existingMsgs.map(m => ({
             role: m.sender === "user" ? "user" : "assistant",
             content: m.text
           }))
@@ -928,16 +1083,14 @@ export function LegerAIAssistant() {
           webSearchQuery: data.webSearchQuery,
           webSources: data.webSources,
         }
-        saveHistory([...currentMsgs, assistantMsg])
+        saveSessionMessages(currentSessionId, [...currentMsgs, assistantMsg])
 
-        // Dynamically update response suggested query replies matching the AI's closing question
         if (data.suggestedQueries && data.suggestedQueries.length > 0) {
           setSuggestedQueries(data.suggestedQueries)
         } else {
           setSuggestedQueries(pageContext.suggestions)
         }
 
-        // Trigger projection overrides if AI outputs a multiplier change
         if (data.override) {
           try {
             let updatedOverrides: any[] = []
@@ -969,7 +1122,7 @@ export function LegerAIAssistant() {
           text: `Error: ${data.error || "Neural query failed to execute."}`,
           timestamp: Date.now()
         }
-        saveHistory([...currentMsgs, errVal])
+        saveSessionMessages(currentSessionId, [...currentMsgs, errVal])
       }
     } catch (err) {
       const errVal: Message = {
@@ -977,7 +1130,7 @@ export function LegerAIAssistant() {
         text: "Connection lost. Unable to reach AI engine.",
         timestamp: Date.now()
       }
-      saveHistory([...currentMsgs, errVal])
+      saveSessionMessages(currentSessionId, [...currentMsgs, errVal])
     } finally {
       setIsLoading(false)
     }
@@ -986,22 +1139,6 @@ export function LegerAIAssistant() {
   useEffect(() => {
     handleQueryRef.current = handleQuery
   })
-
-
-
-  const clearChatHistory = () => {
-    if (confirm("Reset current assistant chat history?")) {
-      const welcome: Message[] = [
-        {
-          sender: "assistant",
-          text: `Hello **${userName}**, how can I help you manage your finances today?`,
-          timestamp: Date.now()
-        }
-      ]
-      saveHistory(welcome)
-      setSuggestedQueries(pageContext.suggestions)
-    }
-  }
 
   // Do not render on public auth views
   if (pathname === "/login" || pathname === "/signup") return null
@@ -1028,7 +1165,7 @@ export function LegerAIAssistant() {
               animate={{ y: 0, opacity: 1 }}
               exit={{ y: "100%", opacity: 0 }}
               transition={{ type: "spring", damping: 25, stiffness: 300 }}
-              className="absolute pointer-events-auto bottom-0 left-0 right-0 sm:bottom-20 sm:left-auto sm:right-6 w-full sm:w-[380px] h-[80vh] sm:h-[520px] max-h-[90vh] sm:max-h-[calc(100vh-140px)] border-t border-x sm:border border-border bg-card/95 backdrop-blur-md shadow-2xl flex flex-col overflow-hidden rounded-t-2xl sm:rounded-xl font-sans z-[100000]"
+              className="absolute pointer-events-auto bottom-0 left-0 right-0 sm:bottom-20 sm:left-auto sm:right-6 w-full sm:w-[410px] h-[82vh] sm:h-[540px] max-h-[90vh] sm:max-h-[calc(100vh-140px)] border-t border-x sm:border border-border bg-card/95 backdrop-blur-md shadow-2xl flex flex-col overflow-hidden rounded-t-2xl sm:rounded-xl font-sans z-[100000]"
             >
               {/* Full-width Drag Handle Bar with spacious hitbox */}
               <div 
@@ -1043,38 +1180,147 @@ export function LegerAIAssistant() {
 
               {/* Chat Header */}
               <div 
-                className="p-4 border-b border-border bg-secondary/15 flex items-center justify-between z-10 cursor-grab active:cursor-grabbing select-none touch-none"
+                className="px-3.5 py-3 border-b border-border bg-secondary/15 flex items-center justify-between z-10 cursor-grab active:cursor-grabbing select-none touch-none"
                 onPointerDown={(e) => {
                   if (!(e.target as HTMLElement).closest('button, input, select, a')) {
                     sheetDragControls.start(e)
                   }
                 }}
               >
-                <div className="flex items-center gap-2">
-                  <div className="p-1.5 bg-primary/10 border border-primary/20 rounded-md">
+                <div className="flex items-center gap-2 max-w-[55%]">
+                  <div className="p-1.5 bg-primary/10 border border-primary/20 rounded-md shrink-0">
                     <Brain className="h-4 w-4 text-foreground animate-pulse" />
                   </div>
-                  <div>
-                    <h3 className="text-xs font-bold uppercase tracking-wider font-sans">Leger AI</h3>
-                    <p className="text-[8px] font-mono text-muted-foreground uppercase">Active Context: {pageContext.name}</p>
-                  </div>
-                </div>
-                <div className="flex items-center gap-2">
-                  <button 
-                    onClick={clearChatHistory}
-                    title="Clear history"
-                    className="p-1.5 hover:bg-secondary border border-transparent hover:border-border transition-all cursor-pointer rounded"
+                  <button
+                    onClick={() => setIsHistoryViewOpen(prev => !prev)}
+                    className="text-left truncate group flex items-center gap-1.5 hover:bg-secondary/60 px-1.5 py-0.5 rounded transition-colors cursor-pointer"
+                    title="Switch or view past chats (30-day retention)"
                   >
-                    <RefreshCcw className="h-3 w-3 text-muted-foreground" />
+                    <div className="truncate">
+                      <h3 className="text-xs font-bold uppercase tracking-wider font-sans truncate flex items-center gap-1">
+                        <span className="truncate">{activeSession?.title || "Leger AI"}</span>
+                        <ChevronDown className={cn("h-3 w-3 text-muted-foreground transition-transform shrink-0", isHistoryViewOpen && "rotate-180")} />
+                      </h3>
+                      <p className="text-[8px] font-mono text-muted-foreground uppercase truncate">Context: {pageContext.name}</p>
+                    </div>
+                  </button>
+                </div>
+
+                <div className="flex items-center gap-1.5 shrink-0">
+                  <button 
+                    onClick={() => createNewChat()}
+                    title="Start fresh new chat"
+                    className="flex items-center gap-1 px-2 py-1 bg-secondary/60 hover:bg-secondary border border-border text-[10px] font-mono text-foreground font-semibold rounded transition-all cursor-pointer"
+                  >
+                    <Plus className="h-3 w-3" />
+                    <span>New</span>
+                  </button>
+                  <button 
+                    onClick={() => setIsHistoryViewOpen(prev => !prev)}
+                    title="30-day Chat History"
+                    className={cn(
+                      "p-1.5 border transition-all cursor-pointer rounded",
+                      isHistoryViewOpen ? "bg-foreground text-background border-foreground" : "hover:bg-secondary border-transparent hover:border-border text-muted-foreground"
+                    )}
+                  >
+                    <History className="h-3.5 w-3.5" />
                   </button>
                   <button 
                     onClick={() => setIsOpen(false)}
-                    className="p-1.5 hover:bg-secondary border border-transparent hover:border-border transition-all cursor-pointer rounded"
+                    className="p-1.5 hover:bg-secondary border border-transparent hover:border-border transition-all cursor-pointer rounded text-muted-foreground hover:text-foreground"
                   >
                     <X className="h-3.5 w-3.5" />
                   </button>
                 </div>
               </div>
+
+              {/* Multiple Chat Sessions History Drawer Panel */}
+              <AnimatePresence>
+                {isHistoryViewOpen && (
+                  <motion.div
+                    initial={{ opacity: 0, y: -10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0, y: -10 }}
+                    transition={{ duration: 0.2 }}
+                    className="absolute inset-x-0 top-[54px] bottom-0 bg-card/98 backdrop-blur-xl z-30 flex flex-col p-4 space-y-3 overflow-y-auto"
+                  >
+                    <div className="flex items-center justify-between pb-2 border-b border-border">
+                      <div className="flex items-center gap-2">
+                        <History className="h-4 w-4 text-muted-foreground" />
+                        <div>
+                          <h4 className="text-xs font-bold uppercase tracking-wider">Chat History</h4>
+                          <span className="text-[9px] font-mono text-muted-foreground">Retained locally for 30 days</span>
+                        </div>
+                      </div>
+                      <button
+                        onClick={() => createNewChat()}
+                        className="flex items-center gap-1.5 px-2.5 py-1 bg-primary text-primary-foreground text-xs font-mono font-medium rounded hover:opacity-90 transition-opacity cursor-pointer"
+                      >
+                        <Plus className="h-3 w-3" />
+                        <span>New Chat</span>
+                      </button>
+                    </div>
+
+                    <div className="flex-1 space-y-2 overflow-y-auto pr-1">
+                      {sessions.map((sess) => {
+                        const isActive = sess.id === activeSessionId
+                        const daysRemaining = Math.max(1, 30 - Math.floor((Date.now() - (sess.updatedAt || sess.createdAt)) / (1000 * 60 * 60 * 24)))
+                        const lastMsg = sess.messages[sess.messages.length - 1]
+                        
+                        return (
+                          <div
+                            key={sess.id}
+                            onClick={() => {
+                              setActiveSessionId(sess.id)
+                              setIsHistoryViewOpen(false)
+                            }}
+                            className={cn(
+                              "p-3 rounded-lg border text-left transition-all cursor-pointer group flex items-center justify-between gap-3",
+                              isActive
+                                ? "bg-secondary/70 border-foreground/30 shadow-sm"
+                                : "bg-card hover:bg-secondary/30 border-border/70"
+                            )}
+                          >
+                            <div className="flex-1 min-w-0 space-y-1">
+                              <div className="flex items-center gap-2">
+                                {isActive && <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 shrink-0" />}
+                                <h5 className="text-xs font-bold font-sans truncate text-foreground">
+                                  {sess.title}
+                                </h5>
+                              </div>
+                              {lastMsg && (
+                                <p className="text-[10px] text-muted-foreground truncate font-sans">
+                                  {lastMsg.text.replace(/\*\*/g, "").slice(0, 60)}
+                                </p>
+                              )}
+                              <div className="flex items-center gap-3 text-[9px] font-mono text-muted-foreground/70">
+                                <span>{sess.messages.length} messages</span>
+                                <span>•</span>
+                                <span className="flex items-center gap-1">
+                                  <Clock className="h-2.5 w-2.5" />
+                                  Expires in {daysRemaining}d
+                                </span>
+                              </div>
+                            </div>
+
+                            <button
+                              onClick={(e) => deleteSession(sess.id, e)}
+                              title="Delete chat session"
+                              className="p-1.5 opacity-0 group-hover:opacity-100 hover:bg-destructive/20 text-muted-foreground hover:text-destructive transition-all rounded shrink-0 cursor-pointer"
+                            >
+                              <Trash2 className="h-3.5 w-3.5" />
+                            </button>
+                          </div>
+                        )
+                      })}
+                    </div>
+
+                    <div className="pt-2 border-t border-border/40 text-[9px] font-mono text-muted-foreground text-center">
+                      🔒 Sessions auto-expire after 30 days to keep your workspace fresh.
+                    </div>
+                  </motion.div>
+                )}
+              </AnimatePresence>
 
               {/* Message Feed / PRO Gate */}
               {!isPro ? (

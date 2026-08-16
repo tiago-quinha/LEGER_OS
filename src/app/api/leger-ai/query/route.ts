@@ -190,10 +190,11 @@ export async function POST(request: Request) {
       if (!TABLE_ALLOWLIST[table]) return null;
 
       // only allow columns that are in the allowlist, or '*' when explicitly needed
-      const requested = (q.select || "*").split(",").map((s: string) => s.trim()).filter(Boolean);
+      const rawSelect = typeof q.select === "string" ? q.select : Array.isArray(q.select) ? q.select.join(",") : "*";
+      const requested = rawSelect.split(",").map((s: string) => s.trim()).filter(Boolean);
       const allowedCols = TABLE_ALLOWLIST[table];
-      const selectCols = requested.includes("*") ? allowedCols.join(",") : requested.filter((c: string) => allowedCols.includes(c));
-      if (selectCols.length === 0) return null;
+      const validCols = requested.includes("*") ? allowedCols : requested.filter((c: string) => allowedCols.includes(c));
+      if (validCols.length === 0) return null;
 
       // sanitize filters: only allow simple ops
       const allowedOps = new Set(["eq", "ilike", "gte", "lte", "is_null", "is_not_null"]);
@@ -209,7 +210,7 @@ export async function POST(request: Request) {
       const orderBy = q.orderBy && q.orderBy.column && allowedCols.includes(q.orderBy.column) ? { column: q.orderBy.column, ascending: !!q.orderBy.ascending } : null;
       const limit = Math.min(200, Math.max(1, parseInt(q.limit) || 100));
 
-      return { table, select: selectCols.join(","), filter: filters, orderBy, limit };
+      return { table, select: validCols.join(","), filter: filters, orderBy, limit };
     }
 
     const sanitizedQueries = (dbQueries || []).map(sanitizeDbQuery).filter(Boolean) as any[];
