@@ -1209,24 +1209,24 @@ export function LegerAIAssistant() {
                 <div className="flex items-center gap-1.5 shrink-0">
                   <button 
                     onClick={() => createNewChat()}
-                    title="Start fresh new chat"
-                    className="flex items-center gap-1 px-2 py-1 bg-secondary/60 hover:bg-secondary border border-border text-[10px] font-mono text-foreground font-semibold rounded transition-all cursor-pointer"
+                    title="New chat"
+                    className="p-1.5 hover:bg-secondary border border-transparent hover:border-border transition-all cursor-pointer rounded text-muted-foreground hover:text-foreground"
                   >
-                    <Plus className="h-3 w-3" />
-                    <span>New</span>
+                    <Plus className="h-3.5 w-3.5" />
                   </button>
                   <button 
                     onClick={() => setIsHistoryViewOpen(prev => !prev)}
                     title="30-day Chat History"
                     className={cn(
                       "p-1.5 border transition-all cursor-pointer rounded",
-                      isHistoryViewOpen ? "bg-foreground text-background border-foreground" : "hover:bg-secondary border-transparent hover:border-border text-muted-foreground"
+                      isHistoryViewOpen ? "bg-foreground text-background border-foreground" : "hover:bg-secondary border-transparent hover:border-border text-muted-foreground hover:text-foreground"
                     )}
                   >
                     <History className="h-3.5 w-3.5" />
                   </button>
                   <button 
                     onClick={() => setIsOpen(false)}
+                    title="Close"
                     className="p-1.5 hover:bg-secondary border border-transparent hover:border-border transition-all cursor-pointer rounded text-muted-foreground hover:text-foreground"
                   >
                     <X className="h-3.5 w-3.5" />
