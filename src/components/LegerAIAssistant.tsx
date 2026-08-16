@@ -483,6 +483,7 @@ export function LegerAIAssistant() {
   const [sessions, setSessions] = useState<ChatSession[]>([])
   const [activeSessionId, setActiveSessionId] = useState<string>("")
   const [isHistoryViewOpen, setIsHistoryViewOpen] = useState(false)
+  const [sessionToDelete, setSessionToDelete] = useState<ChatSession | null>(null)
   const [suggestionsVisible, setSuggestionsVisible] = useState(true)
   const [isMobile, setIsMobile] = useState(false)
 
@@ -1238,30 +1239,42 @@ export function LegerAIAssistant() {
               <AnimatePresence>
                 {isHistoryViewOpen && (
                   <motion.div
-                    initial={{ opacity: 0, y: -10 }}
+                    initial={{ opacity: 0, y: 15 }}
                     animate={{ opacity: 1, y: 0 }}
-                    exit={{ opacity: 0, y: -10 }}
+                    exit={{ opacity: 0, y: 15 }}
                     transition={{ duration: 0.2 }}
-                    className="absolute inset-x-0 top-[54px] bottom-0 bg-card/98 backdrop-blur-xl z-30 flex flex-col p-4 space-y-3 overflow-y-auto"
+                    className="absolute inset-0 bg-card z-30 flex flex-col overflow-hidden rounded-t-2xl sm:rounded-xl font-sans"
                   >
-                    <div className="flex items-center justify-between pb-2 border-b border-border">
+                    {/* Drag Handle Bar */}
+                    <div 
+                      className="w-full flex justify-center py-3.5 cursor-grab active:cursor-grabbing border-b border-border/40 select-none shrink-0 bg-secondary/20 hover:bg-secondary/30 transition-colors touch-none" 
+                      onPointerDown={(e) => sheetDragControls.start(e)}
+                    >
+                      <div className="w-16 h-1.5 bg-muted-foreground/40 rounded-full" />
+                    </div>
+
+                    {/* History Header */}
+                    <div className="px-4 py-3 border-b border-border bg-secondary/15 flex items-center justify-between z-10 shrink-0">
                       <div className="flex items-center gap-2">
-                        <History className="h-4 w-4 text-muted-foreground" />
+                        <div className="p-1.5 bg-primary/10 border border-primary/20 rounded-md shrink-0">
+                          <History className="h-4 w-4 text-foreground" />
+                        </div>
                         <div>
                           <h4 className="text-xs font-bold uppercase tracking-wider">Chat History</h4>
-                          <span className="text-[9px] font-mono text-muted-foreground">Retained locally for 30 days</span>
+                          <p className="text-[8px] font-mono text-muted-foreground uppercase">Retained locally for 30 days</p>
                         </div>
                       </div>
                       <button
-                        onClick={() => createNewChat()}
-                        className="flex items-center gap-1.5 px-2.5 py-1 bg-primary text-primary-foreground text-xs font-mono font-medium rounded hover:opacity-90 transition-opacity cursor-pointer"
+                        onClick={() => setIsHistoryViewOpen(false)}
+                        title="Close history"
+                        className="p-1.5 hover:bg-secondary border border-transparent hover:border-border transition-all cursor-pointer rounded text-muted-foreground hover:text-foreground"
                       >
-                        <Plus className="h-3 w-3" />
-                        <span>New Chat</span>
+                        <X className="h-3.5 w-3.5" />
                       </button>
                     </div>
 
-                    <div className="flex-1 space-y-2 overflow-y-auto pr-1">
+                    {/* Scrollable Sessions List */}
+                    <div className="flex-1 space-y-2 overflow-y-auto p-4 pb-20 scrollbar-thin">
                       {sessions.map((sess) => {
                         const isActive = sess.id === activeSessionId
                         const daysRemaining = Math.max(1, 30 - Math.floor((Date.now() - (sess.updatedAt || sess.createdAt)) / (1000 * 60 * 60 * 24)))
@@ -1290,7 +1303,7 @@ export function LegerAIAssistant() {
                               </div>
                               {lastMsg && (
                                 <p className="text-[10px] text-muted-foreground truncate font-sans">
-                                  {lastMsg.text.replace(/\*\*/g, "").slice(0, 60)}
+                                  {lastMsg.text.replace(/\*\*/g, "").slice(0, 65)}
                                 </p>
                               )}
                               <div className="flex items-center gap-3 text-[9px] font-mono text-muted-foreground/70">
@@ -1304,20 +1317,77 @@ export function LegerAIAssistant() {
                             </div>
 
                             <button
-                              onClick={(e) => deleteSession(sess.id, e)}
+                              onClick={(e) => {
+                                e.stopPropagation()
+                                setSessionToDelete(sess)
+                              }}
                               title="Delete chat session"
-                              className="p-1.5 opacity-0 group-hover:opacity-100 hover:bg-destructive/20 text-muted-foreground hover:text-destructive transition-all rounded shrink-0 cursor-pointer"
+                              className="p-2 text-muted-foreground/60 hover:text-destructive hover:bg-destructive/15 transition-all rounded-md shrink-0 cursor-pointer"
                             >
-                              <Trash2 className="h-3.5 w-3.5" />
+                              <Trash2 className="h-4 w-4" />
                             </button>
                           </div>
                         )
                       })}
                     </div>
 
-                    <div className="pt-2 border-t border-border/40 text-[9px] font-mono text-muted-foreground text-center">
+                    {/* Bottom Footer Notice */}
+                    <div className="p-3 border-t border-border/40 text-[9px] font-mono text-muted-foreground text-center bg-card shrink-0">
                       Sessions auto-expire after 30 days.
                     </div>
+
+                    {/* Floating Add FAB in Bottom Right (Portfolio/Ledger Standard) */}
+                    <button
+                      onClick={() => createNewChat()}
+                      title="Start new chat"
+                      className="absolute bottom-5 right-5 z-40 h-11 w-11 rounded-xl bg-white text-black font-extrabold shadow-2xl flex items-center justify-center hover:bg-gray-100 border border-white/20 cursor-pointer transition-transform active:scale-95"
+                    >
+                      <Plus className="h-5 w-5 stroke-[2.5]" />
+                    </button>
+                  </motion.div>
+                )}
+              </AnimatePresence>
+
+              {/* Normalized Delete Confirmation Dialog */}
+              <AnimatePresence>
+                {sessionToDelete && (
+                  <motion.div
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    exit={{ opacity: 0 }}
+                    className="absolute inset-0 bg-background/80 backdrop-blur-sm z-50 flex items-center justify-center p-4"
+                  >
+                    <motion.div
+                      initial={{ scale: 0.95, opacity: 0 }}
+                      animate={{ scale: 1, opacity: 1 }}
+                      exit={{ scale: 0.95, opacity: 0 }}
+                      className="bg-[#09090b] border border-border rounded-xl p-5 w-full max-w-[320px] shadow-2xl space-y-4"
+                    >
+                      <div className="space-y-1.5">
+                        <h4 className="text-sm font-bold text-foreground">Delete Chat Session</h4>
+                        <p className="text-xs text-muted-foreground leading-relaxed">
+                          Are you sure you want to permanently delete <span className="font-semibold text-foreground">&quot;{sessionToDelete.title}&quot;</span>? This action cannot be undone.
+                        </p>
+                      </div>
+                      <div className="flex items-center justify-end gap-2 pt-2 border-t border-border/50">
+                        <button
+                          onClick={() => setSessionToDelete(null)}
+                          className="px-3 py-1.5 text-xs font-medium text-muted-foreground hover:text-foreground hover:bg-secondary rounded-md transition-colors cursor-pointer"
+                        >
+                          Cancel
+                        </button>
+                        <button
+                          onClick={() => {
+                            deleteSession(sessionToDelete.id)
+                            setSessionToDelete(null)
+                            toast.success("Chat session deleted")
+                          }}
+                          className="px-3 py-1.5 text-xs font-medium bg-destructive text-destructive-foreground hover:bg-destructive/90 rounded-md transition-colors cursor-pointer"
+                        >
+                          Delete
+                        </button>
+                      </div>
+                    </motion.div>
                   </motion.div>
                 )}
               </AnimatePresence>
