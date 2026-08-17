@@ -1,6 +1,7 @@
 "use client"
 
 import { useState, useMemo, useEffect, useTransition } from "react"
+import { createPortal } from "react-dom"
 import { useSearchParams } from "next/navigation"
 import { motion, AnimatePresence, useDragControls } from "framer-motion"
 import { supabase } from "@/lib/supabase"
@@ -407,6 +408,7 @@ export function ExpensesView({ initialExpenses, categories: initialCategories, i
 
   // Manual Ingestion State
   const [isAddOpen, setIsAddOpen] = useState(false)
+  const [mounted, setMounted] = useState(false)
   const sheetDragControls = useDragControls()
   const [manualAmount, setManualAmount] = useState("")
   const [manualMerchant, setManualMerchant] = useState("")
@@ -414,6 +416,10 @@ export function ExpensesView({ initialExpenses, categories: initialCategories, i
   const [manualDate, setManualDate] = useState(new Date().toISOString().split('T')[0])
   const [isIncome, setIsIncome] = useState(false)
   const [isSavingManual, setIsSavingManual] = useState(false)
+
+  useEffect(() => {
+    setMounted(true)
+  }, [])
 
   useEffect(() => {
     if (isAddOpen) {
@@ -1506,10 +1512,11 @@ export function ExpensesView({ initialExpenses, categories: initialCategories, i
                 <Plus className="mr-2 h-4 w-4" /> Add Entry
               </Button>
 
-              <AnimatePresence mode="wait">
-                {isAddOpen && (
-                  <motion.div
-                    key="expenses-backdrop"
+              {mounted && typeof document !== "undefined" && createPortal(
+                <AnimatePresence mode="wait">
+                  {isAddOpen && (
+                    <motion.div
+                      key="expenses-backdrop"
                     initial={{ opacity: 0 }}
                     animate={{ opacity: 1 }}
                     exit={{ opacity: 0 }}
@@ -1666,7 +1673,9 @@ export function ExpensesView({ initialExpenses, categories: initialCategories, i
                     </motion.div>
                   </motion.div>
                 )}
-              </AnimatePresence>
+              </AnimatePresence>,
+              document.body
+            )}
 
              <MagneticButton 
                onClick={smartCategorize} 

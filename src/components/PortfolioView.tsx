@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect, useMemo, useCallback, useTransition } from "react";
+import { createPortal } from "react-dom";
 import { useRouter } from "next/navigation";
 import { motion, AnimatePresence, useDragControls } from "framer-motion";
 import { useSystem } from "@/lib/SystemContext";
@@ -459,7 +460,12 @@ export function PortfolioView({
   const sheetDragControls = useDragControls();
   const [priceInputMode, setPriceInputMode] = useState<"unit" | "total">("unit");
   const [totalSpentInput, setTotalSpentInput] = useState<string>("");
+  const [mounted, setMounted] = useState(false);
   const [formSubmitting, setFormSubmitting] = useState(false);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
 
   useEffect(() => {
     if (isAddModalOpen) {
@@ -1568,18 +1574,19 @@ export function PortfolioView({
         </div>
       </div>
 
-      {/* Native Draggable Bottom Drawer matching AI Assistant Window physics 100% */}
-      <AnimatePresence mode="wait">
-        {isAddModalOpen && (
-          <motion.div
-            key="drawer-backdrop"
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            transition={{ duration: 0.15 }}
-            onClick={() => setIsAddModalOpen(false)}
-            className="fixed inset-0 z-[100010] bg-background/80 backdrop-blur-sm flex items-end justify-center font-mono p-0 sm:p-6 select-none"
-          >
+      {/* Native Draggable Bottom Drawer mounted cleanly via Portal outside transformed containers */}
+      {mounted && typeof document !== "undefined" && createPortal(
+        <AnimatePresence mode="wait">
+          {isAddModalOpen && (
+            <motion.div
+              key="drawer-backdrop"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              transition={{ duration: 0.15 }}
+              onClick={() => setIsAddModalOpen(false)}
+              className="fixed inset-0 z-[100010] bg-background/80 backdrop-blur-sm flex items-end justify-center font-mono p-0 sm:p-6 select-none"
+            >
             <motion.div
               key="drawer-modal-container"
               onClick={(e) => e.stopPropagation()}
@@ -2049,7 +2056,9 @@ export function PortfolioView({
             </motion.div>
           </motion.div>
         )}
-      </AnimatePresence>
+      </AnimatePresence>,
+      document.body
+    )}
 
       {/* Deletion Confirmation Dialog matching /expenses */}
       <Dialog open={deleteConfirmOpen} onOpenChange={setDeleteConfirmOpen}>
