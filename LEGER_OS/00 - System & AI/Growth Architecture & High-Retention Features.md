@@ -40,12 +40,22 @@ When a user mentions or voices an expense in Leger AI (e.g. *"I spent 15€ at S
 
 ## 3. Subscription & Silent Price Hike Radar
 
-### Detection Engine
-- Powered by `detectRecurringCadence` in `src/lib/cadence-detector.ts`.
-- Groups transactions by normalized merchant aliases (`NETFLIX`, `SPOTIFY`, `EDP`, `MEO`, etc.).
-- Compares variance of intervals ($\le 35\text{d}$ for monthly, $\le 370\text{d}$ for annual) with confidence weighting $\ge 0.65$.
+### Detection Engine (`src/lib/cadence-detector.ts`)
+- **4-Layer Ingestion Architecture**:
+  1. Registry Instant Match (100+ global & Portuguese services: Netflix, Spotify, OpenAI, Claude, Cursor, EDP, Vodafone, etc.).
+  2. Direct Debit / Institutional Keyword Triggers (`SEPA`, `DEBITO DIRECTO`, `DD`, `MENSALIDADE`, `QUOTA`, `PLANO`).
+  3. Interval Clustering & Variance Analysis ($\Delta t \approx 30\text{d}$ for monthly, $\approx 365\text{d}$ for annual).
+  4. User Overrides (`leger_subscription_cadence_overrides`) and Custom Pinned Overhead (`leger_pinned_subscriptions`).
+- **Strict Invariants**:
+  - Normalized strictly to `"monthly"` or `"annual"`.
+  - 100% CAPS LOCK typography (`SPOTIFY`, `MONTHLY`, `ANNUAL`).
+  - Recency drop thresholds ($>38\text{d}$ for monthly, $>380\text{d}$ for annual).
+  - Outflow exclusion for brokerage/investments (`XTB`, `DEGIRO`, `TRADE REPUBLIC`, `BINANCE`, `KRAKEN`).
 
 ### Price Hike Radar
-- Compares sequential charges for identical merchants.
-- If $P_{\text{new}} > P_{\text{old}}$ by $\ge 5\%$, flags as a **Silent Price Increase** (`AlertTriangle` badge) with exact delta and percentage hike.
-- Accessible via the **Radar** tab in `/expenses` (`SubscriptionRadar.tsx`).
+- Compares sequential charges for identical merchants across like-for-like cadences.
+- Normalizes annualized baselines if cadence shifted from monthly to annual to avoid false percentage spikes.
+- If $P_{\text{new}} > P_{\text{old}}$ by $\ge 5\%$ and $\Delta \ge €0.45$, flags as a **Silent Price Increase** (`AlertTriangle` amber badge) with exact before/after amounts and percentage jump tag.
+
+### Dedicated Top-Level Route (`/radar`)
+- Promoted to a dedicated top-level page with normalized Geist Sans `RADAR` header, `<Tilt>` executive metric cards (`MONTHLY RECURRING` and `ANNUAL PROJECTED`), amber alert banner, Portfolio-standard search bar & category filter tabs, 1-tap cadence toggling, and native draggable bottom drawer for `+ PIN RECURRING BILL`.
