@@ -17,7 +17,7 @@ import {
   Landmark, Sparkles, Shield, ShieldOff, Sun, Moon, Check, Plus, Trash2, Sliders, 
   Database, Cpu, Calendar, CreditCard, RefreshCw, Terminal, Zap, Download, Rocket, 
   Activity, FileJson, Brain, LogOut, ArrowRight, ChevronDown, ShieldAlert, Smartphone, 
-  Copy, ExternalLink, Globe, Layers, Search
+  Copy, ExternalLink, Globe, Layers, Search, Lock
 } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { PrivacyValue } from "@/components/ui/privacy-value"
@@ -506,8 +506,9 @@ export function SystemConfigView() {
                       { id: "monthly", title: "Monthly", subtitle: "Once a month (e.g. 25th)", isCalendar: false },
                       { id: "biweekly", title: "Bi-Weekly", subtitle: "Every 2 weeks (14 days)", isCalendar: false },
                       { id: "weekly", title: "Weekly", subtitle: "Every 7 days (e.g. Fridays)", isCalendar: false },
-                      { id: "calendar", title: "Calendar Month", subtitle: "1st to 30th / 31st (Core Free)", isCalendar: true }
+                      { id: "calendar", title: "Calendar Month", subtitle: "1st to 30th / 31st", isCalendar: true }
                     ].map((cadence) => {
+                      const isLocked = !isPro && !cadence.isCalendar
                       const isSelected = cadence.id === "calendar"
                         ? cycleMode === "monthly" || paycheckFrequencyInput === "calendar"
                         : cycleMode === "keyword" && paycheckFrequencyInput === cadence.id
@@ -516,11 +517,11 @@ export function SystemConfigView() {
                         <div 
                           key={cadence.id}
                           onClick={() => {
-                            if (!isPro && !cadence.isCalendar) {
+                            if (isLocked) {
                               setSettingsActiveTab("pro")
                               setSubscriptionOnly(true)
                               setSettingsOpen(true)
-                              toast.info("Custom paycheck cycle detection is a PRO feature.")
+                              toast.info("Upgrade to PRO to unlock custom paycheck cycle detection.")
                               return
                             }
                             if (cadence.isCalendar) {
@@ -533,19 +534,20 @@ export function SystemConfigView() {
                           }}
                           className={cn(
                             "p-4 border cursor-pointer transition-all space-y-2 rounded-none flex flex-col justify-between select-none relative",
-                            isSelected ? "bg-foreground/5 border-foreground shadow-sm ring-1 ring-foreground" : "bg-card border-border hover:bg-secondary/20 opacity-70"
+                            isLocked
+                              ? "bg-card/40 border-border/60 opacity-60 hover:opacity-100"
+                              : isSelected
+                                ? "bg-foreground/5 border-foreground shadow-sm ring-1 ring-foreground"
+                                : "bg-card border-border hover:bg-secondary/20 opacity-70"
                           )}
                         >
                           <div className="flex items-center justify-between">
-                            <div className="flex items-center gap-2">
-                              <span className="font-bold uppercase tracking-widest text-xs font-mono">{cadence.title}</span>
-                              {!cadence.isCalendar && (
-                                <span className="text-[9px] font-mono font-bold text-emerald-500 bg-emerald-500/10 border border-emerald-500/30 px-1.5 py-0.5 rounded-none tracking-wider">
-                                  PRO
-                                </span>
-                              )}
-                            </div>
-                            {isSelected && <Check className="h-4 w-4 text-emerald-500 stroke-[3]" />}
+                            <span className="font-bold uppercase tracking-widest text-xs font-mono">{cadence.title}</span>
+                            {isLocked ? (
+                              <Lock className="h-4 w-4 text-muted-foreground/70 shrink-0" />
+                            ) : isSelected ? (
+                              <Check className="h-4 w-4 text-emerald-500 stroke-[3] shrink-0" />
+                            ) : null}
                           </div>
                           <p className="text-xs text-muted-foreground font-sans leading-relaxed">
                             {cadence.subtitle}
