@@ -517,6 +517,7 @@ export function LegerAIAssistant() {
   const dragRef = useRef<HTMLDivElement>(null)
   const recognitionRef = useRef<any>(null)
   const handleQueryRef = useRef<((queryText: string, targetSessionId?: string) => Promise<void>) | null>(null)
+  const abortControllerRef = useRef<AbortController | null>(null)
 
   // Dynamic Floaty AI Pill Banner States (starts CLOSED by default)
   const [isPillExpanded, setIsPillExpanded] = useState(false)
@@ -577,6 +578,11 @@ export function LegerAIAssistant() {
 
   // Create a brand new chat session helper (30-day lifetime retention)
   const createNewChat = (customTitle?: string, initialMsgs?: Message[]) => {
+    if (abortControllerRef.current) {
+      abortControllerRef.current.abort()
+      abortControllerRef.current = null
+    }
+    setIsLoading(false)
     const now = Date.now()
     const newId = `session_${now}_${Math.random().toString(36).substr(2, 6)}`
     const initial = initialMsgs || [
@@ -593,7 +599,6 @@ export function LegerAIAssistant() {
       updatedAt: now,
       messages: initial
     }
-    setIsLoading(false)
     setSessions(prev => {
       const pruned = [newSession, ...prev.filter(s => now - (s.updatedAt || s.createdAt || now) <= THIRTY_DAYS_MS)]
       if (typeof window !== "undefined") {
@@ -1044,7 +1049,13 @@ export function LegerAIAssistant() {
     const currentMsgs = [...existingMsgs, userMsg]
     saveSessionMessages(currentSessionId, currentMsgs)
     setInputVal("")
+    setIsLoading(true)
+
+    if (abortControllerRef.current) {
+      abortControllerRef.current.abort()
+    }
     const controller = new AbortController()
+    abortControllerRef.current = controller
     const timeoutId = setTimeout(() => controller.abort(), 35000)
 
     try {
@@ -1493,7 +1504,9 @@ export function LegerAIAssistant() {
                       </motion.div>
                     )
                   })}
-                  {isLoading && <ThinkingIndicator query={inputVal} />}
+                  {isLoading && messages.length > 0 && messages[messages.length - 1]?.sender === "user" && (
+                    <ThinkingIndicator query={messages[messages.length - 1]?.text} />
+                  )}
                   <div ref={chatEndRef} />
                 </div>
               )}
