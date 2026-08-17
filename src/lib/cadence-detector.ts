@@ -307,14 +307,21 @@ export function detectRecurringCadence(
       nextDate.setMonth(nextDate.getMonth() + 1);
     }
 
-    // Status check
-    const daysSinceLast = Math.round((now.getTime() - latestDate.getTime()) / (1000 * 60 * 60 * 24));
-    let status: DetectedSubscription["status"] = "active";
-    if (cadence === "monthly" && daysSinceLast > 65) {
-      status = "cancelled";
-    } else if (cadence === "annual" && daysSinceLast > 410) {
-      status = "cancelled";
+    // Strict Recency Check:
+    // Drop anything that hasn't charged in the last ~1 month (for monthly) or ~1 year (for annual)
+    const allDates = expenseTransactions.map(e => new Date(e.date).getTime()).filter(t => !isNaN(t));
+    const maxDatasetDate = allDates.length > 0 ? new Date(Math.max(...allDates)) : new Date();
+    const refDate = cycleEndDate ? new Date(cycleEndDate) : (now > maxDatasetDate ? now : maxDatasetDate);
+    const daysSinceLast = Math.round((refDate.getTime() - latestDate.getTime()) / (1000 * 60 * 60 * 24));
+
+    if (cadence === "monthly" && daysSinceLast > 38) {
+      return; // Hasn't happened in the last month -> do not display
     }
+    if (cadence === "annual" && daysSinceLast > 380) {
+      return; // Hasn't happened in the last year -> do not display
+    }
+
+    let status: DetectedSubscription["status"] = "active";
 
     // Price change detector (increase >= 5% compared to previous baseline)
     let priceChangePercent: number | undefined;
