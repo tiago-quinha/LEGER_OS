@@ -593,6 +593,7 @@ export function LegerAIAssistant() {
       updatedAt: now,
       messages: initial
     }
+    setIsLoading(false)
     setSessions(prev => {
       const pruned = [newSession, ...prev.filter(s => now - (s.updatedAt || s.createdAt || now) <= THIRTY_DAYS_MS)]
       if (typeof window !== "undefined") {
@@ -623,6 +624,7 @@ export function LegerAIAssistant() {
   // Delete a chat session helper
   const deleteSession = (sessionId: string, e?: React.MouseEvent) => {
     if (e) e.stopPropagation()
+    setIsLoading(false)
     setSessions(prev => {
       const filtered = prev.filter(s => s.id !== sessionId)
       if (filtered.length === 0) {
@@ -1042,7 +1044,8 @@ export function LegerAIAssistant() {
     const currentMsgs = [...existingMsgs, userMsg]
     saveSessionMessages(currentSessionId, currentMsgs)
     setInputVal("")
-    setIsLoading(true)
+    const controller = new AbortController()
+    const timeoutId = setTimeout(() => controller.abort(), 35000)
 
     try {
       const { data: categoriesData } = await supabase
@@ -1061,6 +1064,7 @@ export function LegerAIAssistant() {
       const response = await fetch("/api/leger-ai/query", {
         method: "POST",
         headers: getAIHeaders(aiProvider, customApiKey),
+        signal: controller.signal,
         body: JSON.stringify({
           query: queryText,
           telemetry: statsPayload,
@@ -1125,14 +1129,17 @@ export function LegerAIAssistant() {
         }
         saveSessionMessages(currentSessionId, [...currentMsgs, errVal])
       }
-    } catch (err) {
+    } catch (err: any) {
       const errVal: Message = {
         sender: "assistant",
-        text: "Connection lost. Unable to reach AI engine.",
+        text: err?.name === "AbortError" 
+          ? "Query timed out. Please try asking again."
+          : "Connection lost. Unable to reach AI engine.",
         timestamp: Date.now()
       }
       saveSessionMessages(currentSessionId, [...currentMsgs, errVal])
     } finally {
+      clearTimeout(timeoutId)
       setIsLoading(false)
     }
   }
@@ -1284,6 +1291,7 @@ export function LegerAIAssistant() {
                           <div
                             key={sess.id}
                             onClick={() => {
+                              setIsLoading(false)
                               setActiveSessionId(sess.id)
                               setIsHistoryViewOpen(false)
                             }}

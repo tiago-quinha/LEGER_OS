@@ -49,14 +49,30 @@ export async function generateAIContent(prompt: string, options: AIBridgeOptions
       throw new Error("Gemini API key is missing. Configure it in settings or .env");
     }
     const genAI = new GoogleGenerativeAI(cleanApiKey);
-    const modelName = options.modelType === "flash" ? "gemini-2.5-flash" : (process.env.GEMINI_MODEL || "gemini-2.5-pro");
-    const model = genAI.getGenerativeModel({ 
-      model: modelName,
-      generationConfig: options.jsonMode ? { responseMimeType: "application/json" } : undefined
-    });
-    const result = await model.generateContent(prompt);
-    const response = await result.response;
-    rawContent = response.text();
+    const preferredModel = process.env.GEMINI_MODEL || "gemini-2.5-flash";
+    const candidateModels = Array.from(new Set([preferredModel, "gemini-2.5-flash", "gemini-2.0-flash", "gemini-1.5-pro"]));
+    
+    let lastError: any = null;
+    let success = false;
+    for (const mName of candidateModels) {
+      try {
+        const model = genAI.getGenerativeModel({ 
+          model: mName,
+          generationConfig: options.jsonMode ? { responseMimeType: "application/json" } : undefined
+        });
+        const result = await model.generateContent(prompt);
+        const response = await result.response;
+        rawContent = response.text();
+        success = true;
+        break;
+      } catch (err: any) {
+        lastError = err;
+        console.warn(`Gemini model ${mName} failed, trying fallback...`, err?.message || err);
+      }
+    }
+    if (!success) {
+      throw lastError || new Error("Failed to generate content with Gemini API.");
+    }
   }
 
   // 2. OPENAI (GPT-4o / GPT-4o-mini)
