@@ -344,47 +344,47 @@ export function RadarPageView({ expenses, categories, cycles, currentCycleId }: 
         </section>
       )}
 
-      {/* 4. Subscriptions Explorer & Filter Bar */}
-      <div className="space-y-6">
-        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-border/40 pb-4">
-          <div className="flex items-center gap-2">
-            <div className="relative flex-1 sm:w-72">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
-              <input
-                type="text"
-                placeholder="SEARCH RECURRING BILLS..."
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                className="w-full h-9 pl-9 pr-3 bg-secondary/20 border border-border text-xs uppercase font-mono placeholder:text-muted-foreground/50 focus:outline-none focus:border-foreground"
-              />
-            </div>
-          </div>
-
-          <div className="flex items-center gap-1.5 border border-border bg-card/20 p-1 text-xs font-mono">
-            {(["all", "monthly", "annual"] as const).map((cad) => {
-              const count = cad === "all" 
-                ? radarData.subscriptions.length 
-                : radarData.subscriptions.filter(s => s.cadence === cad).length
-
-              return (
-                <button
-                  key={cad}
-                  type="button"
-                  onClick={() => setFilterCadence(cad)}
-                  className={cn(
-                    "px-3 py-1 text-[10px] uppercase font-bold tracking-wider transition-colors cursor-pointer rounded-none",
-                    filterCadence === cad
-                      ? "bg-secondary text-foreground border-b-2 border-b-foreground"
-                      : "text-muted-foreground hover:text-foreground hover:bg-secondary/50"
-                  )}
-                >
-                  <span>{cad.toUpperCase()}</span>
-                  <span className="ml-1.5 opacity-60">({count})</span>
-                </button>
-              )
-            })}
-          </div>
+      {/* 4. Search + Dynamic Filter Tabs (Exact match to Portfolio / Memory standard) */}
+      <div className="space-y-3">
+        <div className="relative">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground/50 pointer-events-none" />
+          <input
+            type="text"
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            placeholder="Search recurring bills..."
+            className="w-full h-8 pl-9 pr-3 text-xs bg-card border border-border/60 rounded-none focus:outline-none focus:border-foreground/30 font-sans text-foreground placeholder:text-muted-foreground/40"
+          />
         </div>
+
+        <div className="flex items-center gap-1.5 overflow-x-auto pb-2 scrollbar-hide border-b border-border/30">
+          {(["all", "monthly", "annual"] as const).map((cad) => {
+            const count = cad === "all" 
+              ? radarData.subscriptions.length 
+              : radarData.subscriptions.filter(s => s.cadence === cad).length
+            const isActive = filterCadence === cad
+
+            return (
+              <button
+                key={cad}
+                type="button"
+                onClick={() => setFilterCadence(cad)}
+                className={cn(
+                  "px-3.5 py-1.5 text-[9px] font-mono font-bold uppercase tracking-wider border cursor-pointer select-none transition-all shrink-0",
+                  isActive
+                    ? "bg-foreground border-foreground text-background font-black"
+                    : "bg-card border-border/60 text-muted-foreground hover:border-border hover:text-foreground"
+                )}
+              >
+                {cad === "all" ? "All" : cad === "monthly" ? "Monthly" : "Annual"} ({count})
+              </button>
+            )
+          })}
+        </div>
+      </div>
+
+      {/* 5. Subscriptions Grid */}
+      <div className="space-y-4">
 
         {filteredSubscriptions.length === 0 ? (
           <div className="p-16 text-center border border-border/40 bg-card/10 space-y-3">
