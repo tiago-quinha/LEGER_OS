@@ -1441,28 +1441,46 @@ export function LegerAIAssistant() {
                           )}
 
                           {/* Live Web Search Sources Badge */}
-                          {msg.webSearched && msg.webSources && msg.webSources.length > 0 && (
-                            <div className="mt-2.5 pt-2 border-t border-border/40 space-y-1.5 font-mono text-[9px]">
-                              <div className="flex items-center gap-1.5 text-muted-foreground/80 font-bold uppercase tracking-wider">
-                                <Globe className="h-3 w-3 text-emerald-500 shrink-0" />
-                                <span>Grounded with Live Web Search ({msg.webSources.length} sources)</span>
+                          {msg.webSearched && msg.webSources && msg.webSources.length > 0 && (() => {
+                            const uniqueSources = Array.from(
+                              new Map(
+                                msg.webSources.map((s) => {
+                                  let key = s.source || ""
+                                  if (!key && s.url) {
+                                    try {
+                                      key = new URL(s.url).hostname.replace(/^www\./, "")
+                                    } catch (e) {
+                                      key = s.url
+                                    }
+                                  }
+                                  return [key, { ...s, displaySource: key }]
+                                })
+                              ).values()
+                            ).slice(0, 4)
+
+                            return (
+                              <div className="mt-2.5 pt-2 border-t border-border/30 space-y-1.5 font-mono text-[9px]">
+                                <div className="flex items-center gap-1.5 text-muted-foreground/70 tracking-wider">
+                                  <Globe className="h-3 w-3 text-white shrink-0" />
+                                  <span className="uppercase">Sources</span>
+                                </div>
+                                <div className="flex flex-wrap gap-1">
+                                  {uniqueSources.map((src, sIdx) => (
+                                    <a 
+                                      key={sIdx} 
+                                      href={src.url} 
+                                      target="_blank" 
+                                      rel="noopener noreferrer"
+                                      className="inline-flex items-center gap-1 px-1.5 py-0.5 bg-secondary/30 hover:bg-secondary/70 border border-border/40 text-muted-foreground hover:text-foreground transition-colors rounded text-[9px] font-mono"
+                                    >
+                                      <span className="truncate max-w-[130px]">{src.displaySource || src.title}</span>
+                                      <ArrowUpRight className="h-2 w-2 opacity-50" />
+                                    </a>
+                                  ))}
+                                </div>
                               </div>
-                              <div className="flex flex-wrap gap-1.5">
-                                {msg.webSources.slice(0, 3).map((src: any, sIdx: number) => (
-                                  <a 
-                                    key={sIdx} 
-                                    href={src.url} 
-                                    target="_blank" 
-                                    rel="noopener noreferrer"
-                                    className="inline-flex items-center gap-1 px-2 py-0.5 bg-secondary/50 hover:bg-secondary border border-border text-muted-foreground hover:text-foreground transition-colors rounded-sm"
-                                  >
-                                    <span className="truncate max-w-[120px]">{src.source || src.title}</span>
-                                    <ArrowUpRight className="h-2.5 w-2.5 opacity-60" />
-                                  </a>
-                                ))}
-                              </div>
-                            </div>
-                          )}
+                            )
+                          })()}
                         </div>
                       </motion.div>
                     )
