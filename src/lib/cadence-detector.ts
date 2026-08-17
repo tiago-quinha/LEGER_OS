@@ -197,15 +197,39 @@ export function normalizeMerchantName(name: string): string {
   return clean.toUpperCase() || name.trim().toUpperCase();
 }
 
+// Excluded Non-Subscription Keywords (Brokers, Transfers, Crypto, ATM withdrawals)
+const EXCLUDED_FINANCIAL_KEYWORDS = [
+  "XTB",
+  "DEGIRO",
+  "TRADE REPUBLIC",
+  "TRADEREPUBLIC",
+  "INTERACTIVE BROKERS",
+  "IBKR",
+  "BINANCE",
+  "KRAKEN",
+  "COINBASE",
+  "INVESTIMENTO",
+  "INVESTMENT",
+  "POUPANCA",
+  "SAVINGS",
+  "TRANSFERENCIA",
+  "TRANSFER",
+  "LEVANTAMENTO",
+  "ATM",
+  "MULTIBANCO"
+];
+
 export function detectRecurringCadence(
   expenses: any[],
   cycleStartDate?: string | Date,
   cycleEndDate?: string | Date,
   dismissedMerchants: string[] = []
 ): CadenceAnalysisResult {
-  const expenseTransactions = expenses.filter(
-    (e) => (parseFloat(e.amount) < 0 || e.is_income === false) && e.date
-  );
+  // STRICT: Only real negative outflows (expenses), strictly exclude any positive inflow/income
+  const expenseTransactions = expenses.filter((e) => {
+    const amt = parseFloat(e.amount);
+    return !isNaN(amt) && amt < 0 && e.is_income !== true && e.date;
+  });
 
   const dismissedSet = new Set(dismissedMerchants.map(m => m.trim().toUpperCase()));
 
@@ -213,6 +237,12 @@ export function detectRecurringCadence(
   const groups = new Map<string, any[]>();
   expenseTransactions.forEach((tx) => {
     const rawMerchant = tx.merchant || tx.raw_text || "UNSPECIFIED";
+    const rawUpper = `${tx.merchant || ""} ${tx.raw_text || ""}`.toUpperCase();
+
+    // Check if it's a brokerage/investment/transfer
+    const isExcludedFinancial = EXCLUDED_FINANCIAL_KEYWORDS.some(kw => rawUpper.includes(kw));
+    if (isExcludedFinancial) return;
+
     const norm = normalizeMerchantName(rawMerchant).toUpperCase();
     if (dismissedSet.has(norm)) return; // Skip dismissed
 
