@@ -33,7 +33,7 @@ const DashboardChart = dynamic(() => import("@/components/DashboardChart").then(
 })
 import { Button } from "@/components/ui/button"
 import { ProLockOverlay } from "@/components/ProLockOverlay"
-import { Download, TrendingUp, TrendingDown, Wallet, ArrowUpRight, Banknote, ChevronLeft, CalendarDays, ChevronRight, Landmark, Target, AlertTriangle, CheckCircle2, Zap, Brain, Sparkles, ChevronDown, Loader2, CalendarRange, CreditCard, Tag, Sliders, Smartphone, Shield, Cpu, LayoutDashboard, PiggyBank, Upload, Plus } from "lucide-react"
+import { Download, TrendingUp, TrendingDown, Wallet, ArrowUpRight, Banknote, ChevronLeft, CalendarDays, ChevronRight, Landmark, Target, AlertTriangle, CheckCircle2, Zap, Brain, Sparkles, ChevronDown, Loader2, CalendarRange, CreditCard, Tag, Sliders, Smartphone, Shield, Cpu, LayoutDashboard, PiggyBank, Upload, Plus, Trophy } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { useRouter } from "next/navigation"
 import { NumberTicker } from "@/components/ui/number-ticker"
@@ -51,6 +51,7 @@ import { MagneticButton } from "@/components/unlumen-ui/magnetic-button"
 import { UnnamedTransactionResolver } from "@/components/UnnamedTransactionResolver"
 import { GlowingBadge } from "@/components/unlumen-ui/glowing-badge"
 import { FloatingTooltipTrigger } from "@/components/unlumen-ui/floating-tooltip"
+import { CycleScorecardModal } from "@/components/CycleScorecardModal"
 
 interface CurvePoint {
   inflow: number
@@ -133,6 +134,7 @@ export function DashboardView({
   const router = useRouter()
   const [isPending, startTransition] = useTransition()
   const [navigationDirection, setNavigationDirection] = useState<'prev' | 'next' | null>(null)
+  const [isScorecardOpen, setIsScorecardOpen] = useState(false)
   const { setAuditPanelOpen, setActiveTransactionId, currencySymbol, language, decayWeight, isPro, setSettingsOpen, setSettingsActiveTab, setSubscriptionOnly, profile, user, refreshProfile } = useSystem()
   
   const currentCycle = cycles.find(c => c.id === currentCycleId) || cycles[0]
@@ -691,7 +693,32 @@ export function DashboardView({
             )}
           </h1>
         </div>
+
+        <div className="flex items-center gap-2">
+          <button
+            type="button"
+            onClick={() => setIsScorecardOpen(true)}
+            className="h-9 px-3 bg-secondary/40 hover:bg-secondary border border-border text-[10px] font-mono font-bold uppercase tracking-wider text-muted-foreground hover:text-foreground transition-colors flex items-center gap-1.5 cursor-pointer rounded-none"
+            title="View Shareable Cycle Scorecard"
+          >
+            <Trophy className="h-3.5 w-3.5 text-amber-500" />
+            <span className="hidden sm:inline">Scorecard</span>
+          </button>
+        </div>
       </header>
+
+      {/* Cycle Scorecard Shareable Modal */}
+      <CycleScorecardModal
+        isOpen={isScorecardOpen}
+        onClose={() => setIsScorecardOpen(false)}
+        telemetry={{
+          velocity,
+          netDelta: projectedTotalIn - projectedTotalOut,
+          projectedSurplus: isCurrentCycle ? (projectedTotalIn - projectedTotalOut) : netChange,
+          currentBalance: cycleEndBalance
+        }}
+        cycleTitle={currentCycle.label.replace('Cycle: ', '')}
+      />
 
       {/* Unnamed Bank Transaction Resolver & Push Alert Banner */}
       <UnnamedTransactionResolver expenses={expenses} categories={categories} />

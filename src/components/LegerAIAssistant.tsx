@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect, useRef, useMemo } from "react"
 import { motion, AnimatePresence, useAnimation, useMotionValue, useDragControls } from "framer-motion"
-import { Brain, Cpu, MessageSquare, Mic, MicOff, Send, X, RefreshCcw, Sparkles, Lock, ChevronUp, ChevronDown, Globe, ArrowUpRight, History, Plus, Trash2, Clock, MessageSquarePlus, MessagesSquare, ChevronRight } from "lucide-react"
+import { Brain, Cpu, MessageSquare, Mic, MicOff, Send, X, RefreshCcw, Sparkles, Lock, ChevronUp, ChevronDown, Globe, ArrowUpRight, History, Plus, Trash2, Clock, MessageSquarePlus, MessagesSquare, ChevronRight, Check } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { useSystem } from "@/lib/SystemContext"
 import { getAIHeaders } from "@/lib/ai-client"
@@ -10,6 +10,27 @@ import { usePathname } from "next/navigation"
 import { supabase } from "@/lib/supabase"
 import { toast } from "sonner"
 import { ProLockOverlay } from "@/components/ProLockOverlay"
+
+export interface TransactionDraft {
+  merchant: string
+  amount: number
+  category?: string
+  categoryId?: number | null
+  date?: string
+}
+
+export function parseTransactionDraft(text: string): { cleanText: string; draft: TransactionDraft | null } {
+  if (!text) return { cleanText: text, draft: null }
+  const match = text.match(/\[TRANSACTION_DRAFT:(\{.*?\})\]/)
+  if (!match) return { cleanText: text, draft: null }
+  try {
+    const draft = JSON.parse(match[1]) as TransactionDraft
+    const cleanText = text.replace(/\[TRANSACTION_DRAFT:\{.*?\}\]/, "").trim()
+    return { cleanText, draft }
+  } catch (e) {
+    return { cleanText: text, draft: null }
+  }
+}
 
 export interface Message {
   sender: "user" | "assistant"
@@ -478,8 +499,89 @@ function getPagePillVariations(pathname: string, telemetry: any, profile: any, a
   }
 }
 
+function TransactionDraftCard({
+  draft,
+  onConfirm,
+  currencySymbol = "€"
+}: {
+  draft: TransactionDraft
+  onConfirm: (draft: TransactionDraft) => Promise<void>
+  currencySymbol?: string
+}) {
+  const [status, setStatus] = useState<"pending" | "saving" | "confirmed" | "cancelled">("pending")
+
+  const handleConfirm = async () => {
+    setStatus("saving")
+    try {
+      await onConfirm(draft)
+      setStatus("confirmed")
+    } catch (e) {
+      setStatus("pending")
+    }
+  }
+
+  if (status === "cancelled") {
+    return (
+      <div className="mt-2.5 p-2 bg-secondary/20 border border-border/40 text-[10px] font-mono text-muted-foreground italic rounded-xl">
+        Transaction draft dismissed
+      </div>
+    )
+  }
+
+  if (status === "confirmed") {
+    return (
+      <div className="mt-2.5 p-3 bg-emerald-500/10 border border-emerald-500/30 text-emerald-500 text-xs font-mono font-bold flex items-center gap-2 rounded-xl">
+        <Check className="h-4 w-4 shrink-0 stroke-[3]" />
+        <span>Added {currencySymbol}{Math.abs(draft.amount).toFixed(2)} at {draft.merchant} to ledger</span>
+      </div>
+    )
+  }
+
+  return (
+    <div className="mt-2.5 p-3.5 bg-card border border-border rounded-xl shadow-xl space-y-3 font-mono">
+      <div className="flex items-center justify-between border-b border-border/40 pb-2">
+        <span className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground flex items-center gap-1.5">
+          <Sparkles className="h-3.5 w-3.5 text-emerald-500" /> New Transaction Detected
+        </span>
+        <span className="text-[10px] text-muted-foreground font-sans">
+          {draft.date || "Today"}
+        </span>
+      </div>
+
+      <div className="flex items-center justify-between gap-3">
+        <div className="min-w-0">
+          <div className="text-xs font-bold text-foreground truncate">{draft.merchant}</div>
+          <div className="text-[10px] text-muted-foreground font-sans truncate">{draft.category || "Uncategorized"}</div>
+        </div>
+        <div className="text-sm font-bold text-foreground tabular-nums shrink-0">
+          {draft.amount < 0 ? "-" : "+"}{currencySymbol}{Math.abs(draft.amount).toFixed(2)}
+        </div>
+      </div>
+
+      <div className="flex items-center gap-2 pt-1">
+        <button
+          type="button"
+          onClick={handleConfirm}
+          disabled={status === "saving"}
+          className="flex-1 h-8 bg-foreground text-background hover:bg-foreground/90 text-[10px] font-bold uppercase tracking-wider transition-colors flex items-center justify-center gap-1.5 cursor-pointer rounded-lg shadow-sm"
+        >
+          {status === "saving" ? "Adding to ledger..." : "Confirm & Add to Ledger"}
+        </button>
+        <button
+          type="button"
+          onClick={() => setStatus("cancelled")}
+          disabled={status === "saving"}
+          className="px-3 h-8 bg-secondary hover:bg-secondary/80 text-muted-foreground hover:text-foreground text-[10px] font-bold uppercase tracking-wider transition-colors cursor-pointer rounded-lg border border-border/60"
+        >
+          Cancel
+        </button>
+      </div>
+    </div>
+  )
+}
+
 export function LegerAIAssistant() {
-  const { profile, user, refreshProfile, currencySymbol, language, aiProvider, customApiKey, isPro, isSettingsOpen, setSettingsOpen, setSettingsActiveTab, setSubscriptionOnly } = useSystem()
+  const { profile, user, refreshProfile, refreshData, currencySymbol, language, aiProvider, customApiKey, isPro, isSettingsOpen, setSettingsOpen, setSettingsActiveTab, setSubscriptionOnly } = useSystem()
   const pathname = usePathname()
   const sheetDragControls = useDragControls()
   
@@ -499,6 +601,30 @@ export function LegerAIAssistant() {
   }, [sessions, activeSessionId])
 
   const messages = activeSession ? activeSession.messages : []
+
+  const handleConfirmTransactionDraft = async (draft: TransactionDraft) => {
+    if (!user) {
+      toast.error("User session missing")
+      return
+    }
+
+    const { error } = await supabase.from("tracker_expense").insert({
+      user_id: user.id,
+      merchant: draft.merchant,
+      amount: draft.amount.toString(),
+      date: draft.date || new Date().toISOString().split("T")[0],
+      category_id: draft.categoryId || null,
+      source: "ai_assistant"
+    })
+
+    if (error) {
+      toast.error("Failed to add transaction")
+      throw error
+    }
+
+    toast.success(`Logged ${currencySymbol}${Math.abs(draft.amount).toFixed(2)} at ${draft.merchant}!`)
+    if (refreshData) refreshData()
+  }
 
   useEffect(() => {
     if (typeof window !== "undefined") {
@@ -1437,7 +1563,8 @@ export function LegerAIAssistant() {
                     </motion.div>
                   ) : (
                     messages.map((msg, i) => {
-                    const hasComplexFormatting = msg.text.includes("|") || msg.text.includes("- ") || msg.text.includes("* ") || msg.text.includes("###") || msg.text.includes("##");
+                    const { cleanText, draft } = parseTransactionDraft(msg.text);
+                    const hasComplexFormatting = cleanText.includes("|") || cleanText.includes("- ") || cleanText.includes("* ") || cleanText.includes("###") || cleanText.includes("##");
                     const isNewAssistantMessage = i === messages.length - 1 && msg.sender === "assistant" && (Date.now() - msg.timestamp < 15000) && !hasComplexFormatting;
                     
                     return (
@@ -1456,63 +1583,74 @@ export function LegerAIAssistant() {
                             <Brain className="h-3 w-3" />
                           </div>
                         )}
-                        <div 
-                          className={cn(
-                            "px-4 py-3 sm:p-3 rounded-2xl text-[15px] sm:text-sm leading-relaxed font-sans font-medium shadow-sm transition-all",
-                            msg.sender === "user" 
-                              ? "bg-foreground text-background border-border rounded-tr-none" 
-                              : "bg-secondary/40 text-foreground/90 border-border/40 rounded-tl-none"
-                          )}
-                        >
-                          {msg.sender === "user" ? (
-                            msg.text
-                          ) : isNewAssistantMessage ? (
-                            <TypewriterText text={msg.text} speed={6} />
-                          ) : (
-                            renderFormattedText(msg.text)
-                          )}
+                        <div className="flex-1 min-w-0 space-y-2">
+                          <div 
+                            className={cn(
+                              "px-4 py-3 sm:p-3 rounded-2xl text-[15px] sm:text-sm leading-relaxed font-sans font-medium shadow-sm transition-all",
+                              msg.sender === "user" 
+                                ? "bg-foreground text-background border-border rounded-tr-none" 
+                                : "bg-secondary/40 text-foreground/90 border-border/40 rounded-tl-none"
+                            )}
+                          >
+                            {msg.sender === "user" ? (
+                              msg.text
+                            ) : isNewAssistantMessage ? (
+                              <TypewriterText text={cleanText} speed={6} />
+                            ) : (
+                              renderFormattedText(cleanText)
+                            )}
 
-                          {/* Live Web Search Sources Badge */}
-                          {msg.webSearched && msg.webSources && msg.webSources.length > 0 && (() => {
-                            const uniqueSources = Array.from(
-                              new Map(
-                                msg.webSources.map((s) => {
-                                  let key = s.source || ""
-                                  if (!key && s.url) {
-                                    try {
-                                      key = new URL(s.url).hostname.replace(/^www\./, "")
-                                    } catch (e) {
-                                      key = s.url
+                            {/* Live Web Search Sources Badge */}
+                            {msg.webSearched && msg.webSources && msg.webSources.length > 0 && (() => {
+                              const uniqueSources = Array.from(
+                                new Map(
+                                  msg.webSources.map((s) => {
+                                    let key = s.source || ""
+                                    if (!key && s.url) {
+                                      try {
+                                        key = new URL(s.url).hostname.replace(/^www\./, "")
+                                      } catch (e) {
+                                        key = s.url
+                                      }
                                     }
-                                  }
-                                  return [key, { ...s, displaySource: key }]
-                                })
-                              ).values()
-                            ).slice(0, 4)
+                                    return [key, { ...s, displaySource: key }]
+                                  })
+                                ).values()
+                              ).slice(0, 4)
 
-                            return (
-                              <div className="mt-2.5 pt-2 border-t border-border/30 space-y-1.5 font-mono text-[9px]">
-                                <div className="flex items-center gap-1.5 text-muted-foreground/70 tracking-wider">
-                                  <Globe className="h-3 w-3 text-white shrink-0" />
-                                  <span className="uppercase">Sources</span>
+                              return (
+                                <div className="mt-2.5 pt-2 border-t border-border/30 space-y-1.5 font-mono text-[9px]">
+                                  <div className="flex items-center gap-1.5 text-muted-foreground/70 tracking-wider">
+                                    <Globe className="h-3 w-3 text-white shrink-0" />
+                                    <span className="uppercase">Sources</span>
+                                  </div>
+                                  <div className="flex flex-wrap gap-1">
+                                    {uniqueSources.map((src, sIdx) => (
+                                      <a 
+                                        key={sIdx} 
+                                        href={src.url} 
+                                        target="_blank" 
+                                        rel="noopener noreferrer"
+                                        className="inline-flex items-center gap-1 px-1.5 py-0.5 bg-secondary/30 hover:bg-secondary/70 border border-border/40 text-muted-foreground hover:text-foreground transition-colors rounded text-[9px] font-mono"
+                                      >
+                                        <span className="truncate max-w-[130px]">{src.displaySource || src.title}</span>
+                                        <ArrowUpRight className="h-2 w-2 opacity-50" />
+                                      </a>
+                                    ))}
+                                  </div>
                                 </div>
-                                <div className="flex flex-wrap gap-1">
-                                  {uniqueSources.map((src, sIdx) => (
-                                    <a 
-                                      key={sIdx} 
-                                      href={src.url} 
-                                      target="_blank" 
-                                      rel="noopener noreferrer"
-                                      className="inline-flex items-center gap-1 px-1.5 py-0.5 bg-secondary/30 hover:bg-secondary/70 border border-border/40 text-muted-foreground hover:text-foreground transition-colors rounded text-[9px] font-mono"
-                                    >
-                                      <span className="truncate max-w-[130px]">{src.displaySource || src.title}</span>
-                                      <ArrowUpRight className="h-2 w-2 opacity-50" />
-                                    </a>
-                                  ))}
-                                </div>
-                              </div>
-                            )
-                          })()}
+                              )
+                            })()}
+                          </div>
+
+                          {/* Interactive Transaction Draft Card */}
+                          {draft && msg.sender === "assistant" && (
+                            <TransactionDraftCard 
+                              draft={draft}
+                              onConfirm={handleConfirmTransactionDraft}
+                              currencySymbol={currencySymbol}
+                            />
+                          )}
                         </div>
                       </motion.div>
                     )

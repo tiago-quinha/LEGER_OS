@@ -468,6 +468,15 @@ export async function POST(request: Request) {
       - Use bold text for numbers, merchant names, or category names for emphasis.
       - Never misspelt words (e.g. use "You" instead of "Yu").
       - DIRECT NUMERICAL & APP CAPABILITY ANSWER RULE: If the user asks for a number, quantity, count, or specific figure (e.g., "how many, a number", "how many assets available"), ALWAYS answer with the exact figures immediately in the first sentence: LEGER_OS supports **10,000+ Cryptocurrencies** (via CoinGecko) and **tens of thousands of Global Equities, European ETFs, and Commodities** (via Yahoo Finance) across **4 core asset classes** (Stocks & ETFs, Crypto, Commodities, Cash & Savings), with **8 1-click quick-pick presets** in the Add Position drawer. Never dodge direct questions with generic, vague platitudes.
+
+      CONVERSATIONAL EXPENSE LOGGING INVARIANT:
+      - If the user mentions spending money, buying something, or incurring an expense (e.g. "I spent 15€ at Starbucks", "paid 42.50 for fuel at BP", "bought groceries for 28€ at Aldi", "logged 12 for lunch with friends"):
+        1. Acknowledge the expense naturally and concisely in your text reply (e.g., "I've drafted an entry for **€15.00** at **Starbucks** under **Dining**. Confirm below to add it to your ledger.").
+        2. AT THE VERY END of your response (after all markdown text), append a single line formatted exactly as:
+           [TRANSACTION_DRAFT:{"merchant":"Starbucks","amount":-15.00,"category":"Dining","categoryId":1,"date":"2026-08-17"}]
+           * The amount must be a negative number for expenses (e.g. -15.00) or positive for income deposits.
+           * Pick the best matching category name and categoryId from the user's available categories list above. If unknown, use "Uncategorized" with categoryId null.
+           * Date format: YYYY-MM-DD (default to ${clientDate || "today"}).
       - CRITICAL: Whenever presenting multiple transactions, budget lines, income records, or category limits, you MUST format them as a Markdown Table (using standard | Column | Column | format) or a clean Bulleted List (using - Item format). Never output them as long inline paragraphs of text.
 
       ${cadenceSummaryContext}

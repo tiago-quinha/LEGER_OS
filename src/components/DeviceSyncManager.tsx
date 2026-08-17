@@ -206,14 +206,30 @@ export function DeviceSyncManager({ user: propUser, isPro: propIsPro, onUpgradeC
     toast.info("Cleared bank app selection")
   }
 
-  // Should we show the platform switcher?
-  // Only show platform switcher if the user is a super user or on a non-mobile desktop.
-  // Standard mobile users are locked to their detected OS for maximum simplicity and zero confusion.
+  const testDailyOutlook = async () => {
+    if (!user?.id) {
+      toast.error("User session missing")
+      return
+    }
+    try {
+      const res = await fetch(`/api/notifications/daily-outlook?userId=${user.id}&type=morning`)
+      const data = await res.json()
+      if (data?.notification) {
+        toast(data.notification.title, {
+          description: data.notification.body
+        })
+      } else {
+        toast.error("Unable to calculate Daily Outlook")
+      }
+    } catch (e) {
+      toast.error("Failed to generate Daily Outlook")
+    }
+  }
+
   const showPlatformSwitcher = isSuperUser || detectedOS === "desktop"
 
   return (
     <div className="space-y-4">
-      {/* Dynamic Platform Switcher (Shown only to Devs/SuperUsers or Desktop browsers) */}
       {showPlatformSwitcher ? (
         <div className="grid grid-cols-2 sm:grid-cols-3 gap-1 bg-secondary/30 p-1 border border-border">
           <button
@@ -244,7 +260,6 @@ export function DeviceSyncManager({ user: propUser, isPro: propIsPro, onUpgradeC
             <span>iOS Shortcuts</span>
           </button>
 
-          {/* MACRODROID / DEV TAB - STRICTLY VISIBLE ONLY TO SUPER USERS */}
           {isSuperUser && (
             <button
               type="button"
@@ -262,7 +277,6 @@ export function DeviceSyncManager({ user: propUser, isPro: propIsPro, onUpgradeC
           )}
         </div>
       ) : (
-        /* Device Identity Pill for standard mobile users */
         <div className="flex items-center justify-between p-2.5 bg-secondary/20 border border-border text-[10px] font-mono">
           <div className="flex items-center gap-2">
             {detectedOS === "ios" ? (
@@ -290,10 +304,8 @@ export function DeviceSyncManager({ user: propUser, isPro: propIsPro, onUpgradeC
         />
       ) : (
         <div className="space-y-4">
-          {/* PLATFORM 1: ANDROID NATIVE LISTENER */}
           {activePlatform === "android" && (
             <div className="space-y-4">
-              {/* Google Play In-App Permission Disclosure Card */}
               <div className="p-4 bg-secondary/15 border border-border space-y-3">
                 <div className="flex items-start gap-2.5">
                   <ShieldCheck className="h-5 w-5 text-emerald-500 shrink-0 mt-0.5" />
@@ -319,7 +331,6 @@ export function DeviceSyncManager({ user: propUser, isPro: propIsPro, onUpgradeC
                 </div>
               </div>
 
-              {/* Bank App Selector Matrix */}
               <div className="p-4 bg-card border border-border space-y-3">
                 <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-border/40 pb-3">
                   <div>
@@ -346,7 +357,6 @@ export function DeviceSyncManager({ user: propUser, isPro: propIsPro, onUpgradeC
                   </div>
                 </div>
 
-                {/* Search Bar */}
                 <div className="relative pt-1">
                   <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground mt-0.5" />
                   <Input
@@ -357,7 +367,6 @@ export function DeviceSyncManager({ user: propUser, isPro: propIsPro, onUpgradeC
                   />
                 </div>
 
-                {/* Bank Grid */}
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2 pt-1 max-h-[280px] overflow-y-auto pr-1">
                   {filteredBanks.map((bank) => {
                     const isSelected = selectedBanks.includes(bank.id)
@@ -436,7 +445,6 @@ export function DeviceSyncManager({ user: propUser, isPro: propIsPro, onUpgradeC
                   </span>
                 </div>
 
-                {/* Add Custom Bank App Form */}
                 <form onSubmit={handleAddCustomBank} className="flex gap-2 pt-2 border-t border-border/40">
                   <Input
                     placeholder="Add unlisted bank package (e.g. com.mybank.app)"
@@ -455,7 +463,6 @@ export function DeviceSyncManager({ user: propUser, isPro: propIsPro, onUpgradeC
             </div>
           )}
 
-          {/* PLATFORM 2: IOS APPLE SHORTCUTS */}
           {activePlatform === "ios" && (
             <div className="space-y-4">
               <div className="p-4 bg-card border border-border space-y-3">
@@ -487,7 +494,6 @@ export function DeviceSyncManager({ user: propUser, isPro: propIsPro, onUpgradeC
                   </div>
                 </div>
 
-                {/* Setup Steps for iOS */}
                 <div className="space-y-2 pt-2 border-t border-border/40 text-[10px] font-sans text-muted-foreground leading-relaxed">
                   <p className="font-mono text-[9px] font-bold text-foreground uppercase">Setup in Apple Shortcuts App:</p>
                   <ol className="list-decimal list-inside space-y-1.5">
@@ -502,7 +508,6 @@ export function DeviceSyncManager({ user: propUser, isPro: propIsPro, onUpgradeC
             </div>
           )}
 
-          {/* PLATFORM 3: MACRODROID / DEV WEBHOOK - SUPER USERS ONLY */}
           {activePlatform === "macrodroid" && isSuperUser && (
             <div className="space-y-4">
               <div className="p-4 bg-card border border-border space-y-3">
@@ -552,7 +557,6 @@ export function DeviceSyncManager({ user: propUser, isPro: propIsPro, onUpgradeC
         </div>
       )}
 
-      {/* Web Push Notification Card for Instant Transaction Alerts & Quick Naming */}
       <div className="p-4 bg-card/40 border border-border space-y-3">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
@@ -579,6 +583,16 @@ export function DeviceSyncManager({ user: propUser, isPro: propIsPro, onUpgradeC
           </div>
 
           <div className="flex items-center gap-2">
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              onClick={testDailyOutlook}
+              className="h-8 rounded-none border-border font-mono text-[10px] uppercase cursor-pointer flex items-center gap-1.5"
+              title="Test Daily Financial Outlook Notification"
+            >
+              <Sparkles className="h-3 w-3 text-emerald-500" /> Morning Outlook
+            </Button>
             {isPushSubscribed ? (
               <>
                 <Button

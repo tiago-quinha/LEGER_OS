@@ -41,6 +41,7 @@ import { PrivacyValue } from "@/components/ui/privacy-value"
 import { Tilt } from "@/components/unlumen-ui/tilt"
 import { ClippedCircle } from "@/components/unlumen-ui/clipped-circle"
 import { UnnamedTransactionResolver } from "@/components/UnnamedTransactionResolver"
+import { SubscriptionRadar } from "@/components/SubscriptionRadar"
 
 interface Category {
   id: number
@@ -1700,10 +1701,11 @@ export function ExpensesView({ initialExpenses, categories: initialCategories, i
 
         <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-4">
           <div className="w-full min-w-0">
-            <TabsList className="bg-card/40 border border-border p-1 grid grid-cols-3 w-full gap-1">
-              <TabsTrigger value="history" className="rounded-none px-1 sm:px-6 py-2.5 uppercase tracking-tighter sm:tracking-widest font-mono text-[11px] sm:text-xs font-bold truncate">History</TabsTrigger>
-              <TabsTrigger value="rules" className="rounded-none px-1 sm:px-6 py-2.5 uppercase tracking-tighter sm:tracking-widest font-mono text-[11px] sm:text-xs font-bold truncate">Rules</TabsTrigger>
-              <TabsTrigger value="ingest" data-tour="ingest-tab" className="rounded-none px-1 sm:px-6 py-2.5 uppercase tracking-widest font-mono text-[11px] sm:text-xs font-bold truncate">Ingest</TabsTrigger>
+            <TabsList className="bg-card/40 border border-border p-1 grid grid-cols-4 w-full gap-1">
+              <TabsTrigger value="history" className="rounded-none px-1 sm:px-4 py-2.5 uppercase tracking-tighter sm:tracking-widest font-mono text-[10px] sm:text-xs font-bold truncate">History</TabsTrigger>
+              <TabsTrigger value="radar" className="rounded-none px-1 sm:px-4 py-2.5 uppercase tracking-tighter sm:tracking-widest font-mono text-[10px] sm:text-xs font-bold truncate">Radar</TabsTrigger>
+              <TabsTrigger value="rules" className="rounded-none px-1 sm:px-4 py-2.5 uppercase tracking-tighter sm:tracking-widest font-mono text-[10px] sm:text-xs font-bold truncate">Rules</TabsTrigger>
+              <TabsTrigger value="ingest" data-tour="ingest-tab" className="rounded-none px-1 sm:px-4 py-2.5 uppercase tracking-tighter sm:tracking-widest font-mono text-[10px] sm:text-xs font-bold truncate">Ingest</TabsTrigger>
             </TabsList>
           </div>
 
@@ -2526,6 +2528,10 @@ export function ExpensesView({ initialExpenses, categories: initialCategories, i
                 )}
               </CardContent>
             </Card>
+          </TabsContent>
+
+          <TabsContent value="radar" className="space-y-4">
+            <SubscriptionRadar expenses={expenses} />
           </TabsContent>
 
           <TabsContent value="rules" className="space-y-4">
