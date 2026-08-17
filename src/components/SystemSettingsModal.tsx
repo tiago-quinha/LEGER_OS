@@ -520,7 +520,7 @@ export function SystemSettingsModal({ open, onOpenChange }: SystemSettingsModalP
                       { id: "monthly", title: "Monthly", subtitle: "Once a month (e.g. 25th)", isCalendar: false },
                       { id: "biweekly", title: "Bi-Weekly", subtitle: "Every 2 weeks (14d)", isCalendar: false },
                       { id: "weekly", title: "Weekly", subtitle: "Every 7 days (e.g. Fridays)", isCalendar: false },
-                      { id: "calendar", title: "Calendar Month", subtitle: "1st to 30th / 31st", isCalendar: true }
+                      { id: "calendar", title: "Calendar Month", subtitle: "1st to 30th / 31st (Core Free)", isCalendar: true }
                     ].map((cadence) => {
                       const isSelected = cadence.id === "calendar"
                         ? cycleMode === "monthly" || paycheckFrequencyInput === "calendar"
@@ -530,6 +530,12 @@ export function SystemSettingsModal({ open, onOpenChange }: SystemSettingsModalP
                         <div 
                           key={cadence.id}
                           onClick={() => {
+                            if (!isPro && !cadence.isCalendar) {
+                              setSubscriptionOnly(true)
+                              setActiveTab("pro")
+                              toast.info("Custom paycheck cycle detection is a PRO feature.")
+                              return
+                            }
                             if (cadence.isCalendar) {
                               setCycleMode("monthly")
                               setPaycheckFrequencyInput("calendar")
@@ -544,7 +550,14 @@ export function SystemSettingsModal({ open, onOpenChange }: SystemSettingsModalP
                           )}
                         >
                           <div className="flex items-center justify-between">
-                            <span className="font-bold uppercase tracking-wider text-[10px] font-mono">{cadence.title}</span>
+                            <div className="flex items-center gap-1.5">
+                              <span className="font-bold uppercase tracking-wider text-[10px] font-mono">{cadence.title}</span>
+                              {!cadence.isCalendar && (
+                                <span className="text-[8px] font-mono font-bold text-emerald-500 bg-emerald-500/10 border border-emerald-500/30 px-1 py-0.5 rounded-none tracking-wider">
+                                  PRO
+                                </span>
+                              )}
+                            </div>
                             {isSelected && <Check className="h-3.5 w-3.5 text-emerald-500 stroke-[3]" />}
                           </div>
                           <p className="text-[9px] text-muted-foreground font-sans leading-relaxed">
