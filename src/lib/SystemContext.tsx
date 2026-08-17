@@ -156,7 +156,7 @@ export function SystemProvider({ children }: { children: React.ReactNode }) {
   const isPro = subscriptionTier === "PRO"
   const aiProvider = profile?.ai_provider || "gemini"
   const customApiKey = profile?.custom_api_key || ""
-  const decayWeight = profile?.decay_weight !== undefined ? Number(profile.decay_weight) : 0.12
+  const decayWeight = profile?.decay_weight !== undefined ? Number(profile.decay_weight) : 0.0462
   const paycheckKeyword = profile?.paycheck_keyword || "SALARY"
 
   const [stripeModalState, setStripeModalState] = useState<{

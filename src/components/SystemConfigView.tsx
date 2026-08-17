@@ -684,72 +684,36 @@ export function SystemConfigView() {
                         className="rounded-none text-xs h-10 bg-background"
                       />
                     </div>
-                  </div>                  {/* Yap Level & Decay Weight (PRO Gated) */}
+                  </div>
+                  {/* Yap Level (PRO Gated) */}
                   {!isPro ? (
                     <ProLockOverlay 
                       compact
                       title="ADVANCED AI CALIBRATION (PRO)"
-                      description="Custom AI verbosity responses and recency-decay mathematical time parameters (λ) are exclusive to LEGER_OS PRO nodes."
+                      description="Custom AI verbosity responses and in-depth analytical reasoning levels are exclusive to LEGER_OS PRO nodes."
                     />
                   ) : (
-                    <>
-                      <div className="space-y-1.5 pt-2">
-                        <div className="flex items-center justify-between">
-                          <Label htmlFor="aiYapLevel" className="text-[10px] uppercase tracking-widest text-muted-foreground font-bold">
-                            AI Response Verbosity / Yap Level
-                          </Label>
-                        </div>
-                        <div className="relative">
-                          <select
-                            id="aiYapLevel"
-                            value={aiYapLevelInput}
-                            onChange={(e) => setAiYapLevelInput(e.target.value as any)}
-                            className="w-full bg-background border border-input rounded-none h-10 px-3 pr-10 text-xs outline-none appearance-none font-bold text-foreground focus:border-foreground"
-                          >
-                            <option value="concise">Concise & Direct (Saves tokens, 1-2 bullet points)</option>
-                            <option value="standard">Standard (Balanced context & suggestions)</option>
-                            <option value="verbose">Verbose & Explanatory (Thorough projection breakdowns)</option>
-                          </select>
-                          <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground pointer-events-none" />
-                        </div>
+                    <div className="space-y-1.5 pt-2">
+                      <div className="flex items-center justify-between">
+                        <Label htmlFor="aiYapLevel" className="text-[10px] uppercase tracking-widest text-muted-foreground font-bold">
+                          AI Response Verbosity / Depth
+                        </Label>
                       </div>
-
-                      {/* Recency Decay Calibration */}
-                      <div className="p-5 bg-secondary/10 border border-border space-y-3">
-                        <div className="flex items-center justify-between text-xs font-bold uppercase tracking-widest">
-                          <span className="text-foreground">
-                            Recency Decay Sensitivity (λ)
-                          </span>
-                          {(() => {
-                            const val = parseFloat(decayInput) || 0.12
-                            const halfLife = Math.round(0.693 / val)
-                            const modeTag = halfLife <= 7 ? "Agile (Fast Velocity)" : halfLife <= 14 ? "Adaptive (Balanced)" : "Macro (High Stability)"
-                            return (
-                              <span className="text-emerald-500 font-bold font-mono">
-                                {decayInput} ({halfLife}d half-life · {modeTag})
-                              </span>
-                            )
-                          })()}
-                        </div>
-                        <input
-                          type="range"
-                          min="0.023"
-                          max="0.231"
-                          step="0.005"
-                          value={decayInput}
-                          onChange={(e) => setDecayInput(e.target.value)}
-                          className="w-full accent-emerald-500 h-2 bg-secondary cursor-pointer"
-                        />
-                        <div className="flex justify-between text-[9px] font-mono text-muted-foreground">
-                          <span>30d Half-Life (Macro Stability)</span>
-                          <span>6d (Standard)</span>
-                          <span>3d (Fast Agile)</span>
-                        </div>
+                      <div className="relative">
+                        <select
+                          id="aiYapLevel"
+                          value={aiYapLevelInput}
+                          onChange={(e) => setAiYapLevelInput(e.target.value as any)}
+                          className="w-full bg-background border border-input rounded-none h-10 px-3 pr-10 text-xs outline-none appearance-none font-bold text-foreground focus:border-foreground"
+                        >
+                          <option value="concise">Concise & Direct (Saves tokens, 1-2 bullet points)</option>
+                          <option value="standard">Standard (Balanced context & suggestions)</option>
+                          <option value="verbose">Verbose & Explanatory (Thorough projection breakdowns)</option>
+                        </select>
+                        <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground pointer-events-none" />
                       </div>
-                    </>
-                  )}     <p className="text-[11px] text-muted-foreground font-sans leading-relaxed">
-                    * Controls exponential time-decay weighting for daily cash flow forecasting. Exponential half-life calibration is unlocked on PRO tier.
-                  </p>
+                    </div>
+                  )}
                 </div>
 
                 <Button

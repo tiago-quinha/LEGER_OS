@@ -75,7 +75,7 @@ export interface ProjectionSimulationParams {
   daysElapsed: number
   totalDaysInCycle: number
   overrides?: any[]
-  halfLifeDays?: number // Default 5.78d (lambda = 0.12)
+  halfLifeDays?: number // Default 15.0d (lambda = ln(2)/15 ≈ 0.0462)
   targetMonthlySpend?: number
   startingBalance?: number
 }
@@ -99,7 +99,7 @@ export function generateProjectionCacheKey(params: ProjectionSimulationParams): 
     : 0
     
   const overridesKey = JSON.stringify(params.overrides || [])
-  const halfLife = Math.round((params.halfLifeDays || 5.78) * 100) / 100
+  const halfLife = Math.round((params.halfLifeDays || 15.0) * 100) / 100
   const startBal = Math.round((params.startingBalance || 0) * 100) / 100
   const cycleKey = `${params.currentCycle?.startDate}_${params.currentCycle?.endDate}`
   const todayStr = params.today?.toISOString().slice(0, 10) || ""
@@ -165,7 +165,7 @@ function executeEmpiricalComputation(
     daysElapsed,
     totalDaysInCycle,
     overrides = [],
-    halfLifeDays = 5.78, // Default ~6 days
+    halfLifeDays = 15.0, // Default 15 days
     targetMonthlySpend = 1500,
     startingBalance = 0
   } = params

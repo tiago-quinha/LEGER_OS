@@ -706,56 +706,25 @@ export function SystemSettingsModal({ open, onOpenChange }: SystemSettingsModalP
                     <ProLockOverlay 
                       compact
                       title="ADVANCED AI CALIBRATION (PRO)"
-                      description="Custom AI response depth and recency-decay time parameters (λ) are exclusive to LEGER_OS PRO nodes."
+                      description="Custom AI response depth and analytical reasoning configurations are exclusive to LEGER_OS PRO nodes."
                     />
                   ) : (
-                    <div className="grid grid-cols-2 gap-3 pt-1">
-                      {/* AI Response Depth */}
-                      <div className="space-y-1.5">
-                        <Label htmlFor="modalYapLevel" className="text-[9px] uppercase font-mono font-bold text-muted-foreground">
-                          AI Response Depth
-                        </Label>
-                        <div className="relative">
-                          <select
-                            id="modalYapLevel"
-                            value={aiYapLevelInput}
-                            onChange={(e) => setAiYapLevelInput(e.target.value as any)}
-                            className="w-full bg-background border border-border rounded-none h-9 px-3 pr-8 text-xs font-mono outline-none appearance-none text-foreground focus:border-foreground font-bold"
-                          >
-                            <option value="concise">Concise & Direct (Brief)</option>
-                            <option value="standard">Standard (Balanced context)</option>
-                            <option value="verbose">Detailed & Explanatory (Deep)</option>
-                          </select>
-                          <ChevronDown className="absolute right-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground pointer-events-none" />
-                        </div>
-                      </div>
-
-                      {/* Recency Decay Weight */}
-                      <div className="space-y-1.5 flex flex-col justify-between">
-                        <div className="flex items-center justify-between text-[10px] font-mono">
-                          <span className="text-muted-foreground uppercase font-bold">
-                            Recency Decay (λ):
-                          </span>
-                          {(() => {
-                            const val = parseFloat(decayInput) || 0.12
-                            const halfLife = Math.round(0.693 / val)
-                            const modeTag = halfLife <= 7 ? "Agile" : halfLife <= 14 ? "Adaptive" : "Macro"
-                            return (
-                              <span className="font-bold text-emerald-500 font-mono">
-                                {decayInput} ({halfLife}d · {modeTag})
-                              </span>
-                            )
-                          })()}
-                        </div>
-                        <input
-                          type="range"
-                          min="0.023"
-                          max="0.231"
-                          step="0.005"
-                          value={decayInput}
-                          onChange={(e) => setDecayInput(e.target.value)}
-                          className="w-full accent-emerald-500 h-1.5 bg-secondary cursor-pointer my-auto"
-                        />
+                    <div className="space-y-1.5 pt-1">
+                      <Label htmlFor="modalYapLevel" className="text-[9px] uppercase font-mono font-bold text-muted-foreground">
+                        AI Response Depth
+                      </Label>
+                      <div className="relative">
+                        <select
+                          id="modalYapLevel"
+                          value={aiYapLevelInput}
+                          onChange={(e) => setAiYapLevelInput(e.target.value as any)}
+                          className="w-full bg-background border border-border rounded-none h-9 px-3 pr-8 text-xs font-mono outline-none appearance-none text-foreground focus:border-foreground font-bold"
+                        >
+                          <option value="concise">Concise & Direct (Brief)</option>
+                          <option value="standard">Standard (Balanced context)</option>
+                          <option value="verbose">Detailed & Explanatory (Deep)</option>
+                        </select>
+                        <ChevronDown className="absolute right-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground pointer-events-none" />
                       </div>
                     </div>
                   )}

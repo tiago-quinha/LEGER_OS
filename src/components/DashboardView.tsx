@@ -205,7 +205,7 @@ export function DashboardView({
   // Predictive Expert Data Analyst Daily Simulation
   const expertProjection = useMemo(() => {
     const past = allPastExpenses || previousExpenses || []
-    return simulateExpertDailyProjection(past, expenses, currentCycle, today, daysElapsed, totalDaysInCycle, overrides, decayWeight || 0.12, targetMonthlySpend, injectedStartBalance)
+    return simulateExpertDailyProjection(past, expenses, currentCycle, today, daysElapsed, totalDaysInCycle, overrides, decayWeight || 0.0462, targetMonthlySpend, injectedStartBalance)
   }, [allPastExpenses, previousExpenses, expenses, currentCycle, today, daysElapsed, totalDaysInCycle, overrides, decayWeight, targetMonthlySpend, injectedStartBalance])
 
   const projectedTotalOut = useMemo(() => {

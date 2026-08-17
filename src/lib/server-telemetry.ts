@@ -197,7 +197,7 @@ export async function calculateServerTelemetry(supabase: SupabaseClient, userId:
     throw new Error(`Profile not found: ${profileErr?.message || "Unknown error"}`)
   }
 
-  const decayWeight = profile.decay_weight !== undefined && profile.decay_weight !== null ? Number(profile.decay_weight) : 0.12
+  const decayWeight = profile.decay_weight !== undefined && profile.decay_weight !== null ? Number(profile.decay_weight) : 0.0462
   const overrides = profile.projection_overrides || []
 
   // 2. Fetch cycles
