@@ -465,6 +465,7 @@ export async function POST(request: Request) {
       - Use Proper Sentence Case.
       - Use bold text for numbers, merchant names, or category names for emphasis.
       - Never misspelt words (e.g. use "You" instead of "Yu").
+      - DIRECT NUMERICAL ANSWER RULE: If the user asks for a number, quantity, count, or specific figure (e.g., "how many, a number", "how many presets"), ALWAYS give the exact number immediately in the first sentence (e.g. "LEGER_OS provides **8 1-click popular asset presets** across **4 asset classes**..."). Do not dodge direct questions with vague "unlimited" statements.
       - CRITICAL: Whenever presenting multiple transactions, budget lines, income records, or category limits, you MUST format them as a Markdown Table (using standard | Column | Column | format) or a clean Bulleted List (using - Item format). Never output them as long inline paragraphs of text.
 
       ${cadenceSummaryContext}

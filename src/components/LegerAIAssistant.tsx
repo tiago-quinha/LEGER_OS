@@ -257,7 +257,7 @@ function ThinkingIndicator({ query = "" }: { query?: string }) {
       className="flex gap-3 max-w-[85%] mr-auto items-start shrink-0"
     >
       <div className="p-1.5 bg-foreground text-background border border-border h-9 w-9 flex items-center justify-center shrink-0 rounded-md shadow-sm">
-        {isWebHeavy ? <Globe className="h-4 w-4 animate-spin [animation-duration:3s]" /> : <Brain className="h-4 w-4 animate-pulse" />}
+        <Brain className="h-4 w-4 animate-pulse" />
       </div>
       <div className="w-[260px] sm:w-[280px] h-9 px-3 bg-secondary/40 text-muted-foreground border border-border/60 rounded-lg rounded-tl-none text-xs italic animate-pulse flex items-center justify-between gap-2 overflow-hidden shrink-0">
         <div className="flex-1 min-w-0 overflow-hidden relative">
