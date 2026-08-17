@@ -68,7 +68,7 @@ export interface ProjectionSimulationParams {
   currentExpenses: any[]
   currentCycle: {
     startDate: string
-    endDate: string
+    endDate?: string | null
     startingBalance?: number
   }
   today: Date
@@ -174,7 +174,7 @@ function executeEmpiricalComputation(
   const decayRate = Math.log(2) / Math.max(1.0, halfLifeDays)
   
   // 1. Isolate Deterministic Recurring Subscriptions & Fixed Commitments
-  const cadenceResult = detectRecurringCadence(pastExpenses, currentCycle?.startDate, currentCycle?.endDate)
+  const cadenceResult = detectRecurringCadence(pastExpenses, currentCycle?.startDate, currentCycle?.endDate || undefined)
   const recurringNames = new Set(cadenceResult.subscriptions.map(s => s.normalizedMerchant))
   const recurringMerchants = cadenceResult.subscriptions.map(s => ({
     merchant: s.normalizedMerchant,

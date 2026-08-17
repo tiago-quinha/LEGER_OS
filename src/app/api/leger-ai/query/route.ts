@@ -330,9 +330,11 @@ export async function POST(request: Request) {
       - Projected End-of-Cycle Account Balance (estimated final close balance): €${parseFloat(finalTelemetry.projectedEndBalance !== undefined ? finalTelemetry.projectedEndBalance : (finalTelemetry.currentBalance || 0)).toFixed(2)}
       - Total Inflow (Income Received): €${parseFloat(finalTelemetry.totalIn || 0).toFixed(2)}
       - Total Outflow (Expenses Paid): €${parseFloat(finalTelemetry.totalOut || 0).toFixed(2)}
+      - Empirical Variable Daily Burn Rate (Filtered of 1-off anomalies & recurring bills): €${parseFloat(finalTelemetry.dailyVariableBurn !== undefined ? finalTelemetry.dailyVariableBurn : finalTelemetry.currentDailyVariableBurn || 0).toFixed(2)}/day
       - Spending daily velocity multiplier: ${parseFloat(finalTelemetry.velocity || 0).toFixed(2)}x
       - Cycle Timeline Progress: ${finalTelemetry.daysElapsed || 1} / 30 Days Elapsed
       - Budget spending limit: €${parseFloat(finalTelemetry.spendingLimit || 1500).toFixed(2)}
+      - ANOMALY & RECURRING FILTERING INVARIANT: When discussing daily variable burn rate or spending pace, use the empirical variable daily burn rate (€${parseFloat(finalTelemetry.dailyVariableBurn !== undefined ? finalTelemetry.dailyVariableBurn : finalTelemetry.currentDailyVariableBurn || 0).toFixed(2)}/day), which correctly isolates 1-off anomaly transactions (e.g. annual subscriptions, hardware purchases) and fixed bills from inflating daily variable spend.
 
       MOST EXPENSIVE CYCLE TRANSACTIONS:
       ${topContext || "No transaction records passed."}
