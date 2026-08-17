@@ -50,7 +50,7 @@ export async function generateAIContent(prompt: string, options: AIBridgeOptions
     }
     const genAI = new GoogleGenerativeAI(cleanApiKey);
     const preferredModel = process.env.GEMINI_MODEL || "gemini-2.5-flash";
-    const candidateModels = Array.from(new Set([preferredModel, "gemini-2.5-flash", "gemini-2.0-flash", "gemini-1.5-pro"]));
+    const candidateModels = Array.from(new Set([preferredModel, "gemini-2.5-flash", "gemini-2.5-pro", "gemini-2.0-flash", "gemini-2.0-flash-lite"]));
     
     let lastError: any = null;
     let success = false;
