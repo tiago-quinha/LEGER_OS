@@ -241,10 +241,10 @@ export function RadarPageView({ expenses, categories, cycles, currentCycleId }: 
       currentCycleId={currentCycleId}
       route="/radar"
       onCycleChange={handleCycleSelect}
-      className="mx-auto max-w-[1500px] p-4 md:p-8 space-y-6 md:space-y-8 pb-36 md:pb-8 w-full font-mono"
     >
-      {/* 1. Header (Normalized Subpage Header) */}
-      <header className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 md:pb-6 relative border-b border-border">
+      <div className="mx-auto max-w-[1500px] p-4 md:p-8 space-y-6 md:space-y-8 pb-36 md:pb-8 w-full font-mono">
+        {/* 1. Header (Normalized Subpage Header) */}
+        <header className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 md:pb-6 relative border-b border-border">
         <div className="space-y-1.5">
           <div className="flex items-center gap-3 text-[9px] md:text-[10px] font-mono font-bold tracking-[0.2em] uppercase text-muted-foreground">
             <Radio className="h-3.5 w-3.5 text-foreground" />
@@ -422,11 +422,8 @@ export function RadarPageView({ expenses, categories, cycles, currentCycleId }: 
                           onClick={(e) => handleToggleCadence(sub.merchant, sub.cadence, e)}
                           title={`Click to switch between Monthly and Annual (currently ${sub.cadence.toUpperCase()})`}
                           className={cn(
-                            "px-2.5 py-1 text-[9px] font-mono font-bold uppercase tracking-wider border rounded-none transition-all cursor-pointer flex items-center gap-1.5 hover:border-foreground",
-                            sub.cadence === "monthly" && "bg-secondary text-foreground border-border",
-                            sub.cadence === "annual" && "bg-secondary text-foreground border-border",
-                            isHiked && "bg-amber-500/10 text-amber-500 border-amber-500/30",
-                            isManualOverride && "ring-1 ring-emerald-500/40"
+                            "px-2.5 py-1 text-[9px] font-mono font-bold uppercase tracking-wider border rounded-none transition-all cursor-pointer flex items-center gap-1.5 hover:border-foreground bg-secondary text-foreground border-border",
+                            isHiked && "bg-amber-500/10 text-amber-500 border-amber-500/30"
                           )}
                         >
                           <span>{sub.cadence.toUpperCase()}</span>
@@ -713,6 +710,7 @@ export function RadarPageView({ expenses, categories, cycles, currentCycleId }: 
           </div>
         )}
       </AnimatePresence>
+      </div>
 
       {/* Mobile sticky cycle bar */}
       <CycleMobileBar

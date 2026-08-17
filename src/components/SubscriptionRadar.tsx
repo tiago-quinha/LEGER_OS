@@ -294,11 +294,8 @@ export function SubscriptionRadar({ expenses, cycleStartDate, cycleEndDate }: Su
                           onClick={(e) => handleToggleCadence(sub.merchant, sub.cadence, e)}
                           title={`Click to switch between Monthly and Annual (currently ${sub.cadence.toUpperCase()})`}
                           className={cn(
-                            "px-2 py-0.5 text-[9px] font-mono font-bold uppercase tracking-wider border rounded transition-all cursor-pointer flex items-center gap-1 hover:border-foreground",
-                            sub.cadence === "monthly" && "bg-secondary text-foreground border-border",
-                            sub.cadence === "annual" && "bg-secondary text-foreground border-border",
-                            isHiked && "bg-amber-500/10 text-amber-500 border-amber-500/30",
-                            isManualOverride && "ring-1 ring-emerald-500/40"
+                            "px-2 py-0.5 text-[9px] font-mono font-bold uppercase tracking-wider border rounded transition-all cursor-pointer flex items-center gap-1 hover:border-foreground bg-secondary text-foreground border-border",
+                            isHiked && "bg-amber-500/10 text-amber-500 border-amber-500/30"
                           )}
                         >
                           <span>{sub.cadence.toUpperCase()}</span>
