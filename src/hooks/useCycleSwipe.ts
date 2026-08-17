@@ -112,7 +112,26 @@ export function useCycleSwipe({
 export function shouldPreventSwipe(target: HTMLElement | Element | null): boolean {
   if (!target) return false
 
-  // 1. If any modal, dialog, drawer, sheet, popover or dropdown menu is open in the document,
+  // 1. Toast notifications (Sonner, Radix, Shadcn toast) - Swipe gestures on toasts must NEVER trigger cycle switching
+  if (typeof (target as HTMLElement).closest === "function") {
+    const htmlEl = target as HTMLElement
+    if (
+      htmlEl.closest("[data-sonner-toast]") ||
+      htmlEl.closest("[data-sonner-toaster]") ||
+      htmlEl.closest("[data-toast]") ||
+      htmlEl.closest("[role='status']") ||
+      htmlEl.closest("[role='alert']") ||
+      htmlEl.closest(".sonner-toast") ||
+      htmlEl.closest(".toaster") ||
+      htmlEl.closest("[data-radix-portal]") ||
+      htmlEl.closest("[data-no-swipe='true']") ||
+      htmlEl.closest(".no-swipe")
+    ) {
+      return true
+    }
+  }
+
+  // 2. If any modal, dialog, drawer, sheet, popover or dropdown menu is open in the document,
   // we prevent the global swipe cycle switching to avoid conflicts.
   if (typeof document !== "undefined") {
     const activeOverlays = document.querySelectorAll(
@@ -125,6 +144,19 @@ export function shouldPreventSwipe(target: HTMLElement | Element | null): boolea
 
   let el: HTMLElement | null = target as HTMLElement
   while (el && el !== document.body && el !== document.documentElement) {
+    // Toast element attributes check in upward traversal
+    if (
+      el.getAttribute("data-sonner-toast") !== null ||
+      el.getAttribute("data-sonner-toaster") !== null ||
+      el.getAttribute("data-toast") !== null ||
+      el.getAttribute("role") === "status" ||
+      el.getAttribute("role") === "alert" ||
+      el.classList.contains("sonner-toast") ||
+      el.classList.contains("toaster")
+    ) {
+      return true
+    }
+
     // Skip main container layout wrappers so swiping works on general page layout
     if (
       el.id === "main-content" ||
