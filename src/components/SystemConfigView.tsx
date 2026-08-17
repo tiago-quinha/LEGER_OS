@@ -176,7 +176,7 @@ export function SystemConfigView() {
     setIsSavingProfile(true)
 
     const finalKeyword = cycleMode === "monthly" ? "MONTHLY" : (keywordInput.trim() || "SALARY")
-    const computedDecay = Math.LN2 / Math.max(1, halfLifeDaysInput)
+    const computedDecay = parseFloat((Math.LN2 / Math.max(1, halfLifeDaysInput)).toFixed(6))
 
     const { error } = await supabase
       .from("profiles")
@@ -200,7 +200,6 @@ export function SystemConfigView() {
     } else {
       toast.success("System configuration saved successfully!")
       await refreshProfile()
-      refreshData()
     }
   }
 

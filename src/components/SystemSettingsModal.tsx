@@ -194,7 +194,7 @@ export function SystemSettingsModal({ open, onOpenChange }: SystemSettingsModalP
     setIsSaving(true)
 
     const finalKeyword = cycleMode === "monthly" ? "MONTHLY" : (keywordInput.trim() || "SALARY")
-    const computedDecay = Math.LN2 / Math.max(1, halfLifeDaysInput)
+    const computedDecay = parseFloat((Math.LN2 / Math.max(1, halfLifeDaysInput)).toFixed(6))
 
     const { error } = await supabase
       .from("profiles")
@@ -218,7 +218,6 @@ export function SystemSettingsModal({ open, onOpenChange }: SystemSettingsModalP
     } else {
       toast.success("System configuration updated!")
       await refreshProfile()
-      refreshData()
       handleOpenChange(false)
     }
   }
