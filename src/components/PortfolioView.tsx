@@ -1984,7 +1984,7 @@ export function PortfolioView({
     <button
       type="button"
       onClick={handleOpenAddModal}
-      className="fixed bottom-20 right-4 z-50 h-12 w-12 rounded-xl bg-white text-black font-extrabold shadow-2xl flex items-center justify-center hover:bg-gray-100 border border-white/20 cursor-pointer select-none"
+      className="fixed bottom-[108px] md:bottom-8 right-4 md:right-8 z-50 h-12 w-12 rounded-xl bg-white text-black font-extrabold shadow-2xl flex items-center justify-center hover:bg-gray-100 border border-white/20 cursor-pointer select-none transition-all active:scale-95"
       aria-label="Add asset manual entry"
     >
       <Plus className="h-6 w-6 stroke-[3]" />

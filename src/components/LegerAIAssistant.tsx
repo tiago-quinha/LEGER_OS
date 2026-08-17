@@ -1562,7 +1562,7 @@ export function LegerAIAssistant() {
           className={cn(
             "fixed pointer-events-auto left-4 right-4 sm:left-6 sm:right-6 md:left-auto md:right-6 z-[99998] flex justify-end cursor-grab active:cursor-grabbing",
             isBulkActive || pathname === "/expenses" || pathname === "/portfolio"
-              ? "bottom-36 sm:bottom-24" 
+              ? "bottom-[172px] sm:bottom-24" 
               : hasCycleBar || pathname === "/" || pathname === "/budgets" || pathname === "/categories"
               ? "bottom-28" 
               : "bottom-20",
