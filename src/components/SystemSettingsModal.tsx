@@ -218,7 +218,6 @@ export function SystemSettingsModal({ open, onOpenChange }: SystemSettingsModalP
     } else {
       toast.success("System configuration updated!")
       await refreshProfile()
-      handleOpenChange(false)
     }
   }
 
