@@ -1047,13 +1047,14 @@ export function PortfolioView({
   }
 
   return (
-    <SwipeCycleWrapper
-      cycles={cycles}
-      currentCycleId={selectedCycleId}
-      route="/portfolio"
-      onCycleChange={handleCycleSelect}
-    >
-      <div className="mx-auto max-w-[1500px] p-4 md:p-8 space-y-10 md:space-y-12 pb-36 md:pb-8 w-full">
+    <>
+      <SwipeCycleWrapper
+        cycles={cycles}
+        currentCycleId={selectedCycleId}
+        route="/portfolio"
+        onCycleChange={handleCycleSelect}
+      >
+        <div className="mx-auto max-w-[1500px] p-4 md:p-8 space-y-10 md:space-y-12 pb-36 md:pb-8 w-full">
       {/* 1. Header (Matching Dashboard Layout) */}
       <header className="flex flex-col md:flex-row md:items-center justify-between gap-6 md:gap-8 border-b border-foreground/10 pb-6 md:pb-8 relative">
         <div className="space-y-3">
@@ -1549,15 +1550,6 @@ export function PortfolioView({
         </div>
       </div>
 
-      {/* Floating White Plus Button (+), 100% rock solid static */}
-      <button
-        type="button"
-        onClick={handleOpenAddModal}
-        className="fixed bottom-20 right-4 z-50 h-12 w-12 rounded-xl bg-white text-black font-extrabold shadow-2xl flex items-center justify-center hover:bg-gray-100 border border-white/20 cursor-pointer select-none"
-      >
-        <Plus className="h-6 w-6 stroke-[3]" />
-      </button>
-
       {/* Native Draggable Bottom Drawer matching AI Assistant Window physics 100% */}
       <AnimatePresence mode="wait">
         {isAddModalOpen && (
@@ -1987,5 +1979,16 @@ export function PortfolioView({
         />
       )}
     </SwipeCycleWrapper>
+
+    {/* Floating Action Button (FAB) matching Ledger floating style */}
+    <button
+      type="button"
+      onClick={handleOpenAddModal}
+      className="fixed bottom-20 right-4 z-50 h-12 w-12 rounded-xl bg-white text-black font-extrabold shadow-2xl flex items-center justify-center hover:bg-gray-100 border border-white/20 cursor-pointer select-none"
+      aria-label="Add asset manual entry"
+    >
+      <Plus className="h-6 w-6 stroke-[3]" />
+    </button>
+  </>
   );
 }
