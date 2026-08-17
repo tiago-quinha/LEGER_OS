@@ -14,10 +14,9 @@ import {
   Sparkles,
   Info,
   ChevronRight,
-  EyeOff,
   RotateCcw,
-  XCircle,
-  Plus
+  SlidersHorizontal,
+  X
 } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { useSystem } from "@/lib/SystemContext"
@@ -37,6 +36,7 @@ export function SubscriptionRadar({ expenses, cycleStartDate, cycleEndDate }: Su
   const { currencySymbol, isPro } = useSystem()
   const [filterCadence, setFilterCadence] = useState<"all" | "monthly" | "annual">("all")
   const [dismissedMerchants, setDismissedMerchants] = useState<string[]>([])
+  const [selectedSubForDetails, setSelectedSubForDetails] = useState<DetectedSubscription | null>(null)
 
   // Load dismissed merchants from localStorage
   useEffect(() => {
@@ -55,13 +55,14 @@ export function SubscriptionRadar({ expenses, cycleStartDate, cycleEndDate }: Su
       localStorage.setItem("leger_dismissed_subscriptions", JSON.stringify(updated))
       toast.success(`${merchantName.toUpperCase()} EXCLUDED FROM RADAR`)
     } catch (e) {}
+    setSelectedSubForDetails(null)
   }
 
   const handleResetDismissed = () => {
     setDismissedMerchants([])
     try {
       localStorage.removeItem("leger_dismissed_subscriptions")
-      toast.info("RESET ALL EXCLUDED RADAR SUBSCRIPTIONS")
+      toast.success("RESTORED ALL EXCLUDED SUBSCRIPTIONS")
     } catch (e) {}
   }
 
@@ -80,6 +81,24 @@ export function SubscriptionRadar({ expenses, cycleStartDate, cycleEndDate }: Su
 
   return (
     <div className="space-y-8 font-mono">
+      {/* Excluded Restoral Banner if items were dismissed */}
+      {dismissedMerchants.length > 0 && (
+        <div className="p-3 bg-secondary/40 border border-border flex items-center justify-between gap-3 text-xs">
+          <div className="flex items-center gap-2 text-muted-foreground font-mono uppercase text-[11px]">
+            <Info className="h-4 w-4 shrink-0 text-foreground" />
+            <span>{dismissedMerchants.length} SUBSCRIPTION{dismissedMerchants.length !== 1 ? "S" : ""} CURRENTLY EXCLUDED</span>
+          </div>
+          <button
+            type="button"
+            onClick={handleResetDismissed}
+            className="h-7 px-3 bg-foreground text-background font-bold text-[10px] uppercase tracking-wider hover:bg-foreground/90 transition-colors flex items-center gap-1.5 cursor-pointer shadow-sm"
+          >
+            <RotateCcw className="h-3 w-3" />
+            <span>RESTORE ALL ({dismissedMerchants.length})</span>
+          </button>
+        </div>
+      )}
+
       {/* 1. Executive Metric Summary Cards */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         {/* Metric 1: Monthly Commitment */}
@@ -190,18 +209,6 @@ export function SubscriptionRadar({ expenses, cycleStartDate, cycleEndDate }: Su
           </div>
 
           <div className="flex items-center gap-2 overflow-x-auto pb-1 sm:pb-0 scrollbar-none">
-            {dismissedMerchants.length > 0 && (
-              <button
-                type="button"
-                onClick={handleResetDismissed}
-                className="px-2.5 py-1 text-[9px] uppercase font-bold tracking-wider text-muted-foreground hover:text-foreground border border-border hover:bg-secondary transition-colors cursor-pointer flex items-center gap-1"
-                title="Restore dismissed subscriptions"
-              >
-                <RotateCcw className="h-3 w-3" />
-                <span>RESTORE ({dismissedMerchants.length})</span>
-              </button>
-            )}
-
             <div className="flex items-center gap-1">
               {(["all", "monthly", "annual"] as const).map((cad) => (
                 <button
@@ -235,8 +242,9 @@ export function SubscriptionRadar({ expenses, cycleStartDate, cycleEndDate }: Su
               return (
                 <div
                   key={sub.id}
+                  onClick={() => setSelectedSubForDetails(sub)}
                   className={cn(
-                    "p-4 bg-card/40 hover:bg-card/70 border border-border transition-all space-y-3 rounded-xl flex flex-col justify-between relative group",
+                    "p-4 bg-card/40 hover:bg-card/70 border border-border transition-all space-y-3 rounded-xl flex flex-col justify-between relative group cursor-pointer",
                     isHiked && "border-amber-500/40"
                   )}
                 >
@@ -257,14 +265,6 @@ export function SubscriptionRadar({ expenses, cycleStartDate, cycleEndDate }: Su
                         )}>
                           {sub.cadence.toUpperCase()}
                         </span>
-                        <button
-                          type="button"
-                          onClick={() => handleDismiss(sub.merchant)}
-                          className="opacity-0 group-hover:opacity-100 p-1 text-muted-foreground/60 hover:text-red-400 transition-opacity cursor-pointer"
-                          title="Exclude from Subscription Radar"
-                        >
-                          <EyeOff className="h-3.5 w-3.5" />
-                        </button>
                       </div>
                     </div>
 
@@ -292,6 +292,61 @@ export function SubscriptionRadar({ expenses, cycleStartDate, cycleEndDate }: Su
           </div>
         )}
       </div>
+
+      {/* Subscription Details & Explicit Exclusion Modal */}
+      {selectedSubForDetails && (
+        <div 
+          className="fixed inset-0 z-[100003] flex items-center justify-center p-4 bg-background/80 backdrop-blur-md animate-in fade-in duration-150"
+          onClick={(e) => {
+            if (e.target === e.currentTarget) setSelectedSubForDetails(null)
+          }}
+        >
+          <div className="w-full max-w-sm bg-[#09090b] border border-border rounded-xl shadow-2xl p-5 space-y-4 text-xs font-mono">
+            <div className="flex items-center justify-between border-b border-border/40 pb-3">
+              <div className="flex items-center gap-2">
+                <CreditCard className="h-4 w-4 text-foreground" />
+                <span className="font-bold uppercase">{selectedSubForDetails.merchant}</span>
+              </div>
+              <button 
+                type="button" 
+                onClick={() => setSelectedSubForDetails(null)}
+                className="p-1 text-muted-foreground hover:text-foreground cursor-pointer"
+              >
+                <X className="h-4 w-4" />
+              </button>
+            </div>
+
+            <div className="space-y-2 py-1">
+              <div className="flex justify-between">
+                <span className="text-muted-foreground uppercase">CADENCE</span>
+                <span className="font-bold uppercase text-foreground">{selectedSubForDetails.cadence}</span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-muted-foreground uppercase">LATEST AMOUNT</span>
+                <span className="font-bold text-foreground">{currencySymbol}{selectedSubForDetails.latestAmount.toFixed(2)}</span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-muted-foreground uppercase">FREQUENCY</span>
+                <span className="font-bold text-foreground">{selectedSubForDetails.occurrences}x detected</span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-muted-foreground uppercase">NEXT ESTIMATED CHARGE</span>
+                <span className="font-bold text-foreground">{selectedSubForDetails.nextExpectedDate.split("T")[0]}</span>
+              </div>
+            </div>
+
+            <div className="pt-3 border-t border-border/40 flex items-center gap-2">
+              <button
+                type="button"
+                onClick={() => handleDismiss(selectedSubForDetails.merchant)}
+                className="w-full h-9 bg-red-500/10 hover:bg-red-500/20 text-red-400 border border-red-500/30 text-[10px] font-bold uppercase tracking-wider transition-colors cursor-pointer rounded-lg"
+              >
+                EXCLUDE FROM SUBSCRIPTION RADAR
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }
