@@ -122,6 +122,9 @@ export async function POST(request: Request) {
       
       Determine:
       1. If this query requires database records (e.g., specific transactions, merchant history, budget records, portfolio holdings).
+         - DATABASE QUERY ROUTING RULES:
+           * If the user asks for a "breakdown", "analysis", "audit", "comparison", "list", "where did my money go", "how much on X", "income vs expenses", or mentions specific merchants or categories:
+             ALWAYS set "requiresDb": true and query "tracker_expense" for the active cycle date range (e.g. gte cycle start date) with limit 100, ordered by date descending or amount.
       2. If this query requires LIVE WEB SEARCH GROUNDING for external world context (e.g. current ECB/Euribor/Fed interest rates, inflation numbers, specific stock/crypto price news, reasons for subscription price changes, merchant invoice checks, economic policies).
       
       Format your response as a strict JSON object:
@@ -468,6 +471,18 @@ export async function POST(request: Request) {
       - Use bold text for numbers, merchant names, or category names for emphasis.
       - Never misspelt words (e.g. use "You" instead of "Yu").
       - DIRECT NUMERICAL & APP CAPABILITY ANSWER RULE: If the user asks for a number, quantity, count, or specific figure (e.g., "how many, a number", "how many assets available"), ALWAYS answer with the exact figures immediately in the first sentence: LEGER_OS supports **10,000+ Cryptocurrencies** (via CoinGecko) and **tens of thousands of Global Equities, European ETFs, and Commodities** (via Yahoo Finance) across **4 core asset classes** (Stocks & ETFs, Crypto, Commodities, Cash & Savings), with **8 1-click quick-pick presets** in the Add Position drawer. Never dodge direct questions with generic, vague platitudes.
+
+      EXHAUSTIVE QUANTITATIVE BREAKDOWN & ANTI-LAZINESS INVARIANT:
+      - When the user asks for a "breakdown", "analysis", "audit", "comparison", "income vs expenses", or asks where their money went:
+        1. NEVER just echo the two summary numbers back with basic subtraction (e.g., "You received €643 and spent €537, leaving €105. Would you like to review top expenses?"). THAT IS LAZY AI AND STRICTLY PROHIBITED.
+        2. ALWAYS provide the full, structured analytical breakdown immediately in the response:
+           - Inflows / Income Section: List the specific income deposits, source names, dates, and amounts.
+           - Outflows by Category: Itemize spending across all active categories in descending order of spend. For each category, include the € amount and its percentage share of total spending (e.g., "**Groceries**: €184.20 (34.3% of spend)").
+           - Top Merchant Drivers: Call out the top 3-4 specific merchant expenses driving the numbers.
+           - Net Cash Dynamics & Velocity: State the net cash flow, empirical variable daily burn rate (€/day), and pacing relative to spending limits.
+           - Actionable Financial Diagnosis: Identify which category is over/under pacing and provide immediate tactical suggestions.
+        3. Format all multi-item breakdowns with clean Markdown tables or bold bullet points.
+        4. NEVER deflect with permission questions like "Would you like me to review your top expenses?" when the user just asked for a breakdown. Always deliver the full answers immediately!
 
       CONVERSATIONAL EXPENSE LOGGING INVARIANT:
       - If the user mentions spending money, buying something, or incurring an expense (e.g. "I spent 15€ at Starbucks", "paid 42.50 for fuel at BP", "bought groceries for 28€ at Aldi", "logged 12 for lunch with friends"):
