@@ -12,9 +12,9 @@ export default function RadarLoading() {
         <Skeleton className="h-9 w-32 rounded-none" />
       </header>
 
-      {/* 4 Executive Metric Cards Skeleton */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        {Array.from({ length: 4 }).map((_, i) => (
+      {/* 3 Executive Metric Cards Skeleton */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        {Array.from({ length: 3 }).map((_, i) => (
           <div key={i} className="p-6 space-y-3 bg-card/20 border border-border">
             <Skeleton className="h-3 w-28 rounded-none" />
             <Skeleton className="h-8 w-36 rounded-none" />

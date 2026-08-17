@@ -284,7 +284,7 @@ export function RadarPageView({ expenses, categories, cycles, currentCycleId }: 
       </header>
 
       {/* 2. Executive Metric Summary Cards */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         {/* Metric 1: Monthly Commitment */}
         <Tilt rotationFactor={6} className="p-6 md:p-8 space-y-3 bg-card/20 border border-border relative group overflow-hidden flex flex-col justify-between glow-card">
           <ClippedCircle circleClassName="bg-foreground/5" circleSize={400} />
@@ -332,25 +332,6 @@ export function RadarPageView({ expenses, categories, cycles, currentCycleId }: 
           </div>
           <p className="text-[10px] text-muted-foreground font-mono uppercase z-10">
             {monthlyCount} MONTHLY · {annualCount} ANNUAL BILLS.
-          </p>
-        </Tilt>
-
-        {/* Metric 4: Silent Price Hikes */}
-        <Tilt rotationFactor={6} className="p-6 md:p-8 space-y-3 bg-card/20 border border-border relative group overflow-hidden flex flex-col justify-between glow-card">
-          <ClippedCircle circleClassName="bg-foreground/5" circleSize={400} />
-          <div className="space-y-1 z-10">
-            <span className="text-[9px] font-mono uppercase tracking-widest text-muted-foreground border-b border-dotted border-muted-foreground/30 w-fit">
-              PRICE HIKES FLAGGED
-            </span>
-            <div className={cn(
-              "text-3xl md:text-5xl font-mono font-bold tracking-tighter z-10",
-              hikeCount > 0 ? "text-amber-500" : "text-foreground"
-            )}>
-              {hikeCount}
-            </div>
-          </div>
-          <p className="text-[10px] text-muted-foreground font-mono uppercase z-10">
-            {hikeCount > 0 ? "UNANNOUNCED RATE INCREASES DETECTED." : "ZERO PRICE JUMPS DETECTED."}
           </p>
         </Tilt>
       </div>
