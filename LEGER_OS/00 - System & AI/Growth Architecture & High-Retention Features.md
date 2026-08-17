@@ -59,3 +59,20 @@ When a user mentions or voices an expense in Leger AI (e.g. *"I spent 15€ at S
 
 ### Dedicated Top-Level Route (`/radar`)
 - Promoted to a dedicated top-level page with normalized Geist Sans `RADAR` header, `<Tilt>` executive metric cards (`MONTHLY RECURRING` and `ANNUAL PROJECTED`), amber alert banner, Portfolio-standard search bar & category filter tabs, 1-tap cadence toggling, and native draggable bottom drawer for `+ PIN RECURRING BILL`.
+
+---
+
+## 4. Conversational AI Quantitative Synthesis (Deprecation of Static Analytics)
+
+### Architectural Decision & Rationale
+- **Deprecated Route**: Static `/analytics` page (passive historical bar charts and category donuts) has been completely removed from the application.
+- **Root Problem**: Passive charts force the user to perform mental calculus to figure out why cash velocity changed. They provide low utility compared to interactive forecasting.
+- **Conversational Synthesis Model**:
+  - Deep multi-cycle audits, habit leakage diagnosis, lifestyle drift detection, and what-if scenario simulations are routed directly into the **Conversational AI Bridge** (`/leger-ai` and slide-up AI drawer).
+  - The AI synthesizes raw cycle telemetry, recency-decay velocity ($\lambda = 0.12$), category burn rates, and merchant line items into actionable root-cause explanations.
+- **Monetization Alignment**:
+  - Full multi-cycle quantitative audits and proactive risk simulations serve as high-utility **PRO Tier** features.
+- **Focused Navigation Dock**:
+  - App navigation is strictly streamlined to 7 action-driven core tools:
+    `Dashboard` $\rightarrow$ `Ledger` $\rightarrow$ `Radar` $\rightarrow$ `Portfolio` $\rightarrow$ `Categories` $\rightarrow$ `Budgets` $\rightarrow$ `Memory`.
+
