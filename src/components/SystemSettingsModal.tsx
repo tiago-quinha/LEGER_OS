@@ -115,7 +115,7 @@ export function SystemSettingsModal({ open, onOpenChange }: SystemSettingsModalP
   const [aiProviderInput, setAiProviderInput] = useState("gemini")
   const [customKeyInput, setCustomKeyInput] = useState("")
   const [aiYapLevelInput, setAiYapLevelInput] = useState<"concise" | "standard" | "verbose">("standard")
-  const [decayInput, setDecayInput] = useState("0.12")
+  const [halfLifeDaysInput, setHalfLifeDaysInput] = useState(15)
   const [isSaving, setIsSaving] = useState(false)
   const [isCancelModalOpen, setIsCancelModalOpen] = useState(false)
 
@@ -162,7 +162,13 @@ export function SystemSettingsModal({ open, onOpenChange }: SystemSettingsModalP
       if (profile.ai_provider) setAiProviderInput(profile.ai_provider)
       if (profile.custom_api_key) setCustomKeyInput(profile.custom_api_key)
       if (profile.ai_yap_level) setAiYapLevelInput(profile.ai_yap_level)
-      if (profile.decay_weight !== undefined) setDecayInput(profile.decay_weight.toString())
+      if (profile.decay_weight !== undefined && profile.decay_weight !== null) {
+        const parsed = parseFloat(profile.decay_weight.toString())
+        const days = parsed > 0 ? Math.round(Math.LN2 / parsed) : 15
+        setHalfLifeDaysInput(days >= 1 && days <= 90 ? days : 15)
+      } else {
+        setHalfLifeDaysInput(15)
+      }
     }
   }, [profile])
 
@@ -188,6 +194,7 @@ export function SystemSettingsModal({ open, onOpenChange }: SystemSettingsModalP
     setIsSaving(true)
 
     const finalKeyword = cycleMode === "monthly" ? "MONTHLY" : (keywordInput.trim() || "SALARY")
+    const computedDecay = Math.LN2 / Math.max(1, halfLifeDaysInput)
 
     const { error } = await supabase
       .from("profiles")
@@ -199,7 +206,7 @@ export function SystemSettingsModal({ open, onOpenChange }: SystemSettingsModalP
         language: languageInput,
         ai_provider: aiProviderInput,
         custom_api_key: customKeyInput,
-        decay_weight: parseFloat(decayInput) || 0.12,
+        decay_weight: computedDecay,
         ai_yap_level: isPro ? aiYapLevelInput : profile?.ai_yap_level || 'standard'
       })
       .eq("id", user.id)
@@ -706,25 +713,102 @@ export function SystemSettingsModal({ open, onOpenChange }: SystemSettingsModalP
                     <ProLockOverlay 
                       compact
                       title="ADVANCED AI CALIBRATION (PRO)"
-                      description="Custom AI response depth and analytical reasoning configurations are exclusive to LEGER_OS PRO nodes."
+                      description="Custom AI response depth and mathematical recency-decay half-life parameters are exclusive to LEGER_OS PRO nodes."
                     />
                   ) : (
-                    <div className="space-y-1.5 pt-1">
-                      <Label htmlFor="modalYapLevel" className="text-[9px] uppercase font-mono font-bold text-muted-foreground">
-                        AI Response Depth
-                      </Label>
-                      <div className="relative">
-                        <select
-                          id="modalYapLevel"
-                          value={aiYapLevelInput}
-                          onChange={(e) => setAiYapLevelInput(e.target.value as any)}
-                          className="w-full bg-background border border-border rounded-none h-9 px-3 pr-8 text-xs font-mono outline-none appearance-none text-foreground focus:border-foreground font-bold"
-                        >
-                          <option value="concise">Concise & Direct (Brief)</option>
-                          <option value="standard">Standard (Balanced context)</option>
-                          <option value="verbose">Detailed & Explanatory (Deep)</option>
-                        </select>
-                        <ChevronDown className="absolute right-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground pointer-events-none" />
+                    <div className="space-y-4 pt-1">
+                      {/* AI Response Depth */}
+                      <div className="space-y-1.5">
+                        <Label htmlFor="modalYapLevel" className="text-[9px] uppercase font-mono font-bold text-muted-foreground">
+                          AI Response Depth
+                        </Label>
+                        <div className="relative">
+                          <select
+                            id="modalYapLevel"
+                            value={aiYapLevelInput}
+                            onChange={(e) => setAiYapLevelInput(e.target.value as any)}
+                            className="w-full bg-background border border-border rounded-none h-9 px-3 pr-8 text-xs font-mono outline-none appearance-none text-foreground focus:border-foreground font-bold"
+                          >
+                            <option value="concise">Concise & Direct (Brief)</option>
+                            <option value="standard">Standard (Balanced context)</option>
+                            <option value="verbose">Detailed & Explanatory (Deep)</option>
+                          </select>
+                          <ChevronDown className="absolute right-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground pointer-events-none" />
+                        </div>
+                      </div>
+
+                      {/* Recency Half-Life Calibration (Mobile-Optimized Fast-Tap Presets + Stepper, No Sliders) */}
+                      <div className="space-y-2 pt-2 border-t border-border/40">
+                        <div className="flex items-center justify-between">
+                          <Label className="text-[9px] uppercase font-mono font-bold text-muted-foreground">
+                            Projection Half-Life Window
+                          </Label>
+                          <span className="text-[10px] font-mono font-bold text-emerald-500">
+                            {halfLifeDaysInput} Days {halfLifeDaysInput === 15 ? "(Default)" : ""}
+                          </span>
+                        </div>
+
+                        {/* Fast-Tap Preset Buttons */}
+                        <div className="grid grid-cols-3 gap-1.5">
+                          {[
+                            { days: 7, label: "7d · Agile" },
+                            { days: 15, label: "15d · Standard" },
+                            { days: 30, label: "30d · Macro" }
+                          ].map((preset) => (
+                            <button
+                              key={preset.days}
+                              type="button"
+                              onClick={() => setHalfLifeDaysInput(preset.days)}
+                              className={`py-1.5 px-2 text-[10px] font-mono border text-center transition-all cursor-pointer ${
+                                halfLifeDaysInput === preset.days
+                                  ? "bg-foreground text-background border-foreground font-bold"
+                                  : "bg-secondary/30 text-muted-foreground border-border hover:text-foreground"
+                              }`}
+                            >
+                              {preset.label}
+                            </button>
+                          ))}
+                        </div>
+
+                        {/* Direct Stepper Input for Mobile */}
+                        <div className="flex items-center gap-2 pt-0.5">
+                          <button
+                            type="button"
+                            onClick={() => setHalfLifeDaysInput(prev => Math.max(1, prev - 1))}
+                            className="h-9 w-10 bg-secondary/80 hover:bg-secondary border border-border flex items-center justify-center text-foreground font-bold font-mono text-sm active:scale-95 transition-transform cursor-pointer"
+                            aria-label="Decrease days"
+                          >
+                            -
+                          </button>
+                          <div className="relative flex-1">
+                            <input
+                              type="number"
+                              min="1"
+                              max="90"
+                              value={halfLifeDaysInput}
+                              onChange={(e) => {
+                                const val = parseInt(e.target.value)
+                                if (!isNaN(val)) setHalfLifeDaysInput(Math.min(90, Math.max(1, val)))
+                              }}
+                              className="w-full h-9 bg-background border border-border text-center font-mono font-bold text-xs text-foreground px-2 focus:border-foreground outline-none"
+                            />
+                            <span className="absolute right-3 top-1/2 -translate-y-1/2 text-[10px] font-mono text-muted-foreground pointer-events-none">
+                              days
+                            </span>
+                          </div>
+                          <button
+                            type="button"
+                            onClick={() => setHalfLifeDaysInput(prev => Math.min(90, prev + 1))}
+                            className="h-9 w-10 bg-secondary/80 hover:bg-secondary border border-border flex items-center justify-center text-foreground font-bold font-mono text-sm active:scale-95 transition-transform cursor-pointer"
+                            aria-label="Increase days"
+                          >
+                            +
+                          </button>
+                        </div>
+
+                        <p className="text-[10px] text-muted-foreground font-sans leading-tight">
+                          Expenses within the last {halfLifeDaysInput} days carry &ge;50% statistical weight in cash flow predictions.
+                        </p>
                       </div>
                     </div>
                   )}

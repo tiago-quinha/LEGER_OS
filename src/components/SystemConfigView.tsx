@@ -112,6 +112,7 @@ export function SystemConfigView() {
   const [customKeyInput, setCustomKeyInput] = useState("")
   const [decayInput, setDecayInput] = useState("0.12")
   const [aiYapLevelInput, setAiYapLevelInput] = useState<"concise" | "standard" | "verbose">("standard")
+  const [halfLifeDaysInput, setHalfLifeDaysInput] = useState(15)
   const [isSavingProfile, setIsSavingProfile] = useState(false)
   const [isCancelModalOpen, setIsCancelModalOpen] = useState(false)
 
@@ -149,7 +150,13 @@ export function SystemConfigView() {
       if (profile.language) setLanguageInput(profile.language)
       if (profile.ai_provider) setAiProviderInput(profile.ai_provider)
       if (profile.custom_api_key) setCustomKeyInput(profile.custom_api_key)
-      if (profile.decay_weight !== undefined) setDecayInput(profile.decay_weight.toString())
+      if (profile.decay_weight !== undefined && profile.decay_weight !== null) {
+        const parsed = parseFloat(profile.decay_weight.toString())
+        const days = parsed > 0 ? Math.round(Math.LN2 / parsed) : 15
+        setHalfLifeDaysInput(days >= 1 && days <= 90 ? days : 15)
+      } else {
+        setHalfLifeDaysInput(15)
+      }
       if (profile.ai_yap_level) setAiYapLevelInput(profile.ai_yap_level)
     }
   }, [profile])
@@ -169,6 +176,7 @@ export function SystemConfigView() {
     setIsSavingProfile(true)
 
     const finalKeyword = cycleMode === "monthly" ? "MONTHLY" : (keywordInput.trim() || "SALARY")
+    const computedDecay = Math.LN2 / Math.max(1, halfLifeDaysInput)
 
     const { error } = await supabase
       .from("profiles")
@@ -180,7 +188,7 @@ export function SystemConfigView() {
         language: languageInput,
         ai_provider: aiProviderInput,
         custom_api_key: customKeyInput,
-        decay_weight: parseFloat(decayInput) || 0.12,
+        decay_weight: computedDecay,
         ai_yap_level: isPro ? aiYapLevelInput : profile?.ai_yap_level || 'standard'
       })
       .eq("id", user.id)
@@ -685,32 +693,108 @@ export function SystemConfigView() {
                       />
                     </div>
                   </div>
-                  {/* Yap Level (PRO Gated) */}
+                  {/* Yap Level & Recency Half-Life (PRO Gated) */}
                   {!isPro ? (
                     <ProLockOverlay 
                       compact
                       title="ADVANCED AI CALIBRATION (PRO)"
-                      description="Custom AI verbosity responses and in-depth analytical reasoning levels are exclusive to LEGER_OS PRO nodes."
+                      description="Custom AI verbosity responses, in-depth analytical reasoning, and empirical recency half-life parameters are exclusive to LEGER_OS PRO nodes."
                     />
                   ) : (
-                    <div className="space-y-1.5 pt-2">
-                      <div className="flex items-center justify-between">
-                        <Label htmlFor="aiYapLevel" className="text-[10px] uppercase tracking-widest text-muted-foreground font-bold">
-                          AI Response Verbosity / Depth
-                        </Label>
+                    <div className="space-y-4 pt-2">
+                      <div className="space-y-1.5">
+                        <div className="flex items-center justify-between">
+                          <Label htmlFor="aiYapLevel" className="text-[10px] uppercase tracking-widest text-muted-foreground font-bold">
+                            AI Response Verbosity / Depth
+                          </Label>
+                        </div>
+                        <div className="relative">
+                          <select
+                            id="aiYapLevel"
+                            value={aiYapLevelInput}
+                            onChange={(e) => setAiYapLevelInput(e.target.value as any)}
+                            className="w-full bg-background border border-input rounded-none h-10 px-3 pr-10 text-xs outline-none appearance-none font-bold text-foreground focus:border-foreground"
+                          >
+                            <option value="concise">Concise & Direct (Saves tokens, 1-2 bullet points)</option>
+                            <option value="standard">Standard (Balanced context & suggestions)</option>
+                            <option value="verbose">Verbose & Explanatory (Thorough projection breakdowns)</option>
+                          </select>
+                          <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground pointer-events-none" />
+                        </div>
                       </div>
-                      <div className="relative">
-                        <select
-                          id="aiYapLevel"
-                          value={aiYapLevelInput}
-                          onChange={(e) => setAiYapLevelInput(e.target.value as any)}
-                          className="w-full bg-background border border-input rounded-none h-10 px-3 pr-10 text-xs outline-none appearance-none font-bold text-foreground focus:border-foreground"
-                        >
-                          <option value="concise">Concise & Direct (Saves tokens, 1-2 bullet points)</option>
-                          <option value="standard">Standard (Balanced context & suggestions)</option>
-                          <option value="verbose">Verbose & Explanatory (Thorough projection breakdowns)</option>
-                        </select>
-                        <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground pointer-events-none" />
+
+                      {/* Recency Half-Life Calibration (Mobile-Optimized Fast-Tap Presets + Stepper, No Sliders) */}
+                      <div className="p-4 bg-secondary/10 border border-border space-y-3">
+                        <div className="flex items-center justify-between">
+                          <span className="text-xs uppercase tracking-widest font-bold text-foreground">
+                            Projection Half-Life Memory Window
+                          </span>
+                          <span className="text-xs font-mono font-bold text-emerald-500">
+                            {halfLifeDaysInput} Days {halfLifeDaysInput === 15 ? "(Default)" : ""}
+                          </span>
+                        </div>
+
+                        {/* Fast-Tap Preset Buttons */}
+                        <div className="grid grid-cols-3 gap-2">
+                          {[
+                            { days: 7, label: "7 Days · Agile" },
+                            { days: 15, label: "15 Days · Standard" },
+                            { days: 30, label: "30 Days · Macro" }
+                          ].map((preset) => (
+                            <button
+                              key={preset.days}
+                              type="button"
+                              onClick={() => setHalfLifeDaysInput(preset.days)}
+                              className={`py-2 px-3 text-xs font-mono border text-center transition-all cursor-pointer ${
+                                halfLifeDaysInput === preset.days
+                                  ? "bg-foreground text-background border-foreground font-bold"
+                                  : "bg-secondary/30 text-muted-foreground border-border hover:text-foreground"
+                              }`}
+                            >
+                              {preset.label}
+                            </button>
+                          ))}
+                        </div>
+
+                        {/* Direct Stepper Input for Mobile */}
+                        <div className="flex items-center gap-2 pt-1">
+                          <button
+                            type="button"
+                            onClick={() => setHalfLifeDaysInput(prev => Math.max(1, prev - 1))}
+                            className="h-10 w-12 bg-secondary/80 hover:bg-secondary border border-border flex items-center justify-center text-foreground font-bold font-mono text-base active:scale-95 transition-transform cursor-pointer"
+                            aria-label="Decrease days"
+                          >
+                            -
+                          </button>
+                          <div className="relative flex-1">
+                            <input
+                              type="number"
+                              min="1"
+                              max="90"
+                              value={halfLifeDaysInput}
+                              onChange={(e) => {
+                                const val = parseInt(e.target.value)
+                                if (!isNaN(val)) setHalfLifeDaysInput(Math.min(90, Math.max(1, val)))
+                              }}
+                              className="w-full h-10 bg-background border border-border text-center font-mono font-bold text-sm text-foreground px-3 focus:border-foreground outline-none"
+                            />
+                            <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs font-mono text-muted-foreground pointer-events-none">
+                              days
+                            </span>
+                          </div>
+                          <button
+                            type="button"
+                            onClick={() => setHalfLifeDaysInput(prev => Math.min(90, prev + 1))}
+                            className="h-10 w-12 bg-secondary/80 hover:bg-secondary border border-border flex items-center justify-center text-foreground font-bold font-mono text-base active:scale-95 transition-transform cursor-pointer"
+                            aria-label="Increase days"
+                          >
+                            +
+                          </button>
+                        </div>
+
+                        <p className="text-[11px] text-muted-foreground font-sans leading-relaxed">
+                          * Expenses within the last {halfLifeDaysInput} days carry &ge;50% statistical weight in the daily cash flow projection engine. Default is 15 days for optimal macro stability.
+                        </p>
                       </div>
                     </div>
                   )}
