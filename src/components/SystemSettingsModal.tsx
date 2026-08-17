@@ -1,6 +1,6 @@
 "use client"
 
-import React, { useState, useEffect } from "react"
+import React, { useState, useEffect, useRef } from "react"
 import { motion, AnimatePresence, useDragControls } from "framer-motion"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -15,7 +15,7 @@ import { getAIHeaders } from "@/lib/ai-client"
 import { 
   Sparkles, Check, X, Sliders, Brain, Smartphone, Shield, ShieldOff, Sun, Moon, 
   LogOut, ShieldAlert, Copy, ChevronDown, Plus, Trash2, Search, Terminal, Zap, 
-  Database, FileJson, Rocket, Landmark, Lock, CreditCard
+  Database, FileJson, Rocket, Landmark, Lock, CreditCard, Download, Upload, FileSpreadsheet
 } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { GlowingBadge } from "@/components/unlumen-ui/glowing-badge"
@@ -356,6 +356,89 @@ export function SystemSettingsModal({ open, onOpenChange }: SystemSettingsModalP
     a.download = `leger_os_diagnostics_${new Date().toISOString().slice(0, 10)}.json`
     a.click()
     toast.success("Diagnostics exported")
+  }
+
+  const [isExporting, setIsExporting] = useState(false)
+  const [isRestoring, setIsRestoring] = useState(false)
+  const fileInputRef = useRef<HTMLInputElement>(null)
+
+  const handleExport = async (format: "json" | "csv", type: "vault" | "transactions" | "portfolio" = "vault") => {
+    setIsExporting(true)
+    const toastId = toast.loading(`Generating ${format.toUpperCase()} export...`)
+    try {
+      const res = await fetch(`/api/user/export?format=${format}&type=${type}`)
+      if (!res.ok) throw new Error("Export failed")
+      
+      const blob = await res.blob()
+      const url = window.URL.createObjectURL(blob)
+      const a = document.createElement("a")
+      a.href = url
+      a.download = type === "transactions" 
+        ? `leger_transactions_${new Date().toISOString().split("T")[0]}.csv`
+        : type === "portfolio"
+        ? `leger_portfolio_${new Date().toISOString().split("T")[0]}.csv`
+        : `leger_os_vault_backup_${new Date().toISOString().split("T")[0]}.json`
+      document.body.appendChild(a)
+      a.click()
+      window.URL.revokeObjectURL(url)
+      document.body.removeChild(a)
+      toast.dismiss(toastId)
+      toast.success(`${type === "vault" ? "Full vault backup" : type.toUpperCase()} downloaded successfully!`)
+    } catch (e: any) {
+      toast.dismiss(toastId)
+      toast.error(e.message || "Failed to download export.")
+    } finally {
+      setIsExporting(false)
+    }
+  }
+
+  const handleRestoreFile = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (!file) return
+
+    if (!file.name.endsWith(".json")) {
+      toast.error("Invalid file type. Please upload a .json vault backup.")
+      return
+    }
+
+    const confirmRestore = window.confirm(
+      `Restore from "${file.name}"?\n\nThis will safely merge transactions, categories, budgets, and portfolio assets into your account with automatic deduplication.`
+    )
+    if (!confirmRestore) {
+      if (fileInputRef.current) fileInputRef.current.value = ""
+      return
+    }
+
+    setIsRestoring(true)
+    const toastId = toast.loading("Restoring vault backup...")
+    try {
+      const fileText = await file.text()
+      const payload = JSON.parse(fileText)
+
+      const res = await fetch("/api/user/restore", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload)
+      })
+      const data = await res.json()
+
+      if (data.success) {
+        toast.dismiss(toastId)
+        toast.success(data.message || "Vault successfully restored!")
+        await refreshData()
+        await refreshProfile()
+        loadRulesAndCategories()
+      } else {
+        toast.dismiss(toastId)
+        toast.error(data.error || "Restore failed.")
+      }
+    } catch (e: any) {
+      toast.dismiss(toastId)
+      toast.error(e.message || "Failed to parse or restore backup file.")
+    } finally {
+      setIsRestoring(false)
+      if (fileInputRef.current) fileInputRef.current.value = ""
+    }
   }
 
   const filteredRules = existingRules.filter(r => {
@@ -1070,6 +1153,79 @@ export function SystemSettingsModal({ open, onOpenChange }: SystemSettingsModalP
 
             {/* TAB 6: ACCOUNT & SECURITY */}
             <TabsContent value="account" className="space-y-4 flex-1 overflow-y-auto pr-1 min-h-0">
+              {/* DATA PORTABILITY & VAULT BACKUP */}
+              <div className="p-4 bg-card border border-border space-y-3 font-mono">
+                <div className="flex items-center justify-between border-b border-border/40 pb-2.5">
+                  <div className="space-y-0.5">
+                    <span className="text-xs font-bold uppercase text-foreground flex items-center gap-1.5 font-mono">
+                      <Database className="h-3.5 w-3.5 text-foreground" /> Data Portability & Vault Backup
+                    </span>
+                    <p className="text-[10px] text-muted-foreground font-sans">
+                      Export full offline JSON snapshots or spreadsheet-ready CSV ledgers.
+                    </p>
+                  </div>
+                  <span className="text-[9px] font-mono font-bold uppercase text-foreground bg-secondary/80 border border-border px-2 py-0.5 shrink-0">
+                    SOVEREIGN
+                  </span>
+                </div>
+
+                <div className="space-y-2 pt-1">
+                  <Button
+                    type="button"
+                    onClick={() => handleExport("json", "vault")}
+                    disabled={isExporting}
+                    className="w-full rounded-none h-9 text-[10px] uppercase font-mono font-bold bg-foreground text-background hover:bg-foreground/90 transition-all cursor-pointer flex items-center justify-center gap-2"
+                  >
+                    <Download className="h-3.5 w-3.5" /> Download Full Vault Snapshot (.JSON)
+                  </Button>
+
+                  <div className="grid grid-cols-2 gap-2">
+                    <Button
+                      type="button"
+                      onClick={() => handleExport("csv", "transactions")}
+                      disabled={isExporting}
+                      variant="outline"
+                      className="rounded-none h-8 text-[9px] uppercase font-mono font-bold bg-secondary/30 hover:bg-secondary/70 border-border text-foreground cursor-pointer flex items-center justify-center gap-1.5"
+                    >
+                      <FileSpreadsheet className="h-3 w-3 text-muted-foreground" /> Ledger (.CSV)
+                    </Button>
+                    <Button
+                      type="button"
+                      onClick={() => handleExport("csv", "portfolio")}
+                      disabled={isExporting}
+                      variant="outline"
+                      className="rounded-none h-8 text-[9px] uppercase font-mono font-bold bg-secondary/30 hover:bg-secondary/70 border-border text-foreground cursor-pointer flex items-center justify-center gap-1.5"
+                    >
+                      <FileSpreadsheet className="h-3 w-3 text-muted-foreground" /> Portfolio (.CSV)
+                    </Button>
+                  </div>
+                </div>
+
+                <div className="pt-2.5 border-t border-border/40 space-y-2">
+                  <div className="flex items-center justify-between">
+                    <span className="text-[10px] uppercase font-bold text-muted-foreground">Restore from Backup</span>
+                    <span className="text-[8px] text-muted-foreground font-sans">Safe deduplication</span>
+                  </div>
+                  <input
+                    type="file"
+                    ref={fileInputRef}
+                    onChange={handleRestoreFile}
+                    accept=".json,application/json"
+                    className="hidden"
+                  />
+                  <Button
+                    type="button"
+                    onClick={() => fileInputRef.current?.click()}
+                    disabled={isRestoring}
+                    variant="outline"
+                    className="w-full rounded-none h-8 text-[9px] uppercase font-mono font-bold bg-card border-dashed border-border hover:bg-secondary/40 text-foreground cursor-pointer flex items-center justify-center gap-1.5"
+                  >
+                    <Upload className="h-3 w-3 text-muted-foreground" /> 
+                    {isRestoring ? "Restoring Vault Data..." : "Choose .JSON Vault Backup"}
+                  </Button>
+                </div>
+              </div>
+
               <div className="p-4 bg-card border border-border space-y-3">
                 <div className="flex items-center justify-between">
                   <div>
