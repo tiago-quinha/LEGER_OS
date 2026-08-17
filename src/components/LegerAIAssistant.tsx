@@ -632,31 +632,11 @@ export function LegerAIAssistant() {
     setIsLoading(false)
     setSessions(prev => {
       const filtered = prev.filter(s => s.id !== sessionId)
-      if (filtered.length === 0) {
-        const fallback: ChatSession = {
-          id: `session_${Date.now()}`,
-          title: "New Chat",
-          createdAt: Date.now(),
-          updatedAt: Date.now(),
-          messages: [
-            {
-              sender: "assistant",
-              text: `Hello **${userName}**, how can I help you manage your finances today?`,
-              timestamp: Date.now()
-            }
-          ]
-        }
-        if (typeof window !== "undefined") {
-          localStorage.setItem(sessionsStorageKey, JSON.stringify([fallback]))
-        }
-        setActiveSessionId(fallback.id)
-        return [fallback]
-      }
       if (typeof window !== "undefined") {
         localStorage.setItem(sessionsStorageKey, JSON.stringify(filtered))
       }
       if (activeSessionId === sessionId) {
-        setActiveSessionId(filtered[0].id)
+        setActiveSessionId(filtered.length > 0 ? filtered[0].id : "")
       }
       return filtered
     })
@@ -1025,8 +1005,10 @@ export function LegerAIAssistant() {
   // Handle Query Submission (session-aware)
   const handleQuery = async (queryText: string, targetSessionId?: string) => {
     if (!queryText.trim() || isLoading) return
-    const currentSessionId = targetSessionId || activeSessionId || (sessions[0]?.id)
-    if (!currentSessionId) return
+    let currentSessionId = targetSessionId || activeSessionId || (sessions[0]?.id)
+    if (!currentSessionId) {
+      currentSessionId = createNewChat()
+    }
 
     if (!isPro) {
       toast.error("Conversational AI Queries are a LEGER_OS PRO feature.", {
@@ -1293,61 +1275,73 @@ export function LegerAIAssistant() {
 
                     {/* Scrollable Sessions List */}
                     <div className="flex-1 space-y-2 overflow-y-auto p-4 pb-20 scrollbar-thin">
-                      {sessions.map((sess) => {
-                        const isActive = sess.id === activeSessionId
-                        const daysRemaining = Math.max(1, 30 - Math.floor((Date.now() - (sess.updatedAt || sess.createdAt)) / (1000 * 60 * 60 * 24)))
-                        const lastMsg = sess.messages[sess.messages.length - 1]
-                        
-                        return (
-                          <div
-                            key={sess.id}
-                            onClick={() => {
-                              setIsLoading(false)
-                              setActiveSessionId(sess.id)
-                              setIsHistoryViewOpen(false)
-                            }}
-                            className={cn(
-                              "p-3 rounded-lg border text-left transition-all cursor-pointer group flex items-center justify-between gap-3",
-                              isActive
-                                ? "bg-secondary/70 border-foreground/30 shadow-sm"
-                                : "bg-card hover:bg-secondary/30 border-border/70"
-                            )}
-                          >
-                            <div className="flex-1 min-w-0 space-y-1">
-                              <div className="flex items-center gap-2">
-                                {isActive && <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 shrink-0" />}
-                                <h5 className="text-xs font-bold font-sans truncate text-foreground">
-                                  {sess.title}
-                                </h5>
-                              </div>
-                              {lastMsg && (
-                                <p className="text-[10px] text-muted-foreground truncate font-sans">
-                                  {lastMsg.text.replace(/\*\*/g, "").slice(0, 65)}
-                                </p>
-                              )}
-                              <div className="flex items-center gap-3 text-[9px] font-mono text-muted-foreground/70">
-                                <span>{sess.messages.length} messages</span>
-                                <span>•</span>
-                                <span className="flex items-center gap-1">
-                                  <Clock className="h-2.5 w-2.5" />
-                                  Expires in {daysRemaining}d
-                                </span>
-                              </div>
-                            </div>
-
-                            <button
-                              onClick={(e) => {
-                                e.stopPropagation()
-                                setSessionToDelete(sess)
-                              }}
-                              title="Delete chat session"
-                              className="p-2 text-muted-foreground/60 hover:text-destructive hover:bg-destructive/15 transition-all rounded-md shrink-0 cursor-pointer"
-                            >
-                              <Trash2 className="h-4 w-4" />
-                            </button>
+                      {sessions.length === 0 ? (
+                        <div className="h-full min-h-[200px] flex flex-col items-center justify-center p-6 text-center space-y-3 my-auto">
+                          <div className="p-3 bg-secondary/40 border border-border/60 rounded-full text-muted-foreground">
+                            <MessagesSquare className="h-5 w-5 opacity-60" />
                           </div>
-                        )
-                      })}
+                          <div className="space-y-1 font-mono">
+                            <p className="text-xs font-bold uppercase tracking-wider text-foreground">No chat history</p>
+                            <p className="text-[10px] text-muted-foreground">Start a new conversation using the + button.</p>
+                          </div>
+                        </div>
+                      ) : (
+                        sessions.map((sess) => {
+                          const isActive = sess.id === activeSessionId
+                          const daysRemaining = Math.max(1, 30 - Math.floor((Date.now() - (sess.updatedAt || sess.createdAt)) / (1000 * 60 * 60 * 24)))
+                          const lastMsg = sess.messages[sess.messages.length - 1]
+                          
+                          return (
+                            <div
+                              key={sess.id}
+                              onClick={() => {
+                                setIsLoading(false)
+                                setActiveSessionId(sess.id)
+                                setIsHistoryViewOpen(false)
+                              }}
+                              className={cn(
+                                "p-3 rounded-lg border text-left transition-all cursor-pointer group flex items-center justify-between gap-3",
+                                isActive
+                                  ? "bg-secondary/70 border-foreground/30 shadow-sm"
+                                  : "bg-card hover:bg-secondary/30 border-border/70"
+                              )}
+                            >
+                              <div className="flex-1 min-w-0 space-y-1">
+                                <div className="flex items-center gap-2">
+                                  {isActive && <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 shrink-0" />}
+                                  <h5 className="text-xs font-bold font-sans truncate text-foreground">
+                                    {sess.title}
+                                  </h5>
+                                </div>
+                                {lastMsg && (
+                                  <p className="text-[10px] text-muted-foreground truncate font-sans">
+                                    {lastMsg.text.replace(/\*\*/g, "").slice(0, 65)}
+                                  </p>
+                                )}
+                                <div className="flex items-center gap-3 text-[9px] font-mono text-muted-foreground/70">
+                                  <span>{sess.messages.length} messages</span>
+                                  <span>•</span>
+                                  <span className="flex items-center gap-1">
+                                    <Clock className="h-2.5 w-2.5" />
+                                    Expires in {daysRemaining}d
+                                  </span>
+                                </div>
+                              </div>
+
+                              <button
+                                onClick={(e) => {
+                                  e.stopPropagation()
+                                  setSessionToDelete(sess)
+                                }}
+                                title="Delete chat session"
+                                className="p-2 text-muted-foreground/60 hover:text-destructive hover:bg-destructive/15 transition-all rounded-md shrink-0 cursor-pointer"
+                              >
+                                <Trash2 className="h-4 w-4" />
+                              </button>
+                            </div>
+                          )
+                        })
+                      )}
                     </div>
 
                     {/* Bottom Footer Notice */}
@@ -1423,7 +1417,22 @@ export function LegerAIAssistant() {
                 </div>
               ) : (
                 <div className="flex-1 overflow-y-auto p-4 space-y-4 z-10 scrollbar-thin">
-                  {messages.map((msg, i) => {
+                  {messages.length === 0 ? (
+                    <motion.div 
+                      initial={{ opacity: 0, y: 10, scale: 0.98 }}
+                      animate={{ opacity: 1, y: 0, scale: 1 }}
+                      transition={{ duration: 0.25, ease: "easeOut" }}
+                      className="flex gap-3 max-w-[85%] items-start mr-auto"
+                    >
+                      <div className="p-1.5 bg-foreground text-background border border-border h-fit shrink-0 rounded-md shadow-sm">
+                        <Brain className="h-3 w-3" />
+                      </div>
+                      <div className="px-4 py-3 sm:p-3 rounded-2xl text-[15px] sm:text-sm leading-relaxed font-sans font-medium shadow-sm bg-secondary/40 text-foreground/90 border-border/40 rounded-tl-none">
+                        Hello <strong>{userName}</strong>, how can I help you manage your finances today?
+                      </div>
+                    </motion.div>
+                  ) : (
+                    messages.map((msg, i) => {
                     const hasComplexFormatting = msg.text.includes("|") || msg.text.includes("- ") || msg.text.includes("* ") || msg.text.includes("###") || msg.text.includes("##");
                     const isNewAssistantMessage = i === messages.length - 1 && msg.sender === "assistant" && (Date.now() - msg.timestamp < 15000) && !hasComplexFormatting;
                     
@@ -1503,7 +1512,7 @@ export function LegerAIAssistant() {
                         </div>
                       </motion.div>
                     )
-                  })}
+                  }))}
                   {isLoading && messages.length > 0 && messages[messages.length - 1]?.sender === "user" && (
                     <ThinkingIndicator query={messages[messages.length - 1]?.text} />
                   )}
