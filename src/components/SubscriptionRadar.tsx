@@ -16,7 +16,8 @@ import {
   ChevronRight,
   RotateCcw,
   SlidersHorizontal,
-  X
+  X,
+  RefreshCw
 } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { useSystem } from "@/lib/SystemContext"
@@ -36,17 +37,40 @@ export function SubscriptionRadar({ expenses, cycleStartDate, cycleEndDate }: Su
   const { currencySymbol, isPro } = useSystem()
   const [filterCadence, setFilterCadence] = useState<"all" | "monthly" | "annual">("all")
   const [dismissedMerchants, setDismissedMerchants] = useState<string[]>([])
+  const [cadenceOverrides, setCadenceOverrides] = useState<Record<string, "monthly" | "annual">>({})
   const [selectedSubForDetails, setSelectedSubForDetails] = useState<DetectedSubscription | null>(null)
 
-  // Load dismissed merchants from localStorage
+  // Load dismissed merchants & cadence overrides from localStorage
   useEffect(() => {
     try {
-      const stored = localStorage.getItem("leger_dismissed_subscriptions")
-      if (stored) {
-        setDismissedMerchants(JSON.parse(stored))
+      const storedDismissed = localStorage.getItem("leger_dismissed_subscriptions")
+      if (storedDismissed) {
+        setDismissedMerchants(JSON.parse(storedDismissed))
+      }
+      const storedOverrides = localStorage.getItem("leger_subscription_cadence_overrides")
+      if (storedOverrides) {
+        setCadenceOverrides(JSON.parse(storedOverrides))
       }
     } catch (e) {}
   }, [])
+
+  const handleToggleCadence = (merchantName: string, currentCadence: "monthly" | "annual", e?: React.MouseEvent) => {
+    if (e) e.stopPropagation()
+    const nextCadence: "monthly" | "annual" = currentCadence === "monthly" ? "annual" : "monthly"
+    const updated = {
+      ...cadenceOverrides,
+      [merchantName.toUpperCase()]: nextCadence
+    }
+    setCadenceOverrides(updated)
+    try {
+      localStorage.setItem("leger_subscription_cadence_overrides", JSON.stringify(updated))
+      toast.success(`${merchantName.toUpperCase()} SET TO ${nextCadence.toUpperCase()}`)
+    } catch (e) {}
+
+    if (selectedSubForDetails && selectedSubForDetails.merchant.toUpperCase() === merchantName.toUpperCase()) {
+      setSelectedSubForDetails(prev => prev ? { ...prev, cadence: nextCadence } : null)
+    }
+  }
 
   const handleDismiss = (merchantName: string) => {
     const updated = [...dismissedMerchants, merchantName.toUpperCase()]
@@ -67,8 +91,14 @@ export function SubscriptionRadar({ expenses, cycleStartDate, cycleEndDate }: Su
   }
 
   const radarData = useMemo(() => {
-    return detectRecurringCadence(expenses || [], cycleStartDate, cycleEndDate, dismissedMerchants)
-  }, [expenses, cycleStartDate, cycleEndDate, dismissedMerchants])
+    return detectRecurringCadence(
+      expenses || [], 
+      cycleStartDate, 
+      cycleEndDate, 
+      dismissedMerchants,
+      cadenceOverrides
+    )
+  }, [expenses, cycleStartDate, cycleEndDate, dismissedMerchants, cadenceOverrides])
 
   const filteredSubscriptions = useMemo(() => {
     if (filterCadence === "all") return radarData.subscriptions
@@ -238,6 +268,7 @@ export function SubscriptionRadar({ expenses, cycleStartDate, cycleEndDate }: Su
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3.5">
             {filteredSubscriptions.map((sub) => {
               const isHiked = sub.status === "price_jump" || (sub.priceChangePercent && sub.priceChangePercent > 5)
+              const isManualOverride = sub.source === "user_pinned" || cadenceOverrides[sub.merchant.toUpperCase()] !== undefined
               
               return (
                 <div
@@ -257,14 +288,22 @@ export function SubscriptionRadar({ expenses, cycleStartDate, cycleEndDate }: Su
                         </div>
                       </div>
                       <div className="flex items-center gap-1 shrink-0">
-                        <span className={cn(
-                          "px-2 py-0.5 text-[9px] font-mono font-bold uppercase tracking-wider border rounded",
-                          sub.cadence === "monthly" && "bg-secondary text-foreground border-border",
-                          sub.cadence === "annual" && "bg-secondary text-foreground border-border",
-                          isHiked && "bg-amber-500/10 text-amber-500 border-amber-500/30"
-                        )}>
-                          {sub.cadence.toUpperCase()}
-                        </span>
+                        {/* Interactive Cadence Toggle Pill */}
+                        <button
+                          type="button"
+                          onClick={(e) => handleToggleCadence(sub.merchant, sub.cadence, e)}
+                          title={`Click to switch between Monthly and Annual (currently ${sub.cadence.toUpperCase()})`}
+                          className={cn(
+                            "px-2 py-0.5 text-[9px] font-mono font-bold uppercase tracking-wider border rounded transition-all cursor-pointer flex items-center gap-1 hover:border-foreground",
+                            sub.cadence === "monthly" && "bg-secondary text-foreground border-border",
+                            sub.cadence === "annual" && "bg-secondary text-foreground border-border",
+                            isHiked && "bg-amber-500/10 text-amber-500 border-amber-500/30",
+                            isManualOverride && "ring-1 ring-emerald-500/40"
+                          )}
+                        >
+                          <span>{sub.cadence.toUpperCase()}</span>
+                          <RefreshCw className="h-2.5 w-2.5 opacity-50 hover:opacity-100" />
+                        </button>
                       </div>
                     </div>
 
@@ -293,7 +332,7 @@ export function SubscriptionRadar({ expenses, cycleStartDate, cycleEndDate }: Su
         )}
       </div>
 
-      {/* Subscription Details & Explicit Exclusion Modal */}
+      {/* Subscription Details & Explicit Cadence Switcher Modal */}
       {selectedSubForDetails && (
         <div 
           className="fixed inset-0 z-[100003] flex items-center justify-center p-4 bg-background/80 backdrop-blur-md animate-in fade-in duration-150"
@@ -316,22 +355,51 @@ export function SubscriptionRadar({ expenses, cycleStartDate, cycleEndDate }: Su
               </button>
             </div>
 
-            <div className="space-y-2 py-1">
-              <div className="flex justify-between">
-                <span className="text-muted-foreground uppercase">CADENCE</span>
-                <span className="font-bold uppercase text-foreground">{selectedSubForDetails.cadence}</span>
+            <div className="space-y-3 py-1">
+              {/* Cadence Selector Switcher */}
+              <div className="space-y-1.5">
+                <span className="text-[10px] text-muted-foreground uppercase tracking-wider">SUBSCRIPTION CADENCE</span>
+                <div className="grid grid-cols-2 gap-1.5 bg-secondary/30 p-1 border border-border">
+                  <button
+                    type="button"
+                    onClick={() => handleToggleCadence(selectedSubForDetails.merchant, "annual")}
+                    className={cn(
+                      "h-8 text-[10px] font-bold uppercase transition-colors cursor-pointer flex items-center justify-center gap-1",
+                      selectedSubForDetails.cadence === "monthly" 
+                        ? "bg-foreground text-background" 
+                        : "text-muted-foreground hover:text-foreground"
+                    )}
+                  >
+                    <span>MONTHLY</span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => handleToggleCadence(selectedSubForDetails.merchant, "monthly")}
+                    className={cn(
+                      "h-8 text-[10px] font-bold uppercase transition-colors cursor-pointer flex items-center justify-center gap-1",
+                      selectedSubForDetails.cadence === "annual" 
+                        ? "bg-foreground text-background" 
+                        : "text-muted-foreground hover:text-foreground"
+                    )}
+                  >
+                    <span>ANNUAL</span>
+                  </button>
+                </div>
               </div>
-              <div className="flex justify-between">
-                <span className="text-muted-foreground uppercase">LATEST AMOUNT</span>
-                <span className="font-bold text-foreground">{currencySymbol}{selectedSubForDetails.latestAmount.toFixed(2)}</span>
-              </div>
-              <div className="flex justify-between">
-                <span className="text-muted-foreground uppercase">FREQUENCY</span>
-                <span className="font-bold text-foreground">{selectedSubForDetails.occurrences}x detected</span>
-              </div>
-              <div className="flex justify-between">
-                <span className="text-muted-foreground uppercase">NEXT ESTIMATED CHARGE</span>
-                <span className="font-bold text-foreground">{selectedSubForDetails.nextExpectedDate.split("T")[0]}</span>
+
+              <div className="space-y-2 pt-1 border-t border-border/30">
+                <div className="flex justify-between">
+                  <span className="text-muted-foreground uppercase">LATEST AMOUNT</span>
+                  <span className="font-bold text-foreground">{currencySymbol}{selectedSubForDetails.latestAmount.toFixed(2)}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-muted-foreground uppercase">FREQUENCY</span>
+                  <span className="font-bold text-foreground">{selectedSubForDetails.occurrences}x detected</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-muted-foreground uppercase">NEXT ESTIMATED CHARGE</span>
+                  <span className="font-bold text-foreground">{selectedSubForDetails.nextExpectedDate.split("T")[0]}</span>
+                </div>
               </div>
             </div>
 

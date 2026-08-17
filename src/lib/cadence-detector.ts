@@ -223,7 +223,8 @@ export function detectRecurringCadence(
   expenses: any[],
   cycleStartDate?: string | Date,
   cycleEndDate?: string | Date,
-  dismissedMerchants: string[] = []
+  dismissedMerchants: string[] = [],
+  cadenceOverrides: Record<string, "monthly" | "annual"> = {}
 ): CadenceAnalysisResult {
   // STRICT: Only real negative outflows (expenses), strictly exclude any positive inflow/income
   const expenseTransactions = expenses.filter((e) => {
@@ -292,7 +293,12 @@ export function detectRecurringCadence(
     let confidence = 0.6;
     let source: DetectedSubscription["source"] = "empirical_cadence";
 
-    if (avgInterval >= 180 || (latestAmount > 50 && isKnownProvider && avgInterval > 60)) {
+    const userOverride = cadenceOverrides[normMerchant.toUpperCase()];
+    if (userOverride === "monthly" || userOverride === "annual") {
+      cadence = userOverride;
+      confidence = 1.0;
+      source = "user_pinned";
+    } else if (avgInterval >= 180 || (latestAmount > 50 && isKnownProvider && avgInterval > 60)) {
       cadence = "annual";
       confidence = 0.85;
     } else {
@@ -301,7 +307,9 @@ export function detectRecurringCadence(
     }
 
     // Eligibility check
-    if (isKnownProvider) {
+    if (userOverride) {
+      // User explicitly pinned cadence
+    } else if (isKnownProvider) {
       source = "known_registry";
       confidence = 0.98;
     } else if (hasDirectDebitFlag) {
