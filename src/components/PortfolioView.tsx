@@ -456,6 +456,8 @@ export function PortfolioView({
     institution: "",
     notes: "",
   });
+  const [priceInputMode, setPriceInputMode] = useState<"unit" | "total">("unit");
+  const [totalSpentInput, setTotalSpentInput] = useState<string>("");
   const [formSubmitting, setFormSubmitting] = useState(false);
 
   const [presetLivePrices, setPresetLivePrices] = useState<Record<string, number>>({});
@@ -545,6 +547,8 @@ export function PortfolioView({
     setIsCustomMode(false);
     setPresetSearch("");
     setApiSearchResults([]);
+    setPriceInputMode("unit");
+    setTotalSpentInput("");
     setFormData({
       asset_name: "",
       symbol: "",
@@ -660,6 +664,9 @@ export function PortfolioView({
   const handleOpenEditModal = (asset: PortfolioAsset) => {
     setEditingAsset(asset);
     setIsCustomMode(true);
+    setPriceInputMode("unit");
+    const totalSpent = (Number(asset.quantity || 0) * Number(asset.buy_price || 0));
+    setTotalSpentInput(totalSpent > 0 ? totalSpent.toFixed(2) : "");
     setFormData({
       asset_name: asset.asset_name,
       symbol: asset.symbol || "",
@@ -1844,6 +1851,42 @@ export function PortfolioView({
                   )}
 
                   <div className="space-y-4">
+                    {/* Price Input Mode Selector */}
+                    <div className="flex items-center justify-between border-b border-border/40 pb-2">
+                      <Label className="technical-label">Entry Mode</Label>
+                      <div className="flex items-center gap-1 border border-border/80 p-0.5 bg-secondary/30">
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setPriceInputMode("unit");
+                          }}
+                          className={cn(
+                            "px-2.5 py-1 text-[9px] font-mono font-bold uppercase transition-all select-none cursor-pointer",
+                            priceInputMode === "unit" ? "bg-foreground text-background font-black shadow-sm" : "text-muted-foreground hover:text-foreground"
+                          )}
+                        >
+                          Price per Share
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setPriceInputMode("total");
+                            const q = parseFloat(formData.quantity);
+                            const b = parseFloat(formData.buy_price);
+                            if (!isNaN(q) && !isNaN(b) && q > 0 && b > 0) {
+                              setTotalSpentInput((q * b).toFixed(2));
+                            }
+                          }}
+                          className={cn(
+                            "px-2.5 py-1 text-[9px] font-mono font-bold uppercase transition-all select-none cursor-pointer",
+                            priceInputMode === "total" ? "bg-foreground text-background font-black shadow-sm" : "text-muted-foreground hover:text-foreground"
+                          )}
+                        >
+                          Total Invested ({currencySymbol})
+                        </button>
+                      </div>
+                    </div>
+
                     <div className="grid grid-cols-2 gap-4">
                       <div className="space-y-1.5">
                         <Label className="technical-label">Quantity *</Label>
@@ -1852,24 +1895,87 @@ export function PortfolioView({
                           step="any"
                           placeholder="1"
                           value={formData.quantity}
-                          onChange={(e) => setFormData({ ...formData, quantity: e.target.value })}
+                          onChange={(e) => {
+                            const qVal = e.target.value;
+                            setFormData((prev) => {
+                              const updated = { ...prev, quantity: qVal };
+                              if (priceInputMode === "total") {
+                                const tot = parseFloat(totalSpentInput);
+                                const q = parseFloat(qVal);
+                                if (!isNaN(tot) && !isNaN(q) && q > 0) {
+                                  const unitP = (tot / q).toFixed(4);
+                                  updated.buy_price = unitP;
+                                  updated.current_price = unitP;
+                                }
+                              }
+                              return updated;
+                            });
+                          }}
                           className="rounded-none h-10 sm:h-9 text-base sm:text-xs"
                           required
                         />
                       </div>
 
-                      <div className="space-y-1.5">
-                        <Label className="technical-label">Buy Price ({currencySymbol}) *</Label>
-                        <Input
-                          type="number"
-                          step="any"
-                          placeholder="130.33"
-                          value={formData.buy_price}
-                          onChange={(e) => setFormData({ ...formData, buy_price: e.target.value, current_price: e.target.value })}
-                          className="rounded-none h-10 sm:h-9 text-base sm:text-xs"
-                          required
-                        />
-                      </div>
+                      {priceInputMode === "unit" ? (
+                        <div className="space-y-1.5">
+                          <Label className="technical-label">Buy Price ({currencySymbol}) *</Label>
+                          <Input
+                            type="number"
+                            step="any"
+                            placeholder="130.33"
+                            value={formData.buy_price}
+                            onChange={(e) => {
+                              const bVal = e.target.value;
+                              setFormData((prev) => ({ ...prev, buy_price: bVal, current_price: bVal }));
+                              const q = parseFloat(formData.quantity);
+                              const b = parseFloat(bVal);
+                              if (!isNaN(q) && !isNaN(b) && q > 0 && b > 0) {
+                                setTotalSpentInput((q * b).toFixed(2));
+                              }
+                            }}
+                            className="rounded-none h-10 sm:h-9 text-base sm:text-xs"
+                            required
+                          />
+                        </div>
+                      ) : (
+                        <div className="space-y-1.5">
+                          <Label className="technical-label">Total Spent ({currencySymbol}) *</Label>
+                          <Input
+                            type="number"
+                            step="any"
+                            placeholder="10.00"
+                            value={totalSpentInput}
+                            onChange={(e) => {
+                              const totVal = e.target.value;
+                              setTotalSpentInput(totVal);
+                              const tot = parseFloat(totVal);
+                              const q = parseFloat(formData.quantity);
+                              if (!isNaN(tot) && !isNaN(q) && q > 0) {
+                                const unitP = (tot / q).toFixed(4);
+                                setFormData((prev) => ({ ...prev, buy_price: unitP, current_price: unitP }));
+                              }
+                            }}
+                            className="rounded-none h-10 sm:h-9 text-base sm:text-xs font-bold text-foreground"
+                            required
+                          />
+                        </div>
+                      )}
+                    </div>
+
+                    {/* Dynamic Calculation Helper Banner */}
+                    <div className="p-2.5 bg-secondary/30 border border-border text-[10px] font-mono flex items-center justify-between">
+                      <span className="text-muted-foreground">
+                        {priceInputMode === "total" ? "Calculated Share Price:" : "Total Position Cost:"}
+                      </span>
+                      <span className="font-bold text-foreground">
+                        {priceInputMode === "total"
+                          ? formData.buy_price && !isNaN(parseFloat(formData.buy_price))
+                            ? `${currencySymbol}${parseFloat(formData.buy_price).toFixed(2)} / share`
+                            : "—"
+                          : formData.quantity && formData.buy_price
+                            ? `${currencySymbol}${(parseFloat(formData.quantity) * parseFloat(formData.buy_price)).toFixed(2)}`
+                            : "—"}
+                      </span>
                     </div>
 
                     {/* Quick Quantity Step Buttons */}
