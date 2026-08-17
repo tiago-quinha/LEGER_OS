@@ -87,11 +87,11 @@ CRITICAL COMMUNICATION DIRECTIVE:
 - Merchant Classification Rules engine: Regex pattern matching to auto-categorize incoming transactions.
 
 ================================================================================
-6. FINANCIAL ANALYTICS & PARETO METRICS (/analytics)
+6. SUBSCRIPTION RADAR & COMMITMENT ENGINE (/radar)
 ================================================================================
-- Multi-cycle cash flow comparison charts (Inflow vs Outflow over previous cycles).
-- Pareto 80/20 category spend concentration analysis.
-- Recency decay velocity breakdown by category.
+- 4-layer recurring subscription and cadence detection engine (Instant Registry match, Direct Debit/SEPA triggers, Interval clustering, and Custom pinned overhead).
+- Automatic monthly/annual commitment tracking and silent price hike detection alerts.
+- Interactive cadence toggles and slide-up bill pinning drawer.
 
 ================================================================================
 7. MEMORY & CONTEXT JOURNAL (/memory)

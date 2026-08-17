@@ -421,21 +421,17 @@ function getPagePillVariations(pathname: string, telemetry: any, profile: any, a
         }
       ]
 
-    case "/analytics":
-      // ANALYTICS ONLY: Recency Decay Model (λ = 0.12) & Cash Flow Trends
+    case "/radar":
+      // RADAR ONLY: Fixed Subscriptions & Silent Price Hike Detection
       return [
         {
-          banner: `Projection engine applying recency decay weighting (λ = 0.12)...`,
-          query: `Explain how recency decay weighting (λ = 0.12) affects my cash flow forecast.`
+          banner: `Recurring subscription radar monitoring active commitments...`,
+          query: `Analyze my recurring subscriptions and highlight any potential savings or silent price hikes.`
         },
         {
-          banner: `Current cycle alpha weighting α = ${Math.min(1.0, 0.65 + 0.35 * (daysElapsed / 30)).toFixed(2)}...`,
-          query: `How does current cycle velocity weighting (α = ${Math.min(1.0, 0.65 + 0.35 * (daysElapsed / 30)).toFixed(2)}) favor current spending over baselines?`
-        },
-        ...(totalIn > 0 ? [{
-          banner: `Income to outflow coverage ratio is ${(totalIn / Math.max(1, totalOut)).toFixed(2)}x...`,
-          query: `Compare my total income received vs total outflow trends across recent cycles.`
-        }] : [])
+          banner: `Tracking annual vs monthly recurring overhead...`,
+          query: `Break down my fixed subscription commitments vs variable spending in this cycle.`
+        }
       ]
 
     case "/memory":
@@ -1060,13 +1056,13 @@ export function LegerAIAssistant() {
             "Manage my merchant rules"
           ]
         }
-      case "/analytics":
+      case "/radar":
         return {
-          name: "Analytics Node",
+          name: "Subscription Radar",
           suggestions: [
-            "What is my daily burn rate?",
-            "Compare current spend to my target limit",
-            "Analyse current cycle anomalies"
+            "List all detected monthly subscriptions",
+            "Are there any silent price hikes flagged?",
+            "What is my annual recurring commitment?"
           ]
         }
       default:

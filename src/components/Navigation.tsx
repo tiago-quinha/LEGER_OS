@@ -3,7 +3,7 @@
 import React, { useState, useEffect, useRef } from "react"
 import Link from "next/link"
 import { usePathname, useRouter, useSearchParams } from "next/navigation"
-import { Home, List, PieChart, BarChart3, Briefcase, Landmark, Shield, ShieldOff, Cpu, Activity, Database, LogOut, User, Sun, Moon, Sliders, Menu, X, ChevronRight, Tag, Brain, Radio } from "lucide-react"
+import { Home, List, PieChart, Briefcase, Landmark, Shield, ShieldOff, Cpu, Activity, Database, LogOut, User, Sun, Moon, Sliders, Menu, X, ChevronRight, Tag, Brain, Radio } from "lucide-react"
 import { useTheme } from "next-themes"
 import { cn } from "@/lib/utils"
 import { useSystem } from "@/lib/SystemContext"
@@ -21,7 +21,6 @@ const navigation = [
   { name: "Portfolio", href: "/portfolio", icon: Briefcase, desc: "Investments & Net Worth" },
   { name: "Categories", href: "/categories", icon: Tag, desc: "Category analysis" },
   { name: "Budgets", href: "/budgets", icon: PieChart, desc: "Budget planning" },
-  { name: "Analytics", href: "/analytics", icon: BarChart3, desc: "Cash flow trends" },
   { name: "Memory", href: "/memory", icon: Brain, desc: "AI Context Memory" },
 ]
 
@@ -33,7 +32,6 @@ const mobileNavigation = [
   { name: "Portfolio", href: "/portfolio", icon: Briefcase },
   { name: "Categories", href: "/categories", icon: Tag },
   { name: "Budgets", href: "/budgets", icon: PieChart },
-  { name: "Analytics", href: "/analytics", icon: BarChart3 },
   { name: "Memory", href: "/memory", icon: Brain },
 ]
 
