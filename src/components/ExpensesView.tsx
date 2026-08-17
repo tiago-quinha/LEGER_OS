@@ -2,7 +2,7 @@
 
 import { useState, useMemo, useEffect, useTransition } from "react"
 import { useSearchParams } from "next/navigation"
-import { motion, AnimatePresence } from "framer-motion"
+import { motion, AnimatePresence, useDragControls } from "framer-motion"
 import { supabase } from "@/lib/supabase"
 import { Skeleton } from "@/components/ui/skeleton"
 import {
@@ -407,12 +407,23 @@ export function ExpensesView({ initialExpenses, categories: initialCategories, i
 
   // Manual Ingestion State
   const [isAddOpen, setIsAddOpen] = useState(false)
+  const sheetDragControls = useDragControls()
   const [manualAmount, setManualAmount] = useState("")
   const [manualMerchant, setManualMerchant] = useState("")
   const [manualCategoryId, setManualCategoryId] = useState("")
   const [manualDate, setManualDate] = useState(new Date().toISOString().split('T')[0])
   const [isIncome, setIsIncome] = useState(false)
   const [isSavingManual, setIsSavingManual] = useState(false)
+
+  useEffect(() => {
+    if (isAddOpen) {
+      const orig = document.body.style.overflow
+      document.body.style.overflow = "hidden"
+      return () => {
+        document.body.style.overflow = orig
+      }
+    }
+  }, [isAddOpen])
 
   // Deletion confirmation custom dialog states (Jakob's Law UX alignment)
   const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false)
@@ -1514,6 +1525,8 @@ export function ExpensesView({ initialExpenses, categories: initialCategories, i
                       exit={{ y: "100%", opacity: 0 }}
                       transition={{ type: "spring", damping: 25, stiffness: 300 }}
                       drag="y"
+                      dragListener={false}
+                      dragControls={sheetDragControls}
                       dragConstraints={{ top: 0, bottom: 0 }}
                       dragElastic={{ top: 0, bottom: 0.6 }}
                       onDragEnd={(_, info) => {
@@ -1523,11 +1536,19 @@ export function ExpensesView({ initialExpenses, categories: initialCategories, i
                       }}
                       className="w-full max-w-md bg-[#09090b] border-t sm:border border-border text-foreground shadow-2xl flex flex-col overflow-hidden max-h-[92vh] rounded-t-2xl sm:rounded-2xl"
                     >
-                      {/* Top Drag Handle */}
-                      <div className="w-12 h-1 bg-muted-foreground/30 rounded-full mx-auto my-2.5 cursor-grab active:cursor-grabbing shrink-0" />
+                      {/* Top Drag Handle Bar */}
+                      <div 
+                        onPointerDown={(e) => sheetDragControls.start(e)}
+                        className="w-full flex justify-center py-2.5 cursor-grab active:cursor-grabbing border-b border-border/40 select-none shrink-0 bg-secondary/10 hover:bg-secondary/20 transition-colors touch-none"
+                      >
+                        <div className="w-12 h-1 bg-muted-foreground/40 rounded-full" />
+                      </div>
 
                       {/* Drawer Header */}
-                      <div className="px-5 py-3 border-b border-border flex items-center justify-between bg-card/40 shrink-0">
+                      <div 
+                        onPointerDown={(e) => sheetDragControls.start(e)}
+                        className="px-5 py-3 border-b border-border flex items-center justify-between bg-card/40 shrink-0 cursor-grab active:cursor-grabbing select-none touch-none"
+                      >
                         <div>
                           <h3 className="text-xs uppercase tracking-widest font-mono font-bold">
                             Add Entry
@@ -1545,7 +1566,7 @@ export function ExpensesView({ initialExpenses, categories: initialCategories, i
                         </button>
                       </div>
 
-                      <form onSubmit={handleAddManualExpense} className="p-5 overflow-y-auto space-y-4 font-mono text-xs">
+                      <form onSubmit={handleAddManualExpense} className="p-5 overflow-y-auto space-y-4 font-mono text-xs overscroll-contain">
                         {/* Segmented Transaction Type Selector */}
                         <div className="grid grid-cols-2 gap-1 bg-secondary/15 border border-border/80 p-0.5 font-mono text-[9px] uppercase tracking-wider">
                           <button

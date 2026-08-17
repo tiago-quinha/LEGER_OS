@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useMemo, useCallback, useTransition } from "react";
 import { useRouter } from "next/navigation";
-import { motion, AnimatePresence } from "framer-motion";
+import { motion, AnimatePresence, useDragControls } from "framer-motion";
 import { useSystem } from "@/lib/SystemContext";
 import { PrivacyValue } from "@/components/ui/privacy-value";
 import { ProLockOverlay } from "@/components/ProLockOverlay";
@@ -456,9 +456,20 @@ export function PortfolioView({
     institution: "",
     notes: "",
   });
+  const sheetDragControls = useDragControls();
   const [priceInputMode, setPriceInputMode] = useState<"unit" | "total">("unit");
   const [totalSpentInput, setTotalSpentInput] = useState<string>("");
   const [formSubmitting, setFormSubmitting] = useState(false);
+
+  useEffect(() => {
+    if (isAddModalOpen) {
+      const orig = document.body.style.overflow;
+      document.body.style.overflow = "hidden";
+      return () => {
+        document.body.style.overflow = orig;
+      };
+    }
+  }, [isAddModalOpen]);
 
   const [presetLivePrices, setPresetLivePrices] = useState<Record<string, number>>({});
 
@@ -1577,6 +1588,8 @@ export function PortfolioView({
               exit={{ y: "100%", opacity: 0 }}
               transition={{ type: "spring", damping: 25, stiffness: 300 }}
               drag="y"
+              dragListener={false}
+              dragControls={sheetDragControls}
               dragConstraints={{ top: 0, bottom: 0 }}
               dragElastic={{ top: 0, bottom: 0.6 }}
               onDragEnd={(_, info) => {
@@ -1586,11 +1599,19 @@ export function PortfolioView({
               }}
               className="w-full max-w-xl bg-[#09090b] border-t sm:border border-border text-foreground shadow-2xl flex flex-col overflow-hidden h-[85vh] rounded-t-2xl sm:rounded-2xl justify-between"
             >
-              {/* Top Drag Handle */}
-              <div className="w-12 h-1 bg-muted-foreground/30 rounded-full mx-auto my-2.5 cursor-grab active:cursor-grabbing shrink-0" />
+              {/* Top Drag Handle Bar */}
+              <div 
+                onPointerDown={(e) => sheetDragControls.start(e)}
+                className="w-full flex justify-center py-2.5 cursor-grab active:cursor-grabbing border-b border-border/40 select-none shrink-0 bg-secondary/10 hover:bg-secondary/20 transition-colors touch-none"
+              >
+                <div className="w-12 h-1 bg-muted-foreground/40 rounded-full" />
+              </div>
 
               {/* Drawer Header */}
-              <div className="px-5 py-3 border-b border-border flex items-center justify-between bg-card/40 shrink-0">
+              <div 
+                onPointerDown={(e) => sheetDragControls.start(e)}
+                className="px-5 py-3 border-b border-border flex items-center justify-between bg-card/40 shrink-0 cursor-grab active:cursor-grabbing select-none touch-none"
+              >
                 <div>
                   <h3 className="text-xs uppercase tracking-widest font-mono font-bold">
                     {editingAsset ? "EDIT POSITION" : "ADD POSITION"}
@@ -1609,7 +1630,7 @@ export function PortfolioView({
               </div>
 
               {/* Scrollable Form Content */}
-              <div className="p-5 overflow-y-auto space-y-4 flex-1">
+              <div className="p-5 overflow-y-auto space-y-4 flex-1 overscroll-contain">
                 {/* Asset Selection List (Live Search or Curated Picks) */}
                 {!editingAsset && (
                   <div className="space-y-3 border-b border-border/40 pb-4">
