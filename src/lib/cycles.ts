@@ -29,19 +29,46 @@ export async function getCycles(supabase: SupabaseClient, userId: string): Promi
   let baseCycles: Cycle[] = []
 
   if (keyword !== "MONTHLY" && paychecks && paychecks.length > 0) {
-      baseCycles = paychecks.map((pc, index) => {
-        const startDate = new Date(pc.date)
-        const nextPc = paychecks?.[index + 1]
-        const endDateForLabel = nextPc 
-          ? new Date(new Date(nextPc.date).getTime() - 86400000)
+      // Cluster paychecks arriving within <= 12 days into the same payroll cycle (e.g. split transfers, bonuses, 14th month)
+      const clusters: {
+        startDate: string
+        paycheckAmount: number
+      }[] = []
+
+      for (const pc of paychecks) {
+        const pcDate = new Date(pc.date)
+        const amt = parseFloat(pc.amount) || 0
+
+        if (clusters.length === 0) {
+          clusters.push({ startDate: pc.date, paycheckAmount: amt })
+        } else {
+          const lastCluster = clusters[clusters.length - 1]
+          const lastDate = new Date(lastCluster.startDate)
+          const diffDays = Math.abs((pcDate.getTime() - lastDate.getTime()) / (1000 * 60 * 60 * 24))
+
+          if (diffDays <= 12) {
+            // Same cycle payroll cluster (e.g. salary + bonus, or split paycheck) -> merge & sum income
+            lastCluster.paycheckAmount += amt
+          } else {
+            // New distinct cycle boundary (standard bi-weekly or monthly cadence >= 13 days)
+            clusters.push({ startDate: pc.date, paycheckAmount: amt })
+          }
+        }
+      }
+
+      baseCycles = clusters.map((c, index) => {
+        const startDate = new Date(c.startDate)
+        const nextCluster = clusters[index + 1]
+        const endDateForLabel = nextCluster 
+          ? new Date(new Date(nextCluster.startDate).getTime() - 86400000)
           : new Date()
 
         return {
           id: `pc-${index + 1}`,
-          label: `Cycle: ${startDate.getUTCDate().toString().padStart(2, '0')} ${startDate.toLocaleDateString('en-GB', { month: 'short' })} - ${nextPc ? endDateForLabel.getUTCDate().toString().padStart(2, '0') + ' ' + endDateForLabel.toLocaleDateString('en-GB', { month: 'short' }) : 'Present'}`,
-          startDate: pc.date,
-          endDate: nextPc ? nextPc.date : null,
-          paycheckAmount: parseFloat(pc.amount)
+          label: `Cycle: ${startDate.getUTCDate().toString().padStart(2, '0')} ${startDate.toLocaleDateString('en-GB', { month: 'short' })} - ${nextCluster ? endDateForLabel.getUTCDate().toString().padStart(2, '0') + ' ' + endDateForLabel.toLocaleDateString('en-GB', { month: 'short' }) : 'Present'}`,
+          startDate: c.startDate,
+          endDate: nextCluster ? nextCluster.startDate : null,
+          paycheckAmount: c.paycheckAmount
         }
       })
       
