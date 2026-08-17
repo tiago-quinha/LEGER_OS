@@ -697,28 +697,16 @@ export function DashboardView({
         <div className="flex items-center gap-2">
           <button
             type="button"
+            data-no-swipe
             onClick={() => setIsScorecardOpen(true)}
             className="h-9 px-3 bg-secondary/40 hover:bg-secondary border border-border text-[10px] font-mono font-bold uppercase tracking-wider text-muted-foreground hover:text-foreground transition-colors flex items-center gap-1.5 cursor-pointer rounded-none"
             title="View Shareable Cycle Scorecard"
           >
-            <Trophy className="h-3.5 w-3.5 text-amber-500" />
-            <span className="hidden sm:inline">Scorecard</span>
+            <Trophy className="h-3.5 w-3.5 text-amber-500 shrink-0" />
+            <span className="text-[10px] font-mono font-bold uppercase">Scorecard</span>
           </button>
         </div>
       </header>
-
-      {/* Cycle Scorecard Shareable Modal */}
-      <CycleScorecardModal
-        isOpen={isScorecardOpen}
-        onClose={() => setIsScorecardOpen(false)}
-        telemetry={{
-          velocity,
-          netDelta: projectedTotalIn - projectedTotalOut,
-          projectedSurplus: isCurrentCycle ? (projectedTotalIn - projectedTotalOut) : netChange,
-          currentBalance: cycleEndBalance
-        }}
-        cycleTitle={currentCycle.label.replace('Cycle: ', '')}
-      />
 
       {/* Unnamed Bank Transaction Resolver & Push Alert Banner */}
       <UnnamedTransactionResolver expenses={expenses} categories={categories} />
@@ -1565,6 +1553,19 @@ export function DashboardView({
           </div>
         </DialogContent>
       </Dialog>
+
+      {/* Cycle Scorecard Shareable Modal */}
+      <CycleScorecardModal
+        isOpen={isScorecardOpen}
+        onClose={() => setIsScorecardOpen(false)}
+        telemetry={{
+          velocity,
+          netDelta: projectedTotalIn - projectedTotalOut,
+          projectedSurplus: isCurrentCycle ? (projectedTotalIn - projectedTotalOut) : netChange,
+          currentBalance: cycleEndBalance
+        }}
+        cycleTitle={currentCycle?.label ? currentCycle.label.replace('Cycle: ', '') : 'CURRENT CYCLE'}
+      />
 
         </motion.div>
       )}

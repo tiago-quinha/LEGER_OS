@@ -38,8 +38,6 @@ export function CycleScorecardModal({
   const [hideAmounts, setHideAmounts] = useState(false)
   const [copied, setCopied] = useState(false)
 
-  if (!isOpen) return null
-
   // Discipline score calculation based on velocity and budget
   const velocity = parseFloat(telemetry?.velocity || 1.0)
   const netDelta = parseFloat(telemetry?.netDelta || 0)
@@ -75,14 +73,24 @@ Sent from LEGER_OS · Personal Finance Mainframe`
 
   return (
     <AnimatePresence>
-      <div className="fixed inset-0 z-[100002] flex items-center justify-center p-4 bg-background/80 backdrop-blur-md animate-in fade-in duration-200">
-        <motion.div
-          initial={{ opacity: 0, scale: 0.95, y: 15 }}
-          animate={{ opacity: 1, scale: 1, y: 0 }}
-          exit={{ opacity: 0, scale: 0.95, y: 15 }}
-          transition={{ type: "spring", damping: 25, stiffness: 300 }}
-          className="w-full max-w-md bg-[#09090b] border border-border rounded-2xl shadow-2xl overflow-hidden flex flex-col font-mono text-xs relative"
+      {isOpen && (
+        <div 
+          className="fixed inset-0 z-[100002] flex items-end sm:items-center justify-center p-0 sm:p-4 bg-background/80 backdrop-blur-md"
+          onClick={(e) => {
+            if (e.target === e.currentTarget) onClose()
+          }}
         >
+          <motion.div
+            initial={{ opacity: 0, y: "100%" }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: "100%" }}
+            transition={{ type: "spring", damping: 25, stiffness: 300 }}
+            className="w-full sm:max-w-md bg-[#09090b] border-t sm:border border-border rounded-t-2xl sm:rounded-2xl shadow-2xl overflow-hidden flex flex-col font-mono text-xs relative max-h-[92vh]"
+          >
+            {/* Drag Handle on Mobile */}
+            <div className="w-full flex sm:hidden justify-center py-2.5 bg-secondary/10 border-b border-border/40 shrink-0">
+              <div className="w-12 h-1 bg-muted-foreground/30 rounded-full" />
+            </div>
           {/* Header Controls */}
           <div className="p-4 border-b border-border/40 flex items-center justify-between">
             <div className="flex items-center gap-2 text-[10px] text-muted-foreground uppercase tracking-widest">
@@ -194,6 +202,7 @@ Sent from LEGER_OS · Personal Finance Mainframe`
           </div>
         </motion.div>
       </div>
+      )}
     </AnimatePresence>
   )
 }
