@@ -529,7 +529,6 @@ export function SystemSettingsModal({ open, onOpenChange }: SystemSettingsModalP
                             if (isLocked) {
                               setSubscriptionOnly(true)
                               setActiveTab("pro")
-                              toast.info("Upgrade to PRO to unlock custom paycheck cycle detection.")
                               return
                             }
                             if (cadence.isCalendar) {

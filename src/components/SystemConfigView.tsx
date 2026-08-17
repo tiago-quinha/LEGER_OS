@@ -521,7 +521,6 @@ export function SystemConfigView() {
                               setSettingsActiveTab("pro")
                               setSubscriptionOnly(true)
                               setSettingsOpen(true)
-                              toast.info("Upgrade to PRO to unlock custom paycheck cycle detection.")
                               return
                             }
                             if (cadence.isCalendar) {
