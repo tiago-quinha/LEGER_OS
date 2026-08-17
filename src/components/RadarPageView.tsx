@@ -241,7 +241,7 @@ export function RadarPageView({ expenses, categories, cycles, currentCycleId }: 
       currentCycleId={currentCycleId}
       route="/radar"
       onCycleChange={handleCycleSelect}
-      className="mx-auto max-w-[1500px] p-4 md:p-8 space-y-10 md:space-y-12 pb-36 md:pb-8 w-full font-mono"
+      className="mx-auto max-w-[1500px] p-4 md:p-8 space-y-6 md:space-y-8 pb-36 md:pb-8 w-full font-mono"
     >
       {/* 1. Header (Normalized Subpage Header) */}
       <header className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 md:pb-6 relative border-b border-border">
@@ -284,17 +284,17 @@ export function RadarPageView({ expenses, categories, cycles, currentCycleId }: 
       </header>
 
       {/* 2. Executive Metric Summary Cards */}
-      <section className="grid grid-cols-1 sm:grid-cols-2 gap-5 md:gap-6">
+      <section className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
         {/* Metric 1: Monthly Commitment */}
-        <Tilt rotationFactor={6} className="p-6 md:p-8 space-y-4 bg-card/20 border border-border relative group overflow-hidden flex flex-col justify-between glow-card min-h-[170px]">
-          <ClippedCircle circleClassName="bg-foreground/5" circleSize={400} />
-          <div className="space-y-1.5 z-10">
-            <span className="text-[9px] font-mono uppercase tracking-widest text-muted-foreground border-b border-dotted border-muted-foreground/30 w-fit">
+        <Tilt rotationFactor={6} className="p-5 md:p-6 space-y-2 bg-card/20 border border-border relative group overflow-hidden glow-card">
+          <ClippedCircle circleClassName="bg-foreground/5" circleSize={350} />
+          <div className="space-y-0.5 z-10">
+            <span className="text-[9px] font-mono uppercase tracking-widest text-muted-foreground border-b border-dotted border-muted-foreground/30 w-fit block">
               MONTHLY RECURRING
             </span>
-            <div className="text-3xl md:text-5xl font-mono font-bold tracking-tighter text-foreground z-10">
+            <div className="text-3xl md:text-5xl font-mono font-bold tracking-tighter text-foreground z-10 flex items-baseline">
               <PrivacyValue>{currencySymbol}{totalMonthly.toFixed(2)}</PrivacyValue>
-              <span className="text-xs font-normal text-muted-foreground ml-1">/MO</span>
+              <span className="text-xs font-normal text-muted-foreground ml-1.5">/MO</span>
             </div>
           </div>
           <p className="text-[10px] text-muted-foreground font-mono uppercase z-10">
@@ -303,15 +303,15 @@ export function RadarPageView({ expenses, categories, cycles, currentCycleId }: 
         </Tilt>
 
         {/* Metric 2: Annual Projected Cost */}
-        <Tilt rotationFactor={6} className="p-6 md:p-8 space-y-4 bg-card/20 border border-border relative group overflow-hidden flex flex-col justify-between glow-card min-h-[170px]">
-          <ClippedCircle circleClassName="bg-foreground/5" circleSize={400} />
-          <div className="space-y-1.5 z-10">
-            <span className="text-[9px] font-mono uppercase tracking-widest text-muted-foreground border-b border-dotted border-muted-foreground/30 w-fit">
+        <Tilt rotationFactor={6} className="p-5 md:p-6 space-y-2 bg-card/20 border border-border relative group overflow-hidden glow-card">
+          <ClippedCircle circleClassName="bg-foreground/5" circleSize={350} />
+          <div className="space-y-0.5 z-10">
+            <span className="text-[9px] font-mono uppercase tracking-widest text-muted-foreground border-b border-dotted border-muted-foreground/30 w-fit block">
               ANNUAL PROJECTED
             </span>
-            <div className="text-3xl md:text-5xl font-mono font-bold tracking-tighter text-foreground z-10">
+            <div className="text-3xl md:text-5xl font-mono font-bold tracking-tighter text-foreground z-10 flex items-baseline">
               <PrivacyValue>{currencySymbol}{totalAnnual.toFixed(2)}</PrivacyValue>
-              <span className="text-xs font-normal text-muted-foreground ml-1">/YR</span>
+              <span className="text-xs font-normal text-muted-foreground ml-1.5">/YR</span>
             </div>
           </div>
           <p className="text-[10px] text-muted-foreground font-mono uppercase z-10">
@@ -322,20 +322,20 @@ export function RadarPageView({ expenses, categories, cycles, currentCycleId }: 
 
       {/* 3. Silent Price Hike Banner (if any) */}
       {radarData.priceIncreases.length > 0 && (
-        <section className="p-6 md:p-7 bg-amber-500/10 border border-amber-500/30 rounded-none space-y-4">
-          <div className="flex items-center gap-2.5 text-amber-500 text-xs font-bold uppercase tracking-wider">
+        <section className="p-4 sm:p-5 bg-amber-500/10 border border-amber-500/30 rounded-none space-y-2.5">
+          <div className="flex items-center gap-2 text-amber-500 text-xs font-bold uppercase tracking-wider">
             <AlertTriangle className="h-4 w-4 shrink-0" />
             <span>SILENT SUBSCRIPTION PRICE INCREASE DETECTED</span>
           </div>
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 pt-1">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2.5">
             {radarData.priceIncreases.map((hike, idx) => (
-              <div key={idx} className="p-4 bg-background/90 border border-border/80 rounded-none text-xs space-y-2 shadow-sm">
-                <div className="font-bold text-foreground uppercase truncate text-sm">{hike.merchant}</div>
+              <div key={idx} className="p-3 bg-background/90 border border-border/80 rounded-none text-xs space-y-1 shadow-sm">
+                <div className="font-bold text-foreground uppercase truncate text-xs">{hike.merchant}</div>
                 <div className="text-[11px] text-muted-foreground flex items-center justify-between font-mono">
                   <span>WAS {currencySymbol}{hike.previousAmount.toFixed(2)}</span>
                   <span className="text-amber-500 font-bold">→ {currencySymbol}{hike.newAmount.toFixed(2)}</span>
                 </div>
-                <div className="text-[9px] text-amber-500 font-bold uppercase tracking-widest pt-1.5 border-t border-border/30">
+                <div className="text-[9px] text-amber-500 font-bold uppercase tracking-widest pt-1 border-t border-border/30">
                   +{hike.increasePercent}% RATE INCREASE
                 </div>
               </div>
