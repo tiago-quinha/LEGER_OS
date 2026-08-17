@@ -1,6 +1,12 @@
 /**
  * LEGER_OS Cadence & Subscription Detection Engine
- * High-precision algorithm to identify recurring bills, subscriptions, and cadence drift.
+ * High-precision algorithm to identify recurring bills, subscriptions, and silent price hikes.
+ * 
+ * 4-Layer Detection Architecture:
+ * 1. Known Subscription Merchant Registry (Instant 1st-Charge Detection)
+ * 2. Bank Extract Direct Debit & Institutional Keywords (SEPA, DD, Mensalidade, etc.)
+ * 3. Empirical Recency, Day-of-Month & Interval Clustering
+ * 4. User Manual Overrides & Exclusions (Persistent via localStorage)
  */
 
 export interface DetectedSubscription {
@@ -12,7 +18,7 @@ export interface DetectedSubscription {
   averageAmount: number;
   latestAmount: number;
   historicalAmounts: number[];
-  cadence: "weekly" | "bi-weekly" | "monthly" | "quarterly" | "annual" | "irregular";
+  cadence: "monthly" | "annual";
   intervalDays: number;
   confidence: number; // 0.0 - 1.0
   occurrences: number;
@@ -23,6 +29,7 @@ export interface DetectedSubscription {
   status: "active" | "overdue" | "cancelled" | "price_jump";
   priceChangePercent?: number; // e.g. +15.2%
   priceChangeAmount?: number;
+  source: "known_registry" | "direct_debit_keyword" | "empirical_cadence" | "user_pinned";
 }
 
 export interface CadenceAnalysisResult {
@@ -44,49 +51,171 @@ export interface CadenceAnalysisResult {
   }[];
 }
 
-function normalizeMerchantName(name: string): string {
+// 1. KNOWN SUBSCRIPTION MERCHANT REGISTRY (100+ Brands)
+interface KnownProvider {
+  keywords: string[];
+  canonicalName: string;
+  defaultCadence?: "monthly" | "annual";
+}
+
+const KNOWN_SUBSCRIPTION_PROVIDERS: KnownProvider[] = [
+  // Streaming & Entertainment
+  { keywords: ["SPOTIFY"], canonicalName: "SPOTIFY" },
+  { keywords: ["NETFLIX"], canonicalName: "NETFLIX" },
+  { keywords: ["DISNEY", "DISNEYPLUS", "DISNEY+"], canonicalName: "DISNEY+" },
+  { keywords: ["HBO", "HBOMAX", "MAX.COM"], canonicalName: "MAX / HBO" },
+  { keywords: ["AMAZON PRIME", "PRIME VIDEO", "AMZNPRIME"], canonicalName: "AMAZON PRIME" },
+  { keywords: ["APPLE MUSIC", "APPLE.COM/BILL", "ITUNES", "ICLOUD"], canonicalName: "APPLE SERVICES" },
+  { keywords: ["YOUTUBE", "YOUTUBEMEMBER", "GOOGLE *YOUTUBE"], canonicalName: "YOUTUBE PREMIUM" },
+  { keywords: ["AUDIBLE"], canonicalName: "AUDIBLE" },
+  { keywords: ["CRUNCHYROLL"], canonicalName: "CRUNCHYROLL" },
+  { keywords: ["PARAMOUNT"], canonicalName: "PARAMOUNT+" },
+  { keywords: ["DAZN"], canonicalName: "DAZN" },
+  { keywords: ["SPORT TV", "SPORTTV"], canonicalName: "SPORT TV" },
+  { keywords: ["ELEVEN SPORTS", "DAZN ELEVEN"], canonicalName: "ELEVEN SPORTS" },
+  { keywords: ["FILMIN"], canonicalName: "FILMIN" },
+  { keywords: ["TIDAL"], canonicalName: "TIDAL" },
+  { keywords: ["DEEZER"], canonicalName: "DEEZER" },
+
+  // AI & Productivity Software
+  { keywords: ["CHATGPT", "OPENAI"], canonicalName: "OPENAI / CHATGPT" },
+  { keywords: ["CLAUDE", "ANTHROPIC"], canonicalName: "ANTHROPIC / CLAUDE" },
+  { keywords: ["GITHUB"], canonicalName: "GITHUB" },
+  { keywords: ["CURSOR", "ANYSWYS"], canonicalName: "CURSOR AI" },
+  { keywords: ["MIDJOURNEY"], canonicalName: "MIDJOURNEY" },
+  { keywords: ["NOTION"], canonicalName: "NOTION" },
+  { keywords: ["FIGMA"], canonicalName: "FIGMA" },
+  { keywords: ["ADOBE", "CREATIVE CLOUD"], canonicalName: "ADOBE CREATIVE CLOUD" },
+  { keywords: ["GOOGLE ONE", "GOOGLE STORAGE", "GOOGLE WORKSPACE", "GSUITE"], canonicalName: "GOOGLE ONE / WORKSPACE" },
+  { keywords: ["MICROSOFT", "MSFT", "OFFICE365", "O365"], canonicalName: "MICROSOFT 365" },
+  { keywords: ["DROPBOX"], canonicalName: "DROPBOX" },
+  { keywords: ["VERCEL"], canonicalName: "VERCEL" },
+  { keywords: ["SUPABASE"], canonicalName: "SUPABASE" },
+  { keywords: ["AWS", "AMAZON WEB SERVICES"], canonicalName: "AMAZON WEB SERVICES" },
+  { keywords: ["DIGITALOCEAN", "DIGITAL OCEAN"], canonicalName: "DIGITALOCEAN" },
+  { keywords: ["HEROKU"], canonicalName: "HEROKU" },
+  { keywords: ["1PASSWORD", "AGILEBITS"], canonicalName: "1PASSWORD" },
+  { keywords: ["BITWARDEN"], canonicalName: "BITWARDEN" },
+  { keywords: ["SETAPP"], canonicalName: "SETAPP" },
+  { keywords: ["CANVA"], canonicalName: "CANVA" },
+  { keywords: ["GRAMMARLY"], canonicalName: "GRAMMARLY" },
+  { keywords: ["LOOM"], canonicalName: "LOOM" },
+  { keywords: ["LINEAR"], canonicalName: "LINEAR" },
+  { keywords: ["RAYCAST"], canonicalName: "RAYCAST PRO" },
+
+  // Telecom, Internet & Mobile
+  { keywords: ["VODAFONE"], canonicalName: "VODAFONE" },
+  { keywords: ["MEO", "ALTICE"], canonicalName: "MEO" },
+  { keywords: ["NOS COMUNICACOES", "NOS LUSOMUNDO", "NOS TELECOM"], canonicalName: "NOS" },
+  { keywords: ["DIGI PORTUGAL", "DIGI"], canonicalName: "DIGI" },
+  { keywords: ["NOWO"], canonicalName: "NOWO" },
+  { keywords: ["ORANGE"], canonicalName: "ORANGE" },
+  { keywords: ["MOVISTAR", "TELEFONICA"], canonicalName: "MOVISTAR" },
+  { keywords: ["STARLINK"], canonicalName: "STARLINK" },
+
+  // Utilities, Energy & Water
+  { keywords: ["EDP COMERCIAL", "EDP DISTRIBUICAO", "EDP SERVICOS"], canonicalName: "EDP COMERCIAL" },
+  { keywords: ["GALP POWER", "GALP ENERGIA", "GALP ON"], canonicalName: "GALP ENERGIA" },
+  { keywords: ["ENDESA"], canonicalName: "ENDESA" },
+  { keywords: ["IBERDROLA"], canonicalName: "IBERDROLA" },
+  { keywords: ["GOLDENERGY"], canonicalName: "GOLDENERGY" },
+  { keywords: ["PLENITUDE"], canonicalName: "PLENITUDE" },
+  { keywords: ["SMAS", "SERVICOS MUNICIPALIZADOS"], canonicalName: "SMAS AGUAS" },
+  { keywords: ["EPAL"], canonicalName: "EPAL AGUAS" },
+  { keywords: ["AGUAS DO PORTO", "AGUAS DE GAIA", "AGUAS DE CASCAIS"], canonicalName: "AGUAS MUNICIPAIS" },
+
+  // Fitness, Gyms & Sports
+  { keywords: ["FITNESS HUT", "FITNESSHUT"], canonicalName: "FITNESS HUT" },
+  { keywords: ["SOLINCA"], canonicalName: "SOLINCA" },
+  { keywords: ["BASIC-FIT", "BASIC FIT"], canonicalName: "BASIC-FIT" },
+  { keywords: ["HOLMES PLACE", "HOLMESPLACE"], canonicalName: "HOLMES PLACE" },
+  { keywords: ["GO FIT", "GOFIT"], canonicalName: "GO FIT" },
+  { keywords: ["ELEMENTS"], canonicalName: "ELEMENTS FITNESS" },
+  { keywords: ["URBAN SPORTS CLUB", "URBAN SPORTS"], canonicalName: "URBAN SPORTS CLUB" },
+  { keywords: ["GYMPASS", "WELLHUB"], canonicalName: "WELLHUB / GYMPASS" },
+  { keywords: ["STRAVA"], canonicalName: "STRAVA" },
+  { keywords: ["WHOOP"], canonicalName: "WHOOP" },
+  { keywords: ["ZWIFT"], canonicalName: "ZWIFT" },
+
+  // Gaming & Memberships
+  { keywords: ["PLAYSTATION", "PSN", "SONY PLAYSTATION"], canonicalName: "PLAYSTATION PLUS" },
+  { keywords: ["XBOX", "GAME PASS", "MICROSOFT*XBOX"], canonicalName: "XBOX GAME PASS" },
+  { keywords: ["NINTENDO"], canonicalName: "NINTENDO SWITCH ONLINE" },
+  { keywords: ["PATREON"], canonicalName: "PATREON" },
+  { keywords: ["SUBSTACK"], canonicalName: "SUBSTACK" },
+  { keywords: ["MEDIUM"], canonicalName: "MEDIUM" },
+  { keywords: ["NEW YORK TIMES", "NYTIMES"], canonicalName: "THE NEW YORK TIMES" },
+  { keywords: ["THE ECONOMIST", "ECONOMIST"], canonicalName: "THE ECONOMIST" },
+  { keywords: ["FINANCIAL TIMES"], canonicalName: "FINANCIAL TIMES" },
+  { keywords: ["PUBLICO", "JORNAL PUBLICO"], canonicalName: "JORNAL PUBLICO" },
+  { keywords: ["EXPRESSO", "IMPRESA"], canonicalName: "JORNAL EXPRESSO" },
+  { keywords: ["OBSERVADOR"], canonicalName: "OBSERVADOR" },
+
+  // Insurance, Rent, Banking & Condominium
+  { keywords: ["VICTORIA SEGUROS", "FIDELIDADE", "TRANQUILIDADE", "ALLIANZ", "MAPFRE", "GENERALI", "AGEAS"], canonicalName: "SEGUROS" },
+  { keywords: ["CONDOMINIO", "ADMINISTRACAO DE CONDOMINIO"], canonicalName: "CONDOMINIO" }
+];
+
+// 2. INSTITUTIONAL RECURRING / DIRECT DEBIT KEYWORDS
+const DIRECT_DEBIT_PATTERNS = [
+  "DEBITO DIRECTO",
+  "DEBITO DIRETO",
+  "DD ",
+  "SEPA DD",
+  "SEPA DIRECT DEBIT",
+  "MENSALIDADE",
+  "QUOTA",
+  "AUTOPAY",
+  "RECURRING",
+  "SUBSCRIPTION",
+  "PRESTACAO",
+  "CREDITO HABITACAO",
+  "AMORTIZACAO"
+];
+
+export function normalizeMerchantName(name: string): string {
   if (!name) return "UNKNOWN";
   let clean = name.trim().toUpperCase();
-  
-  // Strip common bank prefix/suffix noise (e.g. "PAGAMENTO MBWAY", "COMPRA CC", "DD DEBIT", "*PT", "WWW.")
+
+  // Check known registry first
+  for (const provider of KNOWN_SUBSCRIPTION_PROVIDERS) {
+    for (const kw of provider.keywords) {
+      if (clean.includes(kw)) {
+        return provider.canonicalName.toUpperCase();
+      }
+    }
+  }
+
+  // Strip bank prefix / suffix noise
   clean = clean
-    .replace(/^(PAGAMENTO|COMPRA|DEBITO DIRECTO|DD|MB WAY|MBWAY|SIBS|TRF|TRANSFERENCIA)\s+/i, "")
-    .replace(/\s+(LISBOA|PORTO|MADRID|LONDON|AMSTERDAM|IE|PT|ES|UK|US|LTD|SA|INC|ONLINE|WWW)\b/gi, "")
+    .replace(/^(PAGAMENTO|COMPRA|DEBITO DIRECTO|DEBITO DIRETO|DD|MB WAY|MBWAY|SIBS|TRF|TRANSFERENCIA|PAG|AUTOPAY)\s+/gi, "")
+    .replace(/\s+(LISBOA|PORTO|MADRID|LONDON|AMSTERDAM|IE|PT|ES|UK|US|LTD|SA|INC|ONLINE|WWW|PT)\b/gi, "")
     .replace(/[0-9*#_-]+/g, " ")
     .replace(/\s+/g, " ")
     .trim();
 
-  // Known brand aliases
-  if (clean.includes("SPOTIFY")) return "SPOTIFY";
-  if (clean.includes("NETFLIX")) return "NETFLIX";
-  if (clean.includes("AMAZON PRIME") || clean.includes("PRIME VIDEO")) return "AMAZON PRIME";
-  if (clean.includes("APPLE") || clean.includes("ICLOUD") || clean.includes("ITUNES")) return "APPLE SERVICES";
-  if (clean.includes("GOOGLE") || clean.includes("YOUTUBE") || clean.includes("GSUITE")) return "GOOGLE / YOUTUBE";
-  if (clean.includes("CHATGPT") || clean.includes("OPENAI")) return "OPENAI / CHATGPT";
-  if (clean.includes("DISNEY")) return "DISNEY+";
-  if (clean.includes("VODAFONE")) return "VODAFONE";
-  if (clean.includes("MEO")) return "MEO";
-  if (clean.includes("NOS COMUNICACOES")) return "NOS";
-  if (clean.includes("EDP")) return "EDP COMERCIAL";
-  if (clean.includes("FITNESS") || clean.includes("GYM") || clean.includes("SOLINCA") || clean.includes("FIT")) return clean;
-
-  return clean || name.trim().toUpperCase();
+  return clean.toUpperCase() || name.trim().toUpperCase();
 }
 
 export function detectRecurringCadence(
   expenses: any[],
   cycleStartDate?: string | Date,
-  cycleEndDate?: string | Date
+  cycleEndDate?: string | Date,
+  dismissedMerchants: string[] = []
 ): CadenceAnalysisResult {
   const expenseTransactions = expenses.filter(
     (e) => (parseFloat(e.amount) < 0 || e.is_income === false) && e.date
   );
 
+  const dismissedSet = new Set(dismissedMerchants.map(m => m.trim().toUpperCase()));
+
   // Group by normalized merchant
   const groups = new Map<string, any[]>();
   expenseTransactions.forEach((tx) => {
-    const rawMerchant = tx.merchant || tx.raw_text || "Unspecified";
-    const norm = normalizeMerchantName(rawMerchant);
+    const rawMerchant = tx.merchant || tx.raw_text || "UNSPECIFIED";
+    const norm = normalizeMerchantName(rawMerchant).toUpperCase();
+    if (dismissedSet.has(norm)) return; // Skip dismissed
+
     if (!groups.has(norm)) {
       groups.set(norm, []);
     }
@@ -95,18 +224,28 @@ export function detectRecurringCadence(
 
   const subscriptions: DetectedSubscription[] = [];
   const priceIncreases: CadenceAnalysisResult["priceIncreases"] = [];
-
   const now = new Date();
 
   groups.forEach((txs, normMerchant) => {
-    // Need at least 2 charges to identify a cadence
-    if (txs.length < 2) return;
-
     // Sort ascending by date
     txs.sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
 
     const amounts = txs.map((t) => Math.abs(parseFloat(t.amount)));
     const dates = txs.map((t) => new Date(t.date));
+    const latestTx = txs[txs.length - 1];
+    const latestAmount = amounts[amounts.length - 1];
+    const latestDate = dates[dates.length - 1];
+    const avgAmount = amounts.reduce((a, b) => a + b, 0) / amounts.length;
+    const previousAmount = amounts.length >= 2 ? amounts[amounts.length - 2] : avgAmount;
+
+    // Check if known provider
+    const isKnownProvider = KNOWN_SUBSCRIPTION_PROVIDERS.some(p => p.canonicalName.toUpperCase() === normMerchant);
+    
+    // Check if bank raw text contains direct debit markers
+    const hasDirectDebitFlag = txs.some(t => {
+      const fullText = `${t.merchant || ""} ${t.raw_text || ""}`.toUpperCase();
+      return DIRECT_DEBIT_PATTERNS.some(pat => fullText.includes(pat));
+    });
 
     // Calculate intervals between consecutive transactions in days
     const intervals: number[] = [];
@@ -116,96 +255,77 @@ export function detectRecurringCadence(
       if (diffDays > 0) intervals.push(diffDays);
     }
 
-    if (intervals.length === 0) return;
+    const avgInterval = intervals.length > 0 ? intervals.reduce((a, b) => a + b, 0) / intervals.length : 30;
 
-    const avgInterval = intervals.reduce((a, b) => a + b, 0) / intervals.length;
-    const avgAmount = amounts.reduce((a, b) => a + b, 0) / amounts.length;
-    const latestAmount = amounts[amounts.length - 1];
-    const previousAmount = amounts.length >= 2 ? amounts[amounts.length - 2] : avgAmount;
+    // Classify Cadence strictly into "monthly" or "annual"
+    let cadence: "monthly" | "annual" = "monthly";
+    let confidence = 0.6;
+    let source: DetectedSubscription["source"] = "empirical_cadence";
 
-    // Check amount stability (coefficient of variation)
-    const variance = amounts.reduce((sum, a) => sum + Math.pow(a - avgAmount, 2), 0) / amounts.length;
-    const stdDev = Math.sqrt(variance);
-    const amountCoeffVar = avgAmount > 0 ? stdDev / avgAmount : 1;
-
-    // Classify Cadence
-    let cadence: DetectedSubscription["cadence"] = "irregular";
-    let confidence = 0.5;
-
-    if (avgInterval >= 5 && avgInterval <= 9) {
-      cadence = "weekly";
-      confidence = 0.9 - Math.min(0.4, amountCoeffVar);
-    } else if (avgInterval >= 12 && avgInterval <= 16) {
-      cadence = "bi-weekly";
-      confidence = 0.85 - Math.min(0.4, amountCoeffVar);
-    } else if (avgInterval >= 25 && avgInterval <= 34) {
-      cadence = "monthly";
-      confidence = 0.95 - Math.min(0.3, amountCoeffVar);
-    } else if (avgInterval >= 80 && avgInterval <= 100) {
-      cadence = "quarterly";
-      confidence = 0.85 - Math.min(0.3, amountCoeffVar);
-    } else if (avgInterval >= 340 && avgInterval <= 380) {
+    if (avgInterval >= 180 || (latestAmount > 50 && isKnownProvider && avgInterval > 60)) {
       cadence = "annual";
-      confidence = 0.8 - Math.min(0.3, amountCoeffVar);
+      confidence = 0.85;
     } else {
-      // Check if day of month is consistently identical despite interval jitter
-      const daysOfMonth = dates.map((d) => d.getDate());
-      const dayDiffs = daysOfMonth.map((d) => Math.abs(d - daysOfMonth[0]));
-      const isSameDayOfMonth = dayDiffs.every((d) => d <= 3);
-      if (isSameDayOfMonth && avgInterval >= 20 && avgInterval <= 45) {
-        cadence = "monthly";
-        confidence = 0.88;
-      }
+      cadence = "monthly";
+      confidence = 0.90;
     }
 
-    // Filter out highly variable non-subscriptions (e.g. random grocery trips) unless amount is very consistent
-    if (cadence === "irregular" || confidence < 0.6) {
-      if (amountCoeffVar < 0.15 && txs.length >= 3 && avgInterval >= 20 && avgInterval <= 40) {
-        cadence = "monthly";
-        confidence = 0.75;
+    // Eligibility check
+    if (isKnownProvider) {
+      source = "known_registry";
+      confidence = 0.98;
+    } else if (hasDirectDebitFlag) {
+      source = "direct_debit_keyword";
+      confidence = 0.92;
+    } else if (txs.length >= 2) {
+      // Check day of month stability or interval stability
+      const daysOfMonth = dates.map((d) => d.getDate());
+      const dayDiffs = daysOfMonth.map((d) => Math.abs(d - daysOfMonth[0]));
+      const isConsistentDay = dayDiffs.every((d) => d <= 4);
+
+      if (isConsistentDay || (avgInterval >= 20 && avgInterval <= 45)) {
+        source = "empirical_cadence";
+        confidence = 0.88;
+      } else if (avgInterval >= 320 && avgInterval <= 400) {
+        cadence = "annual";
+        source = "empirical_cadence";
+        confidence = 0.85;
       } else {
+        // High variation, not a subscription
         return;
       }
+    } else {
+      // 1 single transaction and not known provider/direct debit -> skip
+      return;
     }
 
     // Compute expected next charge date
-    const latestDate = dates[dates.length - 1];
     const nextDate = new Date(latestDate);
-    if (cadence === "weekly") {
-      nextDate.setDate(nextDate.getDate() + 7);
-    } else if (cadence === "bi-weekly") {
-      nextDate.setDate(nextDate.getDate() + 14);
-    } else if (cadence === "monthly") {
-      nextDate.setMonth(nextDate.getMonth() + 1);
-    } else if (cadence === "quarterly") {
-      nextDate.setMonth(nextDate.getMonth() + 3);
-    } else if (cadence === "annual") {
+    if (cadence === "annual") {
       nextDate.setFullYear(nextDate.getFullYear() + 1);
     } else {
-      nextDate.setDate(nextDate.getDate() + Math.round(avgInterval));
+      nextDate.setMonth(nextDate.getMonth() + 1);
     }
 
     // Status check
     const daysSinceLast = Math.round((now.getTime() - latestDate.getTime()) / (1000 * 60 * 60 * 24));
-    const maxExpectedDays = avgInterval * 1.5;
     let status: DetectedSubscription["status"] = "active";
-
-    if (daysSinceLast > avgInterval * 2.5) {
+    if (cadence === "monthly" && daysSinceLast > 65) {
       status = "cancelled";
-    } else if (daysSinceLast > maxExpectedDays) {
-      status = "overdue";
+    } else if (cadence === "annual" && daysSinceLast > 410) {
+      status = "cancelled";
     }
 
     // Price change detector (increase >= 5% compared to previous baseline)
     let priceChangePercent: number | undefined;
     let priceChangeAmount: number | undefined;
-    if (latestAmount > previousAmount * 1.05 && Math.abs(latestAmount - previousAmount) >= 0.5) {
+    if (txs.length >= 2 && latestAmount > previousAmount * 1.05 && Math.abs(latestAmount - previousAmount) >= 0.45) {
       status = "price_jump";
       priceChangePercent = ((latestAmount - previousAmount) / previousAmount) * 100;
       priceChangeAmount = latestAmount - previousAmount;
 
       priceIncreases.push({
-        merchant: normMerchant,
+        merchant: normMerchant.toUpperCase(),
         previousAmount,
         newAmount: latestAmount,
         increasePercent: Math.round(priceChangePercent * 10) / 10,
@@ -213,13 +333,11 @@ export function detectRecurringCadence(
       });
     }
 
-    const latestTx = txs[txs.length - 1];
-
     subscriptions.push({
       id: `sub-${normMerchant.toLowerCase().replace(/[^a-z0-9]/g, "-")}`,
-      merchant: latestTx.merchant || normMerchant,
-      normalizedMerchant: normMerchant,
-      categoryName: latestTx.category?.name || latestTx.categories?.name,
+      merchant: normMerchant.toUpperCase(),
+      normalizedMerchant: normMerchant.toUpperCase(),
+      categoryName: (latestTx.category?.name || latestTx.categories?.name || "RECURRING BILL").toUpperCase(),
       categoryId: latestTx.category_id,
       averageAmount: Math.round(avgAmount * 100) / 100,
       latestAmount: Math.round(latestAmount * 100) / 100,
@@ -235,35 +353,32 @@ export function detectRecurringCadence(
       status,
       priceChangePercent: priceChangePercent ? Math.round(priceChangePercent * 10) / 10 : undefined,
       priceChangeAmount: priceChangeAmount ? Math.round(priceChangeAmount * 100) / 100 : undefined,
+      source,
     });
   });
 
-  // Calculate total monthly equivalent commitments
+  // Calculate total monthly and annual commitments
   let totalMonthlyCommitment = 0;
   subscriptions.forEach((sub) => {
     if (sub.status === "cancelled") return;
     if (sub.cadence === "monthly") totalMonthlyCommitment += sub.latestAmount;
-    else if (sub.cadence === "weekly") totalMonthlyCommitment += sub.latestAmount * 4.33;
-    else if (sub.cadence === "bi-weekly") totalMonthlyCommitment += sub.latestAmount * 2.165;
-    else if (sub.cadence === "quarterly") totalMonthlyCommitment += sub.latestAmount / 3;
     else if (sub.cadence === "annual") totalMonthlyCommitment += sub.latestAmount / 12;
   });
 
   totalMonthlyCommitment = Math.round(totalMonthlyCommitment * 100) / 100;
   const totalAnnualCommitment = Math.round(totalMonthlyCommitment * 12 * 100) / 100;
 
-  // Calculate upcoming in current paycheck cycle
+  // Upcoming in current cycle
   const upcomingInCurrentCycle: CadenceAnalysisResult["upcomingInCurrentCycle"] = [];
   const cycleStart = cycleStartDate ? new Date(cycleStartDate) : new Date(now.getFullYear(), now.getMonth(), 1);
   const cycleEnd = cycleEndDate ? new Date(cycleEndDate) : new Date(now.getFullYear(), now.getMonth() + 1, 0);
 
   subscriptions.forEach((sub) => {
     if (sub.status === "cancelled") return;
-    const nextD = new Date(sub.nextExpectedDate);
     const isPaidInCycle = new Date(sub.latestDate) >= cycleStart && new Date(sub.latestDate) <= cycleEnd;
 
     upcomingInCurrentCycle.push({
-      merchant: sub.merchant,
+      merchant: sub.merchant.toUpperCase(),
       amount: sub.latestAmount,
       expectedDate: sub.nextExpectedDate,
       alreadyPaid: isPaidInCycle,
