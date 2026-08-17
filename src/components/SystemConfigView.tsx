@@ -718,19 +718,33 @@ export function SystemConfigView() {
                       <div className="p-5 bg-secondary/10 border border-border space-y-3">
                         <div className="flex items-center justify-between text-xs font-bold uppercase tracking-widest">
                           <span className="text-foreground">
-                            Recency Decay Weight (λ)
+                            Recency Decay Sensitivity (λ)
                           </span>
-                          <span className="text-emerald-500 font-bold">{decayInput} (Half-life: ~{Math.round(0.693 / (parseFloat(decayInput) || 0.12))} days)</span>
+                          {(() => {
+                            const val = parseFloat(decayInput) || 0.12
+                            const halfLife = Math.round(0.693 / val)
+                            const modeTag = halfLife <= 7 ? "Agile (Fast Velocity)" : halfLife <= 14 ? "Adaptive (Balanced)" : "Macro (High Stability)"
+                            return (
+                              <span className="text-emerald-500 font-bold font-mono">
+                                {decayInput} ({halfLife}d half-life · {modeTag})
+                              </span>
+                            )
+                          })()}
                         </div>
                         <input
                           type="range"
-                          min="0.05"
-                          max="0.30"
-                          step="0.01"
+                          min="0.023"
+                          max="0.231"
+                          step="0.005"
                           value={decayInput}
                           onChange={(e) => setDecayInput(e.target.value)}
                           className="w-full accent-emerald-500 h-2 bg-secondary cursor-pointer"
                         />
+                        <div className="flex justify-between text-[9px] font-mono text-muted-foreground">
+                          <span>30d Half-Life (Macro Stability)</span>
+                          <span>6d (Standard)</span>
+                          <span>3d (Fast Agile)</span>
+                        </div>
                       </div>
                     </>
                   )}     <p className="text-[11px] text-muted-foreground font-sans leading-relaxed">

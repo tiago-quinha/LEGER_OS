@@ -736,13 +736,22 @@ export function SystemSettingsModal({ open, onOpenChange }: SystemSettingsModalP
                           <span className="text-muted-foreground uppercase font-bold">
                             Recency Decay (λ):
                           </span>
-                          <span className="font-bold text-emerald-500">{decayInput} (~{Math.round(0.693 / (parseFloat(decayInput) || 0.12))}d half-life)</span>
+                          {(() => {
+                            const val = parseFloat(decayInput) || 0.12
+                            const halfLife = Math.round(0.693 / val)
+                            const modeTag = halfLife <= 7 ? "Agile" : halfLife <= 14 ? "Adaptive" : "Macro"
+                            return (
+                              <span className="font-bold text-emerald-500 font-mono">
+                                {decayInput} ({halfLife}d · {modeTag})
+                              </span>
+                            )
+                          })()}
                         </div>
                         <input
                           type="range"
-                          min="0.05"
-                          max="0.30"
-                          step="0.01"
+                          min="0.023"
+                          max="0.231"
+                          step="0.005"
                           value={decayInput}
                           onChange={(e) => setDecayInput(e.target.value)}
                           className="w-full accent-emerald-500 h-1.5 bg-secondary cursor-pointer my-auto"

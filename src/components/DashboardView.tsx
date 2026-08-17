@@ -57,7 +57,7 @@ interface CurvePoint {
   outflow: number
 }
 
-import { detectRecurringCadence } from "@/lib/cadence-detector"
+import { runEmpiricalProjection, triggerBackgroundProjectionRecalc } from "@/lib/projection-engine"
 
 function simulateExpertDailyProjection(
   pastExpenses: any[],
@@ -68,178 +68,34 @@ function simulateExpertDailyProjection(
   totalDaysInCycle: number,
   overrides: any[] = [],
   decayRate: number = 0.12,
-  targetMonthlySpend: number = 1500
+  targetMonthlySpend: number = 1500,
+  startingBalance: number = 0
 ) {
-  // Use high-precision Automated Cadence Engine for recurring subscriptions & fixed bills
-  const cadenceResult = detectRecurringCadence(pastExpenses, currentCycle?.startDate, currentCycle?.endDate);
-  const recurringMerchants = cadenceResult.subscriptions.map(s => ({
-    merchant: s.normalizedMerchant,
-    amount: s.latestAmount,
-    expectedDay: s.expectedDayOfMonth || 15
-  }));
-  const recurringNames = new Set(cadenceResult.subscriptions.map(s => s.normalizedMerchant));
-
-  const dowSpend = [1, 1, 1, 1, 1, 1, 1]
-  pastExpenses.forEach((e: any) => {
-    const amt = parseFloat(e.amount)
-    if (amt < 0 && !recurringNames.has((e.merchant || "").trim().toUpperCase())) {
-      const dow = new Date(e.date).getDay()
-      dowSpend[dow] += Math.abs(amt)
-    }
-  })
-  const totalDow = dowSpend.reduce((a, b) => a + b, 0)
-  const dowWeights = dowSpend.map(s => (s / totalDow) * 7)
-
-  const currentActualOut = currentExpenses
-    .filter((e: any) => new Date(e.date) <= today && parseFloat(e.amount) < 0)
-    .reduce((sum: number, e: any) => sum + Math.abs(parseFloat(e.amount)), 0)
+  // Convert decayRate (lambda) to halfLifeDays: halfLifeDays = ln(2) / decayRate
+  const halfLifeDays = Math.log(2) / (decayRate || 0.12)
   
-  const currentActualIn = currentExpenses
-    .filter((e: any) => new Date(e.date) <= today && parseFloat(e.amount) > 0)
-    .reduce((sum: number, e: any) => sum + parseFloat(e.amount), 0)
-
-  const currentRecurringSpent = currentExpenses
-    .filter((e: any) => new Date(e.date) <= today && parseFloat(e.amount) < 0 && recurringNames.has((e.merchant || "").trim().toUpperCase()))
-    .reduce((sum: number, e: any) => sum + Math.abs(parseFloat(e.amount)), 0)
-
-  const currentAnomaliesSpent = currentExpenses
-    .filter((e: any) => new Date(e.date) <= today && parseFloat(e.amount) < 0 && e.is_anomaly)
-    .reduce((sum: number, e: any) => sum + Math.abs(parseFloat(e.amount)), 0)
-    
-  const effectiveElapsed = Math.max(1, Math.min(daysElapsed, totalDaysInCycle))
-  const todayTime = today.getTime()
-
-  // Recency-weighted daily variable burn rate (aggregated by day offset, adapting with exponential decay half-life)
-  const dailyVariableMap = new Map<number, number>()
-  for (let d = 0; d <= effectiveElapsed; d++) {
-    dailyVariableMap.set(d, 0)
-  }
-  currentExpenses.forEach((e: any) => {
-    const amt = parseFloat(e.amount)
-    if (amt < 0 && new Date(e.date) <= today && !recurringNames.has((e.merchant || "").trim().toUpperCase()) && !e.is_anomaly) {
-      const daysAgo = Math.floor(Math.max(0, (todayTime - new Date(e.date).getTime()) / (1000 * 60 * 60 * 24)))
-      if (daysAgo <= effectiveElapsed) {
-        dailyVariableMap.set(daysAgo, (dailyVariableMap.get(daysAgo) || 0) + Math.abs(amt))
-      }
-    }
+  const result = runEmpiricalProjection({
+    pastExpenses,
+    currentExpenses,
+    currentCycle,
+    today,
+    daysElapsed,
+    totalDaysInCycle,
+    overrides,
+    halfLifeDays,
+    targetMonthlySpend,
+    startingBalance
   })
-
-  let weightedDailySpend = 0
-  let totalDailyWeight = 0
-  dailyVariableMap.forEach((dailyTotal, daysAgo) => {
-    const w = Math.exp(-decayRate * daysAgo)
-    weightedDailySpend += dailyTotal * w
-    totalDailyWeight += w
-  })
-
-  const unweightedVariableSpend = Math.max(0, currentActualOut - currentRecurringSpent - currentAnomaliesSpent)
-  const standardDailyBurn = unweightedVariableSpend / effectiveElapsed
-  
-  const rawDecayBurn = totalDailyWeight > 0 ? (weightedDailySpend / totalDailyWeight) : standardDailyBurn
-  // Smooth the aggressive exponential decay with the unweighted average to handle lumpy spend (e.g. weekly groceries)
-  const currentDailyVariableBurn = (rawDecayBurn + standardDailyBurn) / 2
-
-  const pastVariableTotal = pastExpenses
-    .filter((e: any) => parseFloat(e.amount) < 0 && !recurringNames.has((e.merchant || "").trim().toUpperCase()) && !e.is_anomaly)
-    .reduce((sum: number, e: any) => sum + Math.abs(parseFloat(e.amount)), 0)
-    
-  let histDaysCount = Math.max(30, totalDaysInCycle)
-  if (pastExpenses.length > 0) {
-    const oldestDate = Math.min(...pastExpenses.map((e: any) => new Date(e.date).getTime()))
-    const newestDate = Math.max(...pastExpenses.map((e: any) => new Date(e.date).getTime()))
-    const spanDays = Math.max(30, (newestDate - oldestDate) / (1000 * 60 * 60 * 24))
-    histDaysCount = spanDays
-  }
-  
-  // Use target monthly spend as a safety floor if there is no history, assuming ~50% is variable
-  const safeFallbackBurn = targetMonthlySpend ? (targetMonthlySpend * 0.5) / 30 : 20
-  const histDailyVariableBurn = pastExpenses.length > 0 ? (pastVariableTotal / histDaysCount) : (currentDailyVariableBurn > 0 ? currentDailyVariableBurn : safeFallbackBurn)
-
-  // Heavily favor current cycle velocity (starts at 65% weight on day 1, approaching 100% by cycle end)
-  const alpha = Math.min(1.0, 0.65 + 0.35 * (effectiveElapsed / totalDaysInCycle))
-  const blendedDailyBurn = alpha * currentDailyVariableBurn + (1 - alpha) * histDailyVariableBurn
-
-  let dailyBurnAdjustment = 0
-  let totalFixedDelta = 0
-  if (overrides && overrides.length > 0) {
-    overrides.forEach((ov: any) => {
-      if (ov.fixedDelta) {
-        totalFixedDelta += parseFloat(ov.fixedDelta) || 0
-      }
-      if (ov.multiplier !== undefined && ov.multiplier !== null && ov.multiplier !== 1.0) {
-        let catWeightedSpend = 0
-        let catTotalWeight = 0
-        currentExpenses.forEach((e: any) => {
-          if (parseFloat(e.amount) < 0 && new Date(e.date) <= today && (!ov.categoryId || e.category_id === ov.categoryId)) {
-            const daysAgo = Math.floor(Math.max(0, (todayTime - new Date(e.date).getTime()) / (1000 * 60 * 60 * 24)))
-            if (daysAgo <= effectiveElapsed) {
-              const w = Math.exp(-decayRate * daysAgo)
-              catWeightedSpend += Math.abs(parseFloat(e.amount)) * w
-              catTotalWeight += w
-            }
-          }
-        })
-        const catDailyBurn = catTotalWeight > 0 ? (catWeightedSpend / catTotalWeight) : 0
-        dailyBurnAdjustment += (catDailyBurn * ov.multiplier) - catDailyBurn
-      }
-    })
-  }
-
-  const remainingDays = Math.max(1, totalDaysInCycle - daysElapsed)
-  const dailyFixedDelta = totalFixedDelta / remainingDays
-
-  const dailySpend: number[] = []
-  const dailySpendOptimistic: number[] = []
-  const dailySpendPessimistic: number[] = []
-  const dailyInflow: number[] = []
-
-  // Simulate every day in the cycle
-  for (let i = 0; i <= totalDaysInCycle; i++) {
-    const d = new Date(currentCycle.startDate)
-    d.setDate(d.getDate() + i)
-
-    if (i <= daysElapsed && d <= today) {
-      dailySpend[i] = currentExpenses
-        .filter((e: any) => new Date(e.date) <= d && parseFloat(e.amount) < 0)
-        .reduce((sum: number, e: any) => sum + Math.abs(parseFloat(e.amount)), 0)
-      
-      dailySpendOptimistic[i] = dailySpend[i]
-      dailySpendPessimistic[i] = dailySpend[i]
-
-      dailyInflow[i] = currentExpenses
-        .filter((e: any) => new Date(e.date) <= d && parseFloat(e.amount) > 0)
-        .reduce((sum: number, e: any) => sum + parseFloat(e.amount), 0)
-    } else {
-      const prevSpend = i > 0 ? dailySpend[i - 1] : currentActualOut
-      const prevSpendOpt = i > 0 ? dailySpendOptimistic[i - 1] : currentActualOut
-      const prevSpendPes = i > 0 ? dailySpendPessimistic[i - 1] : currentActualOut
-      const prevInflow = i > 0 ? dailyInflow[i - 1] : currentActualIn
-
-      let billsDueToday = 0
-      const currentCalDay = d.getDate()
-      recurringMerchants.forEach(rm => {
-        if (rm.expectedDay === currentCalDay) {
-          billsDueToday += rm.amount
-        }
-      })
-
-      const dow = d.getDay()
-      const variableSpendToday = Math.max(0, (blendedDailyBurn + dailyBurnAdjustment) * (dowWeights[dow] || 1.0) + dailyFixedDelta)
-      
-      dailySpend[i] = prevSpend + billsDueToday + variableSpendToday
-      dailySpendOptimistic[i] = prevSpendOpt + billsDueToday + (variableSpendToday * 0.8)
-      dailySpendPessimistic[i] = prevSpendPes + billsDueToday + (variableSpendToday * 1.2)
-      dailyInflow[i] = prevInflow
-    }
-  }
 
   return {
-    dailySpend,
-    dailySpendOptimistic,
-    dailySpendPessimistic,
-    dailyInflow,
-    projectedTotalOut: dailySpend[totalDaysInCycle] || currentActualOut,
-    projectedTotalIn: dailyInflow[totalDaysInCycle] || currentActualIn
+    dailySpend: result.dailySpend,
+    dailySpendOptimistic: result.dailySpendOptimistic,
+    dailySpendPessimistic: result.dailySpendPessimistic,
+    dailyInflow: result.dailyInflow,
+    projectedTotalOut: result.projectedTotalSpend,
+    projectedTotalIn: result.projectedTotalInflow,
+    projectedEndingBalance: result.projectedEndingBalance,
+    empiricalMetrics: result.empiricalMetrics
   }
 }
 
@@ -349,8 +205,8 @@ export function DashboardView({
   // Predictive Expert Data Analyst Daily Simulation
   const expertProjection = useMemo(() => {
     const past = allPastExpenses || previousExpenses || []
-    return simulateExpertDailyProjection(past, expenses, currentCycle, today, daysElapsed, totalDaysInCycle, overrides, decayWeight || 0.12, targetMonthlySpend)
-  }, [allPastExpenses, previousExpenses, expenses, currentCycle, today, daysElapsed, totalDaysInCycle, overrides, decayWeight, targetMonthlySpend])
+    return simulateExpertDailyProjection(past, expenses, currentCycle, today, daysElapsed, totalDaysInCycle, overrides, decayWeight || 0.12, targetMonthlySpend, injectedStartBalance)
+  }, [allPastExpenses, previousExpenses, expenses, currentCycle, today, daysElapsed, totalDaysInCycle, overrides, decayWeight, targetMonthlySpend, injectedStartBalance])
 
   const projectedTotalOut = useMemo(() => {
     if (!isCurrentCycle) return totalOut
