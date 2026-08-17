@@ -640,12 +640,14 @@ export async function POST(request: Request) {
   } catch (error: any) {
     console.error("Gemini/Leger Query Error:", error);
     
-    if (error.status === 429 || error.message?.includes("429")) {
-      return NextResponse.json({ 
-        error: "Processing limit reached (Gemini 429). To bypass shared mainframe constraints, configure your own free Gemini API key in System Settings." 
-      }, { status: 429 });
-    }
+    const isQuota = error.status === 429 || error.message?.includes("429") || error.message?.toLowerCase()?.includes("quota") || error.message?.toLowerCase()?.includes("resource_exhausted");
     
-    return NextResponse.json({ error: error.message || "Mainframe connection lost." }, { status: 500 });
+    return NextResponse.json({ 
+      error: error.message || "Mainframe query error.",
+      userFriendlyMessage: isQuota
+        ? "The AI assistant is temporarily experiencing high request traffic. Please try asking again in a moment."
+        : "I'm currently unable to complete this analysis. Please try asking again in a moment.",
+      isQuota
+    }, { status: isQuota ? 429 : 500 });
   }
 }

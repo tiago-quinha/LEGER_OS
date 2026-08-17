@@ -1241,19 +1241,44 @@ export function LegerAIAssistant() {
           }
         }
       } else {
+        const isSuperUser = profile?.is_admin === true || profile?.role === "admin" || profile?.role === "super_user" || profile?.username?.toLowerCase()?.includes("quinha") || profile?.username?.toLowerCase()?.includes("admin") || user?.email?.toLowerCase()?.includes("quinha") || user?.email?.toLowerCase()?.includes("admin") || process.env.NODE_ENV === "development"
+        const isQuotaErr = data.isQuota || data.error?.includes("429") || data.error?.toLowerCase()?.includes("limit") || data.error?.toLowerCase()?.includes("quota")
+        
+        let displayError = ""
+        if (isSuperUser) {
+          displayError = isQuotaErr 
+            ? `⚠️ Rate Limit Exceeded (429)\nTo bypass shared limits, configure an API key in System Settings.\n\n[Super User Debug: ${data.error}]`
+            : `⚠️ Engine Error\n\n[Super User Debug: ${data.error || "Neural query failed to execute."}]`
+        } else {
+          displayError = data.userFriendlyMessage || (isQuotaErr 
+            ? "The AI assistant is temporarily experiencing high request traffic. Please try asking again in a moment."
+            : "I'm currently unable to complete this analysis. Please try asking again in a moment.")
+        }
+
         const errVal: Message = {
           sender: "assistant",
-          text: `Error: ${data.error || "Neural query failed to execute."}`,
+          text: displayError,
           timestamp: Date.now()
         }
         saveSessionMessages(currentSessionId, [...currentMsgs, errVal])
       }
     } catch (err: any) {
+      const isSuperUser = profile?.is_admin === true || profile?.role === "admin" || profile?.role === "super_user" || profile?.username?.toLowerCase()?.includes("quinha") || profile?.username?.toLowerCase()?.includes("admin") || user?.email?.toLowerCase()?.includes("quinha") || user?.email?.toLowerCase()?.includes("admin") || process.env.NODE_ENV === "development"
+      
+      let displayError = ""
+      if (isSuperUser) {
+        displayError = err?.name === "AbortError" 
+          ? "Query timed out after 45s. [Super User Debug: AbortError]"
+          : `Connection lost. [Super User Debug: ${err?.message || "Unable to reach AI engine"}]`
+      } else {
+        displayError = err?.name === "AbortError"
+          ? "The request took a little too long to respond. Please try asking again."
+          : "I'm having trouble connecting to the analysis engine right now. Please try again in a moment."
+      }
+
       const errVal: Message = {
         sender: "assistant",
-        text: err?.name === "AbortError" 
-          ? "Query timed out. Please try asking again."
-          : "Connection lost. Unable to reach AI engine.",
+        text: displayError,
         timestamp: Date.now()
       }
       saveSessionMessages(currentSessionId, [...currentMsgs, errVal])
