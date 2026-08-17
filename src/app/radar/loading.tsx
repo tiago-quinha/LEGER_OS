@@ -2,19 +2,19 @@ import { Skeleton } from "@/components/ui/skeleton"
 
 export default function RadarLoading() {
   return (
-    <div className="mx-auto max-w-[1500px] p-4 md:p-8 space-y-10 md:space-y-12 pb-36 md:pb-8 w-full font-mono">
+    <div className="mx-auto max-w-[1500px] p-4 md:p-8 space-y-6 md:space-y-8 pb-36 md:pb-8 w-full">
       {/* Header Skeleton */}
       <header className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 md:pb-6 relative border-b border-border">
-        <div className="space-y-1.5">
+        <div className="space-y-2">
           <Skeleton className="h-3 w-36 rounded-none" />
-          <Skeleton className="h-10 w-64 rounded-none" />
+          <Skeleton className="h-10 w-48 rounded-none" />
         </div>
         <Skeleton className="h-9 w-32 rounded-none" />
       </header>
 
-      {/* 3 Executive Metric Cards Skeleton */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        {Array.from({ length: 3 }).map((_, i) => (
+      {/* 2 Executive Metric Cards Skeleton */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+        {Array.from({ length: 2 }).map((_, i) => (
           <div key={i} className="p-6 space-y-3 bg-card/20 border border-border">
             <Skeleton className="h-3 w-28 rounded-none" />
             <Skeleton className="h-8 w-36 rounded-none" />

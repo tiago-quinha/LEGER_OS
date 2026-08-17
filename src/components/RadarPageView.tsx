@@ -242,19 +242,19 @@ export function RadarPageView({ expenses, categories, cycles, currentCycleId }: 
       route="/radar"
       onCycleChange={handleCycleSelect}
     >
-      <div className="mx-auto max-w-[1500px] p-4 md:p-8 space-y-6 md:space-y-8 pb-36 md:pb-8 w-full font-mono">
+      <div className="mx-auto max-w-[1500px] p-4 md:p-8 space-y-6 md:space-y-8 pb-36 md:pb-8 w-full">
         {/* 1. Header (Normalized Subpage Header) */}
         <header className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 md:pb-6 relative border-b border-border">
-        <div className="space-y-1.5">
-          <div className="flex items-center gap-3 text-[9px] md:text-[10px] font-mono font-bold tracking-[0.2em] uppercase text-muted-foreground">
-            <Radio className="h-3.5 w-3.5 text-foreground" />
-            <span>SUBSCRIPTION RADAR // COMMITMENT ENGINE</span>
+        <div className="space-y-2">
+          <div className="flex items-center gap-3 text-[9px] md:text-[10px] font-mono tracking-[0.2em] uppercase text-muted-foreground">
+            <Radio className="h-3.5 w-3.5" />
+            <span>Subscription radar</span>
           </div>
-          <h1 className="text-4xl md:text-5xl font-bold tracking-tighter uppercase leading-none break-words">
+          <h1 className="text-4xl md:text-5xl font-bold tracking-tighter uppercase leading-none break-words font-sans">
             {isPending ? (
-              <Skeleton className="h-10 w-64 rounded-none" />
+              <Skeleton className="h-10 w-48 rounded-none" />
             ) : (
-              "RECURRING RADAR"
+              "Radar"
             )}
           </h1>
         </div>
