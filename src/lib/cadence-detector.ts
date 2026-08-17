@@ -362,17 +362,23 @@ export function detectRecurringCadence(
     let status: DetectedSubscription["status"] = "active";
 
     // Price change detector (increase >= 5% compared to previous baseline)
+    // Avoid false spikes if comparing monthly trial vs annual charge
     let priceChangePercent: number | undefined;
     let priceChangeAmount: number | undefined;
-    if (txs.length >= 2 && latestAmount > previousAmount * 1.05 && Math.abs(latestAmount - previousAmount) >= 0.45) {
+    
+    const isCadenceShift = cadence === "annual" && previousAmount < 40 && latestAmount > 100;
+    const compLatest = isCadenceShift ? latestAmount / 12 : latestAmount;
+    const compPrev = previousAmount;
+
+    if (txs.length >= 2 && !isCadenceShift && compLatest > compPrev * 1.05 && Math.abs(compLatest - compPrev) >= 0.45) {
       status = "price_jump";
-      priceChangePercent = ((latestAmount - previousAmount) / previousAmount) * 100;
-      priceChangeAmount = latestAmount - previousAmount;
+      priceChangePercent = ((compLatest - compPrev) / compPrev) * 100;
+      priceChangeAmount = compLatest - compPrev;
 
       priceIncreases.push({
         merchant: normMerchant.toUpperCase(),
-        previousAmount,
-        newAmount: latestAmount,
+        previousAmount: compPrev,
+        newAmount: compLatest,
         increasePercent: Math.round(priceChangePercent * 10) / 10,
         detectedDate: latestDate.toISOString(),
       });

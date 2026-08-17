@@ -284,11 +284,11 @@ export function RadarPageView({ expenses, categories, cycles, currentCycleId }: 
       </header>
 
       {/* 2. Executive Metric Summary Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+      <section className="grid grid-cols-1 sm:grid-cols-2 gap-5 md:gap-6">
         {/* Metric 1: Monthly Commitment */}
-        <Tilt rotationFactor={6} className="p-6 md:p-8 space-y-3 bg-card/20 border border-border relative group overflow-hidden flex flex-col justify-between glow-card">
+        <Tilt rotationFactor={6} className="p-6 md:p-8 space-y-4 bg-card/20 border border-border relative group overflow-hidden flex flex-col justify-between glow-card min-h-[170px]">
           <ClippedCircle circleClassName="bg-foreground/5" circleSize={400} />
-          <div className="space-y-1 z-10">
+          <div className="space-y-1.5 z-10">
             <span className="text-[9px] font-mono uppercase tracking-widest text-muted-foreground border-b border-dotted border-muted-foreground/30 w-fit">
               MONTHLY RECURRING
             </span>
@@ -303,9 +303,9 @@ export function RadarPageView({ expenses, categories, cycles, currentCycleId }: 
         </Tilt>
 
         {/* Metric 2: Annual Projected Cost */}
-        <Tilt rotationFactor={6} className="p-6 md:p-8 space-y-3 bg-card/20 border border-border relative group overflow-hidden flex flex-col justify-between glow-card">
+        <Tilt rotationFactor={6} className="p-6 md:p-8 space-y-4 bg-card/20 border border-border relative group overflow-hidden flex flex-col justify-between glow-card min-h-[170px]">
           <ClippedCircle circleClassName="bg-foreground/5" circleSize={400} />
-          <div className="space-y-1 z-10">
+          <div className="space-y-1.5 z-10">
             <span className="text-[9px] font-mono uppercase tracking-widest text-muted-foreground border-b border-dotted border-muted-foreground/30 w-fit">
               ANNUAL PROJECTED
             </span>
@@ -318,46 +318,30 @@ export function RadarPageView({ expenses, categories, cycles, currentCycleId }: 
             ESTIMATED 12-MONTH RECURRING CASH OUTFLOW.
           </p>
         </Tilt>
-
-        {/* Metric 3: Active Subscriptions */}
-        <Tilt rotationFactor={6} className="p-6 md:p-8 space-y-3 bg-card/20 border border-border relative group overflow-hidden flex flex-col justify-between glow-card">
-          <ClippedCircle circleClassName="bg-foreground/5" circleSize={400} />
-          <div className="space-y-1 z-10">
-            <span className="text-[9px] font-mono uppercase tracking-widest text-muted-foreground border-b border-dotted border-muted-foreground/30 w-fit">
-              DETECTED SERVICES
-            </span>
-            <div className="text-3xl md:text-5xl font-mono font-bold tracking-tighter text-foreground z-10">
-              {radarData.subscriptions.length}
-            </div>
-          </div>
-          <p className="text-[10px] text-muted-foreground font-mono uppercase z-10">
-            {monthlyCount} MONTHLY · {annualCount} ANNUAL BILLS.
-          </p>
-        </Tilt>
-      </div>
+      </section>
 
       {/* 3. Silent Price Hike Banner (if any) */}
       {radarData.priceIncreases.length > 0 && (
-        <div className="p-4 bg-amber-500/10 border border-amber-500/30 rounded-none space-y-2">
-          <div className="flex items-center gap-2 text-amber-500 text-xs font-bold uppercase tracking-wider">
+        <section className="p-6 md:p-7 bg-amber-500/10 border border-amber-500/30 rounded-none space-y-4">
+          <div className="flex items-center gap-2.5 text-amber-500 text-xs font-bold uppercase tracking-wider">
             <AlertTriangle className="h-4 w-4 shrink-0" />
             <span>SILENT SUBSCRIPTION PRICE INCREASE DETECTED</span>
           </div>
-          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3 pt-1">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 pt-1">
             {radarData.priceIncreases.map((hike, idx) => (
-              <div key={idx} className="p-3 bg-background/80 border border-border rounded-none text-xs space-y-1">
-                <div className="font-bold text-foreground uppercase truncate">{hike.merchant}</div>
+              <div key={idx} className="p-4 bg-background/90 border border-border/80 rounded-none text-xs space-y-2 shadow-sm">
+                <div className="font-bold text-foreground uppercase truncate text-sm">{hike.merchant}</div>
                 <div className="text-[11px] text-muted-foreground flex items-center justify-between font-mono">
                   <span>WAS {currencySymbol}{hike.previousAmount.toFixed(2)}</span>
                   <span className="text-amber-500 font-bold">→ {currencySymbol}{hike.newAmount.toFixed(2)}</span>
                 </div>
-                <div className="text-[9px] text-amber-500 font-bold uppercase tracking-widest">
+                <div className="text-[9px] text-amber-500 font-bold uppercase tracking-widest pt-1.5 border-t border-border/30">
                   +{hike.increasePercent}% RATE INCREASE
                 </div>
               </div>
             ))}
           </div>
-        </div>
+        </section>
       )}
 
       {/* 4. Subscriptions Explorer & Filter Bar */}
@@ -409,7 +393,7 @@ export function RadarPageView({ expenses, categories, cycles, currentCycleId }: 
             <p className="text-[11px] text-muted-foreground/70 uppercase">TRY SWITCHING FILTERS OR USE "+ PIN RECURRING BILL" TO ADD ONE.</p>
           </div>
         ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5 md:gap-6">
             {filteredSubscriptions.map((sub) => {
               const isHiked = sub.status === "price_jump" || (sub.priceChangePercent && sub.priceChangePercent > 5)
               const isManualOverride = sub.source === "user_pinned" || cadenceOverrides[sub.merchant.toUpperCase()] !== undefined
