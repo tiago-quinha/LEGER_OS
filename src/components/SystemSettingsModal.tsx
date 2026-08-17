@@ -425,17 +425,12 @@ export function SystemSettingsModal({ open, onOpenChange }: SystemSettingsModalP
               </button>
               <div className="flex items-center justify-between gap-3 pr-8">
                 <h3 className="text-sm sm:text-base font-bold uppercase tracking-wider flex items-center gap-2 truncate text-foreground">
-                  <Sliders className="h-4 w-4 text-foreground" />
-                  <span>System Settings & Configuration</span>
+                  <Sliders className="h-4 w-4 text-foreground shrink-0" />
+                  <span>System Settings</span>
                 </h3>
-                {isPro ? (
-                  <span className="text-[9px] font-mono font-bold uppercase text-emerald-500 bg-emerald-500/10 border border-emerald-500/30 px-2 py-0.5 shrink-0">PRO Active</span>
-                ) : (
-                  <span className="text-[9px] font-mono font-bold uppercase text-muted-foreground bg-secondary/80 border border-border px-2 py-0.5 shrink-0">Core Free</span>
-                )}
               </div>
-              <p className="text-[10px] uppercase tracking-wider text-muted-foreground">
-                Calibrate financial cycles, AI providers, merchant rules, phone sync, and subscription tier.
+              <p className="text-[10px] text-muted-foreground font-sans">
+                Configure financial cycles, AI parameters, and system preferences.
               </p>
             </div>
 
