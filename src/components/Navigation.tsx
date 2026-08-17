@@ -3,7 +3,7 @@
 import React, { useState, useEffect, useRef } from "react"
 import Link from "next/link"
 import { usePathname, useRouter, useSearchParams } from "next/navigation"
-import { Home, List, PieChart, BarChart3, Briefcase, Landmark, Shield, ShieldOff, Cpu, Activity, Database, LogOut, User, Sun, Moon, Sliders, Menu, X, ChevronRight, Tag, Brain } from "lucide-react"
+import { Home, List, PieChart, BarChart3, Briefcase, Landmark, Shield, ShieldOff, Cpu, Activity, Database, LogOut, User, Sun, Moon, Sliders, Menu, X, ChevronRight, Tag, Brain, Radio } from "lucide-react"
 import { useTheme } from "next-themes"
 import { cn } from "@/lib/utils"
 import { useSystem } from "@/lib/SystemContext"
@@ -17,6 +17,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } f
 const navigation = [
   { name: "Dashboard", href: "/", icon: Home, desc: "Global Overview" },
   { name: "Ledger", href: "/expenses", icon: List, desc: "Transaction history" },
+  { name: "Radar", href: "/radar", icon: Radio, desc: "Subscription Radar" },
   { name: "Portfolio", href: "/portfolio", icon: Briefcase, desc: "Investments & Net Worth" },
   { name: "Categories", href: "/categories", icon: Tag, desc: "Category analysis" },
   { name: "Budgets", href: "/budgets", icon: PieChart, desc: "Budget planning" },
@@ -28,6 +29,7 @@ const navigation = [
 const mobileNavigation = [
   { name: "Dashboard", href: "/", icon: Home },
   { name: "Ledger", href: "/expenses", icon: List },
+  { name: "Radar", href: "/radar", icon: Radio },
   { name: "Portfolio", href: "/portfolio", icon: Briefcase },
   { name: "Categories", href: "/categories", icon: Tag },
   { name: "Budgets", href: "/budgets", icon: PieChart },
