@@ -6,6 +6,7 @@ import { calculateServerTelemetry } from "@/lib/server-telemetry";
 import { normalizeJournal, buildUpdatedJournal } from "@/lib/journal-utils";
 import { searchFinancialWeb } from "@/lib/web-search";
 import { detectRecurringCadence } from "@/lib/cadence-detector";
+import { LEGER_OS_KNOWLEDGE_BASE } from "@/lib/leger-os-knowledge";
 
 export async function POST(request: Request) {
   try {
@@ -449,6 +450,8 @@ export async function POST(request: Request) {
         1. Explicitly state the Projected Ending Account Balance (which is what shows up on their dashboard card labeled 'End-of-Cycle Surplus' or 'Smart Forecasting', e.g., €650.55).
         2. Explicitly state the actual Projected Net Cash Flow Surplus (excluding starting balance, e.g., €476.51), explaining that this is the net surplus generated purely within the active cycle (income minus expenses).
       This way, the user sees a 100% match with their visual dashboard while also understanding the exact mathematical cash flow breakdown.
+
+      ${LEGER_OS_KNOWLEDGE_BASE}
 
       ${profileParametersContext}
 
