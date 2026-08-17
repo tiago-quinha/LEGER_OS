@@ -104,6 +104,7 @@ export function SystemConfigView() {
   // Form states
   const [keywordInput, setKeywordInput] = useState("")
   const [cycleMode, setCycleMode] = useState<"keyword" | "monthly">("keyword")
+  const [paycheckFrequencyInput, setPaycheckFrequencyInput] = useState<"monthly" | "biweekly" | "weekly" | "calendar">("monthly")
   const [targetIncomeInput, setTargetIncomeInput] = useState("2500")
   const [targetSpendInput, setTargetSpendInput] = useState("1500")
   const [currencyInput, setCurrencyInput] = useState("EUR")
@@ -137,8 +138,11 @@ export function SystemConfigView() {
   useEffect(() => {
     if (profile) {
       const kw = profile.paycheck_keyword || "SALARY"
-      if (kw === "MONTHLY") {
+      const freq = (profile.paycheck_frequency || "monthly").toLowerCase()
+      setPaycheckFrequencyInput(freq as any)
+      if (kw === "MONTHLY" || freq === "calendar") {
         setCycleMode("monthly")
+        setPaycheckFrequencyInput("calendar")
         setKeywordInput("")
       } else {
         setCycleMode("keyword")
@@ -151,11 +155,8 @@ export function SystemConfigView() {
       if (profile.ai_provider) setAiProviderInput(profile.ai_provider)
       if (profile.custom_api_key) setCustomKeyInput(profile.custom_api_key)
       if (profile.decay_weight !== undefined && profile.decay_weight !== null) {
-        const parsed = parseFloat(profile.decay_weight.toString())
-        const days = parsed > 0 ? Math.round(Math.LN2 / parsed) : 15
-        setHalfLifeDaysInput(days >= 1 && days <= 90 ? days : 15)
-      } else {
-        setHalfLifeDaysInput(15)
+        const days = Math.round(Math.LN2 / Math.max(0.0001, Number(profile.decay_weight)))
+        setHalfLifeDaysInput(Math.min(90, Math.max(1, days)))
       }
       if (profile.ai_yap_level) setAiYapLevelInput(profile.ai_yap_level)
     }
@@ -175,13 +176,16 @@ export function SystemConfigView() {
     if (!user) return
     setIsSavingProfile(true)
 
-    const finalKeyword = cycleMode === "monthly" ? "MONTHLY" : (keywordInput.trim() || "SALARY")
+    const isCal = cycleMode === "monthly" || paycheckFrequencyInput === "calendar"
+    const finalKeyword = isCal ? "MONTHLY" : (keywordInput.trim() || "SALARY")
+    const finalFrequency = isCal ? "calendar" : paycheckFrequencyInput
     const computedDecay = parseFloat((Math.LN2 / Math.max(1, halfLifeDaysInput)).toFixed(6))
 
     const { error } = await supabase
       .from("profiles")
       .update({ 
         paycheck_keyword: finalKeyword,
+        paycheck_frequency: finalFrequency,
         target_monthly_income: parseFloat(targetIncomeInput) || 2500,
         target_monthly_spend: parseFloat(targetSpendInput) || 1500,
         currency: currencyInput,
@@ -495,57 +499,63 @@ export function SystemConfigView() {
                 {/* Cadence Cards */}
                 <div className="space-y-2">
                   <Label className="text-xs uppercase tracking-widest text-muted-foreground font-bold">
-                    Cycle Reset Cadence
+                    Income Cadence & Paycheck Frequency
                   </Label>
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                    <div 
-                      onClick={() => setCycleMode("keyword")}
-                      className={cn(
-                        "p-4 border cursor-pointer transition-all space-y-2 rounded-none",
-                        cycleMode === "keyword" ? "bg-foreground/5 border-foreground shadow-sm ring-1 ring-foreground" : "bg-card border-border hover:bg-secondary/20 opacity-70"
-                      )}
-                    >
-                      <div className="flex items-center justify-between">
-                        <span className="font-bold uppercase tracking-widest text-xs">Paycheck Keyword Mode</span>
-                        {cycleMode === "keyword" && <Check className="h-4 w-4 text-emerald-500" />}
-                      </div>
-                      <p className="text-xs text-muted-foreground font-sans leading-relaxed">
-                        Resets dynamically whenever your incoming employer bank description is matched. Best for irregular pay dates.
-                      </p>
-                    </div>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 font-mono">
+                    {[
+                      { id: "monthly", title: "Monthly", subtitle: "Once a month (e.g. 25th)", isCalendar: false },
+                      { id: "biweekly", title: "Bi-Weekly", subtitle: "Every 2 weeks (14 days)", isCalendar: false },
+                      { id: "weekly", title: "Weekly", subtitle: "Every 7 days (e.g. Fridays)", isCalendar: false },
+                      { id: "calendar", title: "Calendar Month", subtitle: "1st to 30th / 31st", isCalendar: true }
+                    ].map((cadence) => {
+                      const isSelected = cadence.id === "calendar"
+                        ? cycleMode === "monthly" || paycheckFrequencyInput === "calendar"
+                        : cycleMode === "keyword" && paycheckFrequencyInput === cadence.id
 
-                    <div 
-                      onClick={() => setCycleMode("monthly")}
-                      className={cn(
-                        "p-4 border cursor-pointer transition-all space-y-2 rounded-none",
-                        cycleMode === "monthly" ? "bg-foreground/5 border-foreground shadow-sm ring-1 ring-foreground" : "bg-card border-border hover:bg-secondary/20 opacity-70"
-                      )}
-                    >
-                      <div className="flex items-center justify-between">
-                        <span className="font-bold uppercase tracking-widest text-xs">Calendar Monthly Mode</span>
-                        {cycleMode === "monthly" && <Check className="h-4 w-4 text-emerald-500" />}
-                      </div>
-                      <p className="text-xs text-muted-foreground font-sans leading-relaxed">
-                        Resets automatically on the 1st of every calendar month. Standard accounting cadence.
-                      </p>
-                    </div>
+                      return (
+                        <div 
+                          key={cadence.id}
+                          onClick={() => {
+                            if (cadence.isCalendar) {
+                              setCycleMode("monthly")
+                              setPaycheckFrequencyInput("calendar")
+                            } else {
+                              setCycleMode("keyword")
+                              setPaycheckFrequencyInput(cadence.id as any)
+                            }
+                          }}
+                          className={cn(
+                            "p-4 border cursor-pointer transition-all space-y-2 rounded-none flex flex-col justify-between select-none relative",
+                            isSelected ? "bg-foreground/5 border-foreground shadow-sm ring-1 ring-foreground" : "bg-card border-border hover:bg-secondary/20 opacity-70"
+                          )}
+                        >
+                          <div className="flex items-center justify-between">
+                            <span className="font-bold uppercase tracking-widest text-xs font-mono">{cadence.title}</span>
+                            {isSelected && <Check className="h-4 w-4 text-emerald-500 stroke-[3]" />}
+                          </div>
+                          <p className="text-xs text-muted-foreground font-sans leading-relaxed">
+                            {cadence.subtitle}
+                          </p>
+                        </div>
+                      )
+                    })}
                   </div>
                 </div>
 
-                {cycleMode === "keyword" && (
+                {paycheckFrequencyInput !== "calendar" && cycleMode !== "monthly" && (
                   <div className="space-y-1.5 bg-secondary/15 p-4 border border-border">
                     <Label htmlFor="paycheckKwInput" className="text-xs uppercase tracking-widest font-bold text-foreground">
                       Primary Employer / Paycheck Keyword
                     </Label>
                     <Input
                       id="paycheckKwInput"
-                      placeholder="e.g. SALARY, PAYROLL, DIRECT DEPOSIT..."
+                      placeholder="e.g. SALARY, DELOITTE, DIRECT DEPOSIT..."
                       value={keywordInput}
                       onChange={(e) => setKeywordInput(e.target.value)}
                       className="rounded-none text-xs uppercase bg-background border-border h-10 font-bold"
                     />
                     <span className="text-[10px] text-muted-foreground block font-sans">
-                      * Case-insensitive substring matched against bank extract descriptions to initialize new financial cycles.
+                      * Deposits matching this keyword will automatically start and track your {paycheckFrequencyInput} payroll cycle.
                     </span>
                   </div>
                 )}

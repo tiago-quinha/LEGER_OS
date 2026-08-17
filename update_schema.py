@@ -72,6 +72,7 @@ ALTER TABLE profiles ADD COLUMN IF NOT EXISTS ai_quota_usage INTEGER DEFAULT 0;
 ALTER TABLE profiles ADD COLUMN IF NOT EXISTS ai_quota_limit INTEGER DEFAULT 50;
 ALTER TABLE profiles ADD COLUMN IF NOT EXISTS projection_overrides JSONB DEFAULT '[]'::jsonb;
 ALTER TABLE profiles ADD COLUMN IF NOT EXISTS ai_yap_level TEXT DEFAULT 'standard';
+ALTER TABLE profiles ADD COLUMN IF NOT EXISTS paycheck_frequency TEXT DEFAULT 'monthly';
 ALTER TABLE profiles ADD COLUMN IF NOT EXISTS ai_journal JSONB DEFAULT '[]'::jsonb;
 ALTER TABLE profiles ADD COLUMN IF NOT EXISTS stripe_customer_id TEXT;
 ALTER TABLE profiles ADD COLUMN IF NOT EXISTS stripe_subscription_id TEXT;

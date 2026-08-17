@@ -108,6 +108,7 @@ export function SystemSettingsModal({ open, onOpenChange }: SystemSettingsModalP
   // Form states
   const [keywordInput, setKeywordInput] = useState("")
   const [cycleMode, setCycleMode] = useState<"keyword" | "monthly">("keyword")
+  const [paycheckFrequencyInput, setPaycheckFrequencyInput] = useState<"monthly" | "biweekly" | "weekly" | "calendar">("monthly")
   const [targetIncomeInput, setTargetIncomeInput] = useState("2500")
   const [targetSpendInput, setTargetSpendInput] = useState("1500")
   const [currencyInput, setCurrencyInput] = useState("EUR")
@@ -148,8 +149,11 @@ export function SystemSettingsModal({ open, onOpenChange }: SystemSettingsModalP
   useEffect(() => {
     if (profile) {
       const kw = profile.paycheck_keyword || "SALARY"
-      if (kw === "MONTHLY") {
+      const freq = (profile.paycheck_frequency || "monthly").toLowerCase()
+      setPaycheckFrequencyInput(freq as any)
+      if (kw === "MONTHLY" || freq === "calendar") {
         setCycleMode("monthly")
+        setPaycheckFrequencyInput("calendar")
         setKeywordInput("")
       } else {
         setCycleMode("keyword")
@@ -163,14 +167,11 @@ export function SystemSettingsModal({ open, onOpenChange }: SystemSettingsModalP
       if (profile.custom_api_key) setCustomKeyInput(profile.custom_api_key)
       if (profile.ai_yap_level) setAiYapLevelInput(profile.ai_yap_level)
       if (profile.decay_weight !== undefined && profile.decay_weight !== null) {
-        const parsed = parseFloat(profile.decay_weight.toString())
-        const days = parsed > 0 ? Math.round(Math.LN2 / parsed) : 15
-        setHalfLifeDaysInput(days >= 1 && days <= 90 ? days : 15)
-      } else {
-        setHalfLifeDaysInput(15)
+        const days = Math.round(Math.LN2 / Math.max(0.0001, Number(profile.decay_weight)))
+        setHalfLifeDaysInput(Math.min(90, Math.max(1, days)))
       }
     }
-  }, [profile])
+  }, [profile, open])
 
   const loadRulesAndCategories = async () => {
     const [rulesRes, catsRes] = await Promise.all([
@@ -193,13 +194,16 @@ export function SystemSettingsModal({ open, onOpenChange }: SystemSettingsModalP
     if (!user) return
     setIsSaving(true)
 
-    const finalKeyword = cycleMode === "monthly" ? "MONTHLY" : (keywordInput.trim() || "SALARY")
+    const isCal = cycleMode === "monthly" || paycheckFrequencyInput === "calendar"
+    const finalKeyword = isCal ? "MONTHLY" : (keywordInput.trim() || "SALARY")
+    const finalFrequency = isCal ? "calendar" : paycheckFrequencyInput
     const computedDecay = parseFloat((Math.LN2 / Math.max(1, halfLifeDaysInput)).toFixed(6))
 
     const { error } = await supabase
       .from("profiles")
       .update({
         paycheck_keyword: finalKeyword,
+        paycheck_frequency: finalFrequency,
         target_monthly_income: parseFloat(targetIncomeInput) || 2500,
         target_monthly_spend: parseFloat(targetSpendInput) || 1500,
         currency: currencyInput,
@@ -509,55 +513,64 @@ export function SystemSettingsModal({ open, onOpenChange }: SystemSettingsModalP
               <form onSubmit={handleSaveSettings} className="space-y-4">
                 <div className="space-y-2">
                   <Label className="text-[10px] uppercase font-mono font-bold text-muted-foreground">
-                    Cycle Reset Cadence
+                    Income Cadence & Paycheck Frequency
                   </Label>
-                  <div className="grid grid-cols-2 gap-2.5">
-                    <div 
-                      onClick={() => setCycleMode("keyword")}
-                      className={cn(
-                        "p-3 border cursor-pointer transition-all space-y-1 rounded-none flex flex-col justify-between",
-                        cycleMode === "keyword" ? "bg-foreground/5 border-foreground shadow-sm ring-1 ring-foreground" : "bg-card border-border hover:bg-secondary/20 opacity-70"
-                      )}
-                    >
-                      <div className="flex items-center justify-between">
-                        <span className="font-bold uppercase tracking-wider text-[10px] font-mono">Paycheck Keyword Mode</span>
-                        {cycleMode === "keyword" && <Check className="h-3.5 w-3.5 text-emerald-500" />}
-                      </div>
-                      <p className="text-[10px] text-muted-foreground font-sans leading-relaxed">
-                        Resets automatically whenever your paycheck description matches.
-                      </p>
-                    </div>
+                  <div className="grid grid-cols-2 gap-2">
+                    {[
+                      { id: "monthly", title: "Monthly", subtitle: "Once a month (e.g. 25th)", isCalendar: false },
+                      { id: "biweekly", title: "Bi-Weekly", subtitle: "Every 2 weeks (14d)", isCalendar: false },
+                      { id: "weekly", title: "Weekly", subtitle: "Every 7 days (e.g. Fridays)", isCalendar: false },
+                      { id: "calendar", title: "Calendar Month", subtitle: "1st to 30th / 31st", isCalendar: true }
+                    ].map((cadence) => {
+                      const isSelected = cadence.id === "calendar"
+                        ? cycleMode === "monthly" || paycheckFrequencyInput === "calendar"
+                        : cycleMode === "keyword" && paycheckFrequencyInput === cadence.id
 
-                    <div 
-                      onClick={() => setCycleMode("monthly")}
-                      className={cn(
-                        "p-3 border cursor-pointer transition-all space-y-1 rounded-none flex flex-col justify-between",
-                        cycleMode === "monthly" ? "bg-foreground/5 border-foreground shadow-sm ring-1 ring-foreground" : "bg-card border-border hover:bg-secondary/20 opacity-70"
-                      )}
-                    >
-                      <div className="flex items-center justify-between">
-                        <span className="font-bold uppercase tracking-wider text-[10px] font-mono">Calendar Monthly Mode</span>
-                        {cycleMode === "monthly" && <Check className="h-3.5 w-3.5 text-emerald-500" />}
-                      </div>
-                      <p className="text-[10px] text-muted-foreground font-sans leading-relaxed">
-                        Resets on the 1st of every calendar month.
-                      </p>
-                    </div>
+                      return (
+                        <div 
+                          key={cadence.id}
+                          onClick={() => {
+                            if (cadence.isCalendar) {
+                              setCycleMode("monthly")
+                              setPaycheckFrequencyInput("calendar")
+                            } else {
+                              setCycleMode("keyword")
+                              setPaycheckFrequencyInput(cadence.id as any)
+                            }
+                          }}
+                          className={cn(
+                            "p-3 border cursor-pointer transition-all space-y-1 rounded-none flex flex-col justify-between select-none relative",
+                            isSelected ? "bg-foreground/5 border-foreground shadow-sm ring-1 ring-foreground" : "bg-card border-border hover:bg-secondary/20 opacity-70"
+                          )}
+                        >
+                          <div className="flex items-center justify-between">
+                            <span className="font-bold uppercase tracking-wider text-[10px] font-mono">{cadence.title}</span>
+                            {isSelected && <Check className="h-3.5 w-3.5 text-emerald-500 stroke-[3]" />}
+                          </div>
+                          <p className="text-[9px] text-muted-foreground font-sans leading-relaxed">
+                            {cadence.subtitle}
+                          </p>
+                        </div>
+                      )
+                    })}
                   </div>
                 </div>
 
-                {cycleMode === "keyword" && (
+                {paycheckFrequencyInput !== "calendar" && cycleMode !== "monthly" && (
                   <div className="space-y-1 bg-secondary/15 p-3 border border-border">
                     <Label htmlFor="modalPaycheckKw" className="text-[9px] uppercase font-mono font-bold text-foreground">
                       Employer / Paycheck Keyword
                     </Label>
                     <Input
                       id="modalPaycheckKw"
-                      placeholder="e.g. SALARY, PAYROLL, DIRECT DEPOSIT..."
+                      placeholder="e.g. SALARY, DELOITTE, DIRECT DEPOSIT..."
                       value={keywordInput}
                       onChange={(e) => setKeywordInput(e.target.value)}
                       className="rounded-none text-xs uppercase bg-background border-border h-9 font-bold"
                     />
+                    <span className="text-[8px] text-muted-foreground block font-sans">
+                      Deposits with this keyword will trigger your {paycheckFrequencyInput} payroll cycle.
+                    </span>
                   </div>
                 )}
 

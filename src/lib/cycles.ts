@@ -9,14 +9,16 @@ export interface Cycle {
 }
 
 export async function getCycles(supabase: SupabaseClient, userId: string): Promise<Cycle[]> {
-  // 1. Fetch user profile for keyword
+  // 1. Fetch user profile for keyword and frequency
   const { data: profile } = await supabase
     .from("profiles")
-    .select("paycheck_keyword")
+    .select("paycheck_keyword, paycheck_frequency")
     .eq("id", userId)
     .single()
 
   const keyword = profile?.paycheck_keyword || "SALARY"
+  const frequency = (profile?.paycheck_frequency || "monthly").toLowerCase()
+  const isCalendarMode = keyword === "MONTHLY" || frequency === "calendar" || frequency === "monthly_calendar"
 
   // 2. Identify cycles by Paycheck
   const { data: paychecks } = await supabase
@@ -28,8 +30,13 @@ export async function getCycles(supabase: SupabaseClient, userId: string): Promi
 
   let baseCycles: Cycle[] = []
 
-  if (keyword !== "MONTHLY" && paychecks && paychecks.length > 0) {
-      // Cluster paychecks arriving within <= 12 days into the same payroll cycle (e.g. split transfers, bonuses, 14th month)
+  if (!isCalendarMode && paychecks && paychecks.length > 0) {
+      // Dynamic clustering threshold based on user's selected payroll cadence
+      // Weekly: <= 2d (keeps 7d cycles distinct, merges same-day/weekend splits)
+      // Bi-Weekly: <= 5d (keeps 14d cycles distinct, merges same-week bonuses)
+      // Monthly: <= 12d (merges mid-month allowances / 14th month salary)
+      const clusterDaysThreshold = frequency === "weekly" ? 2 : frequency === "biweekly" ? 5 : 12
+
       const clusters: {
         startDate: string
         paycheckAmount: number
@@ -46,11 +53,11 @@ export async function getCycles(supabase: SupabaseClient, userId: string): Promi
           const lastDate = new Date(lastCluster.startDate)
           const diffDays = Math.abs((pcDate.getTime() - lastDate.getTime()) / (1000 * 60 * 60 * 24))
 
-          if (diffDays <= 12) {
-            // Same cycle payroll cluster (e.g. salary + bonus, or split paycheck) -> merge & sum income
+          if (diffDays <= clusterDaysThreshold) {
+            // Same cycle payroll cluster -> merge & sum income
             lastCluster.paycheckAmount += amt
           } else {
-            // New distinct cycle boundary (standard bi-weekly or monthly cadence >= 13 days)
+            // New distinct cycle boundary based on user's payroll cadence
             clusters.push({ startDate: pc.date, paycheckAmount: amt })
           }
         }

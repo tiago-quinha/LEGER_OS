@@ -122,6 +122,7 @@ export function OnboardingView() {
 
   // Step 1: Paycheck Keyword & Target Curves
   const [cycleMode, setCycleMode] = useState<"keyword" | "monthly">("keyword")
+  const [paycheckFrequency, setPaycheckFrequency] = useState<"monthly" | "biweekly" | "weekly" | "calendar">("monthly")
   const [keyword, setKeyword] = useState("")
   const [targetIncome, setTargetIncome] = useState("")
   const [targetSpend, setTargetSpend] = useState("")
@@ -156,9 +157,11 @@ export function OnboardingView() {
     // Save in background immediately without blocking UI
     getUserId().then((targetId) => {
       if (!targetId) return
-      const finalKw = cycleMode === "monthly" ? "MONTHLY" : (keyword.trim() || "SALARY")
+      const isCal = cycleMode === "monthly" || paycheckFrequency === "calendar"
+      const finalKw = isCal ? "MONTHLY" : (keyword.trim() || "SALARY")
       supabase.from("profiles").update({ 
-        paycheck_keyword: finalKw, 
+        paycheck_keyword: finalKw,
+        paycheck_frequency: isCal ? "calendar" : paycheckFrequency,
         target_monthly_income: parseFloat(targetIncome) || 2500,
         target_monthly_spend: parseFloat(targetSpend) || 1500,
         onboarding_completed: true 
@@ -283,64 +286,62 @@ export function OnboardingView() {
                 </p>
               </div>
 
-              {/* Stacked Cycle Mode Options */}
-              <div className="grid grid-cols-1 gap-2.5 font-mono">
-                <div 
-                  onClick={() => setCycleMode("keyword")}
-                  className={cn(
-                    "p-3 sm:p-3.5 border cursor-pointer transition-all flex items-start justify-between select-none relative",
-                    cycleMode === "keyword" ? "bg-foreground/10 border-foreground shadow-sm" : "bg-background border-border opacity-70 hover:opacity-100"
-                  )}
-                >
-                  <div className="space-y-0.5 pr-4">
-                    <div className="text-xs font-bold uppercase">
-                      Paycheck Keyword Trigger
-                    </div>
-                    <p className="text-[10px] text-muted-foreground font-sans">
-                      Resets automatically whenever your employer paycheck deposit is detected.
-                    </p>
-                  </div>
-                  {cycleMode === "keyword" && (
-                    <Check className="h-4 w-4 text-emerald-500 stroke-[3] shrink-0 mt-0.5" />
-                  )}
-                </div>
+              {/* 4-Option Income Cadence Architecture */}
+              <div className="grid grid-cols-2 gap-2 font-mono">
+                {[
+                  { id: "monthly", title: "Monthly", subtitle: "Once a month (e.g. 25th)", isCalendar: false },
+                  { id: "biweekly", title: "Bi-Weekly", subtitle: "Every 2 weeks (14 days)", isCalendar: false },
+                  { id: "weekly", title: "Weekly", subtitle: "Every 7 days (e.g. Fridays)", isCalendar: false },
+                  { id: "calendar", title: "Calendar Month", subtitle: "1st to 30th / 31st", isCalendar: true }
+                ].map((cadence) => {
+                  const isSelected = cadence.id === "calendar" 
+                    ? cycleMode === "monthly" || paycheckFrequency === "calendar"
+                    : cycleMode === "keyword" && paycheckFrequency === cadence.id
 
-                <div 
-                  onClick={() => setCycleMode("monthly")}
-                  className={cn(
-                    "p-3 sm:p-3.5 border cursor-pointer transition-all flex items-start justify-between select-none relative",
-                    cycleMode === "monthly" ? "bg-foreground/10 border-foreground shadow-sm" : "bg-background border-border opacity-70 hover:opacity-100"
-                  )}
-                >
-                  <div className="space-y-0.5 pr-4">
-                    <div className="text-xs font-bold uppercase">
-                      Calendar Monthly
+                  return (
+                    <div
+                      key={cadence.id}
+                      onClick={() => {
+                        if (cadence.isCalendar) {
+                          setCycleMode("monthly")
+                          setPaycheckFrequency("calendar")
+                        } else {
+                          setCycleMode("keyword")
+                          setPaycheckFrequency(cadence.id as any)
+                        }
+                      }}
+                      className={cn(
+                        "p-3 border cursor-pointer transition-all flex flex-col justify-between select-none relative",
+                        isSelected ? "bg-foreground/10 border-foreground shadow-sm" : "bg-background border-border opacity-70 hover:opacity-100"
+                      )}
+                    >
+                      <div className="flex items-start justify-between">
+                        <span className="text-xs font-bold uppercase">{cadence.title}</span>
+                        {isSelected && <Check className="h-3.5 w-3.5 text-emerald-500 stroke-[3] shrink-0" />}
+                      </div>
+                      <p className="text-[9px] text-muted-foreground font-sans mt-1">
+                        {cadence.subtitle}
+                      </p>
                     </div>
-                    <p className="text-[10px] text-muted-foreground font-sans">
-                      Standard calendar monthly cycle (1st to last day of each month).
-                    </p>
-                  </div>
-                  {cycleMode === "monthly" && (
-                    <Check className="h-4 w-4 text-emerald-500 stroke-[3] shrink-0 mt-0.5" />
-                  )}
-                </div>
+                  )
+                })}
               </div>
 
               <form onSubmit={handleCompleteStep1} className="space-y-3.5 pt-0.5">
-                {cycleMode === "keyword" && (
+                {paycheckFrequency !== "calendar" && cycleMode !== "monthly" && (
                   <div className="space-y-1">
                     <Label htmlFor="paycheck" className="text-[9px] sm:text-[10px] font-mono uppercase tracking-widest text-muted-foreground font-bold">
-                      Employer / Company Keyword
+                      Employer / Deposit Keyword
                     </Label>
                     <Input
                       id="paycheck"
                       value={keyword}
                       onChange={(e) => setKeyword(e.target.value)}
-                      placeholder="COMPANY..."
+                      placeholder="e.g. DELOITTE, SALARY, EMPLOYER..."
                       className="rounded-none font-mono text-xs uppercase h-10 bg-background"
                     />
                     <span className="text-[8px] sm:text-[9px] text-muted-foreground block font-sans">
-                      Bank deposits containing this company name will automatically reset your paycheck cycle.
+                      Deposits matching this keyword will automatically start and track your {paycheckFrequency} cycle.
                     </span>
                   </div>
                 )}
