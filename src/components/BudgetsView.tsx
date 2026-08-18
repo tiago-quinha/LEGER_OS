@@ -384,7 +384,9 @@ export function BudgetsView({ categories, budgets: initialBudgets, expenses, cyc
                       className="h-3 w-3 rounded-full" 
                       style={{ backgroundColor: cat.color }} 
                     />
-                    <CardTitle className="text-lg">{cat.name}</CardTitle>
+                    <CardTitle className="text-xs sm:text-sm font-bold uppercase tracking-tight truncate font-sans text-foreground">
+                      {cat.name}
+                    </CardTitle>
                   </div>
                   {isProfitable ? (
                     <span className="text-[10px] font-mono font-bold uppercase text-emerald-500 bg-emerald-500/10 border border-emerald-500/30 px-2 py-0.5">

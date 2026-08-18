@@ -1154,7 +1154,7 @@ export function PortfolioView({
 
         {/* Clean Header Bar with Title on Left and Filter Tabs on Right */}
         <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4 border-b border-border/40 pb-4">
-          <h2 className="text-xl font-bold uppercase tracking-tight font-mono shrink-0">
+          <h2 className="text-xl md:text-2xl font-bold uppercase tracking-tighter font-sans shrink-0">
             {selectedChartMode === "all"
               ? "Total Portfolio Trajectory"
               : selectedChartMode === "stock_etf"

@@ -198,11 +198,19 @@ export const renderFormattedText = (text: string) => {
     }
   };
 
-  function renderInlineMarkup(str: string) {
+  function renderInlineMarkup(str: string): React.ReactNode {
     if (!str) return "";
-    const parts = str.split(/(\*\*.*?\*\*)/g);
+    // Match inline code (`...`) and bold (**...**)
+    const parts = str.split(/(`[^`]+`|\*\*[^*]+\*\*)/g);
     return parts.map((part, i) => {
-      if (part.startsWith("**") && part.endsWith("**")) {
+      if (part.startsWith("`") && part.endsWith("`") && part.length > 2) {
+        return (
+          <code key={i} className="px-1.5 py-0.5 rounded bg-secondary/80 font-mono text-[10px] text-foreground border border-border/40 font-semibold">
+            {part.slice(1, -1)}
+          </code>
+        );
+      }
+      if (part.startsWith("**") && part.endsWith("**") && part.length > 4) {
         return <strong key={i} className="text-foreground font-bold">{part.slice(2, -2)}</strong>;
       }
       return part;
@@ -225,7 +233,36 @@ export const renderFormattedText = (text: string) => {
       flushTable(i);
     }
 
-    // 2. Unordered List
+    // 2. Headings (# to ######)
+    const headingMatch = trimmedLine.match(/^(#{1,6})\s+(.*)$/);
+    if (headingMatch) {
+      flushList(i);
+      flushQuote(i);
+      const level = headingMatch[1].length;
+      const headingText = headingMatch[2];
+      if (level === 1) {
+        elements.push(
+          <h1 key={i} className="text-base md:text-lg font-bold font-sans tracking-tighter uppercase text-foreground mt-4 mb-2 border-b border-border pb-1">
+            {renderInlineMarkup(headingText)}
+          </h1>
+        );
+      } else if (level === 2) {
+        elements.push(
+          <h2 key={i} className="text-sm md:text-base font-bold font-sans tracking-tighter uppercase text-foreground mt-3.5 mb-1.5 border-b border-border/60 pb-1">
+            {renderInlineMarkup(headingText)}
+          </h2>
+        );
+      } else {
+        elements.push(
+          <h3 key={i} className="text-xs md:text-sm font-bold font-sans tracking-tighter uppercase text-foreground mt-3 mb-1 border-b border-border/40 pb-1 flex items-center gap-1.5">
+            {renderInlineMarkup(headingText)}
+          </h3>
+        );
+      }
+      continue;
+    }
+
+    // 3. Unordered List
     if (trimmedLine.startsWith("* ") || trimmedLine.startsWith("- ")) {
       flushQuote(i);
       if (listType !== "ul") {
@@ -237,7 +274,7 @@ export const renderFormattedText = (text: string) => {
       continue;
     }
 
-    // 3. Numbered List
+    // 4. Numbered List
     if (/^\d+\.\s+/.test(trimmedLine)) {
       flushQuote(i);
       if (listType !== "ol") {
@@ -253,7 +290,7 @@ export const renderFormattedText = (text: string) => {
       if (listType) flushList(i);
     }
 
-    // 4. Blockquote
+    // 5. Blockquote
     if (trimmedLine.startsWith(">")) {
       const content = line.substring(line.indexOf(">") + 1).trim();
       quoteLines.push(content);
@@ -262,13 +299,13 @@ export const renderFormattedText = (text: string) => {
       flushQuote(i);
     }
 
-    // 5. Horizontal Rule
+    // 6. Horizontal Rule
     if (trimmedLine === "---" || trimmedLine === "___") {
       elements.push(<hr key={i} className="border-border/60 my-2" />);
       continue;
     }
 
-    // 6. Normal Paragraph or Empty Line
+    // 7. Normal Paragraph or Empty Line
     if (trimmedLine === "") {
       elements.push(<div key={i} className="h-1" />);
     } else {
