@@ -525,45 +525,10 @@ export function PortfolioView({
     }
   }, []);
 
-  const syncMarketPricesQuietly = useCallback(async () => {
-    try {
-      const res = await fetch("/api/portfolio/market-data", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ force: false }),
-      });
-      if (res.ok) {
-        const data = await res.json();
-        if (data.updatedCount > 0) {
-          fetchPortfolioData();
-        }
-      }
-    } catch {
-      // Quiet background fetch, fail silently
-    }
-  }, [fetchPortfolioData]);
-
   useEffect(() => {
     fetchPortfolioData();
     fetchPresetLivePrices();
-    syncMarketPricesQuietly();
-
-    // 15-minute background auto-sync interval (safe from rate limits)
-    const interval = setInterval(() => {
-      syncMarketPricesQuietly();
-      fetchPresetLivePrices();
-    }, 15 * 60 * 1000);
-
-    const handleFocus = () => {
-      syncMarketPricesQuietly();
-    };
-    window.addEventListener("focus", handleFocus);
-
-    return () => {
-      clearInterval(interval);
-      window.removeEventListener("focus", handleFocus);
-    };
-  }, [fetchPortfolioData, fetchPresetLivePrices, syncMarketPricesQuietly]);
+  }, [fetchPortfolioData, fetchPresetLivePrices]);
 
   const handleRefreshMarketPrices = async () => {
     try {
