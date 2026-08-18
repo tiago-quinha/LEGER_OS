@@ -316,22 +316,26 @@ function AssetLogo({ symbol, assetType, name, customIconUrl }: { symbol?: string
   );
 }
 
-function CustomPortfolioTooltip({ active, payload, label, formatCurrency }: any) {
+function CustomPortfolioTooltip({ active, payload, label, formatCurrency, selectedChartMode }: any) {
   if (active && payload && payload.length) {
     const data = payload[0].payload;
+    const isAllMode = selectedChartMode === "all";
+
     return (
       <div className="p-3 bg-card border border-border ledger-border font-mono shadow-2xl space-y-1.5 text-xs rounded-none min-w-[170px]">
         <p className="text-[9px] text-muted-foreground uppercase font-bold border-b border-border/40 pb-1">{label}</p>
         <div className="flex items-center justify-between gap-4 text-[11px]">
-          <span className="text-muted-foreground uppercase text-[9px]">Valuation:</span>
+          <span className="text-muted-foreground uppercase text-[9px]">{isAllMode ? "Net Worth:" : "Valuation:"}</span>
           <span className="font-bold text-foreground">{formatCurrency(data.valuation)}</span>
         </div>
-        <div className="flex items-center justify-between gap-4 text-[11px]">
-          <span className="text-muted-foreground uppercase text-[9px]">Cost Basis:</span>
-          <span className="font-bold text-muted-foreground">{formatCurrency(data.invested)}</span>
-        </div>
+        {!isAllMode && (
+          <div className="flex items-center justify-between gap-4 text-[11px]">
+            <span className="text-muted-foreground uppercase text-[9px]">Cost Basis:</span>
+            <span className="font-bold text-muted-foreground">{formatCurrency(data.invested)}</span>
+          </div>
+        )}
         <div className="flex items-center justify-between gap-4 text-[11px] border-t border-border/40 pt-1">
-          <span className="text-muted-foreground uppercase text-[9px]">Return:</span>
+          <span className="text-muted-foreground uppercase text-[9px]">{isAllMode ? "Performance:" : "Return:"}</span>
           <span className={cn("font-bold", data.gainLoss >= 0 ? "text-emerald-500" : "text-rose-500")}>
             {data.gainLoss >= 0 ? "+" : ""}{formatCurrency(data.gainLoss)}
           </span>
@@ -1236,12 +1240,13 @@ export function PortfolioView({
               <YAxis
                 axisLine={false}
                 tickLine={false}
+                domain={selectedChartMode === "all" ? ["auto", "auto"] : [0, "auto"]}
                 style={{ fontSize: "9px", fontFamily: "var(--font-geist-mono)", fill: "#86868B" }}
                 tickFormatter={(val) => `${currencySymbol}${Math.round(val)}`}
               />
-              <RechartsTooltip content={<CustomPortfolioTooltip formatCurrency={formatCurrency} />} />
+              <RechartsTooltip content={<CustomPortfolioTooltip formatCurrency={formatCurrency} selectedChartMode={selectedChartMode} />} />
               <RechartsArea
-                type="stepAfter"
+                type="monotone"
                 dataKey="actualValuation"
                 stroke="var(--foreground)"
                 strokeWidth={2}
@@ -1260,7 +1265,7 @@ export function PortfolioView({
                 fillOpacity={1}
                 connectNulls={true}
               />
-              {chartData.some((d) => d.invested > 0) && (
+              {selectedChartMode !== "all" && chartData.some((d) => d.invested > 0) && (
                 <ReferenceLine
                   y={chartData[chartData.length - 1]?.invested || 0}
                   stroke="var(--border)"
