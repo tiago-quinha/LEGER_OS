@@ -58,7 +58,10 @@ export async function generateAIContent(prompt: string, options: AIBridgeOptions
       try {
         const model = genAI.getGenerativeModel({ 
           model: mName,
-          generationConfig: options.jsonMode ? { responseMimeType: "application/json" } : undefined
+          generationConfig: {
+            maxOutputTokens: 2048,
+            ...(options.jsonMode ? { responseMimeType: "application/json" } : {})
+          }
         });
         const result = await model.generateContent(prompt);
         const response = await result.response;
@@ -91,6 +94,7 @@ export async function generateAIContent(prompt: string, options: AIBridgeOptions
         model: "gpt-4o-mini",
         messages: [{ role: "user", content: prompt }],
         response_format: options.jsonMode ? { type: "json_object" } : undefined,
+        max_tokens: 2048,
         temperature: 0.2
       })
     });
@@ -117,6 +121,7 @@ export async function generateAIContent(prompt: string, options: AIBridgeOptions
       body: JSON.stringify({
         model: "llama-3.3-70b-versatile",
         messages: [{ role: "user", content: prompt }],
+        max_tokens: 2048,
         temperature: 0.2
       })
     });
