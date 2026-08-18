@@ -347,6 +347,35 @@ export async function POST(request: Request) {
       `;
     }
 
+    // Pre-computed portfolio context (prevents AI from misinterpreting raw per-unit buy_price columns)
+    let portfolioContext = "";
+    if (userPortfolioAssets && userPortfolioAssets.length > 0) {
+      let totalInvested = 0;
+      let totalCurrentVal = 0;
+      const assetLines = userPortfolioAssets.map((a: any) => {
+        const qty = parseFloat(a.quantity) || 0;
+        const buyPrice = parseFloat(a.buy_price) || 0;
+        const currentPrice = parseFloat(a.current_price) || buyPrice;
+        const invested = qty * buyPrice;
+        const currentVal = qty * currentPrice;
+        const gainLoss = currentVal - invested;
+        totalInvested += invested;
+        totalCurrentVal += currentVal;
+        return `- ${a.symbol?.toUpperCase() || a.asset_name} (${a.asset_type}): ${qty.toFixed(6)} units × Buy €${buyPrice.toFixed(2)} = Invested €${invested.toFixed(2)} | Current Price €${currentPrice.toFixed(2)} → Value €${currentVal.toFixed(2)} | P&L ${gainLoss >= 0 ? "+" : ""}€${gainLoss.toFixed(2)}`;
+      });
+      const totalGainLoss = totalCurrentVal - totalInvested;
+      portfolioContext = `
+      INVESTMENT PORTFOLIO HOLDINGS (Pre-Computed):
+      ${assetLines.join("\n")}
+      ---
+      TOTAL INVESTED CAPITAL: €${totalInvested.toFixed(2)}
+      TOTAL CURRENT VALUATION: €${totalCurrentVal.toFixed(2)}
+      TOTAL PORTFOLIO P&L: ${totalGainLoss >= 0 ? "+" : ""}€${totalGainLoss.toFixed(2)} (${totalInvested > 0 ? ((totalGainLoss / totalInvested) * 100).toFixed(1) : "0.0"}%)
+      NUMBER OF POSITIONS: ${userPortfolioAssets.length}
+      CRITICAL: The "buy_price" column in portfolio_assets stores the PER-UNIT purchase price, NOT the total invested amount. Total invested for each asset = quantity × buy_price. Never sum raw buy_price values directly.
+      `;
+    }
+
     // Merge all user categories (including 0-spend categories) with assigned budget limits & spent totals
     const activeCatMap = new Map<string, any>((finalCategories || []).map((c: any) => [c.id?.toString(), c]));
     const budgetMap = new Map<string, number>((allUserBudgets || []).map((b: any) => [b.category_id?.toString(), parseFloat(b.amount || 0)]));
@@ -496,6 +525,7 @@ export async function POST(request: Request) {
       FINANCIAL DATA INTEGRITY & INTELLIGENCE INVARIANTS:
       - PAYCHECK CYCLE GROUNDING (NO CALENDAR DISORIENTATION): LEGER_OS tracks finances by paycheck cycles (from one paycheck to the next), NOT naive calendar months. When the user asks about "this month", "my spending", or "how am I doing", always anchor your analysis to the active paycheck cycle timeline (${finalTelemetry?.cycleStartDate || "Start"} → ${finalTelemetry?.cycleEndDate || "End"}, Day ${finalTelemetry?.daysElapsed || 1} of ${finalTelemetry?.totalDaysInCycle || 30}).
       - BROKER & INVESTMENT ASSET NEUTRALITY: Transfers to investment platforms, crypto exchanges, or savings accounts (e.g., XTB, DEGIRO, TRADE REPUBLIC, BINANCE, KRAKEN, REVOLUT SAVINGS) are balance-neutral asset reallocations. NEVER classify them as lifestyle spending burn or treat them as budget deficits.
+      - PORTFOLIO HOLDINGS & INVESTED BASIS INVARIANT: When discussing the user's investment portfolio, ALWAYS use the pre-computed figures in "INVESTMENT PORTFOLIO HOLDINGS". Cost basis (invested capital) is ALWAYS (quantity * buy_price) (e.g. €50.00 total for fractional positions), NEVER the sum of raw per-unit share prices (buy_price, which might be €300+ for 1 share of Alphabet/Palantir). Never quote incorrect inflated figures.
       - NON-LINEAR RECENCY DECAY BURN MODEL: Never calculate future spending using naive linear multiplication (e.g., "spending €50 in 5 days means €300 in 30 days"). Always reference the system's empirical variable daily burn rate (€${parseFloat(finalTelemetry?.dailyVariableBurn !== undefined ? finalTelemetry?.dailyVariableBurn : finalTelemetry?.currentDailyVariableBurn || 0).toFixed(2)}/day), which applies exponential recency decay weighting (λ = 0.12, ~6-day half-life) and isolates fixed subscriptions and 1-off anomalies.
       - ANTI-SLOP & FACTUAL PERSONAL FINANCE STANDARD: Strictly ban patronizing life-coach platitudes (e.g., "Financial freedom is a journey", "Don't beat yourself up", "Try skipping your daily coffee"). Every insight must be grounded in hard mathematical calculations: exact velocity ratios, safe daily burn rates (€${parseFloat(finalTelemetry?.safeDailyBurn || 0).toFixed(2)}/day), and category dollar deltas.
       - STRICT RECORD CITATION (ZERO HALLUCINATION): Always cite exact dates, merchant strings, and euro amounts directly from the DATABASE TABLE RECORDS. Never fabricate hypothetical transactions.
@@ -515,6 +545,8 @@ export async function POST(request: Request) {
       ${webGroundingContext}
 
       ${telemetryContext || "No summary telemetry loaded."}
+
+      ${portfolioContext || "No portfolio holdings recorded."}
 
       COMPLETE USER CATEGORIES & BUDGET ALLOCATION MATRIX:
       ${categoriesContext || "No categories defined."}
