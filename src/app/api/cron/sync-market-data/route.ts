@@ -225,30 +225,44 @@ async function handleSync(req: Request) {
         const liquid = latestBalance?.amount || 0;
         let totalVal = 0;
         let totalCost = 0;
+        const breakdown: Record<string, { valuation: number; count: number }> = {
+          stock_etf: { valuation: 0, count: 0 },
+          crypto: { valuation: 0, count: 0 },
+          cash_equivalent: { valuation: 0, count: 0 },
+          commodity: { valuation: 0, count: 0 },
+          other: { valuation: 0, count: 0 },
+        };
 
         (refreshedAssets || []).forEach((a: any) => {
           const q = Number(a.quantity) || 0;
           const cp = Number(a.current_price) || 0;
           const bp = Number(a.buy_price) || 0;
-          totalVal += q * cp;
+          const assetVal = q * cp;
+          totalVal += assetVal;
           totalCost += q * bp;
+
+          const type = a.asset_type || "other";
+          if (!breakdown[type]) breakdown[type] = { valuation: 0, count: 0 };
+          breakdown[type].valuation += assetVal;
+          breakdown[type].count += 1;
         });
 
         const unrealizedPnL = totalVal - totalCost;
         const totalNetWorth = liquid + totalVal;
 
-        // Upsert today's snapshot
+        // Upsert today's snapshot matching exact schema
         await adminDb.from("portfolio_snapshots").upsert(
           {
             user_id: userId,
-            date: todayDate,
-            total_valuation: parseFloat(totalVal.toFixed(2)),
-            liquid_balance: parseFloat(liquid.toFixed(2)),
+            snapshot_date: todayDate,
             total_net_worth: parseFloat(totalNetWorth.toFixed(2)),
-            unrealized_pnl: parseFloat(unrealizedPnL.toFixed(2)),
-            asset_breakdown: { count: refreshedAssets?.length || 0 },
+            liquid_cash: parseFloat(liquid.toFixed(2)),
+            invested_capital: parseFloat(totalCost.toFixed(2)),
+            total_gain_loss: parseFloat(unrealizedPnL.toFixed(2)),
+            asset_breakdown: breakdown,
+            created_at: nowIso,
           },
-          { onConflict: "user_id,date" }
+          { onConflict: "user_id,snapshot_date" }
         );
       } catch (snapErr) {
         console.error(`[Cron Market Sync] Snapshot error for user ${userId}:`, snapErr);
