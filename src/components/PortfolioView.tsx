@@ -401,7 +401,6 @@ export function PortfolioView({
   const [snapshots, setSnapshots] = useState<PortfolioSnapshot[]>([]);
   const [liquidBalance, setLiquidBalance] = useState<number>(initialLiquidBalance);
   const [loading, setLoading] = useState(false);
-  const [refreshingPrices, setRefreshingPrices] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
   const [activeTab, setActiveTab] = useState<string>("all");
   const [expandedAssetId, setExpandedAssetId] = useState<string | null>(null);
@@ -548,34 +547,6 @@ export function PortfolioView({
     fetchPortfolioData();
     fetchPresetLivePrices();
   }, [fetchPortfolioData, fetchPresetLivePrices]);
-
-  const handleRefreshMarketPrices = async () => {
-    try {
-      setRefreshingPrices(true);
-      const res = await fetch("/api/portfolio/market-data", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ force: true }),
-      });
-
-      if (!res.ok) {
-        const errData = await res.json();
-        if (res.status === 429) {
-          toast.info(errData.error || "Prices are updated. Please wait a moment before refreshing again.");
-          return;
-        }
-        throw new Error(errData.error || "Failed to update market prices.");
-      }
-
-      const data = await res.json();
-      toast.success(data.message || `Updated live market prices for ${data.updatedCount || 0} assets.`);
-      fetchPortfolioData();
-    } catch (err: any) {
-      toast.error(err.message || "Failed to refresh market prices.");
-    } finally {
-      setRefreshingPrices(false);
-    }
-  };
 
   const handleOpenAddModal = () => {
     setEditingAsset(null);
@@ -1451,26 +1422,11 @@ export function PortfolioView({
             </span>
           </div>
 
-          <div className="flex items-center gap-2 font-mono text-[9px]">
-            {/* Live Sync Status & 15-Minute Countdown Clock */}
-            <div className="flex items-center gap-1.5 px-2.5 py-1 border border-border/60 bg-card/60 text-muted-foreground">
-              <span className="h-1.5 w-1.5 rounded-full bg-emerald-500 animate-pulse" />
-              <span className="uppercase text-[9px] font-bold tracking-wider hidden xs:inline">NEXT SYNC:</span>
-              <span className="text-foreground font-mono font-bold">{timeToNextSync}</span>
-            </div>
-
-            {/* Manual Sync Trigger */}
-            <button
-              onClick={handleRefreshMarketPrices}
-              disabled={refreshingPrices}
-              className="flex items-center gap-1.5 px-2.5 py-1 border border-border/80 bg-card hover:bg-secondary text-foreground hover:border-foreground/30 transition-all cursor-pointer select-none disabled:opacity-50"
-              title="Force instant market price sync"
-            >
-              <RefreshCw className={cn("h-3 w-3", refreshingPrices && "animate-spin text-emerald-500")} />
-              <span className="uppercase tracking-wider font-bold">
-                {refreshingPrices ? "SYNCING..." : "SYNC"}
-              </span>
-            </button>
+          {/* Live Server Sync Status & 15-Minute Countdown Clock */}
+          <div className="flex items-center gap-1.5 px-2.5 py-1 border border-border/60 bg-card/60 text-muted-foreground font-mono text-[9px]">
+            <span className="h-1.5 w-1.5 rounded-full bg-emerald-500 animate-pulse" />
+            <span className="uppercase text-[9px] font-bold tracking-wider hidden xs:inline">NEXT SYNC:</span>
+            <span className="text-foreground font-mono font-bold">{timeToNextSync}</span>
           </div>
         </div>
 
