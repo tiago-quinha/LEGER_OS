@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect, useRef, useMemo } from "react"
 import { motion, AnimatePresence, useAnimation, useMotionValue, useDragControls } from "framer-motion"
-import { Brain, Cpu, MessageSquare, Mic, MicOff, Send, X, RefreshCcw, Sparkles, Lock, ChevronUp, ChevronDown, Globe, ArrowUpRight, History, Plus, Trash2, Clock, MessageSquarePlus, MessagesSquare, ChevronRight, Check } from "lucide-react"
+import { Brain, Cpu, MessageSquare, Mic, MicOff, Send, X, RefreshCcw, Sparkles, Lock, ChevronUp, ChevronDown, Globe, ArrowUpRight, History, Plus, Trash2, Clock, MessageSquarePlus, MessagesSquare, ChevronRight, Check, PieChart, TrendingUp, Activity, Radio, Command, Search } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { useSystem } from "@/lib/SystemContext"
 import { getAIHeaders } from "@/lib/ai-client"
@@ -48,6 +48,68 @@ export interface ChatSession {
   updatedAt: number
   messages: Message[]
 }
+
+export interface SlashCommandItem {
+  command: string
+  label: string
+  description: string
+  icon: any
+  promptTemplate: string | ((arg: string) => string)
+  isDirect?: boolean
+}
+
+export const SLASH_COMMANDS: SlashCommandItem[] = [
+  {
+    command: "/breakdown",
+    label: "Spending Breakdown",
+    description: "Detailed category distribution & top merchant drivers",
+    icon: PieChart,
+    promptTemplate: "Give me a detailed quantitative breakdown of my income, expenses by category, and top merchant drivers for this cycle."
+  },
+  {
+    command: "/portfolio",
+    label: "Portfolio Intelligence",
+    description: "Holdings valuation, sector risk & live market research",
+    icon: TrendingUp,
+    promptTemplate: "Analyze my investment portfolio holdings, sector concentration, risk profile, and market outlook."
+  },
+  {
+    command: "/audit",
+    label: "Cycle Financial Audit",
+    description: "Burn rate velocity, budget pacing & surplus delta",
+    icon: Activity,
+    promptTemplate: "Perform a full financial audit of my active paycheck cycle, daily variable burn velocity, and surplus pacing."
+  },
+  {
+    command: "/radar",
+    label: "Subscription Radar",
+    description: "Scan recurring commitments, cadence & price hikes",
+    icon: Radio,
+    promptTemplate: "Audit my subscription radar: scan all recurring bills, fixed monthly commitments, and detect any price hikes."
+  },
+  {
+    command: "/projection",
+    label: "Smart Forecasting",
+    description: "Simulate end-of-cycle balance & surplus projection",
+    icon: Sparkles,
+    promptTemplate: "Simulate my end-of-cycle balance and projected net cash flow surplus using the recency decay projection engine."
+  },
+  {
+    command: "/search",
+    label: "Live Web Search",
+    description: "Search live financial web & market news (/search [query])",
+    icon: Globe,
+    promptTemplate: (arg: string) => arg ? `Search live financial web and news for: ${arg}` : "Search live financial web for current market news and rates."
+  },
+  {
+    command: "/clear",
+    label: "Clear Conversation",
+    description: "Reset current chat and start a fresh session",
+    icon: Trash2,
+    promptTemplate: "",
+    isDirect: true
+  }
+]
 
 // Shared Markdown-like React elements formatter supporting Lists, Blockquotes, HR lines, Tables and bold typography
 export const renderFormattedText = (text: string) => {
@@ -633,6 +695,41 @@ export function LegerAIAssistant() {
   const [inputVal, setInputVal] = useState("")
   const [isLoading, setIsLoading] = useState(false)
   const [isListening, setIsListening] = useState(false)
+
+  // Rotating placeholder messages
+  const PLACEHOLDER_ROTATION = useMemo(() => [
+    "Ask assistant...",
+    "Type / for quick commands...",
+    "Try /breakdown, /portfolio, /audit...",
+    "Type / to explore slash commands...",
+  ], [])
+  const [placeholderIdx, setPlaceholderIdx] = useState(0)
+
+  useEffect(() => {
+    if (isListening || inputVal.trim()) return
+    const timer = setInterval(() => {
+      setPlaceholderIdx(prev => (prev + 1) % PLACEHOLDER_ROTATION.length)
+    }, 3400)
+    return () => clearInterval(timer)
+  }, [isListening, inputVal, PLACEHOLDER_ROTATION.length])
+
+  // Slash commands state & autocomplete
+  const [selectedSlashIdx, setSelectedSlashIdx] = useState(0)
+  const isSlashMode = inputVal.startsWith("/")
+  const slashQuery = isSlashMode ? inputVal.slice(1).toLowerCase().split(" ")[0] : ""
+  const filteredSlashCommands = useMemo(() => {
+    if (!isSlashMode) return []
+    if (!slashQuery) return SLASH_COMMANDS
+    return SLASH_COMMANDS.filter(cmd => 
+      cmd.command.slice(1).toLowerCase().includes(slashQuery) ||
+      cmd.label.toLowerCase().includes(slashQuery) ||
+      cmd.description.toLowerCase().includes(slashQuery)
+    )
+  }, [isSlashMode, slashQuery])
+
+  useEffect(() => {
+    setSelectedSlashIdx(0)
+  }, [filteredSlashCommands.length])
   
   // Dynamic suggested queries state
   const [suggestedQueries, setSuggestedQueries] = useState<string[]>([])
@@ -1128,9 +1225,54 @@ export function LegerAIAssistant() {
     }
   }
 
+  // Execute a selected slash command
+  const executeSlashCommand = (cmd: SlashCommandItem, rawInput = inputVal) => {
+    if (cmd.isDirect) {
+      if (cmd.command === "/clear") {
+        createNewChat()
+        setInputVal("")
+        toast.success("Started a new conversation session.")
+        return
+      }
+    }
+    
+    let promptToSend = ""
+    if (typeof cmd.promptTemplate === "function") {
+      const parts = rawInput.trim().split(" ")
+      const arg = parts.length > 1 ? parts.slice(1).join(" ") : ""
+      promptToSend = cmd.promptTemplate(arg)
+    } else {
+      promptToSend = cmd.promptTemplate
+    }
+
+    setInputVal("")
+    handleQuery(promptToSend)
+  }
+
   // Handle Query Submission (session-aware)
   const handleQuery = async (queryText: string, targetSessionId?: string) => {
     if (!queryText.trim() || isLoading) return
+
+    // Intercept slash command text if user typed and submitted directly
+    const trimmedInput = queryText.trim()
+    const firstWord = trimmedInput.split(" ")[0].toLowerCase()
+    const matchedCmd = SLASH_COMMANDS.find(c => c.command.toLowerCase() === firstWord)
+    if (matchedCmd) {
+      if (matchedCmd.isDirect && matchedCmd.command === "/clear") {
+        createNewChat()
+        setInputVal("")
+        toast.success("Started a new conversation session.")
+        return
+      }
+      if (typeof matchedCmd.promptTemplate === "function") {
+        const parts = trimmedInput.split(" ")
+        const arg = parts.length > 1 ? parts.slice(1).join(" ") : ""
+        queryText = matchedCmd.promptTemplate(arg)
+      } else if (matchedCmd.promptTemplate) {
+        queryText = matchedCmd.promptTemplate
+      }
+    }
+
     let currentSessionId = targetSessionId || activeSessionId || (sessions[0]?.id)
     if (!currentSessionId) {
       currentSessionId = createNewChat()
@@ -1151,7 +1293,7 @@ export function LegerAIAssistant() {
 
     const userMsg: Message = {
       sender: "user",
-      text: queryText,
+      text: trimmedInput.startsWith("/") ? `${trimmedInput} (${queryText})` : queryText,
       timestamp: Date.now()
     }
     const currentMsgs = [...existingMsgs, userMsg]
@@ -1712,6 +1854,60 @@ export function LegerAIAssistant() {
                 )}
               </AnimatePresence>
 
+              {/* Slash Command Autocomplete Popover */}
+              <AnimatePresence>
+                {isSlashMode && filteredSlashCommands.length > 0 && (
+                  <motion.div
+                    initial={{ opacity: 0, y: 8, scale: 0.98 }}
+                    animate={{ opacity: 1, y: 0, scale: 1 }}
+                    exit={{ opacity: 0, y: 8, scale: 0.98 }}
+                    transition={{ duration: 0.15 }}
+                    className="mx-3 mb-2 p-1.5 bg-card/95 dark:bg-zinc-900/95 backdrop-blur-xl border border-border shadow-[0_12px_40px_rgba(0,0,0,0.5)] z-20 font-mono text-xs overflow-hidden"
+                  >
+                    <div className="flex items-center justify-between px-2 py-1 border-b border-border/40 text-[9px] uppercase text-muted-foreground tracking-wider font-bold">
+                      <span className="flex items-center gap-1.5 text-foreground">
+                        <Command className="h-3 w-3" />
+                        Quick Slash Commands
+                      </span>
+                      <span className="text-[8px] opacity-70">↑↓ to navigate • ↵ / Tab to run</span>
+                    </div>
+                    <div className="max-h-48 overflow-y-auto space-y-0.5 pt-1 scrollbar-thin">
+                      {filteredSlashCommands.map((cmd, idx) => {
+                        const Icon = cmd.icon
+                        const isSelected = idx === selectedSlashIdx
+                        return (
+                          <button
+                            key={cmd.command}
+                            onClick={() => executeSlashCommand(cmd)}
+                            onMouseEnter={() => setSelectedSlashIdx(idx)}
+                            className={cn(
+                              "w-full flex items-center justify-between px-2.5 py-1.5 text-left transition-all cursor-pointer",
+                              isSelected 
+                                ? "bg-secondary text-foreground font-semibold" 
+                                : "text-muted-foreground hover:bg-secondary/50 hover:text-foreground"
+                            )}
+                          >
+                            <div className="flex items-center gap-2.5 min-w-0">
+                              <div className={cn(
+                                "p-1 border",
+                                isSelected ? "bg-foreground text-background border-foreground" : "bg-card border-border"
+                              )}>
+                                <Icon className="h-3 w-3" />
+                              </div>
+                              <div className="min-w-0">
+                                <span className="font-bold text-foreground text-[11px] mr-2">{cmd.command}</span>
+                                <span className="text-[10px] text-muted-foreground truncate">{cmd.description}</span>
+                              </div>
+                            </div>
+                            <span className="text-[9px] opacity-60 uppercase shrink-0 font-sans">{cmd.label}</span>
+                          </button>
+                        )
+                      })}
+                    </div>
+                  </motion.div>
+                )}
+              </AnimatePresence>
+
               {/* Chat Input Area */}
               <div className="p-3 border-t border-border bg-card flex items-center gap-3.5 z-10 shrink-0 pb-6 sm:pb-3">
                 <button
@@ -1731,8 +1927,37 @@ export function LegerAIAssistant() {
                     type="text"
                     value={inputVal}
                     onChange={(e) => setInputVal(e.target.value)}
-                    onKeyDown={(e) => e.key === "Enter" && handleQuery(inputVal)}
-                    placeholder={isListening ? "Listening..." : "Ask assistant..."}
+                    onKeyDown={(e) => {
+                      if (isSlashMode && filteredSlashCommands.length > 0) {
+                        if (e.key === "ArrowDown") {
+                          e.preventDefault()
+                          setSelectedSlashIdx((prev) => (prev + 1) % filteredSlashCommands.length)
+                          return
+                        }
+                        if (e.key === "ArrowUp") {
+                          e.preventDefault()
+                          setSelectedSlashIdx((prev) => (prev - 1 + filteredSlashCommands.length) % filteredSlashCommands.length)
+                          return
+                        }
+                        if (e.key === "Enter" || e.key === "Tab") {
+                          e.preventDefault()
+                          const targetCmd = filteredSlashCommands[selectedSlashIdx] || filteredSlashCommands[0]
+                          if (targetCmd) {
+                            executeSlashCommand(targetCmd, inputVal)
+                            return
+                          }
+                        }
+                        if (e.key === "Escape") {
+                          e.preventDefault()
+                          setInputVal("")
+                          return
+                        }
+                      }
+                      if (e.key === "Enter") {
+                        handleQuery(inputVal)
+                      }
+                    }}
+                    placeholder={isListening ? "Listening..." : PLACEHOLDER_ROTATION[placeholderIdx]}
                     disabled={isLoading}
                     className="w-full pl-4 pr-10 py-2 border border-border bg-secondary/35 outline-none text-[13.5px] sm:text-xs rounded-full text-foreground placeholder:text-muted-foreground/60 focus:border-foreground/30 focus:bg-secondary/50 transition-all h-9"
                   />
