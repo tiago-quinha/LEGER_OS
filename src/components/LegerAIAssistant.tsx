@@ -712,8 +712,9 @@ export function LegerAIAssistant() {
   const PLACEHOLDER_ROTATION = useMemo(() => [
     "Ask assistant...",
     "Type / for quick commands...",
-    "Try /breakdown, /portfolio, /audit...",
-    "Type / to explore slash commands...",
+    "Try /projection if 10€ burn...",
+    "Try /portfolio compare ALAB...",
+    "Try /breakdown, /radar, /audit...",
   ], [])
   const [placeholderIdx, setPlaceholderIdx] = useState(0)
 
@@ -721,7 +722,7 @@ export function LegerAIAssistant() {
     if (isListening || inputVal.trim()) return
     const timer = setInterval(() => {
       setPlaceholderIdx(prev => (prev + 1) % PLACEHOLDER_ROTATION.length)
-    }, 3400)
+    }, 2800)
     return () => clearInterval(timer)
   }, [isListening, inputVal, PLACEHOLDER_ROTATION.length])
 
@@ -1940,6 +1941,24 @@ export function LegerAIAssistant() {
                   <Sparkles className="h-4 w-4" />
                 </button>
                 <div className="relative flex-1 flex items-center">
+                  {/* Clean Animated Placeholder Overlay matching AI Thinking Indicator */}
+                  {!inputVal && !isListening && (
+                    <div className="absolute left-4 right-10 pointer-events-none overflow-hidden select-none flex items-center h-full z-10">
+                      <AnimatePresence mode="wait">
+                        <motion.span
+                          key={placeholderIdx}
+                          initial={{ opacity: 0, y: 5, filter: "blur(2px)" }}
+                          animate={{ opacity: 1, y: 0, filter: "blur(0px)" }}
+                          exit={{ opacity: 0, y: -5, filter: "blur(2px)" }}
+                          transition={{ duration: 0.28, ease: "easeInOut" }}
+                          className="truncate block text-[13.5px] sm:text-xs text-muted-foreground/60 font-sans leading-none pointer-events-none"
+                        >
+                          {PLACEHOLDER_ROTATION[placeholderIdx]}
+                        </motion.span>
+                      </AnimatePresence>
+                    </div>
+                  )}
+
                   <input
                     type="text"
                     value={inputVal}
@@ -1954,9 +1973,9 @@ export function LegerAIAssistant() {
                         handleQuery(inputVal)
                       }
                     }}
-                    placeholder={isListening ? "Listening..." : PLACEHOLDER_ROTATION[placeholderIdx]}
+                    placeholder={isListening ? "Listening..." : ""}
                     disabled={isLoading}
-                    className="w-full pl-4 pr-10 py-2 border border-border bg-secondary/35 outline-none text-[13.5px] sm:text-xs rounded-full text-foreground placeholder:text-muted-foreground/60 focus:border-foreground/30 focus:bg-secondary/50 transition-all h-9"
+                    className="w-full pl-4 pr-10 py-2 border border-border bg-secondary/35 outline-none text-[13.5px] sm:text-xs rounded-full text-foreground placeholder:text-muted-foreground/60 focus:border-foreground/30 focus:bg-secondary/50 transition-all h-9 relative z-0"
                   />
                   <button
                     onClick={inputVal.trim() ? () => handleQuery(inputVal) : toggleListening}
