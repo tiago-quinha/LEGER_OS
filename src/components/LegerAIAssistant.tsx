@@ -60,46 +60,58 @@ export interface SlashCommandItem {
 
 export const SLASH_COMMANDS: SlashCommandItem[] = [
   {
+    command: "/projection",
+    label: "Smart Forecasting",
+    description: "Simulate balance & surplus (/projection [e.g. if 10€ daily burn])",
+    icon: Sparkles,
+    promptTemplate: (arg: string) => arg 
+      ? `Simulate my end-of-cycle balance and projected cash flow with this specific scenario: "${arg}". Factor this assumption into the recency decay projection engine.` 
+      : "Simulate my end-of-cycle balance and projected net cash flow surplus using the recency decay projection engine."
+  },
+  {
     command: "/breakdown",
     label: "Spending Breakdown",
-    description: "Detailed category distribution & top merchant drivers",
+    description: "Category spend & top drivers (/breakdown [e.g. groceries])",
     icon: PieChart,
-    promptTemplate: "Give me a detailed quantitative breakdown of my income, expenses by category, and top merchant drivers for this cycle."
+    promptTemplate: (arg: string) => arg 
+      ? `Give me a detailed quantitative spending breakdown focusing on: "${arg}", including category metrics and merchant drivers.` 
+      : "Give me a detailed quantitative breakdown of my income, expenses by category, and top merchant drivers for this cycle."
   },
   {
     command: "/portfolio",
     label: "Portfolio Intelligence",
-    description: "Holdings valuation, sector risk & live market research",
+    description: "Valuation, risk & market research (/portfolio [e.g. compare ALAB])",
     icon: TrendingUp,
-    promptTemplate: "Analyze my investment portfolio holdings, sector concentration, risk profile, and market outlook."
+    promptTemplate: (arg: string) => arg 
+      ? `Analyze my investment portfolio with specific focus on: "${arg}". Provide valuation, risk analysis, and market research.` 
+      : "Analyze my investment portfolio holdings, sector concentration, risk profile, and market outlook."
   },
   {
     command: "/audit",
     label: "Cycle Financial Audit",
-    description: "Burn rate velocity, budget pacing & surplus delta",
+    description: "Burn rate velocity & pacing (/audit [e.g. why is burn high])",
     icon: Activity,
-    promptTemplate: "Perform a full financial audit of my active paycheck cycle, daily variable burn velocity, and surplus pacing."
+    promptTemplate: (arg: string) => arg 
+      ? `Perform a financial audit of my active cycle focusing on: "${arg}". Check velocity, limits, and variances.` 
+      : "Perform a full financial audit of my active paycheck cycle, daily variable burn velocity, and surplus pacing."
   },
   {
     command: "/radar",
     label: "Subscription Radar",
-    description: "Scan recurring commitments, cadence & price hikes",
+    description: "Scan recurring bills & price hikes (/radar [e.g. cancel gym])",
     icon: Radio,
-    promptTemplate: "Audit my subscription radar: scan all recurring bills, fixed monthly commitments, and detect any price hikes."
-  },
-  {
-    command: "/projection",
-    label: "Smart Forecasting",
-    description: "Simulate end-of-cycle balance & surplus projection",
-    icon: Sparkles,
-    promptTemplate: "Simulate my end-of-cycle balance and projected net cash flow surplus using the recency decay projection engine."
+    promptTemplate: (arg: string) => arg 
+      ? `Audit my subscription radar with focus on: "${arg}". Check monthly commitments, cadence, and price changes.` 
+      : "Audit my subscription radar: scan all recurring bills, fixed monthly commitments, and detect any price hikes."
   },
   {
     command: "/search",
     label: "Live Web Search",
-    description: "Search live financial web & market news (/search [query])",
+    description: "Search live financial web (/search [query])",
     icon: Globe,
-    promptTemplate: (arg: string) => arg ? `Search live financial web and news for: ${arg}` : "Search live financial web for current market news and rates."
+    promptTemplate: (arg: string) => arg 
+      ? `Search live financial web and news for: ${arg}` 
+      : "Search live financial web for current market news and rates."
   },
   {
     command: "/clear",
@@ -714,7 +726,6 @@ export function LegerAIAssistant() {
   }, [isListening, inputVal, PLACEHOLDER_ROTATION.length])
 
   // Slash commands state & autocomplete
-  const [selectedSlashIdx, setSelectedSlashIdx] = useState(0)
   const isSlashMode = inputVal.startsWith("/")
   const slashQuery = isSlashMode ? inputVal.slice(1).toLowerCase().split(" ")[0] : ""
   const filteredSlashCommands = useMemo(() => {
@@ -726,10 +737,6 @@ export function LegerAIAssistant() {
       cmd.description.toLowerCase().includes(slashQuery)
     )
   }, [isSlashMode, slashQuery])
-
-  useEffect(() => {
-    setSelectedSlashIdx(0)
-  }, [filteredSlashCommands.length])
   
   // Dynamic suggested queries state
   const [suggestedQueries, setSuggestedQueries] = useState<string[]>([])
@@ -1225,8 +1232,8 @@ export function LegerAIAssistant() {
     }
   }
 
-  // Execute a selected slash command
-  const executeSlashCommand = (cmd: SlashCommandItem, rawInput = inputVal) => {
+  // Select / fill or execute slash command (mobile-friendly)
+  const handleSelectSlashCommand = (cmd: SlashCommandItem, autoRun = false) => {
     if (cmd.isDirect) {
       if (cmd.command === "/clear") {
         createNewChat()
@@ -1236,27 +1243,33 @@ export function LegerAIAssistant() {
       }
     }
     
-    let promptToSend = ""
-    if (typeof cmd.promptTemplate === "function") {
-      const parts = rawInput.trim().split(" ")
-      const arg = parts.length > 1 ? parts.slice(1).join(" ") : ""
-      promptToSend = cmd.promptTemplate(arg)
-    } else {
-      promptToSend = cmd.promptTemplate
+    if (autoRun) {
+      let promptToSend = ""
+      if (typeof cmd.promptTemplate === "function") {
+        promptToSend = cmd.promptTemplate("")
+      } else {
+        promptToSend = cmd.promptTemplate
+      }
+      setInputVal("")
+      handleQuery(promptToSend)
+      return
     }
 
-    setInputVal("")
-    handleQuery(promptToSend)
+    // Fill input with the command so the user can type custom parameters / scenarios
+    setInputVal(`${cmd.command} `)
   }
 
   // Handle Query Submission (session-aware)
   const handleQuery = async (queryText: string, targetSessionId?: string) => {
     if (!queryText.trim() || isLoading) return
 
-    // Intercept slash command text if user typed and submitted directly
+    // Intercept slash command text if user typed and submitted directly (e.g. /projection if i had 10€ burn)
     const trimmedInput = queryText.trim()
     const firstWord = trimmedInput.split(" ")[0].toLowerCase()
+    const parts = trimmedInput.split(" ")
+    const userArg = parts.length > 1 ? parts.slice(1).join(" ").trim() : ""
     const matchedCmd = SLASH_COMMANDS.find(c => c.command.toLowerCase() === firstWord)
+
     if (matchedCmd) {
       if (matchedCmd.isDirect && matchedCmd.command === "/clear") {
         createNewChat()
@@ -1265,11 +1278,11 @@ export function LegerAIAssistant() {
         return
       }
       if (typeof matchedCmd.promptTemplate === "function") {
-        const parts = trimmedInput.split(" ")
-        const arg = parts.length > 1 ? parts.slice(1).join(" ") : ""
-        queryText = matchedCmd.promptTemplate(arg)
+        queryText = matchedCmd.promptTemplate(userArg)
       } else if (matchedCmd.promptTemplate) {
-        queryText = matchedCmd.promptTemplate
+        queryText = userArg 
+          ? `${matchedCmd.promptTemplate} User custom scenario: "${userArg}".` 
+          : matchedCmd.promptTemplate
       }
     }
 
@@ -1854,7 +1867,7 @@ export function LegerAIAssistant() {
                 )}
               </AnimatePresence>
 
-              {/* Slash Command Autocomplete Popover */}
+              {/* Slash Command Autocomplete Popover (Mobile-First Touch Architecture) */}
               <AnimatePresence>
                 {isSlashMode && filteredSlashCommands.length > 0 && (
                   <motion.div
@@ -1862,55 +1875,49 @@ export function LegerAIAssistant() {
                     animate={{ opacity: 1, y: 0, scale: 1 }}
                     exit={{ opacity: 0, y: 8, scale: 0.98 }}
                     transition={{ duration: 0.15 }}
-                    className="mx-3 mb-2 p-1.5 bg-card dark:bg-zinc-950 border border-border rounded-xl shadow-2xl z-20 font-mono text-xs overflow-hidden"
+                    className="mx-3 mb-2 p-2 bg-card dark:bg-zinc-950 border border-border shadow-2xl z-20 font-mono text-xs overflow-hidden"
                   >
-                    <div className="flex items-center justify-between px-2.5 py-1.5 border-b border-border/40 text-[9px] uppercase text-muted-foreground tracking-wider font-bold">
+                    <div className="flex items-center justify-between px-2 pb-1.5 border-b border-border/40 text-[9px] uppercase text-muted-foreground tracking-wider font-bold">
                       <span className="flex items-center gap-1.5 text-foreground">
                         <Command className="h-3 w-3" />
                         Quick Commands
                       </span>
-                      <span className="text-[8px] opacity-70">↑↓ navigate • ↵ run</span>
+                      <span className="text-[8px] text-muted-foreground/70 lowercase font-sans">tap to customize</span>
                     </div>
-                    <div className="max-h-52 overflow-y-auto space-y-1 p-1 scrollbar-thin">
-                      {filteredSlashCommands.map((cmd, idx) => {
+                    <div className="max-h-56 overflow-y-auto space-y-1 pt-1.5 scrollbar-thin">
+                      {filteredSlashCommands.map((cmd) => {
                         const Icon = cmd.icon
-                        const isSelected = idx === selectedSlashIdx
                         return (
-                          <button
+                          <div
                             key={cmd.command}
-                            onClick={() => executeSlashCommand(cmd)}
-                            onMouseEnter={() => setSelectedSlashIdx(idx)}
-                            className={cn(
-                              "w-full flex items-center gap-3 px-2.5 py-2 rounded-lg text-left transition-all cursor-pointer group min-w-0",
-                              isSelected 
-                                ? "bg-secondary text-foreground" 
-                                : "text-muted-foreground hover:bg-secondary/60 hover:text-foreground"
-                            )}
+                            onClick={() => handleSelectSlashCommand(cmd, false)}
+                            className="w-full flex items-center justify-between gap-2.5 p-2 rounded-md text-left transition-all cursor-pointer bg-secondary/20 hover:bg-secondary/60 border border-border/40 hover:border-border select-none"
                           >
-                            <div className={cn(
-                              "w-6 h-6 rounded flex items-center justify-center shrink-0 border transition-colors",
-                              isSelected ? "bg-foreground text-background border-foreground" : "bg-card border-border/80 text-muted-foreground"
-                            )}>
-                              <Icon className="h-3 w-3" />
+                            <div className="flex items-center gap-2.5 min-w-0 flex-1">
+                              <div className="w-6 h-6 rounded flex items-center justify-center shrink-0 border bg-card border-border/80 text-foreground">
+                                <Icon className="h-3 w-3" />
+                              </div>
+                              <div className="min-w-0 flex-1">
+                                <div className="flex items-center gap-2">
+                                  <span className="font-mono font-bold text-xs text-foreground shrink-0">{cmd.command}</span>
+                                  <span className="text-[9px] text-muted-foreground/60 uppercase font-sans shrink-0">{cmd.label}</span>
+                                </div>
+                                <p className="text-[10px] text-muted-foreground truncate leading-tight mt-0.5">{cmd.description}</p>
+                              </div>
                             </div>
-                            <div className="flex items-baseline gap-2 min-w-0 flex-1 overflow-hidden">
-                              <span className={cn(
-                                "font-mono font-bold text-xs shrink-0",
-                                isSelected ? "text-foreground" : "text-foreground/90"
-                              )}>
-                                {cmd.command}
-                              </span>
-                              <span className="text-[11px] text-muted-foreground truncate">
-                                {cmd.description}
-                              </span>
-                            </div>
-                            <span className={cn(
-                              "text-[9px] font-mono shrink-0 px-1.5 py-0.5 rounded border transition-opacity",
-                              isSelected ? "opacity-100 bg-card border-border text-foreground" : "opacity-0 group-hover:opacity-60 border-transparent text-muted-foreground"
-                            )}>
-                              ↵
-                            </span>
-                          </button>
+                            <button
+                              type="button"
+                              onClick={(e) => {
+                                e.stopPropagation()
+                                handleSelectSlashCommand(cmd, true)
+                              }}
+                              className="px-2 py-1 rounded bg-secondary hover:bg-foreground hover:text-background text-muted-foreground border border-border text-[9px] font-sans font-bold uppercase transition-all shrink-0 cursor-pointer flex items-center gap-1"
+                              title="Run default"
+                            >
+                              <span>Run</span>
+                              <Send className="h-2 w-2" />
+                            </button>
+                          </div>
                         )
                       })}
                     </div>
@@ -1938,30 +1945,10 @@ export function LegerAIAssistant() {
                     value={inputVal}
                     onChange={(e) => setInputVal(e.target.value)}
                     onKeyDown={(e) => {
-                      if (isSlashMode && filteredSlashCommands.length > 0) {
-                        if (e.key === "ArrowDown") {
-                          e.preventDefault()
-                          setSelectedSlashIdx((prev) => (prev + 1) % filteredSlashCommands.length)
-                          return
-                        }
-                        if (e.key === "ArrowUp") {
-                          e.preventDefault()
-                          setSelectedSlashIdx((prev) => (prev - 1 + filteredSlashCommands.length) % filteredSlashCommands.length)
-                          return
-                        }
-                        if (e.key === "Enter" || e.key === "Tab") {
-                          e.preventDefault()
-                          const targetCmd = filteredSlashCommands[selectedSlashIdx] || filteredSlashCommands[0]
-                          if (targetCmd) {
-                            executeSlashCommand(targetCmd, inputVal)
-                            return
-                          }
-                        }
-                        if (e.key === "Escape") {
-                          e.preventDefault()
-                          setInputVal("")
-                          return
-                        }
+                      if (e.key === "Escape") {
+                        e.preventDefault()
+                        setInputVal("")
+                        return
                       }
                       if (e.key === "Enter") {
                         handleQuery(inputVal)
