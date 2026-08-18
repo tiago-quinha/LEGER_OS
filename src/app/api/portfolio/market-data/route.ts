@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { createClient as createSupabaseClient } from "@supabase/supabase-js";
 import { createClient as createServerCookieClient } from "@/lib/supabase-server";
 import { getAdminClient } from "@/lib/supabase-admin";
+import { convertCurrency } from "@/lib/forex";
 
 // In-memory server cache (15-minute TTL per symbol/id)
 interface CachedPrice {
@@ -177,26 +178,6 @@ export async function POST(req: Request) {
       // 2. Stock / ETF Fetch via Yahoo Finance
       const stockAssets = assetsToFetchRemote.filter((a: any) => a.asset_type === "stock_etf" || a.asset_type === "commodity");
       if (stockAssets.length > 0) {
-        // Fetch real-time EUR/USD exchange rate for proper currency normalization
-        let eurUsdRate = 1.08;
-        try {
-          const fxRes = await fetch("https://query1.finance.yahoo.com/v8/finance/chart/EURUSD=X?interval=1d&range=1d", {
-            headers: {
-              "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
-            },
-            next: { revalidate: 1800 }
-          });
-          if (fxRes.ok) {
-            const fxData = await fxRes.json();
-            const rate = fxData?.chart?.result?.[0]?.meta?.regularMarketPrice;
-            if (typeof rate === "number" && rate > 0) {
-              eurUsdRate = rate;
-            }
-          }
-        } catch (fxErr) {
-          console.warn("Using fallback EURUSD rate:", eurUsdRate);
-        }
-
         await Promise.all(
           stockAssets.map(async (asset: any) => {
             const sym = asset.symbol.toUpperCase();
@@ -204,7 +185,8 @@ export async function POST(req: Request) {
               const yfUrl = `https://query1.finance.yahoo.com/v8/finance/chart/${encodeURIComponent(sym)}?interval=1d&range=1d`;
               const yfRes = await fetch(yfUrl, {
                 headers: {
-                  "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
+                  "User-Agent":
+                    "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
                 },
                 next: { revalidate: 300 }
               });
@@ -213,22 +195,15 @@ export async function POST(req: Request) {
                 const yfData = await yfRes.json();
                 const meta = yfData?.chart?.result?.[0]?.meta;
                 if (meta && typeof meta.regularMarketPrice === "number") {
-                  let currentPrice = meta.regularMarketPrice;
-                  let prevClose = meta.chartPreviousClose || currentPrice;
+                  const rawPrice = meta.regularMarketPrice;
+                  const rawPrevClose = meta.chartPreviousClose || rawPrice;
 
-                  // Normalize currency to user target currency (default EUR)
+                  // Normalize currency to user target currency
                   const metaCurrency = (meta.currency || "USD").toUpperCase();
                   const targetCurrency = (asset.currency || "EUR").toUpperCase();
 
-                  if ((metaCurrency === "GBP" || metaCurrency === "GBX") && targetCurrency === "EUR") {
-                    if (metaCurrency === "GBX") {
-                      currentPrice = currentPrice / 100;
-                      prevClose = prevClose / 100;
-                    }
-                  } else if (metaCurrency === "USD" && targetCurrency === "EUR") {
-                    currentPrice = currentPrice / eurUsdRate;
-                    prevClose = prevClose / eurUsdRate;
-                  }
+                  const { convertedAmount: currentPrice } = await convertCurrency(rawPrice, metaCurrency, targetCurrency);
+                  const { convertedAmount: prevClose } = await convertCurrency(rawPrevClose, metaCurrency, targetCurrency);
 
                   const change24h = prevClose > 0 ? ((currentPrice - prevClose) / prevClose) * 100 : 0;
 
@@ -391,14 +366,21 @@ export async function GET(req: Request) {
               const yfData = await yfRes.json();
               const meta = yfData?.chart?.result?.[0]?.meta;
               if (meta && typeof meta.regularMarketPrice === "number") {
-                const currentPrice = meta.regularMarketPrice;
-                const prevClose = meta.chartPreviousClose || currentPrice;
+                const rawPrice = meta.regularMarketPrice;
+                const rawPrevClose = meta.chartPreviousClose || rawPrice;
+
+                const metaCurrency = (meta.currency || "USD").toUpperCase();
+                const targetCurrency = currency.toUpperCase();
+
+                const { convertedAmount: currentPrice } = await convertCurrency(rawPrice, metaCurrency, targetCurrency);
+                const { convertedAmount: prevClose } = await convertCurrency(rawPrevClose, metaCurrency, targetCurrency);
+
                 const change24h = prevClose > 0 ? ((currentPrice - prevClose) / prevClose) * 100 : 0;
 
                 const priceObj: CachedPrice = {
                   price: parseFloat(currentPrice.toFixed(2)),
                   change24h: parseFloat(change24h.toFixed(2)),
-                  currency: meta.currency || currency,
+                  currency: targetCurrency,
                   timestamp: now,
                 };
 

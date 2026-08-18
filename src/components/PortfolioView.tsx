@@ -645,41 +645,22 @@ export function PortfolioView({
       current_price: "",
     }));
 
-    // Auto-fetch real live quote for the selected ticker to prepopulate buy/current price
+    // Auto-fetch real live quote normalized to active profile currency
     if (item.symbol) {
       setFetchingPriceForSymbol(item.symbol);
       try {
-        if (item.type === "stock_etf" || item.type === "commodity") {
-          const yfUrl = `https://query1.finance.yahoo.com/v8/finance/chart/${encodeURIComponent(item.symbol)}?interval=1d&range=1d`;
-          const yfRes = await fetch(yfUrl);
-          if (yfRes.ok) {
-            const yfData = await yfRes.json();
-            const price = yfData?.chart?.result?.[0]?.meta?.regularMarketPrice;
-            if (typeof price === "number" && price > 0) {
-              const pStr = getRawPriceString(price);
-              setFormData((prev) => ({
-                ...prev,
-                buy_price: prev.buy_price || pStr,
-                current_price: pStr,
-              }));
-            }
-          }
-        } else if (item.type === "crypto") {
-          const cgId = item.id.replace(/^cg-/, "") || item.symbol.toLowerCase();
-          const cgUrl = `https://api.coingecko.com/api/v3/simple/price?ids=${encodeURIComponent(cgId)}&vs_currencies=eur,usd`;
-          const cgRes = await fetch(cgUrl);
-          if (cgRes.ok) {
-            const cgData = await cgRes.json();
-            const coinData = cgData[cgId];
-            const price = coinData ? (coinData.eur || coinData.usd) : null;
-            if (typeof price === "number" && price > 0) {
-              const pStr = getRawPriceString(price);
-              setFormData((prev) => ({
-                ...prev,
-                buy_price: prev.buy_price || pStr,
-                current_price: pStr,
-              }));
-            }
+        const targetCurr = currencySymbol === "$" ? "USD" : "EUR";
+        const res = await fetch(`/api/portfolio/market-data?symbols=${encodeURIComponent(item.symbol)}&currency=${encodeURIComponent(targetCurr)}`);
+        if (res.ok) {
+          const data = await res.json();
+          const priceInfo = data.prices?.[item.symbol.toUpperCase()];
+          if (priceInfo && typeof priceInfo.price === "number" && priceInfo.price > 0) {
+            const pStr = getRawPriceString(priceInfo.price);
+            setFormData((prev) => ({
+              ...prev,
+              buy_price: prev.buy_price || pStr,
+              current_price: pStr,
+            }));
           }
         }
       } catch (e) {
