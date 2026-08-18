@@ -952,7 +952,7 @@ export function PortfolioView({
           gainLoss: dayGainLoss,
         };
       });
-    } else if (["stock_etf", "crypto", "commodity", "cash_equivalent"].includes(selectedChartMode)) {
+    } else if (["stock_etf", "crypto", "commodity"].includes(selectedChartMode)) {
       const categoryAssets = assets.filter((a) => a.asset_type === selectedChartMode);
 
       return Array.from({ length: cycleDaysCount }).map((_, i) => {
@@ -976,17 +976,6 @@ export function PortfolioView({
           const catBreakdown = recordedSnap.asset_breakdown[selectedChartMode];
           val = catBreakdown.valuation || 0;
           invested = (catBreakdown as any).invested || 0;
-        } else if (selectedChartMode === "cash_equivalent") {
-          if (expenses && expenses.length > 0) {
-            const sumTx = expenses
-              .filter((e: any) => new Date(e.date) <= dateEnd)
-              .reduce((sum: number, e: any) => sum + (parseFloat(e.amount) || 0), 0);
-            val = injectedStartBalance + sumTx;
-          } else if (isPast || isToday) {
-            val = liquidBalance;
-          } else {
-            val = injectedStartBalance;
-          }
         } else {
           const activeAssetsOnDay = categoryAssets.filter((a) => {
             if (!a.created_at) return true;
