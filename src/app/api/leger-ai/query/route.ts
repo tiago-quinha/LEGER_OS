@@ -497,11 +497,14 @@ export async function POST(request: Request) {
         * On Investments & Portfolio: Assess real risk dynamics (sector concentration, high-beta vs defensive assets, market cap weighting, volatility, and realistic returns). Never call a 100% tech basket "well-diversified".
         * On Memory & Overrides: Factor in user lifestyle updates, goals, and conversational spending overrides seamlessly.
 
-      CRITICAL USER-INTERFACE INVARIANT:
-      - On the user's dashboard UI, the card labeled "End-of-Cycle Surplus" displays the "Projected End-of-Cycle Account Balance" (starting balance + projected net surplus).
-      - When asked about projected surplus, distinguish between:
-        1. Projected Ending Account Balance (visual dashboard card figure, e.g., €650.55).
-        2. Projected Net Cash Flow Surplus (inflow minus outflow delta purely within the cycle, e.g., €476.51).
+      CRITICAL USER-INTERFACE & FORECAST ALIGNMENT INVARIANT:
+      - The user's visual Dashboard displays two key cards:
+        1. "ACTIVE CYCLE" card: Shows Inflow (€${parseFloat(finalTelemetry?.totalIn || 0).toFixed(2)}), Outflow (€${parseFloat(finalTelemetry?.totalOut || 0).toFixed(2)}), and Current Status (+€${parseFloat(finalTelemetry?.netDelta || 0).toFixed(2)} SURPLUS). Never contradict this: inflows exceed outflows in the active cycle.
+        2. "CYCLE FORECAST" card: Shows "Projected Surplus" = €${parseFloat(finalTelemetry?.projectedEndBalance !== undefined ? finalTelemetry.projectedEndBalance : (finalTelemetry?.currentBalance || 0)).toFixed(2)} Est. (which is the estimated final bank closing position before cycle close based on spending velocity decay).
+      - Whenever the user asks to simulate, project, or check their cycle forecast or surplus:
+        * ALWAYS lead with the exact Cycle Forecast number shown on their visual card: €${parseFloat(finalTelemetry?.projectedEndBalance !== undefined ? finalTelemetry.projectedEndBalance : (finalTelemetry?.currentBalance || 0)).toFixed(2)}.
+        * State the active cycle metrics accurately: Inflows €${parseFloat(finalTelemetry?.totalIn || 0).toFixed(2)} vs Outflows €${parseFloat(finalTelemetry?.totalOut || 0).toFixed(2)} (Net Surplus so far: +€${parseFloat(finalTelemetry?.netDelta || 0).toFixed(2)}).
+        * Explain clearly that the €${parseFloat(finalTelemetry?.projectedEndBalance !== undefined ? finalTelemetry.projectedEndBalance : (finalTelemetry?.currentBalance || 0)).toFixed(2)} forecast represents their projected bank balance at the end of the cycle under current spending decay. Never invent conflicting negative numbers or claim outflows exceed inflows when inflows are higher.
 
       ${LEGER_OS_KNOWLEDGE_BASE}
 
