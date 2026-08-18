@@ -143,18 +143,15 @@ const POPULAR_PRESETS: PopularAssetPreset[] = [
   { id: "vwce", name: "Vanguard All-World ETF", symbol: "VWCE.DE", type: "stock_etf", estPrice: 121.0, badgeLabel: "ETF" },
   { id: "sxr8", name: "iShares S&P 500 ETF", symbol: "SXR8.DE", type: "stock_etf", estPrice: 525.0, badgeLabel: "ETF" },
 
-  // Commodities & Cash
+  // Commodities
   { id: "xau", name: "Gold Spot", symbol: "XAU", type: "commodity", estPrice: 2450.0, badgeLabel: "COMMODITY" },
   { id: "xag", name: "Silver Spot", symbol: "XAG", type: "commodity", estPrice: 28.5, badgeLabel: "COMMODITY" },
   { id: "wti", name: "Crude Oil WTI", symbol: "WTI", type: "commodity", estPrice: 78.0, badgeLabel: "COMMODITY" },
-  { id: "eur", name: "Euro Cash / Savings", symbol: "EUR", type: "cash_equivalent", estPrice: 1.0, badgeLabel: "SAVINGS" },
-  { id: "usd", name: "US Dollar Reserve", symbol: "USD", type: "cash_equivalent", estPrice: 1.08, badgeLabel: "SAVINGS" },
 ];
 
 const ASSET_TYPE_CONFIG: Record<string, { label: string; icon: any; color: string; bg: string }> = {
   stock_etf: { label: "STOCKS & ETFS", icon: TrendingUp, color: "text-blue-500", bg: "bg-blue-500/10 border-blue-500/20" },
   crypto: { label: "CRYPTO", icon: Coins, color: "text-amber-500", bg: "bg-amber-500/10 border-amber-500/20" },
-  cash_equivalent: { label: "CASH & SAVINGS", icon: Landmark, color: "text-emerald-500", bg: "bg-emerald-500/10 border-emerald-500/20" },
   commodity: { label: "COMMODITIES", icon: Layers, color: "text-purple-500", bg: "bg-purple-500/10 border-purple-500/20" },
   other: { label: "CUSTOM ASSETS", icon: Landmark, color: "text-gray-400", bg: "bg-gray-500/10 border-gray-500/20" },
 };
@@ -1157,8 +1154,6 @@ export function PortfolioView({
               ? "Crypto Assets Trajectory"
               : selectedChartMode === "commodity"
               ? "Commodities Trajectory"
-              : selectedChartMode === "cash_equivalent"
-              ? "Savings & Cash Trajectory"
               : assets.find((a) => a.id === selectedChartMode)?.asset_name.toUpperCase() || "Asset Performance"}
           </h2>
 
@@ -1193,15 +1188,6 @@ export function PortfolioView({
                 Crypto
               </button>
               <button
-                onClick={() => setSelectedChartMode("cash_equivalent")}
-                className={cn(
-                  "px-3 py-1 uppercase font-bold transition-all border-l border-border/60 cursor-pointer select-none shrink-0",
-                  selectedChartMode === "cash_equivalent" ? "bg-foreground text-background" : "text-muted-foreground hover:text-foreground"
-                )}
-              >
-                Savings
-              </button>
-              <button
                 onClick={() => setSelectedChartMode("commodity")}
                 className={cn(
                   "px-3 py-1 uppercase font-bold transition-all border-l border-border/60 cursor-pointer select-none shrink-0",
@@ -1222,7 +1208,6 @@ export function PortfolioView({
                 <option value="all">Total Portfolio (All Assets)</option>
                 <option value="stock_etf">Stocks & ETFs</option>
                 <option value="crypto">Crypto</option>
-                <option value="cash_equivalent">Savings & Cash</option>
                 <option value="commodity">Commodities</option>
                 <optgroup label="Individual Holdings">
                   {assets.map((a) => (
