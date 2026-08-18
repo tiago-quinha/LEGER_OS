@@ -8,6 +8,7 @@ import { useSystem } from "@/lib/SystemContext";
 import { PrivacyValue } from "@/components/ui/privacy-value";
 import { ProLockOverlay } from "@/components/ProLockOverlay";
 import { Button } from "@/components/ui/button";
+import { supabase } from "@/lib/supabase";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -464,37 +465,6 @@ export function PortfolioView({
   const [formSubmitting, setFormSubmitting] = useState(false);
   const [timeToNextSync, setTimeToNextSync] = useState<string>("15:00");
 
-  useEffect(() => {
-    setMounted(true);
-
-    const updateCountdown = () => {
-      const now = new Date();
-      const mins = now.getMinutes();
-      const secs = now.getSeconds();
-      const nextQuarter = (Math.floor(mins / 15) + 1) * 15;
-      const diffSecs = (nextQuarter - mins) * 60 - secs;
-      const remMins = Math.floor(diffSecs / 60);
-      const remSecs = diffSecs % 60;
-      setTimeToNextSync(
-        `${String(remMins).padStart(2, "0")}:${String(remSecs).padStart(2, "0")}`
-      );
-    };
-
-    updateCountdown();
-    const timer = setInterval(updateCountdown, 1000);
-    return () => clearInterval(timer);
-  }, []);
-
-  useEffect(() => {
-    if (isAddModalOpen) {
-      const orig = document.body.style.overflow;
-      document.body.style.overflow = "hidden";
-      return () => {
-        document.body.style.overflow = orig;
-      };
-    }
-  }, [isAddModalOpen]);
-
   const [presetLivePrices, setPresetLivePrices] = useState<Record<string, number>>({});
 
   const fetchPresetLivePrices = useCallback(async () => {
@@ -544,9 +514,76 @@ export function PortfolioView({
   }, []);
 
   useEffect(() => {
+    setMounted(true);
     fetchPortfolioData();
     fetchPresetLivePrices();
+
+    const updateCountdown = () => {
+      const now = new Date();
+      const mins = now.getMinutes();
+      const secs = now.getSeconds();
+      const nextQuarter = (Math.floor(mins / 15) + 1) * 15;
+      const diffSecs = (nextQuarter - mins) * 60 - secs;
+      const remMins = Math.floor(diffSecs / 60);
+      const remSecs = diffSecs % 60;
+
+      // When the 15-minute slot ticks (:00, :15, :30, :45), wait 3s for server cron to finish writing, then silently re-fetch fresh DB prices
+      if (mins % 15 === 0 && (secs === 3 || secs === 6)) {
+        fetchPortfolioData();
+      }
+
+      setTimeToNextSync(
+        `${String(remMins).padStart(2, "0")}:${String(remSecs).padStart(2, "0")}`
+      );
+    };
+
+    updateCountdown();
+    const timer = setInterval(updateCountdown, 1000);
+    return () => clearInterval(timer);
   }, [fetchPortfolioData, fetchPresetLivePrices]);
+
+  // Supabase Realtime: Dynamically update UI without refresh whenever portfolio_assets or snapshots change
+  useEffect(() => {
+    const channel = supabase
+      .channel("portfolio_live_db_sync")
+      .on(
+        "postgres_changes",
+        {
+          event: "*",
+          schema: "public",
+          table: "portfolio_assets",
+        },
+        () => {
+          fetchPortfolioData();
+        }
+      )
+      .on(
+        "postgres_changes",
+        {
+          event: "*",
+          schema: "public",
+          table: "portfolio_snapshots",
+        },
+        () => {
+          fetchPortfolioData();
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [fetchPortfolioData]);
+
+  useEffect(() => {
+    if (isAddModalOpen) {
+      const orig = document.body.style.overflow;
+      document.body.style.overflow = "hidden";
+      return () => {
+        document.body.style.overflow = orig;
+      };
+    }
+  }, [isAddModalOpen]);
 
   const handleOpenAddModal = () => {
     setEditingAsset(null);
