@@ -1862,16 +1862,16 @@ export function LegerAIAssistant() {
                     animate={{ opacity: 1, y: 0, scale: 1 }}
                     exit={{ opacity: 0, y: 8, scale: 0.98 }}
                     transition={{ duration: 0.15 }}
-                    className="mx-3 mb-2 p-1.5 bg-card/95 dark:bg-zinc-900/95 backdrop-blur-xl border border-border shadow-[0_12px_40px_rgba(0,0,0,0.5)] z-20 font-mono text-xs overflow-hidden"
+                    className="mx-3 mb-2 p-1.5 bg-card dark:bg-zinc-950 border border-border rounded-xl shadow-2xl z-20 font-mono text-xs overflow-hidden"
                   >
-                    <div className="flex items-center justify-between px-2 py-1 border-b border-border/40 text-[9px] uppercase text-muted-foreground tracking-wider font-bold">
+                    <div className="flex items-center justify-between px-2.5 py-1.5 border-b border-border/40 text-[9px] uppercase text-muted-foreground tracking-wider font-bold">
                       <span className="flex items-center gap-1.5 text-foreground">
                         <Command className="h-3 w-3" />
-                        Quick Slash Commands
+                        Quick Commands
                       </span>
-                      <span className="text-[8px] opacity-70">↑↓ to navigate • ↵ / Tab to run</span>
+                      <span className="text-[8px] opacity-70">↑↓ navigate • ↵ run</span>
                     </div>
-                    <div className="max-h-48 overflow-y-auto space-y-0.5 pt-1 scrollbar-thin">
+                    <div className="max-h-52 overflow-y-auto space-y-1 p-1 scrollbar-thin">
                       {filteredSlashCommands.map((cmd, idx) => {
                         const Icon = cmd.icon
                         const isSelected = idx === selectedSlashIdx
@@ -1881,25 +1881,35 @@ export function LegerAIAssistant() {
                             onClick={() => executeSlashCommand(cmd)}
                             onMouseEnter={() => setSelectedSlashIdx(idx)}
                             className={cn(
-                              "w-full flex items-center justify-between px-2.5 py-1.5 text-left transition-all cursor-pointer",
+                              "w-full flex items-center gap-3 px-2.5 py-2 rounded-lg text-left transition-all cursor-pointer group min-w-0",
                               isSelected 
-                                ? "bg-secondary text-foreground font-semibold" 
-                                : "text-muted-foreground hover:bg-secondary/50 hover:text-foreground"
+                                ? "bg-secondary text-foreground" 
+                                : "text-muted-foreground hover:bg-secondary/60 hover:text-foreground"
                             )}
                           >
-                            <div className="flex items-center gap-2.5 min-w-0">
-                              <div className={cn(
-                                "p-1 border",
-                                isSelected ? "bg-foreground text-background border-foreground" : "bg-card border-border"
-                              )}>
-                                <Icon className="h-3 w-3" />
-                              </div>
-                              <div className="min-w-0">
-                                <span className="font-bold text-foreground text-[11px] mr-2">{cmd.command}</span>
-                                <span className="text-[10px] text-muted-foreground truncate">{cmd.description}</span>
-                              </div>
+                            <div className={cn(
+                              "w-6 h-6 rounded flex items-center justify-center shrink-0 border transition-colors",
+                              isSelected ? "bg-foreground text-background border-foreground" : "bg-card border-border/80 text-muted-foreground"
+                            )}>
+                              <Icon className="h-3 w-3" />
                             </div>
-                            <span className="text-[9px] opacity-60 uppercase shrink-0 font-sans">{cmd.label}</span>
+                            <div className="flex items-baseline gap-2 min-w-0 flex-1 overflow-hidden">
+                              <span className={cn(
+                                "font-mono font-bold text-xs shrink-0",
+                                isSelected ? "text-foreground" : "text-foreground/90"
+                              )}>
+                                {cmd.command}
+                              </span>
+                              <span className="text-[11px] text-muted-foreground truncate">
+                                {cmd.description}
+                              </span>
+                            </div>
+                            <span className={cn(
+                              "text-[9px] font-mono shrink-0 px-1.5 py-0.5 rounded border transition-opacity",
+                              isSelected ? "opacity-100 bg-card border-border text-foreground" : "opacity-0 group-hover:opacity-60 border-transparent text-muted-foreground"
+                            )}>
+                              ↵
+                            </span>
                           </button>
                         )
                       })}
