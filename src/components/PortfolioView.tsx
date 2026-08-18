@@ -25,6 +25,7 @@ import {
   Search,
   Plus,
   RefreshCw,
+  Clock,
   Trash2,
   Edit2,
   X,
@@ -462,9 +463,27 @@ export function PortfolioView({
   const [totalSpentInput, setTotalSpentInput] = useState<string>("");
   const [mounted, setMounted] = useState(false);
   const [formSubmitting, setFormSubmitting] = useState(false);
+  const [timeToNextSync, setTimeToNextSync] = useState<string>("15:00");
 
   useEffect(() => {
     setMounted(true);
+
+    const updateCountdown = () => {
+      const now = new Date();
+      const mins = now.getMinutes();
+      const secs = now.getSeconds();
+      const nextQuarter = (Math.floor(mins / 15) + 1) * 15;
+      const diffSecs = (nextQuarter - mins) * 60 - secs;
+      const remMins = Math.floor(diffSecs / 60);
+      const remSecs = diffSecs % 60;
+      setTimeToNextSync(
+        `${String(remMins).padStart(2, "0")}:${String(remSecs).padStart(2, "0")}`
+      );
+    };
+
+    updateCountdown();
+    const timer = setInterval(updateCountdown, 1000);
+    return () => clearInterval(timer);
   }, []);
 
   useEffect(() => {
@@ -1063,9 +1082,17 @@ export function PortfolioView({
       {/* 1. Header (Matching Dashboard Layout) */}
       <header className="flex flex-col md:flex-row md:items-center justify-between gap-6 md:gap-8 border-b border-foreground/10 pb-6 md:pb-8 relative">
         <div className="space-y-3">
-          <div className="flex items-center gap-3 text-[9px] md:text-[10px] font-mono tracking-[0.2em] uppercase text-muted-foreground">
-            <TrendingUp className="h-3.5 w-3.5" />
-            <span>Active Paycheck Cycle</span>
+          <div className="flex items-center gap-3 text-[9px] md:text-[10px] font-mono tracking-[0.2em] uppercase text-muted-foreground flex-wrap">
+            <div className="flex items-center gap-1.5">
+              <TrendingUp className="h-3.5 w-3.5" />
+              <span>Active Paycheck Cycle</span>
+            </div>
+            <span className="text-muted-foreground/30">•</span>
+            <div className="flex items-center gap-1.5 text-foreground/80 font-bold">
+              <span className="h-1.5 w-1.5 rounded-full bg-emerald-500 animate-pulse" />
+              <Clock className="h-3 w-3 text-muted-foreground" />
+              <span>SYNC: {timeToNextSync}</span>
+            </div>
           </div>
           <h1 className="text-4xl md:text-5xl font-bold tracking-tighter uppercase leading-none break-words">
             {isPending ? (
@@ -1414,10 +1441,37 @@ export function PortfolioView({
 
       {/* 4. Full-Width Holdings Cards List */}
       <div className="space-y-2.5">
-        <div className="flex items-center justify-between border-b border-border/40 pb-2">
-          <h2 className="text-xl md:text-2xl font-bold tracking-tighter uppercase font-sans">
-            Holdings
-          </h2>
+        <div className="flex items-center justify-between border-b border-border/40 pb-2 flex-wrap gap-2">
+          <div className="flex items-center gap-3">
+            <h2 className="text-xl md:text-2xl font-bold tracking-tighter uppercase font-sans">
+              Holdings
+            </h2>
+            <span className="text-[10px] font-mono text-muted-foreground bg-secondary/40 px-2 py-0.5 border border-border/60 uppercase">
+              {filteredAssets.length} {filteredAssets.length === 1 ? "Asset" : "Assets"}
+            </span>
+          </div>
+
+          <div className="flex items-center gap-2 font-mono text-[9px]">
+            {/* Live Sync Status & 15-Minute Countdown Clock */}
+            <div className="flex items-center gap-1.5 px-2.5 py-1 border border-border/60 bg-card/60 text-muted-foreground">
+              <span className="h-1.5 w-1.5 rounded-full bg-emerald-500 animate-pulse" />
+              <span className="uppercase text-[9px] font-bold tracking-wider hidden xs:inline">NEXT SYNC:</span>
+              <span className="text-foreground font-mono font-bold">{timeToNextSync}</span>
+            </div>
+
+            {/* Manual Sync Trigger */}
+            <button
+              onClick={handleRefreshMarketPrices}
+              disabled={refreshingPrices}
+              className="flex items-center gap-1.5 px-2.5 py-1 border border-border/80 bg-card hover:bg-secondary text-foreground hover:border-foreground/30 transition-all cursor-pointer select-none disabled:opacity-50"
+              title="Force instant market price sync"
+            >
+              <RefreshCw className={cn("h-3 w-3", refreshingPrices && "animate-spin text-emerald-500")} />
+              <span className="uppercase tracking-wider font-bold">
+                {refreshingPrices ? "SYNCING..." : "SYNC"}
+              </span>
+            </button>
+          </div>
         </div>
 
         <div className="flex flex-col gap-2">
