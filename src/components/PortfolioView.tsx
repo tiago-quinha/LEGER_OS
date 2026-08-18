@@ -316,29 +316,45 @@ function AssetLogo({ symbol, assetType, name, customIconUrl }: { symbol?: string
   );
 }
 
-function CustomPortfolioTooltip({ active, payload, label, formatCurrency, selectedChartMode }: any) {
+function CustomPortfolioTooltip({ active, payload, label, formatCurrency, selectedChartMode, assets }: any) {
   if (active && payload && payload.length) {
     const data = payload[0].payload;
     const isAllMode = selectedChartMode === "all";
 
     return (
-      <div className="p-3 bg-card border border-border ledger-border font-mono shadow-2xl space-y-1.5 text-xs rounded-none min-w-[170px]">
-        <p className="text-[9px] text-muted-foreground uppercase font-bold border-b border-border/40 pb-1">{label}</p>
-        <div className="flex items-center justify-between gap-4 text-[11px]">
-          <span className="text-muted-foreground uppercase text-[9px]">{isAllMode ? "Net Worth:" : "Valuation:"}</span>
-          <span className="font-bold text-foreground">{formatCurrency(data.valuation)}</span>
-        </div>
-        {!isAllMode && (
-          <div className="flex items-center justify-between gap-4 text-[11px]">
-            <span className="text-muted-foreground uppercase text-[9px]">Cost Basis:</span>
-            <span className="font-bold text-muted-foreground">{formatCurrency(data.invested)}</span>
-          </div>
-        )}
-        <div className="flex items-center justify-between gap-4 text-[11px] border-t border-border/40 pt-1">
-          <span className="text-muted-foreground uppercase text-[9px]">{isAllMode ? "Performance:" : "Return:"}</span>
-          <span className={cn("font-bold", data.gainLoss >= 0 ? "text-emerald-500" : "text-rose-500")}>
-            {data.gainLoss >= 0 ? "+" : ""}{formatCurrency(data.gainLoss)}
-          </span>
+      <div className="bg-card border border-border p-2 md:p-3 font-mono text-[9px] md:text-[10px] space-y-1.5 md:space-y-2 shadow-sm z-50 rounded-none min-w-[170px]">
+        <p className="font-bold border-b border-border pb-1 uppercase">{label}</p>
+        <div className="space-y-1">
+          <p className="flex justify-between gap-6 md:gap-8 uppercase">
+            <span>{isAllMode ? "Total:" : "Valuation:"}</span>
+            <span className="font-bold text-foreground">{formatCurrency(data.actualValuation ?? data.projectionValuation ?? data.valuation)}</span>
+          </p>
+          {data.invested > 0 && (
+            <p className="flex justify-between gap-6 md:gap-8 opacity-60 uppercase">
+              <span>Cost Basis:</span>
+              <span>{formatCurrency(data.invested)}</span>
+            </p>
+          )}
+          {isAllMode && assets && assets.length > 0 && (
+            <div className="border-t border-border/40 pt-1 space-y-0.5">
+              {assets.map((a: any) => {
+                const val = data[`asset_${a.id}`];
+                if (val == null || val === 0) return null;
+                return (
+                  <p key={a.id} className="flex justify-between gap-4 opacity-50 uppercase text-[8px]">
+                    <span>{a.symbol?.toUpperCase() || a.asset_name}</span>
+                    <span>{formatCurrency(val)}</span>
+                  </p>
+                );
+              })}
+            </div>
+          )}
+          <p className="flex justify-between gap-6 md:gap-8 uppercase text-[9px] border-t border-border/40 pt-1">
+            <span>Return:</span>
+            <span className={data.gainLoss >= 0 ? "text-emerald-500 font-semibold" : "text-destructive font-semibold"}>
+              {data.gainLoss >= 0 ? "+" : ""}{formatCurrency(data.gainLoss)}
+            </span>
+          </p>
         </div>
       </div>
     );
@@ -463,6 +479,7 @@ export function PortfolioView({
   const [priceInputMode, setPriceInputMode] = useState<"unit" | "total">("unit");
   const [totalSpentInput, setTotalSpentInput] = useState<string>("");
   const [mounted, setMounted] = useState(false);
+  const [isMobile, setIsMobile] = useState(false);
   const [formSubmitting, setFormSubmitting] = useState(false);
   const [timeToNextSync, setTimeToNextSync] = useState<string>("15:00");
 
@@ -519,6 +536,10 @@ export function PortfolioView({
     fetchPortfolioData();
     fetchPresetLivePrices();
 
+    setIsMobile(window.innerWidth < 768);
+    const handleResize = () => setIsMobile(window.innerWidth < 768);
+    window.addEventListener("resize", handleResize);
+
     const updateCountdown = () => {
       const now = new Date();
       const mins = now.getMinutes();
@@ -540,7 +561,10 @@ export function PortfolioView({
 
     updateCountdown();
     const timer = setInterval(updateCountdown, 1000);
-    return () => clearInterval(timer);
+    return () => {
+      clearInterval(timer);
+      window.removeEventListener("resize", handleResize);
+    };
   }, [fetchPortfolioData, fetchPresetLivePrices]);
 
   // Supabase Realtime: Dynamically update UI without refresh whenever portfolio_assets or snapshots change
@@ -905,45 +929,36 @@ export function PortfolioView({
         const isToday = dateStr === todayStr;
         const isFuture = dateStr > todayStr;
 
-        // For past days, check if a historical snapshot was recorded. Today and future days use live asset calculations.
-        const recordedSnap = isPast ? snapMap.get(dateStr) : null;
-        let dayValuation = 0;
-        let dayInvested = 0;
-        let dayGainLoss = 0;
+        // Only include assets created/acquired on or before this day
+        const activeAssetsOnDay = assets.filter((a) => {
+          if (!a.created_at) return true;
+          return new Date(a.created_at) <= dateEnd;
+        });
 
-        if (recordedSnap && recordedSnap.total_net_worth) {
-          dayValuation = Number(recordedSnap.total_net_worth || 0);
-          dayInvested = Number(recordedSnap.invested_capital || 0);
-          dayGainLoss = Number(recordedSnap.total_gain_loss || 0);
-        } else {
-          let dayBankBalance = injectedStartBalance;
-          if (expenses && expenses.length > 0) {
-            const sumTx = expenses
-              .filter((e: any) => new Date(e.date) <= dateEnd)
-              .reduce((sum: number, e: any) => sum + (parseFloat(e.amount) || 0), 0);
-            dayBankBalance = injectedStartBalance + sumTx;
-          } else if (isPast || isToday) {
-            dayBankBalance = liquidBalance;
+        const dayAssetValuation = activeAssetsOnDay.reduce(
+          (sum, a) => sum + (Number(a.quantity) || 0) * (Number(a.current_price) || Number(a.buy_price) || 0),
+          0
+        );
+        const dayAssetInvested = activeAssetsOnDay.reduce(
+          (sum, a) => sum + (Number(a.quantity) || 0) * (Number(a.buy_price) || 0),
+          0
+        );
+
+        const dayValuation = parseFloat(dayAssetValuation.toFixed(2));
+        const dayInvested = parseFloat(dayAssetInvested.toFixed(2));
+        const dayGainLoss = parseFloat((dayAssetValuation - dayAssetInvested).toFixed(2));
+
+        // Per-asset valuation keys for hybrid overlay lines
+        const perAsset: Record<string, number | null> = {};
+        for (const a of assets) {
+          const key = `asset_${a.id}`;
+          const isOwnedOnDay = !a.created_at || new Date(a.created_at) <= dateEnd;
+          if (isOwnedOnDay) {
+            const val = (Number(a.quantity) || 0) * (Number(a.current_price) || Number(a.buy_price) || 0);
+            perAsset[key] = isPast || isToday ? parseFloat(val.toFixed(2)) : null;
+          } else {
+            perAsset[key] = null;
           }
-
-          // Only include assets created/acquired on or before this day
-          const activeAssetsOnDay = assets.filter((a) => {
-            if (!a.created_at) return true;
-            return new Date(a.created_at) <= dateEnd;
-          });
-
-          const dayAssetValuation = activeAssetsOnDay.reduce(
-            (sum, a) => sum + (Number(a.quantity) || 0) * (Number(a.current_price) || Number(a.buy_price) || 0),
-            0
-          );
-          const dayAssetInvested = activeAssetsOnDay.reduce(
-            (sum, a) => sum + (Number(a.quantity) || 0) * (Number(a.buy_price) || 0),
-            0
-          );
-
-          dayValuation = parseFloat((dayBankBalance + dayAssetValuation).toFixed(2));
-          dayInvested = parseFloat(dayAssetInvested.toFixed(2));
-          dayGainLoss = parseFloat((dayValuation - dayInvested).toFixed(2));
         }
 
         return {
@@ -954,6 +969,7 @@ export function PortfolioView({
           projectionValuation: isToday || isFuture ? dayValuation : null,
           invested: dayInvested,
           gainLoss: dayGainLoss,
+          ...perAsset,
         };
       });
     } else if (["stock_etf", "crypto", "commodity"].includes(selectedChartMode)) {
@@ -1140,7 +1156,7 @@ export function PortfolioView({
         <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4 border-b border-border/40 pb-4">
           <h2 className="text-xl font-bold uppercase tracking-tight font-mono shrink-0">
             {selectedChartMode === "all"
-              ? "Net Worth Trajectory"
+              ? "Total Portfolio Trajectory"
               : selectedChartMode === "stock_etf"
               ? "Stocks & ETFs Trajectory"
               : selectedChartMode === "crypto"
@@ -1215,17 +1231,17 @@ export function PortfolioView({
         </div>
 
         {/* Recharts Area Chart */}
-        <div className="h-[280px] md:h-[320px] w-full mt-4 cursor-pointer">
+        <div className="h-[280px] md:h-[320px] w-full mt-4 md:mt-0 cursor-pointer" data-no-swipe="true">
           <ResponsiveContainer width="100%" height="100%">
             <RechartsAreaChart data={chartData} margin={{ top: 10, right: 10, left: -25, bottom: 0 }}>
               <defs>
-                <linearGradient id="portfolioValuationGrad" x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="5%" stopColor="var(--foreground)" stopOpacity={0.15} />
-                  <stop offset="95%" stopColor="var(--foreground)" stopOpacity={0.0} />
+                <linearGradient id="activeGradient" x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="5%" stopColor="var(--foreground)" stopOpacity={0.15}/>
+                  <stop offset="95%" stopColor="var(--foreground)" stopOpacity={0.0}/>
                 </linearGradient>
-                <linearGradient id="portfolioProjectionGrad" x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="5%" stopColor="var(--foreground)" stopOpacity={0.05} />
-                  <stop offset="95%" stopColor="var(--foreground)" stopOpacity={0.0} />
+                <linearGradient id="projectionGradient" x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="5%" stopColor="var(--foreground)" stopOpacity={0.06}/>
+                  <stop offset="95%" stopColor="var(--foreground)" stopOpacity={0.0}/>
                 </linearGradient>
               </defs>
               <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="var(--border)" />
@@ -1233,39 +1249,85 @@ export function PortfolioView({
                 dataKey="dateLabel"
                 axisLine={false}
                 tickLine={false}
-                interval={5}
+                interval={isMobile ? 10 : 5}
                 style={{ fontSize: "9px", fontFamily: "var(--font-geist-mono)", fill: "#86868B" }}
                 dy={10}
               />
               <YAxis
                 axisLine={false}
                 tickLine={false}
-                domain={selectedChartMode === "all" ? ["auto", "auto"] : [0, "auto"]}
+                domain={[0, "auto"]}
                 style={{ fontSize: "9px", fontFamily: "var(--font-geist-mono)", fill: "#86868B" }}
                 tickFormatter={(val) => `${currencySymbol}${Math.round(val)}`}
               />
-              <RechartsTooltip content={<CustomPortfolioTooltip formatCurrency={formatCurrency} selectedChartMode={selectedChartMode} />} />
+              <RechartsTooltip 
+                content={<CustomPortfolioTooltip formatCurrency={formatCurrency} selectedChartMode={selectedChartMode} assets={assets} />}
+                cursor={{ stroke: "var(--border)", strokeWidth: 1 }}
+              />
+              {/* Per-asset overlay lines (rendered first so they sit behind the total) */}
+              {selectedChartMode === "all" && assets.map((a) => (
+                <RechartsArea
+                  key={`overlay_${a.id}`}
+                  type="stepAfter"
+                  dataKey={`asset_${a.id}`}
+                  stroke="var(--foreground)"
+                  strokeOpacity={Math.min(0.45, 0.9 / Math.max(assets.length, 1))}
+                  strokeWidth={1}
+                  strokeDasharray="2 2"
+                  fill="none"
+                  name={a.symbol?.toUpperCase() || a.asset_name}
+                  connectNulls={true}
+                  isAnimationActive={true}
+                  animationBegin={0}
+                  animationDuration={1000}
+                  animationEasing="ease-out"
+                />
+              ))}
               <RechartsArea
-                type="monotone"
+                type="stepAfter"
                 dataKey="actualValuation"
                 stroke="var(--foreground)"
                 strokeWidth={2}
-                fill="url(#portfolioValuationGrad)"
+                fill="url(#activeGradient)"
                 fillOpacity={1}
+                name="Actual"
                 connectNulls={true}
+                isAnimationActive={true}
+                animationBegin={0}
+                animationDuration={1000}
+                animationEasing="ease-out"
               />
               <RechartsArea
                 type="monotone"
                 dataKey="projectionValuation"
                 stroke="var(--foreground)"
-                strokeOpacity={0.6}
+                strokeOpacity={0.5}
                 strokeWidth={1.5}
                 strokeDasharray="5 5"
-                fill="url(#portfolioProjectionGrad)"
+                fill="url(#projectionGradient)"
                 fillOpacity={1}
+                name="Projection"
                 connectNulls={true}
+                isAnimationActive={true}
+                animationBegin={0}
+                animationDuration={1000}
+                animationEasing="ease-out"
               />
               {selectedChartMode !== "all" && chartData.some((d) => d.invested > 0) && (
+                <ReferenceLine
+                  y={chartData[chartData.length - 1]?.invested || 0}
+                  stroke="var(--border)"
+                  strokeDasharray="3 3"
+                  label={{
+                    value: "Cost Basis",
+                    fill: "#86868B",
+                    fontSize: 8,
+                    fontFamily: "var(--font-geist-mono)",
+                    position: "right",
+                  }}
+                />
+              )}
+              {selectedChartMode === "all" && chartData.some((d) => d.invested > 0) && (
                 <ReferenceLine
                   y={chartData[chartData.length - 1]?.invested || 0}
                   stroke="var(--border)"
