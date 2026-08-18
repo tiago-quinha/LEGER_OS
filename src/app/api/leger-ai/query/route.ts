@@ -109,6 +109,13 @@ export async function POST(request: Request) {
 `;
     }
 
+    let portfolioContextForIntent = "";
+    if (userPortfolioAssets && userPortfolioAssets.length > 0) {
+      portfolioContextForIntent = "USER ACTIVE PORTFOLIO ASSETS (Holdings & Tickers):\n" + userPortfolioAssets
+        .map((a: any) => `- ${a.symbol ? a.symbol.toUpperCase() : a.asset_name} (${a.asset_name}, Type: ${a.asset_type})`)
+        .join("\n") + "\n";
+    }
+
     // --- STEP 1: Intent Analysis for Database Queries & Live Web Search ---
     const intentPrompt = `
       You are the intent routing node of LEGER_OS, a personal finance terminal.
@@ -117,6 +124,7 @@ export async function POST(request: Request) {
 
       ${activeCycleContextForIntent}
       ${categoriesContextForIntent}
+      ${portfolioContextForIntent}
       ${historyContext}
       The user is asking: "${query}"
       
@@ -125,7 +133,11 @@ export async function POST(request: Request) {
          - DATABASE QUERY ROUTING RULES:
            * If the user asks for a "breakdown", "analysis", "audit", "comparison", "list", "where did my money go", "how much on X", "income vs expenses", or mentions specific merchants or categories:
              ALWAYS set "requiresDb": true and query "tracker_expense" for the active cycle date range (e.g. gte cycle start date) with limit 100, ordered by date descending or amount.
-      2. If this query requires LIVE WEB SEARCH GROUNDING for external world context (e.g. current ECB/Euribor/Fed interest rates, inflation numbers, specific stock/crypto price news, reasons for subscription price changes, merchant invoice checks, economic policies).
+      2. If this query requires LIVE WEB SEARCH GROUNDING for external world context:
+         - PROACTIVE ASSET & PORTFOLIO SEARCH RULE:
+           * If the user asks to "analyze", "review", "check", "outlook", "promising", "is it good", "earnings", or assess the performance/future of their portfolio or specific stock/crypto holdings:
+             ALWAYS set "requiresWebSearch": true and craft a targeted search query for those assets (e.g. "NBIS ALAB PLTR stock analyst ratings and outlook", "tech growth stocks earnings news").
+         - Also trigger for: current ECB/Euribor/Fed interest rates, inflation figures, subscription price changes, merchant inquiries, or macroeconomic trends.
       
       Format your response as a strict JSON object:
       {
