@@ -1083,6 +1083,12 @@ export function PortfolioView({
           dateLabel,
           valuation: 0,
           actualValuation: null,
+          minValuation: null,
+          maxValuation: null,
+          closingValuation: null,
+          projectionValuation: null,
+          invested: 0,
+          gainLoss: 0,
           ...perAsset,
         };
       });
