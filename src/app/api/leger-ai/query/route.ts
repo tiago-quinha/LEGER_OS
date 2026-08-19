@@ -569,12 +569,18 @@ export async function POST(request: Request) {
       ${dbContextStr ? `DYNAMICAL DATABASE QUERY RESULTS:\n${dbContextStr}` : "No additional database records queried."}
 
       YOUR TASK:
-      1. Deliver an exhaustive, highly intelligent, data-dense, and quantitative response that satisfies the user's inquiry completely.
+      1. Deliver a sharp, highly intelligent, data-dense, and quantitative response that answers the user's inquiry directly.
       2. If closing with a strategic next step or follow-up question, ensure it is directly relevant and adds real value—never use it to deflect giving answers.
       3. Suggest 3 contextual quick-reply options matching the discussion.
       4. Determine if the question implies looking at specific ledger items (generate filter criteria if yes).
-      5. Determine if the user requested a cycle projection override (e.g. "cut dining by 30%").
-      6. Determine if the user shared new personal context for the status journal.
+      5. AUTOMATIC PROJECTION OVERRIDE & MEMORY COMMIT INVARIANT:
+         * If the user mentions ANY future habit change, dietary shift, or spending modification (e.g. "I'm going to eat less", "cutting food by 25%", "working remote next month", "cancelling gym", "saving more on transport"):
+           - You MUST extract this into "newJournalEntry":
+             { "content": "Adjusted category spend due to lifestyle change", "category": "lifestyle" | "goal" | "financial", "durationDays": 30 }
+           - AND you MUST extract this into "override" targeting the matched category:
+             { "reset": false, "categoryId": number | null, "categoryName": string, "multiplier": number (e.g. 0.75 for 25% cut, 0.8 for eating less), "fixedDelta": 0, "reason": "Declared habit change" }
+           - State in your message that this override has been saved to their memory and actively applied to the daily burn simulator.
+      6. Determine if the user shared any other personal context to remember in the status journal.
 
       Format your response as a JSON object:
       {

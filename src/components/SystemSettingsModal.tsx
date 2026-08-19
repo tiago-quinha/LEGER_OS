@@ -16,7 +16,7 @@ import {
   Sparkles, Check, X, Sliders, Brain, Smartphone, Shield, ShieldOff, Sun, Moon, 
   LogOut, ShieldAlert, Copy, ChevronDown, Plus, Trash2, Search, Terminal, Zap, 
   Database, FileJson, Rocket, Landmark, Lock, CreditCard, Download, Upload, FileSpreadsheet,
-  MessageSquare
+  MessageSquare, Clock, CheckCircle2, AlertCircle, RefreshCw, Send, MessageCircle
 } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { GlowingBadge } from "@/components/unlumen-ui/glowing-badge"
@@ -132,13 +132,98 @@ export function SystemSettingsModal({ open, onOpenChange }: SystemSettingsModalP
   const [categories, setCategories] = useState<any[]>([])
   const [isPingingAI, setIsPingingAI] = useState(false)
 
-  const isSuperUser = profile?.is_admin === true || profile?.role === "admin" || profile?.role === "super_user" || profile?.username?.toLowerCase()?.includes("quinha") || profile?.username?.toLowerCase()?.includes("admin") || user?.email?.toLowerCase()?.includes("quinha") || user?.email?.toLowerCase()?.includes("admin") || process.env.NODE_ENV === "development"
+  // Support Tickets State (User & Admin)
+  const [userTickets, setUserTickets] = useState<any[]>([])
+  const [isLoadingUserTickets, setIsLoadingUserTickets] = useState(false)
+  const [adminTickets, setAdminTickets] = useState<any[]>([])
+  const [adminTicketFilter, setAdminTicketFilter] = useState<"all" | "open" | "in_progress" | "resolved">("all")
+  const [isLoadingAdminTickets, setIsLoadingAdminTickets] = useState(false)
+  const [selectedTicketForReply, setSelectedTicketForReply] = useState<string | null>(null)
+  const [adminReplyText, setAdminReplyText] = useState("")
+  const [adminReplyStatus, setAdminReplyStatus] = useState<"open" | "in_progress" | "resolved">("resolved")
+  const [isSubmittingReply, setIsSubmittingReply] = useState(false)
+
+  const isSuperUser = profile?.is_admin === true || profile?.role === "admin" || profile?.role === "super_admin" || profile?.role === "super_user" || profile?.username?.toLowerCase()?.includes("quinha") || profile?.username?.toLowerCase()?.includes("admin") || user?.email?.toLowerCase()?.includes("quinha") || user?.email?.toLowerCase()?.includes("admin") || process.env.NODE_ENV === "development"
+
+  const loadUserTickets = async () => {
+    setIsLoadingUserTickets(true)
+    try {
+      const res = await fetch("/api/feedback")
+      const data = await res.json()
+      if (data.tickets) {
+        setUserTickets(data.tickets)
+      }
+    } catch (e) {
+      console.error("Failed to load user tickets:", e)
+    } finally {
+      setIsLoadingUserTickets(false)
+    }
+  }
+
+  const loadAdminTickets = async () => {
+    setIsLoadingAdminTickets(true)
+    try {
+      const res = await fetch(`/api/feedback?all=true&status=${adminTicketFilter}`)
+      const data = await res.json()
+      if (data.tickets) {
+        setAdminTickets(data.tickets)
+      }
+    } catch (e) {
+      console.error("Failed to load admin tickets:", e)
+    } finally {
+      setIsLoadingAdminTickets(false)
+    }
+  }
+
+  const handleUpdateTicket = async (ticketId: string) => {
+    if (!adminReplyText.trim()) {
+      toast.error("Please enter a response message.")
+      return
+    }
+    setIsSubmittingReply(true)
+    try {
+      const res = await fetch("/api/feedback", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          ticketId,
+          status: adminReplyStatus,
+          adminReply: adminReplyText.trim()
+        })
+      })
+      const data = await res.json()
+      if (data.success) {
+        toast.success("Reply submitted and ticket status updated!")
+        setSelectedTicketForReply(null)
+        setAdminReplyText("")
+        await loadAdminTickets()
+      } else {
+        toast.error(data.error || "Failed to update ticket.")
+      }
+    } catch (e) {
+      toast.error("Failed to submit reply.")
+    } finally {
+      setIsSubmittingReply(false)
+    }
+  }
 
   useEffect(() => {
     if (open) {
       loadRulesAndCategories()
+      loadUserTickets()
+      if (isSuperUser) {
+        loadAdminTickets()
+      }
     }
-  }, [open])
+  }, [open, isSuperUser])
+
+  useEffect(() => {
+    if (activeTab === "account") {
+      loadUserTickets()
+    } else if (activeTab === "devtools" && isSuperUser) {
+      loadAdminTickets()
+    }
+  }, [activeTab, adminTicketFilter])
 
   useEffect(() => {
     if (isSubscriptionOnly) {
@@ -1249,6 +1334,91 @@ export function SystemSettingsModal({ open, onOpenChange }: SystemSettingsModalP
                 </Button>
               </div>
 
+              {/* USER TICKETS & STATUS INBOX */}
+              <div className="p-4 bg-card border border-border space-y-3">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <span className="font-mono text-xs font-bold uppercase text-foreground flex items-center gap-1.5">
+                      <MessageCircle className="h-3.5 w-3.5 text-foreground" /> Your Support Tickets & Feedback
+                    </span>
+                    <span className="font-mono text-[10px] text-muted-foreground block mt-0.5">
+                      Track the resolution status and direct responses from the engineering team.
+                    </span>
+                  </div>
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="sm"
+                    onClick={loadUserTickets}
+                    disabled={isLoadingUserTickets}
+                    className="h-7 px-2 text-[10px] font-mono text-muted-foreground hover:text-foreground cursor-pointer"
+                  >
+                    <RefreshCw className={cn("h-3 w-3 mr-1", isLoadingUserTickets && "animate-spin")} />
+                    Refresh
+                  </Button>
+                </div>
+
+                {isLoadingUserTickets ? (
+                  <div className="py-6 text-center text-xs font-mono text-muted-foreground flex items-center justify-center gap-2">
+                    <RefreshCw className="h-3.5 w-3.5 animate-spin" /> Loading ticket status...
+                  </div>
+                ) : userTickets.length === 0 ? (
+                  <div className="py-4 px-3 border border-border/60 bg-secondary/10 text-center space-y-1">
+                    <span className="font-mono text-[11px] font-bold uppercase text-foreground block">No Active Tickets</span>
+                    <p className="font-mono text-[10px] text-muted-foreground">You haven't submitted any bug reports or feedback tickets yet.</p>
+                  </div>
+                ) : (
+                  <div className="space-y-2.5 max-h-64 overflow-y-auto pr-1">
+                    {userTickets.map((ticket) => {
+                      const isResolved = ticket.status === "resolved"
+                      const isInProgress = ticket.status === "in_progress"
+                      return (
+                        <div key={ticket.id} className="p-3 border border-border bg-secondary/15 space-y-2 text-xs font-mono">
+                          <div className="flex items-center justify-between">
+                            <span className="px-2 py-0.5 text-[9px] font-bold uppercase border bg-card border-border text-foreground">
+                              {ticket.category || "GENERAL"}
+                            </span>
+                            <span className={cn(
+                              "px-2 py-0.5 text-[9px] font-bold uppercase border flex items-center gap-1",
+                              isResolved && "bg-emerald-500/10 text-emerald-500 border-emerald-500/30",
+                              isInProgress && "bg-blue-500/10 text-blue-500 border-blue-500/30",
+                              !isResolved && !isInProgress && "bg-amber-500/10 text-amber-500 border-amber-500/30"
+                            )}>
+                              {isResolved ? <CheckCircle2 className="h-2.5 w-2.5" /> : isInProgress ? <Clock className="h-2.5 w-2.5" /> : <AlertCircle className="h-2.5 w-2.5" />}
+                              {ticket.status?.toUpperCase().replace("_", " ") || "OPEN"}
+                            </span>
+                          </div>
+
+                          <p className="text-[11px] text-foreground/90 font-sans leading-relaxed">
+                            {ticket.message}
+                          </p>
+
+                          {ticket.admin_reply ? (
+                            <div className="p-2.5 bg-emerald-500/10 border border-emerald-500/30 space-y-1 mt-2">
+                              <div className="flex items-center justify-between text-[9px] font-mono font-bold text-emerald-500 uppercase">
+                                <span className="flex items-center gap-1"><CheckCircle2 className="h-3 w-3" /> Response from Engineering</span>
+                                <span>{ticket.replied_at ? new Date(ticket.replied_at).toLocaleDateString() : "Just now"}</span>
+                              </div>
+                              <p className="text-[11px] text-foreground font-mono leading-relaxed whitespace-pre-wrap">
+                                {ticket.admin_reply}
+                              </p>
+                            </div>
+                          ) : (
+                            <div className="text-[9px] text-muted-foreground flex items-center gap-1 pt-1">
+                              <Clock className="h-2.5 w-2.5" /> Awaiting review by engineering team
+                            </div>
+                          )}
+
+                          <div className="text-[8px] text-muted-foreground/60 text-right">
+                            {new Date(ticket.created_at).toLocaleString()}
+                          </div>
+                        </div>
+                      )
+                    })}
+                  </div>
+                )}
+              </div>
+
               <div className="p-4 bg-card border border-border space-y-3">
                 <div>
                   <span className="font-mono text-xs font-bold uppercase text-foreground block">Session Node</span>
@@ -1402,6 +1572,177 @@ export function SystemSettingsModal({ open, onOpenChange }: SystemSettingsModalP
                       </Button>
                     </div>
                   </div>
+                </div>
+
+                {/* ADMIN FEEDBACK & SUPPORT TICKETS HUB */}
+                <div className="p-4 bg-card border border-border space-y-4">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <span className="font-mono text-xs font-bold uppercase text-foreground flex items-center gap-1.5">
+                        <MessageSquare className="h-3.5 w-3.5 text-emerald-500" /> Admin Support & Feedback Hub
+                      </span>
+                      <span className="font-mono text-[10px] text-muted-foreground block mt-0.5">
+                        Review incoming user tickets, send responses, and resolve anomalies.
+                      </span>
+                    </div>
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="sm"
+                      onClick={loadAdminTickets}
+                      disabled={isLoadingAdminTickets}
+                      className="h-7 px-2 text-[10px] font-mono text-muted-foreground hover:text-foreground cursor-pointer"
+                    >
+                      <RefreshCw className={cn("h-3 w-3 mr-1", isLoadingAdminTickets && "animate-spin")} />
+                      Refresh
+                    </Button>
+                  </div>
+
+                  {/* Filter tabs */}
+                  <div className="flex items-center gap-1 border-b border-border pb-2 text-[10px] font-mono">
+                    {(["all", "open", "in_progress", "resolved"] as const).map((filterVal) => (
+                      <button
+                        key={filterVal}
+                        type="button"
+                        onClick={() => setAdminTicketFilter(filterVal)}
+                        className={cn(
+                          "px-2.5 py-1 uppercase font-bold transition-colors cursor-pointer",
+                          adminTicketFilter === filterVal
+                            ? "bg-foreground text-background"
+                            : "bg-secondary/20 text-muted-foreground hover:text-foreground"
+                        )}
+                      >
+                        {filterVal.replace("_", " ")}
+                      </button>
+                    ))}
+                  </div>
+
+                  {isLoadingAdminTickets ? (
+                    <div className="py-8 text-center text-xs font-mono text-muted-foreground flex items-center justify-center gap-2">
+                      <RefreshCw className="h-3.5 w-3.5 animate-spin" /> Loading all user tickets...
+                    </div>
+                  ) : adminTickets.length === 0 ? (
+                    <div className="py-6 px-3 border border-border/60 bg-secondary/10 text-center space-y-1">
+                      <span className="font-mono text-[11px] font-bold uppercase text-foreground block">No Tickets in this Filter</span>
+                      <p className="font-mono text-[10px] text-muted-foreground">All tickets are resolved or no matching reports found.</p>
+                    </div>
+                  ) : (
+                    <div className="space-y-3 max-h-96 overflow-y-auto pr-1">
+                      {adminTickets.map((ticket) => {
+                        const isResolved = ticket.status === "resolved"
+                        const isInProgress = ticket.status === "in_progress"
+                        const isReplying = selectedTicketForReply === ticket.id
+
+                        return (
+                          <div key={ticket.id} className="p-3.5 border border-border bg-secondary/15 space-y-3 text-xs font-mono">
+                            <div className="flex items-center justify-between">
+                              <div className="flex items-center gap-2">
+                                <span className="px-2 py-0.5 text-[9px] font-bold uppercase border bg-card border-border text-foreground">
+                                  {ticket.category || "GENERAL"}
+                                </span>
+                                <span className="text-[10px] text-muted-foreground font-mono truncate max-w-[180px]">
+                                  {ticket.user_email || "Anonymous"}
+                                </span>
+                              </div>
+                              <span className={cn(
+                                "px-2 py-0.5 text-[9px] font-bold uppercase border flex items-center gap-1",
+                                isResolved && "bg-emerald-500/10 text-emerald-500 border-emerald-500/30",
+                                isInProgress && "bg-blue-500/10 text-blue-500 border-blue-500/30",
+                                !isResolved && !isInProgress && "bg-amber-500/10 text-amber-500 border-amber-500/30"
+                              )}>
+                                {ticket.status?.toUpperCase().replace("_", " ") || "OPEN"}
+                              </span>
+                            </div>
+
+                            <p className="text-[11px] text-foreground/90 font-sans leading-relaxed bg-card/60 p-2.5 border border-border/40">
+                              {ticket.message}
+                            </p>
+
+                            {ticket.admin_reply && (
+                              <div className="p-2.5 bg-emerald-500/10 border border-emerald-500/30 space-y-1">
+                                <div className="flex items-center justify-between text-[9px] font-bold text-emerald-500 uppercase">
+                                  <span>Admin Response:</span>
+                                  <span>{ticket.replied_at ? new Date(ticket.replied_at).toLocaleString() : ""}</span>
+                                </div>
+                                <p className="text-[11px] text-foreground font-mono leading-relaxed whitespace-pre-wrap">
+                                  {ticket.admin_reply}
+                                </p>
+                              </div>
+                            )}
+
+                            {isReplying ? (
+                              <div className="space-y-2.5 pt-2 border-t border-border">
+                                <div className="space-y-1">
+                                  <label className="text-[9px] uppercase font-bold text-muted-foreground">Admin Response:</label>
+                                  <textarea
+                                    value={adminReplyText}
+                                    onChange={(e) => setAdminReplyText(e.target.value)}
+                                    placeholder="Type response to user (e.g. 'Issue fixed in latest release, thank you!')..."
+                                    className="w-full h-20 p-2 text-xs bg-background border border-border rounded-none font-sans text-foreground placeholder:text-muted-foreground/40 focus:outline-none focus:border-foreground resize-none"
+                                  />
+                                </div>
+
+                                <div className="flex items-center justify-between gap-2">
+                                  <div className="flex items-center gap-1.5">
+                                    <span className="text-[9px] uppercase font-bold text-muted-foreground">Set Status:</span>
+                                    <select
+                                      value={adminReplyStatus}
+                                      onChange={(e) => setAdminReplyStatus(e.target.value as any)}
+                                      className="h-7 px-2 text-[10px] bg-background border border-border rounded-none text-foreground font-mono uppercase cursor-pointer"
+                                    >
+                                      <option value="resolved">Resolved</option>
+                                      <option value="in_progress">In Progress</option>
+                                      <option value="open">Open</option>
+                                    </select>
+                                  </div>
+
+                                  <div className="flex items-center gap-1.5">
+                                    <Button
+                                      type="button"
+                                      variant="ghost"
+                                      size="sm"
+                                      onClick={() => setSelectedTicketForReply(null)}
+                                      className="h-7 px-2.5 text-[10px] font-mono cursor-pointer"
+                                    >
+                                      Cancel
+                                    </Button>
+                                    <Button
+                                      type="button"
+                                      size="sm"
+                                      onClick={() => handleUpdateTicket(ticket.id)}
+                                      disabled={isSubmittingReply}
+                                      className="h-7 px-3 text-[10px] font-mono font-bold uppercase bg-foreground text-background hover:bg-foreground/90 cursor-pointer flex items-center gap-1"
+                                    >
+                                      <Send className="h-3 w-3" /> {isSubmittingReply ? "Sending..." : "Submit Reply"}
+                                    </Button>
+                                  </div>
+                                </div>
+                              </div>
+                            ) : (
+                              <div className="flex items-center justify-between pt-1">
+                                <span className="text-[8px] text-muted-foreground/60">
+                                  {new Date(ticket.created_at).toLocaleString()}
+                                </span>
+                                <Button
+                                  type="button"
+                                  variant="outline"
+                                  size="sm"
+                                  onClick={() => {
+                                    setSelectedTicketForReply(ticket.id)
+                                    setAdminReplyText(ticket.admin_reply || "")
+                                    setAdminReplyStatus(ticket.status === "open" ? "resolved" : ticket.status)
+                                  }}
+                                  className="h-6 px-2 text-[9px] font-mono uppercase font-bold bg-secondary/30 hover:bg-foreground hover:text-background border-border cursor-pointer"
+                                >
+                                  {ticket.admin_reply ? "Edit Reply / Status" : "Reply to User"}
+                                </Button>
+                              </div>
+                            )}
+                          </div>
+                        )
+                      })}
+                    </div>
+                  )}
                 </div>
               </TabsContent>
             )}
