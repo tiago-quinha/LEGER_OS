@@ -42,7 +42,7 @@ import { PrivacyValue } from "@/components/ui/privacy-value"
 import { Tilt } from "@/components/unlumen-ui/tilt"
 import { ClippedCircle } from "@/components/unlumen-ui/clipped-circle"
 import { UnnamedTransactionResolver } from "@/components/UnnamedTransactionResolver"
-import { parseUniversalCsv } from "@/lib/csv-bank-parser"
+import { parseUniversalCsv, parseMultiLineStatement } from "@/lib/csv-bank-parser"
 
 interface Category {
   id: number
@@ -563,7 +563,21 @@ export function ExpensesView({ initialExpenses, categories: initialCategories, i
         return
       }
 
-      // 2. Fallback to Regex Statement Text Ingestion (Santander/Standard PDF/TXT bank extracts)
+      // 2. Multi-Line Statement Block Parser (Santander PDF, CaixaBank PDF, Millennium PDF extracts)
+      const blockResult = parseMultiLineStatement(textToParse, (merchant) => matchCategory(merchant, rules, categories))
+      if (blockResult && blockResult.transactions.length > 0) {
+        setParsedData({
+          startDate: blockResult.startDate,
+          startBalance: blockResult.initialBalance,
+          month: blockResult.month,
+          year: blockResult.year,
+          transactions: blockResult.transactions,
+        })
+        toast.success(`Parsed ${blockResult.transactions.length} transactions from bank PDF statement.`)
+        return
+      }
+
+      // 3. Fallback to Standard Single-Line Statement Regex Ingestion
       // Regex patterns capturing date, merchant, amount, optional trailing balance
       const txPatternA = /^(\d{2}[-\/]\d{2}(?:[-\/]\d{4})?)(?:\s+\d{2}[-\/]\d{2}(?:[-\/]\d{4})?)?\s+(.+?)\s*([+-]?[\d.]+,\d{2}|\b[+-]?\d+\.\d{2}\b)(?:\s*(?:EUR|[\w$€£]+))?(?:\s+(-?[\d.]+(?:[.,]\d{2})?)(?:\s*(?:EUR|[\w$€£]+))?)?$/
       const balancePattern = /(?:Saldo(?:\s+(?:Inicial|Anterior|Abertura|Transitado|Partida|Anterior\s+em|de\s+Abertura))?|Initial\s+Balance|Opening\s+Balance|Balance\s+Forward|Solde(?:\s+Initial)?|Anfangsbestand)\s*(?:EUR|[\w$€£]+)?\s*[:=]?\s*([+-]?[\d.,]+)/i

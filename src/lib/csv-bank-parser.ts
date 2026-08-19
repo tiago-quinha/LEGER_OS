@@ -396,3 +396,126 @@ export function parseUniversalCsv(
     year: latestYear,
   }
 }
+
+const MONTH_NAME_MAP: Record<string, number> = {
+  jan: 1, fev: 2, feb: 2, mar: 3, abr: 4, apr: 4, mai: 5, may: 5, jun: 6,
+  jul: 7, ago: 8, aug: 8, set: 9, sep: 9, out: 10, oct: 10, nov: 11, dez: 12, dec: 12
+}
+
+/**
+ * Multi-Line Statement Block Parser
+ * Specifically handles PDF text extracts where each transaction spans 2-5 consecutive lines
+ * (e.g. Santander PDF, CaixaBank PDF, Millennium BCP PDF, BBVA PDF).
+ */
+export function parseMultiLineStatement(
+  text: string,
+  categoryMatcher?: (merchant: string) => number | null
+): ParsedCsvResult | null {
+  if (!text || !text.trim()) return null
+
+  const rawLines = text.split(/\r?\n/).map(l => l.trim()).filter(Boolean)
+  if (rawLines.length < 3) return null
+
+  const txList: ParsedCsvTransaction[] = []
+  let latestYear = new Date().getFullYear()
+  let latestMonth = new Date().getMonth() + 1
+  let initialBalance = 0
+  let firstBalanceCaptured = false
+
+  // Regex patterns for line-based date
+  const textDateRegex = /^(\d{1,2})\s+([a-zA-Z]{3,4})\.?\s+(\d{4})$/i
+  const numericDateRegex = /^(\d{1,2})[-\/.](\d{1,2})[-\/.](\d{2,4})$/
+
+  let i = 0
+  while (i < rawLines.length) {
+    const line = rawLines[i]
+    let parsedDate: { date: Date; year: number; month: number; day: number } | null = null
+
+    // Check textual date e.g. "19 jun. 2026"
+    const textDateMatch = line.match(textDateRegex)
+    if (textDateMatch) {
+      const day = parseInt(textDateMatch[1], 10)
+      const monthKey = textDateMatch[2].toLowerCase().replace(/\.$/, "")
+      const month = MONTH_NAME_MAP[monthKey] || (new Date().getMonth() + 1)
+      const year = parseInt(textDateMatch[3], 10)
+      const d = new Date(Date.UTC(year, month - 1, day))
+      if (!isNaN(d.getTime())) {
+        parsedDate = { date: d, year, month, day }
+      }
+    }
+
+    // Check numeric date e.g. "19/06/2026"
+    if (!parsedDate) {
+      const numDateMatch = line.match(numericDateRegex)
+      if (numDateMatch) {
+        parsedDate = parseFlexibleDate(line)
+      }
+    }
+
+    if (parsedDate) {
+      latestYear = parsedDate.year
+      latestMonth = parsedDate.month
+
+      let j = i + 1
+      // Skip secondary date lines (e.g. "D. valor: 19 jun. 2026")
+      if (j < rawLines.length && /^(?:d\.\s*valor|data\s*valor|valuta|value\s*date):/i.test(rawLines[j])) {
+        j++
+      }
+
+      let merchant = ""
+      if (j < rawLines.length && !/^[+-]?[\d\s.,]+[€$£]?$/.test(rawLines[j])) {
+        merchant = rawLines[j]
+        j++
+      }
+
+      let finalAmount: number | null = null
+      if (j < rawLines.length && /^[+-]?[\d\s.,]+[€$£]?$/.test(rawLines[j])) {
+        finalAmount = parseFlexibleAmount(rawLines[j])
+        j++
+      }
+
+      let lineBalance: number | null = null
+      if (j < rawLines.length && /^[+-]?[\d\s.,]+[€$£]?$/.test(rawLines[j])) {
+        const bal = parseFlexibleAmount(rawLines[j])
+        if (bal !== null && !isNaN(bal)) {
+          lineBalance = bal
+          if (!firstBalanceCaptured) {
+            initialBalance = bal
+            firstBalanceCaptured = true
+          }
+        }
+        j++
+      }
+
+      if (merchant && finalAmount !== null && !isNaN(finalAmount)) {
+        const categoryId = categoryMatcher ? (categoryMatcher(merchant) ?? null) : null
+        txList.push({
+          id: `pdf-${i}-${Date.now()}-${Math.random().toString(36).substring(2, 6)}`,
+          date: parsedDate.date.toISOString(),
+          merchant: merchant.trim(),
+          amount: finalAmount,
+          balance: lineBalance,
+          raw_text: `${line} | ${merchant} | ${finalAmount}`,
+          isIncome: finalAmount > 0,
+          category_id: categoryId,
+          checked: true,
+        })
+        i = j
+        continue
+      }
+    }
+
+    i++
+  }
+
+  if (txList.length === 0) return null
+
+  return {
+    transactions: txList,
+    initialBalance,
+    startDate: `${latestYear}-${String(latestMonth).padStart(2, "0")}-01`,
+    month: latestMonth,
+    year: latestYear,
+  }
+}
+
