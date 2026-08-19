@@ -42,6 +42,7 @@ import { PrivacyValue } from "@/components/ui/privacy-value"
 import { Tilt } from "@/components/unlumen-ui/tilt"
 import { ClippedCircle } from "@/components/unlumen-ui/clipped-circle"
 import { UnnamedTransactionResolver } from "@/components/UnnamedTransactionResolver"
+import { parseUniversalCsv } from "@/lib/csv-bank-parser"
 
 interface Category {
   id: number
@@ -548,6 +549,21 @@ export function ExpensesView({ initialExpenses, categories: initialCategories, i
     }
 
     try {
+      // 1. Universal Multi-Bank CSV Parser (Revolut, Wise, N26, Millennium BCP, ActivoBank, Santander, Chase, etc.)
+      const csvResult = parseUniversalCsv(textToParse, (merchant) => matchCategory(merchant, rules, categories))
+      if (csvResult && csvResult.transactions.length > 0) {
+        setParsedData({
+          startDate: csvResult.startDate,
+          startBalance: csvResult.initialBalance,
+          month: csvResult.month,
+          year: csvResult.year,
+          transactions: csvResult.transactions,
+        })
+        toast.success(`Parsed ${csvResult.transactions.length} transactions from bank CSV extract.`)
+        return
+      }
+
+      // 2. Fallback to Regex Statement Text Ingestion (Santander/Standard PDF/TXT bank extracts)
       // Regex patterns capturing date, merchant, amount, optional trailing balance
       const txPatternA = /^(\d{2}[-\/]\d{2}(?:[-\/]\d{4})?)(?:\s+\d{2}[-\/]\d{2}(?:[-\/]\d{4})?)?\s+(.+?)\s*([+-]?[\d.]+,\d{2}|\b[+-]?\d+\.\d{2}\b)(?:\s*(?:EUR|[\w$€£]+))?(?:\s+(-?[\d.]+(?:[.,]\d{2})?)(?:\s*(?:EUR|[\w$€£]+))?)?$/
       const balancePattern = /(?:Saldo(?:\s+(?:Inicial|Anterior|Abertura|Transitado|Partida|Anterior\s+em|de\s+Abertura))?|Initial\s+Balance|Opening\s+Balance|Balance\s+Forward|Solde(?:\s+Initial)?|Anfangsbestand)\s*(?:EUR|[\w$€£]+)?\s*[:=]?\s*([+-]?[\d.,]+)/i
