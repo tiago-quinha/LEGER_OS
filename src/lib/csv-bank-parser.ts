@@ -25,7 +25,7 @@ export interface ParsedCsvResult {
   year: number
 }
 
-// Split CSV line respecting quoted strings with commas/semicolons
+// Split CSV line respecting standard RFC 4180 double-quoted strings
 function splitCsvLine(line: string, delimiter: string): string[] {
   const result: string[] = []
   let current = ""
@@ -34,9 +34,9 @@ function splitCsvLine(line: string, delimiter: string): string[] {
   for (let i = 0; i < line.length; i++) {
     const char = line[i]
 
-    if (char === '"' || char === "'") {
-      if (inQuotes && line[i + 1] === char) {
-        current += char
+    if (char === '"') {
+      if (inQuotes && line[i + 1] === '"') {
+        current += '"'
         i++ // skip escaped quote
       } else {
         inQuotes = !inQuotes
@@ -79,9 +79,9 @@ function detectDelimiter(text: string): string {
 // Parse various global date formats into a Date object
 function parseFlexibleDate(dateStr: string): { date: Date; year: number; month: number; day: number } | null {
   if (!dateStr) return null
-  const cleaned = dateStr.trim().replace(/[T ].*$/, "") // Strip ISO time components if present
+  const cleaned = dateStr.trim().replace(/^["']|["']$/g, "").replace(/[T ].*$/, "") // Strip quotes & ISO time components
 
-  // 1. ISO format: YYYY-MM-DD or YYYY/MM/DD
+  // 1. ISO format: YYYY-MM-DD or YYYY/MM/DD or YYYY.MM.DD
   const isoMatch = cleaned.match(/^(\d{4})[-\/.](\d{1,2})[-\/.](\d{1,2})$/)
   if (isoMatch) {
     const year = parseInt(isoMatch[1], 10)
@@ -91,7 +91,17 @@ function parseFlexibleDate(dateStr: string): { date: Date; year: number; month: 
     if (!isNaN(d.getTime())) return { date: d, year, month, day }
   }
 
-  // 2. European / UK format: DD/MM/YYYY or DD-MM-YYYY or DD.MM.YYYY
+  // 2. Compact numeric format: YYYYMMDD (e.g. Dutch ING 20260814)
+  const compactMatch = cleaned.match(/^(\d{4})(\d{2})(\d{2})$/)
+  if (compactMatch) {
+    const year = parseInt(compactMatch[1], 10)
+    const month = parseInt(compactMatch[2], 10)
+    const day = parseInt(compactMatch[3], 10)
+    const d = new Date(Date.UTC(year, month - 1, day))
+    if (!isNaN(d.getTime())) return { date: d, year, month, day }
+  }
+
+  // 3. European / UK / LatAm format: DD/MM/YYYY or DD-MM-YYYY or DD.MM.YYYY
   const euMatch = cleaned.match(/^(\d{1,2})[-\/.](\d{1,2})[-\/.](\d{2,4})$/)
   if (euMatch) {
     const day = parseInt(euMatch[1], 10)
@@ -179,6 +189,52 @@ export function parseUniversalCsv(
 
   // Find header row (usually line 0, but sometimes line 1-3 if metadata precedes it)
   let headerIndex = -1
+
+  // Comprehensive Multi-Lingual Global Banking CSV Column Dictionaries
+  const PRIMARY_MERCHANT_HEADERS = [
+    "description", "merchant", "payee", "descritivo", "descrição", "descricao",
+    "libellé", "libelle", "begünstigter", "beguenstigter", "auftraggeber", "verwendungszweck",
+    "empfänger", "empfaenger", "zahlungsempfänger", "causale", "descrizione", "beneficiary",
+    "counterparty", "concept", "concepto", "memo", "narrative", "naam / omschrijving", "opis",
+    "título", "titulo", "tekst", "text", "tytuł", "motivo", "referencia", "destination", "origin"
+  ]
+  const FALLBACK_MERCHANT_HEADERS = [
+    "name", "details", "payment reference", "reference", "mededelingen", "type", "transaction type",
+    "tipo", "documento", "categoria", "category"
+  ]
+
+  const DATE_HEADERS = [
+    "date", "data", "data operacao", "data operação", "data mov", "data valor", "data contabile",
+    "data valuta", "data lancamento", "data lançamento", "started date", "completed date",
+    "posting date", "booking date", "value date", "transaction date", "fecha", "fecha valor",
+    "buchungstag", "wertstellung", "valuta", "datum", "data operacji", "data waluty",
+    "bokföringsdatum", "transaktionsdatum", "kirjauspäivä", "clearing date"
+  ]
+  const AMOUNT_HEADERS = [
+    "amount", "montante", "valor", "importe", "betrag", "amount (eur)", "amount (usd)",
+    "amount (gbp)", "net amount", "total", "importo", "kwota", "bedrag", "belopp", "beløp",
+    "määrä", "montant"
+  ]
+  const DEBIT_HEADERS = [
+    "debit", "debito", "débito", "débit", "saida", "saída", "money out", "spent",
+    "charge", "withdrawal", "paid out", "lastschrift", "ausgabe", "dare", "af",
+    "afschrijving", "ut", "debet"
+  ]
+  const CREDIT_HEADERS = [
+    "credit", "credito", "crédito", "crédit", "entrada", "money in", "received",
+    "income", "deposit", "paid in", "gutschrift", "einnahme", "avere", "bij",
+    "bijschrijving", "inn", "kredit"
+  ]
+  const BALANCE_HEADERS = [
+    "balance", "saldo", "running balance", "saldo contabilistico", "saldo contabilístico",
+    "saldo disponivel", "saldo disponível", "saldo disponible", "saldo actual", "solde",
+    "kontostand", "saldo na trn", "saldo po transakcji", "saldis"
+  ]
+
+  const INDICATOR_HEADERS = [
+    "af bij", "af/bij", "d/c", "debit/credit", "cr/dr", "sign", "direction", "mutatiesoort"
+  ]
+
   let colMap: {
     date: number
     merchant: number
@@ -186,42 +242,8 @@ export function parseUniversalCsv(
     debit: number
     credit: number
     balance: number
-  } = { date: -1, merchant: -1, amount: -1, debit: -1, credit: -1, balance: -1 }
-
-  // Expanded Multi-Lingual Banking CSV Column Dictionaries
-  const PRIMARY_MERCHANT_HEADERS = [
-    "description", "merchant", "payee", "descritivo", "descrição", "descricao",
-    "libellé", "libelle", "begünstigter", "beguenstigter", "auftraggeber", "verwendungszweck",
-    "empfänger", "empfaenger", "zahlungsempfänger", "causale", "descrizione", "beneficiary",
-    "counterparty", "concept", "concepto", "memo", "narrative", "naam / omschrijving", "opis"
-  ]
-  const FALLBACK_MERCHANT_HEADERS = [
-    "name", "details", "payment reference", "reference", "mededelingen", "type"
-  ]
-
-  const DATE_HEADERS = [
-    "date", "data", "data operacao", "data operação", "data mov", "data valor",
-    "started date", "completed date", "posting date", "booking date", "value date",
-    "transaction date", "fecha", "buchungstag", "wertstellung", "datum", "data contabile",
-    "data valuta", "data operacji", "data waluty"
-  ]
-  const AMOUNT_HEADERS = [
-    "amount", "montante", "valor", "importe", "betrag", "amount (eur)", "amount (usd)",
-    "net amount", "total", "importo", "kwota", "bedrag"
-  ]
-  const DEBIT_HEADERS = [
-    "debit", "debito", "débito", "débit", "saida", "saída", "money out", "spent",
-    "charge", "withdrawal", "paid out", "lastschrift", "ausgabe", "dare", "af"
-  ]
-  const CREDIT_HEADERS = [
-    "credit", "credito", "crédito", "crédit", "entrada", "money in", "received",
-    "income", "deposit", "paid in", "gutschrift", "einnahme", "avere", "bij"
-  ]
-  const BALANCE_HEADERS = [
-    "balance", "saldo", "running balance", "saldo contabilistico", "saldo contabilístico",
-    "saldo disponivel", "saldo disponível", "saldo disponible", "solde", "kontostand",
-    "saldo na trn", "saldo po transakcji"
-  ]
+    indicator: number
+  } = { date: -1, merchant: -1, amount: -1, debit: -1, credit: -1, balance: -1, indicator: -1 }
 
   for (let i = 0; i < Math.min(lines.length, 12); i++) {
     const rawCols = splitCsvLine(lines[i], delimiter)
@@ -233,19 +255,21 @@ export function parseUniversalCsv(
     let foundDebit = -1
     let foundCredit = -1
     let foundBalance = -1
+    let foundIndicator = -1
 
-    // Step 1: Strict matching for Date, Amount, Debit, Credit, Balance
+    // Step 1: Strict matching for Date, Amount, Debit, Credit, Balance, Indicator
     cols.forEach((col, idx) => {
       if (foundDate === -1 && DATE_HEADERS.some(h => col === h || col.includes(h))) foundDate = idx
       if (foundAmount === -1 && AMOUNT_HEADERS.some(h => col === h || col.startsWith(h))) foundAmount = idx
       if (foundDebit === -1 && DEBIT_HEADERS.some(h => col === h || col.startsWith(h))) foundDebit = idx
       if (foundCredit === -1 && CREDIT_HEADERS.some(h => col === h || col.startsWith(h))) foundCredit = idx
       if (foundBalance === -1 && BALANCE_HEADERS.some(h => col === h || col.includes(h))) foundBalance = idx
+      if (foundIndicator === -1 && INDICATOR_HEADERS.some(h => col === h || col.includes(h))) foundIndicator = idx
     })
 
     // Step 2: Primary Merchant Match (Description, Payee, Libellé, Begünstigter)
     cols.forEach((col, idx) => {
-      if (foundMerchant === -1 && idx !== foundDate && idx !== foundAmount && idx !== foundDebit && idx !== foundCredit && idx !== foundBalance) {
+      if (foundMerchant === -1 && idx !== foundDate && idx !== foundAmount && idx !== foundDebit && idx !== foundCredit && idx !== foundBalance && idx !== foundIndicator) {
         if (PRIMARY_MERCHANT_HEADERS.some(h => col === h || col.includes(h))) foundMerchant = idx
       }
     })
@@ -253,7 +277,7 @@ export function parseUniversalCsv(
     // Step 3: Fallback Merchant Match (Details, Name, Reference)
     if (foundMerchant === -1) {
       cols.forEach((col, idx) => {
-        if (foundMerchant === -1 && idx !== foundDate && idx !== foundAmount && idx !== foundDebit && idx !== foundCredit && idx !== foundBalance) {
+        if (foundMerchant === -1 && idx !== foundDate && idx !== foundAmount && idx !== foundDebit && idx !== foundCredit && idx !== foundBalance && idx !== foundIndicator) {
           if (FALLBACK_MERCHANT_HEADERS.some(h => col === h || col.includes(h))) foundMerchant = idx
         }
       })
@@ -269,6 +293,7 @@ export function parseUniversalCsv(
         debit: foundDebit,
         credit: foundCredit,
         balance: foundBalance,
+        indicator: foundIndicator,
       }
       break
     }
@@ -314,11 +339,20 @@ export function parseUniversalCsv(
       }
     }
 
-    // Case B: Single Amount column (standard signed or unsigned amount)
+    // Case B: Single Amount column (standard signed or unsigned amount with optional indicator)
     if (finalAmount === null && colMap.amount !== -1) {
       const amtVal = parseFlexibleAmount(cols[colMap.amount])
       if (amtVal !== null) {
         finalAmount = amtVal
+
+        if (colMap.indicator !== -1 && cols[colMap.indicator]) {
+          const ind = cols[colMap.indicator].toLowerCase().trim()
+          if (["af", "debit", "debito", "débito", "dr", "d", "out", "outflow"].some(k => ind === k || ind.startsWith(k))) {
+            finalAmount = -Math.abs(finalAmount)
+          } else if (["bij", "credit", "credito", "crédito", "cr", "c", "in", "inflow"].some(k => ind === k || ind.startsWith(k))) {
+            finalAmount = Math.abs(finalAmount)
+          }
+        }
       }
     }
 
