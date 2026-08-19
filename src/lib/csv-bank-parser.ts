@@ -188,29 +188,44 @@ export function parseUniversalCsv(
     balance: number
   } = { date: -1, merchant: -1, amount: -1, debit: -1, credit: -1, balance: -1 }
 
-  const DATE_HEADERS = [
-    "date", "data", "data operacao", "data operação", "data mov", "data valor",
-    "started date", "completed date", "booking date", "value date", "fecha", "datum"
-  ]
-  const MERCHANT_HEADERS = [
+  // Expanded Multi-Lingual Banking CSV Column Dictionaries
+  const PRIMARY_MERCHANT_HEADERS = [
     "description", "merchant", "payee", "descritivo", "descrição", "descricao",
-    "narrative", "concept", "memo", "details", "name", "payment reference", "beneficiary", "counterparty"
+    "libellé", "libelle", "begünstigter", "beguenstigter", "auftraggeber", "verwendungszweck",
+    "empfänger", "empfaenger", "zahlungsempfänger", "causale", "descrizione", "beneficiary",
+    "counterparty", "concept", "concepto", "memo", "narrative", "naam / omschrijving", "opis"
   ]
-  const AMOUNT_HEADERS = [
-    "amount", "montante", "valor", "importe", "betrag", "amount (eur)", "net amount", "total"
-  ]
-  const DEBIT_HEADERS = [
-    "debit", "debito", "débito", "saida", "saída", "money out", "spent", "charge", "withdrawal", "paid out"
-  ]
-  const CREDIT_HEADERS = [
-    "credit", "credito", "crédito", "entrada", "money in", "received", "income", "deposit", "paid in"
-  ]
-  const BALANCE_HEADERS = [
-    "balance", "saldo", "running balance", "saldo contabilistico", "saldo contabilístico", "saldo disponivel", "saldo disponível"
+  const FALLBACK_MERCHANT_HEADERS = [
+    "name", "details", "payment reference", "reference", "mededelingen", "type"
   ]
 
-  for (let i = 0; i < Math.min(lines.length, 6); i++) {
-    const cols = splitCsvLine(lines[i], delimiter).map(c => c.toLowerCase().replace(/["']/g, "").trim())
+  const DATE_HEADERS = [
+    "date", "data", "data operacao", "data operação", "data mov", "data valor",
+    "started date", "completed date", "posting date", "booking date", "value date",
+    "transaction date", "fecha", "buchungstag", "wertstellung", "datum", "data contabile",
+    "data valuta", "data operacji", "data waluty"
+  ]
+  const AMOUNT_HEADERS = [
+    "amount", "montante", "valor", "importe", "betrag", "amount (eur)", "amount (usd)",
+    "net amount", "total", "importo", "kwota", "bedrag"
+  ]
+  const DEBIT_HEADERS = [
+    "debit", "debito", "débito", "débit", "saida", "saída", "money out", "spent",
+    "charge", "withdrawal", "paid out", "lastschrift", "ausgabe", "dare", "af"
+  ]
+  const CREDIT_HEADERS = [
+    "credit", "credito", "crédito", "crédit", "entrada", "money in", "received",
+    "income", "deposit", "paid in", "gutschrift", "einnahme", "avere", "bij"
+  ]
+  const BALANCE_HEADERS = [
+    "balance", "saldo", "running balance", "saldo contabilistico", "saldo contabilístico",
+    "saldo disponivel", "saldo disponível", "saldo disponible", "solde", "kontostand",
+    "saldo na trn", "saldo po transakcji"
+  ]
+
+  for (let i = 0; i < Math.min(lines.length, 12); i++) {
+    const rawCols = splitCsvLine(lines[i], delimiter)
+    const cols = rawCols.map(c => c.toLowerCase().replace(/["']/g, "").trim())
     
     let foundDate = -1
     let foundMerchant = -1
@@ -219,21 +234,37 @@ export function parseUniversalCsv(
     let foundCredit = -1
     let foundBalance = -1
 
+    // Step 1: Strict matching for Date, Amount, Debit, Credit, Balance
     cols.forEach((col, idx) => {
-      if (foundDate === -1 && DATE_HEADERS.some(h => col.includes(h))) foundDate = idx
-      if (foundMerchant === -1 && MERCHANT_HEADERS.some(h => col.includes(h))) foundMerchant = idx
+      if (foundDate === -1 && DATE_HEADERS.some(h => col === h || col.includes(h))) foundDate = idx
       if (foundAmount === -1 && AMOUNT_HEADERS.some(h => col === h || col.startsWith(h))) foundAmount = idx
-      if (foundDebit === -1 && DEBIT_HEADERS.some(h => col.includes(h))) foundDebit = idx
-      if (foundCredit === -1 && CREDIT_HEADERS.some(h => col.includes(h))) foundCredit = idx
-      if (foundBalance === -1 && BALANCE_HEADERS.some(h => col.includes(h))) foundBalance = idx
+      if (foundDebit === -1 && DEBIT_HEADERS.some(h => col === h || col.startsWith(h))) foundDebit = idx
+      if (foundCredit === -1 && CREDIT_HEADERS.some(h => col === h || col.startsWith(h))) foundCredit = idx
+      if (foundBalance === -1 && BALANCE_HEADERS.some(h => col === h || col.includes(h))) foundBalance = idx
     })
+
+    // Step 2: Primary Merchant Match (Description, Payee, Libellé, Begünstigter)
+    cols.forEach((col, idx) => {
+      if (foundMerchant === -1 && idx !== foundDate && idx !== foundAmount && idx !== foundDebit && idx !== foundCredit && idx !== foundBalance) {
+        if (PRIMARY_MERCHANT_HEADERS.some(h => col === h || col.includes(h))) foundMerchant = idx
+      }
+    })
+
+    // Step 3: Fallback Merchant Match (Details, Name, Reference)
+    if (foundMerchant === -1) {
+      cols.forEach((col, idx) => {
+        if (foundMerchant === -1 && idx !== foundDate && idx !== foundAmount && idx !== foundDebit && idx !== foundCredit && idx !== foundBalance) {
+          if (FALLBACK_MERCHANT_HEADERS.some(h => col === h || col.includes(h))) foundMerchant = idx
+        }
+      })
+    }
 
     // A valid CSV bank header must at least have a Date column and either an Amount, Debit, or Credit column
     if (foundDate !== -1 && (foundAmount !== -1 || (foundDebit !== -1 && foundCredit !== -1))) {
       headerIndex = i
       colMap = {
         date: foundDate,
-        merchant: foundMerchant !== -1 ? foundMerchant : (foundAmount !== 1 ? 1 : 0),
+        merchant: foundMerchant !== -1 ? foundMerchant : (foundDate === 0 && foundAmount !== 1 ? 1 : 0),
         amount: foundAmount,
         debit: foundDebit,
         credit: foundCredit,
