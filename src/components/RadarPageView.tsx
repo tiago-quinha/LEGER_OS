@@ -33,6 +33,8 @@ import { Tilt } from "@/components/unlumen-ui/tilt"
 import { ClippedCircle } from "@/components/unlumen-ui/clipped-circle"
 import { PrivacyValue } from "@/components/ui/privacy-value"
 import { Skeleton } from "@/components/ui/skeleton"
+import { ProLockOverlay } from "@/components/ProLockOverlay"
+import { getAIHeaders } from "@/lib/ai-client"
 import { toast } from "sonner"
 
 interface Cycle {
@@ -54,7 +56,10 @@ export function RadarPageView({ expenses, categories, cycles, currentCycleId }: 
   const router = useRouter()
   const [isPending, startTransition] = useTransition()
   const [navigationDirection, setNavigationDirection] = useState<'prev' | 'next' | null>(null)
-  const { currencySymbol } = useSystem()
+  const { currencySymbol, isPro, profile } = useSystem()
+
+  const [isAuditing, setIsAuditing] = useState(false)
+  const [aiAuditResult, setAiAuditResult] = useState<any>(null)
 
   const [filterCadence, setFilterCadence] = useState<"all" | "monthly" | "annual">("all")
   const [searchQuery, setSearchQuery] = useState("")
@@ -102,6 +107,43 @@ export function RadarPageView({ expenses, categories, cycles, currentCycleId }: 
       if (storedPinned) setPinnedSubscriptions(JSON.parse(storedPinned))
     } catch (e) {}
   }, [])
+
+  // Neural Radar Audit handler
+  const handleRunNeuralAudit = async () => {
+    if (!isPro && !profile?.custom_api_key) {
+      toast.error("PRO subscription required for Layer 2 Neural Audit")
+      return
+    }
+
+    setIsAuditing(true)
+    try {
+      const res = await fetch("/api/radar/ai-audit", {
+        method: "POST",
+        headers: getAIHeaders(profile?.ai_provider, profile?.custom_api_key),
+        body: JSON.stringify({
+          subscriptions: radarData.subscriptions,
+          totalMonthlyCommitment: radarData.totalMonthlyCommitment,
+          totalAnnualCommitment: radarData.totalAnnualCommitment,
+          priceIncreases: radarData.priceIncreases,
+          targetIncome: profile?.target_monthly_income || 2500,
+          currency: profile?.currency || "EUR"
+        })
+      })
+
+      const data = await res.json()
+      if (data.success && data.audit) {
+        setAiAuditResult(data.audit)
+        toast.success("NEURAL SUBSCRIPTION AUDIT COMPLETE")
+      } else {
+        toast.error(data.error || "Neural audit failed to complete.")
+      }
+    } catch (e) {
+      console.error(e)
+      toast.error("Failed to connect to Neural Audit service.")
+    } finally {
+      setIsAuditing(false)
+    }
+  }
 
   // Cadence toggle handler
   const handleToggleCadence = (merchantName: string, currentCadence: "monthly" | "annual", e?: React.MouseEvent) => {
@@ -343,6 +385,144 @@ export function RadarPageView({ expenses, categories, cycles, currentCycleId }: 
           </div>
         </section>
       )}
+
+      {/* Layer 2 Neural Subscription Audit Panel */}
+      <section className="relative border border-border bg-card/40 overflow-hidden">
+        {!isPro && (
+          <div className="absolute inset-0 z-30 bg-background/95 backdrop-blur-md flex items-center justify-center p-6 text-center">
+            <ProLockOverlay 
+              title="LAYER 2 NEURAL RADAR AUDIT" 
+              description="Autonomous AI audit to detect ghost subscriptions, redundant SaaS tools, and annual billing arbitrage." 
+            />
+          </div>
+        )}
+
+        <div className="p-5 md:p-6 space-y-4">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-border pb-4">
+            <div className="space-y-1">
+              <div className="flex items-center gap-2">
+                <span className="px-2 py-0.5 text-[9px] font-mono font-bold uppercase bg-emerald-500/10 text-emerald-500 border border-emerald-500/30 flex items-center gap-1">
+                  <Sparkles className="h-2.5 w-2.5" /> PRO NEURAL ENGINE
+                </span>
+                <span className="text-[10px] font-mono uppercase tracking-widest text-muted-foreground">
+                  LAYER 2 SUBSCRIPTION AUDIT
+                </span>
+              </div>
+              <p className="text-xs text-foreground/90 font-sans leading-relaxed">
+                Autonomous AI audit to detect ghost subscriptions, redundant SaaS tools, and annual billing arbitrage.
+              </p>
+            </div>
+
+            <button
+              type="button"
+              onClick={handleRunNeuralAudit}
+              disabled={isAuditing}
+              className="h-9 px-4 bg-emerald-600 hover:bg-emerald-500 text-white font-mono font-bold text-[10px] uppercase tracking-wider transition-colors flex items-center justify-center gap-1.5 cursor-pointer rounded-none shrink-0 shadow-sm disabled:opacity-50"
+            >
+              {isAuditing ? (
+                <>
+                  <RefreshCw className="h-3.5 w-3.5 animate-spin" />
+                  <span>ANALYZING COMMITS...</span>
+                </>
+              ) : (
+                <>
+                  <Sparkles className="h-3.5 w-3.5" />
+                  <span>{aiAuditResult ? "RE-RUN NEURAL AUDIT" : "RUN NEURAL AUDIT"}</span>
+                </>
+              )}
+            </button>
+          </div>
+
+          {aiAuditResult && (
+            <motion.div
+              initial={{ opacity: 0, y: 8 }}
+              animate={{ opacity: 1, y: 0 }}
+              className="space-y-4 pt-1"
+            >
+              {/* Executive brief */}
+              <div className="p-4 bg-secondary/15 border border-border/80 space-y-1.5 font-mono text-xs">
+                <div className="text-[9px] font-bold text-muted-foreground uppercase tracking-wider">
+                  STRATEGIC OVERVIEW
+                </div>
+                <p className="text-xs text-foreground font-sans leading-relaxed">
+                  {aiAuditResult.executiveSummary}
+                </p>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-3.5">
+                {/* Arbitrage & Annual Savings */}
+                <div className="p-4 bg-card border border-border space-y-2.5">
+                  <div className="flex items-center justify-between">
+                    <span className="text-[9px] font-mono font-bold text-emerald-500 uppercase tracking-wider flex items-center gap-1">
+                      <TrendingUp className="h-3 w-3" /> ANNUAL BILLING ARBITRAGE
+                    </span>
+                    {aiAuditResult.estimatedAnnualSavings > 0 && (
+                      <span className="text-xs font-mono font-bold text-emerald-500">
+                        ~{currencySymbol}{aiAuditResult.estimatedAnnualSavings.toFixed(2)}/YR POTENTIAL
+                      </span>
+                    )}
+                  </div>
+
+                  {aiAuditResult.arbitrageOpportunities?.length > 0 ? (
+                    <div className="space-y-2">
+                      {aiAuditResult.arbitrageOpportunities.map((opp: any, i: number) => (
+                        <div key={i} className="p-2.5 bg-secondary/20 border border-border/60 text-xs font-mono space-y-1">
+                          <div className="flex items-center justify-between font-bold text-foreground uppercase">
+                            <span>{opp.merchant}</span>
+                            {opp.potentialAnnualSavings > 0 && (
+                              <span className="text-emerald-500 text-[10px]">SAVE ~{currencySymbol}{opp.potentialAnnualSavings}/YR</span>
+                            )}
+                          </div>
+                          <p className="text-[11px] text-muted-foreground font-sans">{opp.recommendation}</p>
+                        </div>
+                      ))}
+                    </div>
+                  ) : (
+                    <p className="text-[11px] font-mono text-muted-foreground">All active subscriptions are already optimized for their billing cadence.</p>
+                  )}
+                </div>
+
+                {/* Ghost & Redundancy Warnings */}
+                <div className="p-4 bg-card border border-border space-y-2.5">
+                  <span className="text-[9px] font-mono font-bold text-amber-500 uppercase tracking-wider flex items-center gap-1">
+                    <AlertTriangle className="h-3 w-3" /> GHOST & REDUNDANCY ALERTS
+                  </span>
+
+                  {aiAuditResult.ghostRiskAlerts?.length > 0 ? (
+                    <div className="space-y-2">
+                      {aiAuditResult.ghostRiskAlerts.map((ghost: any, i: number) => (
+                        <div key={i} className="p-2.5 bg-amber-500/10 border border-amber-500/30 text-xs font-mono space-y-1">
+                          <div className="font-bold text-amber-500 uppercase text-xs">{ghost.merchant}</div>
+                          <p className="text-[11px] text-foreground font-sans">{ghost.reason}</p>
+                        </div>
+                      ))}
+                    </div>
+                  ) : (
+                    <p className="text-[11px] font-mono text-muted-foreground">Zero redundant or ghost subscriptions flagged across active records.</p>
+                  )}
+                </div>
+              </div>
+
+              {/* Tactical Recommendations */}
+              {aiAuditResult.tacticalRecommendations?.length > 0 && (
+                <div className="p-3.5 bg-card/60 border border-border space-y-1.5">
+                  <div className="text-[9px] font-mono font-bold text-muted-foreground uppercase tracking-wider">
+                    RECOMMENDED TACTICAL ACTIONS
+                  </div>
+                  <ul className="space-y-1">
+                    {aiAuditResult.tacticalRecommendations.map((rec: string, i: number) => (
+                      <li key={i} className="text-xs font-mono text-foreground flex items-start gap-1.5">
+                        <span className="text-muted-foreground">→</span>
+                        <span>{rec}</span>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              )}
+            </motion.div>
+          )}
+        </div>
+      </section>
 
       {/* 4. Search + Dynamic Filter Tabs (Exact match to Portfolio / Memory standard) */}
       <div className="space-y-3">
