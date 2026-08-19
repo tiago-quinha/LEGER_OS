@@ -6,7 +6,6 @@ import { Navigation } from "@/components/Navigation"
 import { Toaster } from "@/components/ui/sonner"
 import { FloatingTooltipProvider } from "@/components/unlumen-ui/floating-tooltip"
 import { LegerAIAssistant } from "@/components/LegerAIAssistant"
-import { IngestSpotlightOverlay } from "@/components/IngestSpotlightOverlay"
 import { useSystem } from "@/lib/SystemContext"
 
 function LayoutInner({ children }: { children: React.ReactNode }) {
@@ -44,7 +43,6 @@ function LayoutInner({ children }: { children: React.ReactNode }) {
         </main>
         <Toaster />
         <LegerAIAssistant />
-        <IngestSpotlightOverlay />
       </div>
     </FloatingTooltipProvider>
   )

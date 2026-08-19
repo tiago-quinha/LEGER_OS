@@ -822,7 +822,7 @@ export function DashboardView({
                         <div className="flex flex-col sm:flex-row items-center justify-center gap-2.5 pt-2">
                           <Button
                             type="button"
-                            onClick={() => router.push('/expenses')}
+                            onClick={() => router.push('/expenses?tab=ingest')}
                             className="w-full sm:w-auto h-11 rounded-none bg-foreground text-background hover:bg-foreground/90 font-mono text-xs uppercase font-bold tracking-wider cursor-pointer flex items-center justify-center gap-2 px-5 shadow-sm"
                           >
                             <Upload className="h-4 w-4" /> Upload Statement
