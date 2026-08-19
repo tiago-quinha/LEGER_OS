@@ -83,6 +83,9 @@ export interface PortfolioSnapshot {
   liquid_cash: number;
   invested_capital: number;
   total_gain_loss: number;
+  min_valuation?: number;
+  max_valuation?: number;
+  closing_valuation?: number;
   asset_breakdown: Record<string, { valuation: number; count: number }>;
 }
 
@@ -275,7 +278,7 @@ if (typeof window !== "undefined") {
   });
 }
 
-function AssetLogo({ symbol, assetType, name, customIconUrl }: { symbol?: string | null; assetType: string; name: string; customIconUrl?: string }) {
+function AssetLogo({ symbol, assetType, name, customIconUrl, className }: { symbol?: string | null; assetType: string; name: string; customIconUrl?: string; className?: string }) {
   const [imgError, setImgError] = useState(false);
 
   const cleanSym = (symbol || "").toUpperCase().trim();
@@ -296,13 +299,13 @@ function AssetLogo({ symbol, assetType, name, customIconUrl }: { symbol?: string
 
   if (imageUrl && !imgError) {
     return (
-      <div className="h-10 w-10 rounded-xl border border-border/80 bg-secondary/20 flex items-center justify-center shrink-0 p-1.5 overflow-hidden">
+      <div className={cn("h-10 w-10 rounded-xl border border-border/80 bg-secondary/30 flex items-center justify-center shrink-0 p-1 overflow-hidden relative shadow-xs", className)}>
         <img
           src={imageUrl}
           alt={name}
           loading="eager"
           fetchPriority="high"
-          className="h-full w-full object-contain"
+          className="h-full w-full object-contain rounded-lg"
           onError={() => setImgError(true)}
         />
       </div>
@@ -310,25 +313,78 @@ function AssetLogo({ symbol, assetType, name, customIconUrl }: { symbol?: string
   }
 
   return (
-    <div className={cn("h-10 w-10 rounded-xl border flex items-center justify-center shrink-0 font-mono text-[11px] font-bold uppercase tracking-tighter", config.bg, config.color)}>
+    <div className={cn("h-10 w-10 rounded-xl border flex items-center justify-center shrink-0 font-mono text-[11px] font-bold uppercase tracking-tighter", config.bg, config.color, className)}>
       {cleanSym ? cleanSym.slice(0, 3) : name.slice(0, 2).toUpperCase()}
     </div>
   );
 }
 
+const ASSET_LINE_COLORS = [
+  "#ffffff", // White / primary
+  "#10b981", // Emerald
+  "#3b82f6", // Blue
+  "#f59e0b", // Amber
+  "#a855f7", // Purple
+  "#ec4899", // Pink
+  "#06b6d4", // Cyan
+  "#84cc16", // Lime
+];
+
 function CustomPortfolioTooltip({ active, payload, label, formatCurrency, selectedChartMode, assets }: any) {
   if (active && payload && payload.length) {
     const data = payload[0].payload;
     const isAllMode = selectedChartMode === "all";
+    const isCompareMode = selectedChartMode === "compare";
+    const hasIntradayRange = typeof data.maxValuation === "number" && typeof data.minValuation === "number" && data.maxValuation > data.minValuation;
+
+    if (isCompareMode) {
+      return (
+        <div className="bg-card border border-border p-2.5 md:p-3 font-mono text-[9px] md:text-[10px] space-y-2 shadow-sm z-50 rounded-none min-w-[200px]">
+          <p className="font-bold border-b border-border pb-1 uppercase tracking-wider">{label} - HOLDINGS</p>
+          <div className="space-y-1.5">
+            {assets.map((a: any, idx: number) => {
+              const val = data[`asset_${a.id}`];
+              if (val == null) return null;
+              const color = ASSET_LINE_COLORS[idx % ASSET_LINE_COLORS.length];
+              return (
+                <div key={a.id} className="flex items-center justify-between gap-4 text-[9px]">
+                  <div className="flex items-center gap-1.5 min-w-0">
+                    <span className="h-2 w-2 rounded-xs shrink-0" style={{ backgroundColor: color }} />
+                    <span className="font-bold uppercase text-foreground truncate">{a.symbol?.toUpperCase() || a.asset_name}</span>
+                  </div>
+                  <span className="font-mono font-bold text-foreground shrink-0">{formatCurrency(val)}</span>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      );
+    }
 
     return (
-      <div className="bg-card border border-border p-2 md:p-3 font-mono text-[9px] md:text-[10px] space-y-1.5 md:space-y-2 shadow-sm z-50 rounded-none min-w-[170px]">
+      <div className="bg-card border border-border p-2 md:p-3 font-mono text-[9px] md:text-[10px] space-y-1.5 md:space-y-2 shadow-sm z-50 rounded-none min-w-[190px]">
         <p className="font-bold border-b border-border pb-1 uppercase">{label}</p>
         <div className="space-y-1">
           <p className="flex justify-between gap-6 md:gap-8 uppercase">
-            <span>{isAllMode ? "Total:" : "Valuation:"}</span>
-            <span className="font-bold text-foreground">{formatCurrency(data.actualValuation ?? data.projectionValuation ?? data.valuation)}</span>
+            <span>{isAllMode ? "Closing / Total:" : "Closing Valuation:"}</span>
+            <span className="font-bold text-foreground">{formatCurrency(data.closingValuation ?? data.actualValuation ?? data.projectionValuation ?? data.valuation)}</span>
           </p>
+          {hasIntradayRange && (
+            <div className="border-y border-border/40 py-1 space-y-0.5 text-[8.5px] md:text-[9px]">
+              <p className="flex justify-between gap-4 text-emerald-500 uppercase font-semibold">
+                <span>Day High (Max):</span>
+                <span>{formatCurrency(data.maxValuation)}</span>
+              </p>
+              <p className="flex justify-between gap-4 text-rose-500 uppercase font-semibold">
+                <span>Day Low (Min):</span>
+                <span>{formatCurrency(data.minValuation)}</span>
+              </p>
+              <p className="flex justify-between gap-4 opacity-60 uppercase text-[8px]">
+                <span>Intraday Spread:</span>
+                <span>{formatCurrency(data.maxValuation - data.minValuation)}</span>
+              </p>
+            </div>
+          )}
           {data.invested > 0 && (
             <p className="flex justify-between gap-6 md:gap-8 opacity-60 uppercase">
               <span>Cost Basis:</span>
@@ -380,7 +436,7 @@ export function PortfolioView({
   injectedStartBalance = 0,
 }: PortfolioViewProps) {
   const router = useRouter();
-  const { formatCurrency, currencySymbol, isPro } = useSystem();
+  const { formatCurrency, currencySymbol, isPro, isAdmin } = useSystem();
 
   const [isPending, startTransition] = useTransition();
   const [selectedCycleId, setSelectedCycleId] = useState<string>(currentCycleId || cycles[0]?.id || "");
@@ -483,6 +539,7 @@ export function PortfolioView({
   const [formSubmitting, setFormSubmitting] = useState(false);
   const [timeToNextSync, setTimeToNextSync] = useState<string>("15:00");
 
+  const [isSyncing, setIsSyncing] = useState(false);
   const [presetLivePrices, setPresetLivePrices] = useState<Record<string, number>>({});
 
   const fetchPresetLivePrices = useCallback(async () => {
@@ -531,14 +588,50 @@ export function PortfolioView({
     }
   }, []);
 
+  const syncLiveMarketPrices = useCallback(async (force = false, showToast = false) => {
+    try {
+      setIsSyncing(true);
+      if (showToast) {
+        toast.info("Fetching live market prices...");
+      }
+      const res = await fetch("/api/portfolio/market-data", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ force }),
+      });
+      if (res.ok) {
+        const data = await res.json();
+        await fetchPortfolioData();
+        if (showToast) {
+          toast.success(`Market quotes updated (${data.updatedCount || 0} positions synced).`);
+        }
+      } else if (res.status === 429) {
+        const errData = await res.json();
+        if (showToast) {
+          toast.warning(errData.error || "Rate limit reached. Please wait 30s.");
+        }
+      }
+    } catch (err) {
+      console.warn("Live market sync failed:", err);
+      if (showToast) {
+        toast.error("Failed to sync live market quotes.");
+      }
+    } finally {
+      setIsSyncing(false);
+    }
+  }, [fetchPortfolioData]);
+
   useEffect(() => {
     setMounted(true);
     fetchPortfolioData();
     fetchPresetLivePrices();
+    syncLiveMarketPrices(false);
 
     setIsMobile(window.innerWidth < 768);
     const handleResize = () => setIsMobile(window.innerWidth < 768);
     window.addEventListener("resize", handleResize);
+
+    let lastSlotKey = "";
 
     const updateCountdown = () => {
       const now = new Date();
@@ -549,9 +642,13 @@ export function PortfolioView({
       const remMins = Math.floor(diffSecs / 60);
       const remSecs = diffSecs % 60;
 
-      // When the 15-minute slot ticks (:00, :15, :30, :45), wait 3s for server cron to finish writing, then silently re-fetch fresh DB prices
-      if (mins % 15 === 0 && (secs === 3 || secs === 6)) {
-        fetchPortfolioData();
+      // Slot key format: e.g. "21:45"
+      const slotKey = `${now.getHours()}:${Math.floor(mins / 15) * 15}`;
+
+      // When crossing the 15-minute slot boundary (:00, :15, :30, :45), trigger live price sync
+      if (mins % 15 === 0 && secs <= 2 && lastSlotKey !== slotKey) {
+        lastSlotKey = slotKey;
+        syncLiveMarketPrices(true);
       }
 
       setTimeToNextSync(
@@ -565,7 +662,7 @@ export function PortfolioView({
       clearInterval(timer);
       window.removeEventListener("resize", handleResize);
     };
-  }, [fetchPortfolioData, fetchPresetLivePrices]);
+  }, [fetchPortfolioData, fetchPresetLivePrices, syncLiveMarketPrices]);
 
   // Supabase Realtime: Dynamically update UI without refresh whenever portfolio_assets or snapshots change
   useEffect(() => {
@@ -901,11 +998,49 @@ export function PortfolioView({
       return d.toLocaleDateString("en-GB", { day: "2-digit", month: "short" });
     };
 
-    const startD = currentCycle ? new Date(currentCycle.startDate) : new Date(Date.now() - 29 * 86400000);
-    const endD = currentCycle && currentCycle.endDate ? new Date(currentCycle.endDate) : new Date(startD.getTime() + 30 * 86400000);
-    
+    // Determine earliest active acquisition / snapshot date
+    let earliestActiveDate: string | null = null;
+    (snapshots || []).forEach((s) => {
+      if (s.snapshot_date && (Number(s.invested_capital) > 0 || Number(s.closing_valuation) > 0 || Number(s.min_valuation) > 0)) {
+        const dStr = s.snapshot_date.split("T")[0];
+        if (!earliestActiveDate || dStr < earliestActiveDate) {
+          earliestActiveDate = dStr;
+        }
+      }
+    });
+
+    (assets || []).forEach((a) => {
+      if (a.created_at) {
+        const dStr = a.created_at.split("T")[0];
+        if (!earliestActiveDate || dStr < earliestActiveDate) {
+          earliestActiveDate = dStr;
+        }
+      }
+    });
+
+    // If no assets or snapshots exist, return empty chartData
+    if (!earliestActiveDate && assets.length === 0) {
+      return [];
+    }
+
+    // Strictly compute cycle boundary from currentCycle.startDate (e.g. 28 Jul -> 27/28 Aug)
+    const cycleStartD = currentCycle ? new Date(currentCycle.startDate) : new Date(Date.now() - 29 * 86400000);
+    const cycleEndD = currentCycle && currentCycle.endDate 
+      ? new Date(currentCycle.endDate) 
+      : new Date(cycleStartD.getTime() + 30 * 86400000);
+
+    // If earliest active holding is after cycle start, start chart from active date, but end strictly at cycleEndD
+    let startD = cycleStartD;
+    if (earliestActiveDate) {
+      const activeD = new Date(earliestActiveDate);
+      if (activeD > cycleStartD && activeD <= cycleEndD) {
+        startD = activeD;
+      }
+    }
+
+    const endD = cycleEndD;
     const diffDays = Math.round((endD.getTime() - startD.getTime()) / (1000 * 3600 * 24));
-    const cycleDaysCount = Math.max(30, Math.min(60, diffDays + 1));
+    const cycleDaysCount = Math.max(1, diffDays + 1);
     const todayStr = new Date().toISOString().split("T")[0];
 
     const snapMap = new Map<string, PortfolioSnapshot>();
@@ -915,47 +1050,29 @@ export function PortfolioView({
       }
     });
 
-    if (selectedChartMode === "all") {
+    if (selectedChartMode === "compare") {
       return Array.from({ length: cycleDaysCount }).map((_, i) => {
         const d = new Date(startD);
         d.setDate(d.getDate() + i);
         const dateStr = d.toISOString().split("T")[0];
         const dateLabel = formatChartDate(dateStr);
 
-        const dateEnd = new Date(d);
-        dateEnd.setHours(23, 59, 59, 999);
-
         const isPast = dateStr < todayStr;
         const isToday = dateStr === todayStr;
-        const isFuture = dateStr > todayStr;
 
-        // Only include assets created/acquired on or before this day
-        const activeAssetsOnDay = assets.filter((a) => {
-          if (!a.created_at) return true;
-          return new Date(a.created_at) <= dateEnd;
-        });
-
-        const dayAssetValuation = activeAssetsOnDay.reduce(
-          (sum, a) => sum + (Number(a.quantity) || 0) * (Number(a.current_price) || Number(a.buy_price) || 0),
-          0
-        );
-        const dayAssetInvested = activeAssetsOnDay.reduce(
-          (sum, a) => sum + (Number(a.quantity) || 0) * (Number(a.buy_price) || 0),
-          0
-        );
-
-        const dayValuation = parseFloat(dayAssetValuation.toFixed(2));
-        const dayInvested = parseFloat(dayAssetInvested.toFixed(2));
-        const dayGainLoss = parseFloat((dayAssetValuation - dayAssetInvested).toFixed(2));
-
-        // Per-asset valuation keys for hybrid overlay lines
         const perAsset: Record<string, number | null> = {};
         for (const a of assets) {
           const key = `asset_${a.id}`;
-          const isOwnedOnDay = !a.created_at || new Date(a.created_at) <= dateEnd;
-          if (isOwnedOnDay) {
-            const val = (Number(a.quantity) || 0) * (Number(a.current_price) || Number(a.buy_price) || 0);
-            perAsset[key] = isPast || isToday ? parseFloat(val.toFixed(2)) : null;
+          const qty = Number(a.quantity) || 0;
+          const buyPrice = Number(a.buy_price) || Number(a.current_price) || 0;
+          const currPrice = Number(a.current_price) || buyPrice;
+
+          if (dateStr <= (earliestActiveDate || "2026-08-17")) {
+            // Day 17 (purchase date): exact buy price / €50 starting basis
+            perAsset[key] = parseFloat((qty * buyPrice).toFixed(2));
+          } else if (isPast || isToday) {
+            // Latest completed market close (held steady until markets open today)
+            perAsset[key] = parseFloat((qty * currPrice).toFixed(2));
           } else {
             perAsset[key] = null;
           }
@@ -964,12 +1081,67 @@ export function PortfolioView({
         return {
           date: dateStr,
           dateLabel,
-          valuation: dayValuation,
-          actualValuation: isPast || isToday ? dayValuation : null,
-          projectionValuation: isToday || isFuture ? dayValuation : null,
+          valuation: 0,
+          actualValuation: null,
+          ...perAsset,
+        };
+      });
+    } else if (selectedChartMode === "all") {
+      return Array.from({ length: cycleDaysCount }).map((_, i) => {
+        const d = new Date(startD);
+        d.setDate(d.getDate() + i);
+        const dateStr = d.toISOString().split("T")[0];
+        const dateLabel = formatChartDate(dateStr);
+
+        const isPast = dateStr < todayStr;
+        const isToday = dateStr === todayStr;
+        const isFuture = dateStr > todayStr;
+
+        const dayAssetValuation = assets.reduce(
+          (sum, a) => sum + (Number(a.quantity) || 0) * (Number(a.current_price) || Number(a.buy_price) || 0),
+          0
+        );
+        const dayAssetInvested = assets.reduce(
+          (sum, a) => sum + (Number(a.quantity) || 0) * (Number(a.buy_price) || 0),
+          0
+        );
+
+        const dayValuation = parseFloat(dayAssetValuation.toFixed(2));
+        const dayInvested = parseFloat(dayAssetInvested.toFixed(2));
+        const dayGainLoss = parseFloat((dayAssetValuation - dayAssetInvested).toFixed(2));
+
+        let dayCloseVal = dayValuation;
+        let dayMinVal = dayValuation;
+        let dayMaxVal = dayValuation;
+
+        if (dateStr <= (earliestActiveDate || "2026-08-17")) {
+          // On day of acquisition, initial starting valuation is €50 (cost basis)
+          dayCloseVal = dayInvested;
+          dayMinVal = dayInvested;
+          dayMaxVal = dayInvested;
+        } else if (isPast || isToday) {
+          const recordedSnap = snapMap.get(dateStr);
+          if (recordedSnap) {
+            const snapClose = Number(recordedSnap.closing_valuation);
+            const snapMin = Number(recordedSnap.min_valuation);
+            const snapMax = Number(recordedSnap.max_valuation);
+            if (!isNaN(snapClose) && snapClose > 0) dayCloseVal = isToday ? dayValuation : snapClose;
+            if (!isNaN(snapMin) && snapMin > 0) dayMinVal = snapMin;
+            if (!isNaN(snapMax) && snapMax > 0) dayMaxVal = snapMax;
+          }
+        }
+
+        return {
+          date: dateStr,
+          dateLabel,
+          valuation: dayCloseVal,
+          actualValuation: isPast || isToday ? dayCloseVal : null,
+          minValuation: isPast || isToday ? dayMinVal : null,
+          maxValuation: isPast || isToday ? dayMaxVal : null,
+          closingValuation: isPast || isToday ? dayCloseVal : null,
+          projectionValuation: isToday || isFuture ? dayCloseVal : null,
           invested: dayInvested,
           gainLoss: dayGainLoss,
-          ...perAsset,
         };
       });
     } else if (["stock_etf", "crypto", "commodity"].includes(selectedChartMode)) {
@@ -981,31 +1153,19 @@ export function PortfolioView({
         const dateStr = d.toISOString().split("T")[0];
         const dateLabel = formatChartDate(dateStr);
 
-        const dateEnd = new Date(d);
-        dateEnd.setHours(23, 59, 59, 999);
-
         const isPast = dateStr < todayStr;
         const isToday = dateStr === todayStr;
-        const isFuture = dateStr > todayStr;
 
-        const recordedSnap = isPast ? snapMap.get(dateStr) : null;
         let val = 0;
-        let invested = 0;
+        const invested = categoryAssets.reduce((sum, a) => sum + (Number(a.quantity) || 0) * (Number(a.buy_price) || 0), 0);
 
-        if (recordedSnap && recordedSnap.asset_breakdown?.[selectedChartMode]) {
-          const catBreakdown = recordedSnap.asset_breakdown[selectedChartMode];
-          val = catBreakdown.valuation || 0;
-          invested = (catBreakdown as any).invested || 0;
-        } else {
-          const activeAssetsOnDay = categoryAssets.filter((a) => {
-            if (!a.created_at) return true;
-            return new Date(a.created_at) <= dateEnd;
-          });
-          val = activeAssetsOnDay.reduce(
+        if (dateStr <= (earliestActiveDate || "2026-08-17")) {
+          val = invested;
+        } else if (isPast || isToday) {
+          val = categoryAssets.reduce(
             (sum, a) => sum + (Number(a.quantity) || 0) * (Number(a.current_price) || Number(a.buy_price) || 0),
             0
           );
-          invested = activeAssetsOnDay.reduce((sum, a) => sum + (Number(a.quantity) || 0) * (Number(a.buy_price) || 0), 0);
         }
 
         const formattedVal = parseFloat(val.toFixed(2));
@@ -1016,7 +1176,10 @@ export function PortfolioView({
           dateLabel,
           valuation: formattedVal,
           actualValuation: isPast || isToday ? formattedVal : null,
-          projectionValuation: isToday || isFuture ? formattedVal : null,
+          minValuation: isPast || isToday ? formattedVal : null,
+          maxValuation: isPast || isToday ? formattedVal : null,
+          closingValuation: isPast || isToday ? formattedVal : null,
+          projectionValuation: null,
           invested: formattedInvested,
           gainLoss: parseFloat((val - invested).toFixed(2)),
         };
@@ -1030,18 +1193,22 @@ export function PortfolioView({
         const dateStr = d.toISOString().split("T")[0];
         const dateLabel = formatChartDate(dateStr);
 
-        const dateEnd = new Date(d);
-        dateEnd.setHours(23, 59, 59, 999);
-
         const isPast = dateStr < todayStr;
         const isToday = dateStr === todayStr;
-        const isFuture = dateStr > todayStr;
 
-        const isOwnedOnDay = targetAsset && (!targetAsset.created_at || new Date(targetAsset.created_at) <= dateEnd);
-        const assetInvested = isOwnedOnDay ? (targetAsset.quantity || 0) * (targetAsset.buy_price || 0) : 0;
-        const assetValuation = isOwnedOnDay ? (targetAsset.quantity || 0) * (targetAsset.current_price || targetAsset.buy_price || 0) : 0;
+        const qty = Number(targetAsset?.quantity) || 0;
+        const buyPrice = Number(targetAsset?.buy_price) || 0;
+        const currPrice = Number(targetAsset?.current_price) || buyPrice;
 
-        const formattedVal = parseFloat(assetValuation.toFixed(2));
+        let val = 0;
+        if (dateStr <= (earliestActiveDate || "2026-08-17")) {
+          val = qty * buyPrice;
+        } else if (isPast || isToday) {
+          val = qty * currPrice;
+        }
+
+        const assetInvested = qty * buyPrice;
+        const formattedVal = parseFloat(val.toFixed(2));
         const formattedInvested = parseFloat(assetInvested.toFixed(2));
 
         return {
@@ -1049,13 +1216,82 @@ export function PortfolioView({
           dateLabel,
           valuation: formattedVal,
           actualValuation: isPast || isToday ? formattedVal : null,
-          projectionValuation: isToday || isFuture ? formattedVal : null,
+          minValuation: isPast || isToday ? formattedVal : null,
+          maxValuation: isPast || isToday ? formattedVal : null,
+          closingValuation: isPast || isToday ? formattedVal : null,
+          projectionValuation: null,
           invested: formattedInvested,
-          gainLoss: parseFloat((assetValuation - assetInvested).toFixed(2)),
+          gainLoss: parseFloat((val - assetInvested).toFixed(2)),
         };
       });
     }
   }, [selectedChartMode, assets, snapshots, currentCycle, expenses, injectedStartBalance, liquidBalance]);
+
+  // Clean dynamic integer vertical domain with dynamic zoom and increments (no commas or decimals)
+  const { yAxisDomain, yAxisTicks, yAxisTickFormatter } = useMemo(() => {
+    const vals: number[] = [];
+    if (selectedChartMode === "compare") {
+      chartData.forEach((d: any) => {
+        assets.forEach((a) => {
+          const v = d[`asset_${a.id}`];
+          if (v != null && !isNaN(v) && v > 0) vals.push(v);
+        });
+      });
+    } else {
+      chartData.forEach((d: any) => {
+        if (d.actualValuation != null && !isNaN(d.actualValuation) && d.actualValuation > 0) vals.push(d.actualValuation);
+        if (d.projectionValuation != null && !isNaN(d.projectionValuation) && d.projectionValuation > 0) vals.push(d.projectionValuation);
+        if (d.minValuation != null && !isNaN(d.minValuation) && d.minValuation > 0) vals.push(d.minValuation);
+        if (d.maxValuation != null && !isNaN(d.maxValuation) && d.maxValuation > 0) vals.push(d.maxValuation);
+      });
+    }
+
+    if (vals.length === 0) {
+      return {
+        yAxisDomain: [0, 50],
+        yAxisTicks: [0, 10, 20, 30, 40, 50],
+        yAxisTickFormatter: (val: number) => `${currencySymbol}${Math.round(val)}`,
+      };
+    }
+
+    const min = Math.min(...vals);
+    const max = Math.max(...vals);
+    const spread = max - min;
+
+    // Pick dynamic clean step based on spread
+    let step = 1;
+    if (spread > 250) step = 50;
+    else if (spread > 120) step = 25;
+    else if (spread > 50) step = 10;
+    else if (spread > 20) step = 5;
+    else if (spread > 8) step = 2;
+    else step = 1;
+
+    // Tight dynamic bounds centered around the active holdings
+    const low = Math.max(0, Math.floor((min - (spread === 0 ? step : 0.5)) / step) * step);
+    const high = Math.max(low + step, Math.ceil((max + (spread === 0 ? step : 0.5)) / step) * step);
+
+    const ticks: number[] = [];
+    for (let t = low; t <= high; t += step) {
+      ticks.push(t);
+    }
+
+    return {
+      yAxisDomain: [low, high],
+      yAxisTicks: ticks,
+      yAxisTickFormatter: (val: number) => `${currencySymbol}${Math.round(val)}`,
+    };
+  }, [chartData, currencySymbol, selectedChartMode, assets]);
+
+  const isChartEmpty = useMemo(() => {
+    if (assets.length === 0 && (!snapshots || snapshots.length === 0)) return true;
+    if (selectedChartMode === "compare") {
+      return assets.length === 0;
+    }
+    return chartData.every(
+      (d) => d.actualValuation == null && d.projectionValuation == null && d.valuation == null
+    );
+  }, [chartData, assets, snapshots, selectedChartMode]);
 
   const filteredAssets = useMemo(() => {
     return assets.filter((asset) => {
@@ -1102,11 +1338,24 @@ export function PortfolioView({
               <span>Active Paycheck Cycle</span>
             </div>
             <span className="text-muted-foreground/30">•</span>
-            <div className="flex items-center gap-1.5 text-foreground/80 font-bold">
-              <span className="h-1.5 w-1.5 rounded-full bg-emerald-500 animate-pulse" />
-              <Clock className="h-3 w-3 text-muted-foreground" />
-              <span>SYNC: {timeToNextSync}</span>
-            </div>
+            {isAdmin ? (
+              <button
+                onClick={() => syncLiveMarketPrices(true, true)}
+                disabled={isSyncing}
+                className="flex items-center gap-1.5 text-foreground/80 font-bold hover:text-foreground transition-colors cursor-pointer select-none group"
+                title="Admin Quote Refresh"
+              >
+                <span className={cn("h-1.5 w-1.5 rounded-full bg-emerald-500", isSyncing ? "animate-ping" : "animate-pulse")} />
+                <RefreshCw className={cn("h-3 w-3 text-muted-foreground group-hover:text-foreground transition-all", isSyncing && "animate-spin text-emerald-500")} />
+                <span>SYNC: {isSyncing ? "UPDATING..." : timeToNextSync}</span>
+              </button>
+            ) : (
+              <div className="flex items-center gap-1.5 text-foreground/80 font-bold select-none">
+                <span className="h-1.5 w-1.5 rounded-full bg-emerald-500 animate-pulse" />
+                <Clock className="h-3 w-3 text-muted-foreground" />
+                <span>SYNC: {timeToNextSync}</span>
+              </div>
+            )}
           </div>
           <h1 className="text-4xl md:text-5xl font-bold tracking-tighter uppercase leading-none break-words">
             {isPending ? (
@@ -1157,6 +1406,8 @@ export function PortfolioView({
           <h2 className="text-xl md:text-2xl font-bold uppercase tracking-tighter font-sans shrink-0">
             {selectedChartMode === "all"
               ? "Total Portfolio Trajectory"
+              : selectedChartMode === "compare"
+              ? "Multi-Asset Holdings Comparison"
               : selectedChartMode === "stock_etf"
               ? "Stocks & ETFs Trajectory"
               : selectedChartMode === "crypto"
@@ -1176,7 +1427,16 @@ export function PortfolioView({
                   selectedChartMode === "all" ? "bg-foreground text-background" : "text-muted-foreground hover:text-foreground"
                 )}
               >
-                All
+                Total
+              </button>
+              <button
+                onClick={() => setSelectedChartMode("compare")}
+                className={cn(
+                  "px-3 py-1 uppercase font-bold transition-all border-l border-border/60 cursor-pointer select-none shrink-0",
+                  selectedChartMode === "compare" ? "bg-foreground text-background" : "text-muted-foreground hover:text-foreground"
+                )}
+              >
+                Compare
               </button>
               <button
                 onClick={() => setSelectedChartMode("stock_etf")}
@@ -1214,7 +1474,8 @@ export function PortfolioView({
                 onChange={(e) => setSelectedChartMode(e.target.value)}
                 className="h-7 px-2 border border-border bg-card text-foreground font-mono text-[9px] uppercase outline-none cursor-pointer rounded-none min-w-[130px]"
               >
-                <option value="all">Total Portfolio (All Assets)</option>
+                <option value="all">Total Portfolio (Net Worth)</option>
+                <option value="compare">Multi-Asset Comparison (All)</option>
                 <option value="stock_etf">Stocks & ETFs</option>
                 <option value="crypto">Crypto</option>
                 <option value="commodity">Commodities</option>
@@ -1230,10 +1491,58 @@ export function PortfolioView({
           </div>
         </div>
 
+        {/* Multi-Asset Comparison Color Legend */}
+        {selectedChartMode === "compare" && assets.length > 0 && (
+          <div className="flex flex-wrap items-center gap-2 pt-1">
+            {assets.map((a, idx) => {
+              const color = ASSET_LINE_COLORS[idx % ASSET_LINE_COLORS.length];
+              const currVal = (Number(a.quantity) || 0) * (Number(a.current_price) || Number(a.buy_price) || 0);
+              return (
+                <div key={a.id} className="flex items-center gap-1.5 bg-secondary/30 px-2 py-0.5 border border-border/60 font-mono text-[9px]">
+                  <span className="h-2 w-2 rounded-xs shrink-0" style={{ backgroundColor: color }} />
+                  <span className="font-bold uppercase text-foreground">{a.symbol?.toUpperCase() || a.asset_name}</span>
+                  <span className="text-muted-foreground font-bold">({currencySymbol}{format2Decimals(currVal)})</span>
+                </div>
+              );
+            })}
+          </div>
+        )}
+
         {/* Recharts Area Chart */}
-        <div className="h-[280px] md:h-[320px] w-full mt-4 md:mt-0 cursor-pointer" data-no-swipe="true">
+        <div className="h-[300px] md:h-[350px] w-full mt-4 md:mt-0 cursor-pointer relative" data-no-swipe="true">
+          {/* Empty State Overlay when no active positions exist in cycle */}
+          {isChartEmpty && (
+            <div className="absolute inset-0 z-30 bg-background/95 backdrop-blur-md flex flex-col items-center justify-center p-6 text-center">
+              <div className="max-w-md w-full space-y-4">
+                <div className="w-11 h-11 rounded-none bg-secondary/40 border border-border flex items-center justify-center mx-auto text-foreground shadow-sm">
+                  <TrendingUp className="h-5 w-5" />
+                </div>
+                <div className="space-y-1.5">
+                  <h3 className="text-sm sm:text-base font-bold font-mono uppercase tracking-wider text-foreground">
+                    Portfolio Engine Calibrated
+                  </h3>
+                  <p className="text-xs text-muted-foreground font-sans leading-relaxed">
+                    You have no active assets or recorded positions in this cycle yet. Add your first position or select a market preset to generate your net worth trajectory.
+                  </p>
+                </div>
+                <div className="flex flex-col sm:flex-row items-center justify-center gap-2.5 pt-2">
+                  <Button
+                    type="button"
+                    onClick={() => {
+                      setIsCustomMode(false);
+                      setIsAddModalOpen(true);
+                    }}
+                    className="w-full sm:w-auto h-11 rounded-none bg-foreground text-background hover:bg-foreground/90 font-mono text-xs uppercase font-bold tracking-wider cursor-pointer flex items-center justify-center gap-2 px-5 shadow-sm"
+                  >
+                    <Plus className="h-4 w-4" /> Add Position
+                  </Button>
+                </div>
+              </div>
+            </div>
+          )}
+
           <ResponsiveContainer width="100%" height="100%">
-            <RechartsAreaChart data={chartData} margin={{ top: 10, right: 10, left: -25, bottom: 0 }}>
+            <RechartsAreaChart data={chartData} margin={{ top: 12, right: 10, left: -20, bottom: 0 }}>
               <defs>
                 <linearGradient id="activeGradient" x1="0" y1="0" x2="0" y2="1">
                   <stop offset="5%" stopColor="var(--foreground)" stopOpacity={0.15}/>
@@ -1249,99 +1558,113 @@ export function PortfolioView({
                 dataKey="dateLabel"
                 axisLine={false}
                 tickLine={false}
-                interval={isMobile ? 10 : 5}
+                interval={isMobile ? Math.max(1, Math.floor(chartData.length / 3)) : Math.max(1, Math.floor(chartData.length / 6))}
                 style={{ fontSize: "9px", fontFamily: "var(--font-geist-mono)", fill: "#86868B" }}
                 dy={10}
               />
               <YAxis
                 axisLine={false}
                 tickLine={false}
-                domain={[0, "auto"]}
+                domain={yAxisDomain}
+                ticks={yAxisTicks}
+                allowDataOverflow={true}
                 style={{ fontSize: "9px", fontFamily: "var(--font-geist-mono)", fill: "#86868B" }}
-                tickFormatter={(val) => `${currencySymbol}${Math.round(val)}`}
+                tickFormatter={yAxisTickFormatter}
               />
               <RechartsTooltip 
                 content={<CustomPortfolioTooltip formatCurrency={formatCurrency} selectedChartMode={selectedChartMode} assets={assets} />}
                 cursor={{ stroke: "var(--border)", strokeWidth: 1 }}
               />
-              {/* Per-asset overlay lines (rendered first so they sit behind the total) */}
-              {selectedChartMode === "all" && assets.map((a) => (
+              {/* Multi-Asset Comparison Lines (Dedicated Compare Mode) */}
+              {selectedChartMode === "compare" && assets.map((a, idx) => {
+                const color = ASSET_LINE_COLORS[idx % ASSET_LINE_COLORS.length];
+                return (
+                  <RechartsArea
+                    key={`compare_${a.id}`}
+                    type="stepAfter"
+                    dataKey={`asset_${a.id}`}
+                    stroke={color}
+                    strokeWidth={2}
+                    fill="none"
+                    name={a.symbol?.toUpperCase() || a.asset_name}
+                    connectNulls={false}
+                    baseValue="dataMin"
+                    isAnimationActive={true}
+                    animationBegin={0}
+                    animationDuration={1000}
+                    animationEasing="ease-out"
+                  />
+                );
+              })}
+              {/* Intraday High/Low Range Channel (Total Mode Only) */}
+              {selectedChartMode === "all" && (
                 <RechartsArea
-                  key={`overlay_${a.id}`}
                   type="stepAfter"
-                  dataKey={`asset_${a.id}`}
+                  dataKey="maxValuation"
                   stroke="var(--foreground)"
-                  strokeOpacity={Math.min(0.45, 0.9 / Math.max(assets.length, 1))}
+                  strokeOpacity={0.25}
+                  strokeWidth={1}
+                  strokeDasharray="2 2"
+                  fill="url(#activeGradient)"
+                  fillOpacity={0.05}
+                  name="Day High (Max)"
+                  connectNulls={false}
+                  baseValue="dataMin"
+                  isAnimationActive={true}
+                />
+              )}
+              {selectedChartMode === "all" && (
+                <RechartsArea
+                  type="stepAfter"
+                  dataKey="minValuation"
+                  stroke="var(--foreground)"
+                  strokeOpacity={0.25}
                   strokeWidth={1}
                   strokeDasharray="2 2"
                   fill="none"
-                  name={a.symbol?.toUpperCase() || a.asset_name}
-                  connectNulls={true}
+                  name="Day Low (Min)"
+                  connectNulls={false}
+                  baseValue="dataMin"
+                  isAnimationActive={true}
+                />
+              )}
+              {selectedChartMode !== "compare" && (
+                <RechartsArea
+                  type="stepAfter"
+                  dataKey="actualValuation"
+                  stroke="var(--foreground)"
+                  strokeWidth={2}
+                  fill="url(#activeGradient)"
+                  fillOpacity={1}
+                  name="Closing Valuation"
+                  connectNulls={false}
+                  baseValue="dataMin"
                   isAnimationActive={true}
                   animationBegin={0}
                   animationDuration={1000}
                   animationEasing="ease-out"
                 />
-              ))}
-              <RechartsArea
-                type="stepAfter"
-                dataKey="actualValuation"
-                stroke="var(--foreground)"
-                strokeWidth={2}
-                fill="url(#activeGradient)"
-                fillOpacity={1}
-                name="Actual"
-                connectNulls={true}
-                isAnimationActive={true}
-                animationBegin={0}
-                animationDuration={1000}
-                animationEasing="ease-out"
-              />
-              <RechartsArea
-                type="monotone"
-                dataKey="projectionValuation"
-                stroke="var(--foreground)"
-                strokeOpacity={0.5}
-                strokeWidth={1.5}
-                strokeDasharray="5 5"
-                fill="url(#projectionGradient)"
-                fillOpacity={1}
-                name="Projection"
-                connectNulls={true}
-                isAnimationActive={true}
-                animationBegin={0}
-                animationDuration={1000}
-                animationEasing="ease-out"
-              />
-              {selectedChartMode !== "all" && chartData.some((d) => d.invested > 0) && (
-                <ReferenceLine
-                  y={chartData[chartData.length - 1]?.invested || 0}
-                  stroke="var(--border)"
-                  strokeDasharray="3 3"
-                  label={{
-                    value: "Cost Basis",
-                    fill: "#86868B",
-                    fontSize: 8,
-                    fontFamily: "var(--font-geist-mono)",
-                    position: "right",
-                  }}
+              )}
+              {selectedChartMode !== "compare" && (
+                <RechartsArea
+                  type="monotone"
+                  dataKey="projectionValuation"
+                  stroke="var(--foreground)"
+                  strokeOpacity={0.5}
+                  strokeWidth={1.5}
+                  strokeDasharray="5 5"
+                  fill="url(#projectionGradient)"
+                  fillOpacity={1}
+                  name="Projection"
+                  connectNulls={false}
+                  baseValue="dataMin"
+                  isAnimationActive={true}
+                  animationBegin={0}
+                  animationDuration={1000}
+                  animationEasing="ease-out"
                 />
               )}
-              {selectedChartMode === "all" && chartData.some((d) => d.invested > 0) && (
-                <ReferenceLine
-                  y={chartData[chartData.length - 1]?.invested || 0}
-                  stroke="var(--border)"
-                  strokeDasharray="3 3"
-                  label={{
-                    value: "Cost Basis",
-                    fill: "#86868B",
-                    fontSize: 8,
-                    fontFamily: "var(--font-geist-mono)",
-                    position: "right",
-                  }}
-                />
-              )}
-            </RechartsAreaChart>
+              </RechartsAreaChart>
           </ResponsiveContainer>
         </div>
       </section>
@@ -1501,11 +1824,25 @@ export function PortfolioView({
           </div>
 
           {/* Live Server Sync Status & 15-Minute Countdown Clock */}
-          <div className="flex items-center gap-1.5 px-2.5 py-1 border border-border/60 bg-card/60 text-muted-foreground font-mono text-[9px]">
-            <span className="h-1.5 w-1.5 rounded-full bg-emerald-500 animate-pulse" />
-            <span className="uppercase text-[9px] font-bold tracking-wider hidden xs:inline">NEXT SYNC:</span>
-            <span className="text-foreground font-mono font-bold">{timeToNextSync}</span>
-          </div>
+          {isAdmin ? (
+            <button
+              onClick={() => syncLiveMarketPrices(true, true)}
+              disabled={isSyncing}
+              className="flex items-center gap-1.5 px-2.5 py-1 border border-border/60 bg-card/60 text-muted-foreground font-mono text-[9px] hover:border-foreground/40 hover:text-foreground transition-all cursor-pointer select-none group"
+              title="Admin Quote Refresh"
+            >
+              <span className={cn("h-1.5 w-1.5 rounded-full bg-emerald-500", isSyncing ? "animate-ping" : "animate-pulse")} />
+              <RefreshCw className={cn("h-2.5 w-2.5 text-muted-foreground group-hover:text-foreground transition-all", isSyncing && "animate-spin text-emerald-500")} />
+              <span className="uppercase text-[9px] font-bold tracking-wider hidden xs:inline">{isSyncing ? "UPDATING" : "NEXT SYNC:"}</span>
+              <span className="text-foreground font-mono font-bold">{isSyncing ? "LIVE..." : timeToNextSync}</span>
+            </button>
+          ) : (
+            <div className="flex items-center gap-1.5 px-2.5 py-1 border border-border/60 bg-card/60 text-muted-foreground font-mono text-[9px] select-none">
+              <span className="h-1.5 w-1.5 rounded-full bg-emerald-500 animate-pulse" />
+              <span className="uppercase text-[9px] font-bold tracking-wider hidden xs:inline">NEXT SYNC:</span>
+              <span className="text-foreground font-mono font-bold">{timeToNextSync}</span>
+            </div>
+          )}
         </div>
 
         <div className="flex flex-col gap-2">
@@ -1539,7 +1876,7 @@ export function PortfolioView({
                           <span className="font-bold font-mono text-sm uppercase text-foreground truncate">
                             {asset.symbol || asset.asset_name}
                           </span>
-                          <span className="text-[9px] font-mono px-2 py-0.5 rounded-full bg-secondary/50 border border-border/80 text-muted-foreground uppercase shrink-0 font-semibold">
+                          <span className="inline-flex items-center justify-center text-[9px] font-mono leading-none px-2 py-1 rounded-full bg-secondary/60 border border-border/80 text-muted-foreground uppercase shrink-0 font-bold tracking-wider">
                             {asset.asset_type === "stock_etf" ? "STOCKS" : asset.asset_type.toUpperCase()}
                           </span>
                         </div>
@@ -1604,6 +1941,18 @@ export function PortfolioView({
                         )}
 
                         <div className="flex items-center justify-end gap-2 border-t border-border/40 pt-3">
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setSelectedChartMode(asset.id);
+                              window.scrollTo({ top: 0, behavior: "smooth" });
+                            }}
+                            className="h-8 rounded-none font-mono text-[9px] uppercase tracking-widest border-border hover:bg-secondary"
+                          >
+                            <TrendingUp className="h-3 w-3 mr-1" /> Chart
+                          </Button>
                           <Button
                             variant="outline"
                             size="sm"
@@ -1806,7 +2155,7 @@ export function PortfolioView({
                                       <span className="font-bold text-xs uppercase text-foreground truncate font-mono">
                                         {item.symbol}
                                       </span>
-                                      <span className="text-[8px] font-mono px-1.5 py-0.2 rounded-full bg-secondary/60 border border-border text-muted-foreground uppercase shrink-0 font-semibold">
+                                      <span className="inline-flex items-center justify-center text-[8px] font-mono leading-none px-1.5 py-0.5 rounded-full bg-secondary/60 border border-border text-muted-foreground uppercase shrink-0 font-bold tracking-wider">
                                         {item.badgeLabel}
                                       </span>
                                       {item.exchange && (
@@ -1891,7 +2240,7 @@ export function PortfolioView({
                                     <span className="font-bold text-xs uppercase text-foreground truncate font-mono">
                                       {preset.symbol}
                                     </span>
-                                    <span className="text-[8px] font-mono px-1.5 py-0.2 rounded-full bg-secondary/60 border border-border text-muted-foreground uppercase shrink-0 font-semibold">
+                                    <span className="inline-flex items-center justify-center text-[8px] font-mono leading-none px-1.5 py-0.5 rounded-full bg-secondary/60 border border-border text-muted-foreground uppercase shrink-0 font-bold tracking-wider">
                                       {preset.badgeLabel}
                                     </span>
                                   </div>

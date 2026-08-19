@@ -26,6 +26,7 @@ interface SystemContextType {
   // Monetization & Customization State
   subscriptionTier: "FREE" | "PRO"
   isPro: boolean
+  isAdmin: boolean
   aiProvider: string
   customApiKey: string
   decayWeight: number
@@ -154,6 +155,7 @@ export function SystemProvider({ children }: { children: React.ReactNode }) {
   const currencySymbol = getCurrencySymbol(currency)
   const subscriptionTier = profile?.subscription_tier || "FREE"
   const isPro = subscriptionTier === "PRO"
+  const isAdmin = profile?.is_admin === true || profile?.role === "admin" || profile?.role === "super_admin"
   const aiProvider = profile?.ai_provider || "gemini"
   const customApiKey = profile?.custom_api_key || ""
   const decayWeight = profile?.decay_weight !== undefined ? Number(profile.decay_weight) : 0.0462
@@ -374,6 +376,7 @@ export function SystemProvider({ children }: { children: React.ReactNode }) {
       formatDate,
       subscriptionTier,
       isPro,
+      isAdmin,
       aiProvider,
       customApiKey,
       decayWeight,

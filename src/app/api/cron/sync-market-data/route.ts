@@ -249,6 +249,25 @@ async function handleSync(req: Request) {
 
         const unrealizedPnL = totalVal - totalCost;
         const totalNetWorth = liquid + totalVal;
+        const currVal = parseFloat(totalVal.toFixed(2));
+
+        // Fetch existing today snapshot to track intraday min/max range
+        const { data: existingTodaySnap } = await adminDb
+          .from("portfolio_snapshots")
+          .select("min_valuation, max_valuation")
+          .eq("user_id", userId)
+          .eq("snapshot_date", todayDate)
+          .maybeSingle();
+
+        let minVal = currVal;
+        let maxVal = currVal;
+
+        if (existingTodaySnap) {
+          const prevMin = parseFloat(existingTodaySnap.min_valuation);
+          const prevMax = parseFloat(existingTodaySnap.max_valuation);
+          if (!isNaN(prevMin) && prevMin > 0) minVal = Math.min(prevMin, currVal);
+          if (!isNaN(prevMax) && prevMax > 0) maxVal = Math.max(prevMax, currVal);
+        }
 
         // Upsert today's snapshot matching exact schema
         await adminDb.from("portfolio_snapshots").upsert(
@@ -259,6 +278,9 @@ async function handleSync(req: Request) {
             liquid_cash: parseFloat(liquid.toFixed(2)),
             invested_capital: parseFloat(totalCost.toFixed(2)),
             total_gain_loss: parseFloat(unrealizedPnL.toFixed(2)),
+            min_valuation: parseFloat(minVal.toFixed(2)),
+            max_valuation: parseFloat(maxVal.toFixed(2)),
+            closing_valuation: currVal,
             asset_breakdown: breakdown,
             created_at: nowIso,
           },

@@ -59,19 +59,19 @@ function BankIconBadge({ domain, name }: { domain?: string; name: string }) {
   const [hasError, setHasError] = useState(false)
   if (domain && !hasError) {
     return (
-      <div className="h-6 w-6 rounded-md bg-secondary/40 border border-border shrink-0 flex items-center justify-center p-0.5 overflow-hidden shadow-sm">
+      <div className="h-6 w-6 rounded-md bg-secondary/40 border border-border shrink-0 flex items-center justify-center p-0.5 overflow-hidden shadow-xs relative">
         <img
           src={`https://www.google.com/s2/favicons?domain=${domain}&sz=128`}
           alt={name}
           loading="eager"
-          className="h-full w-full object-contain rounded-sm"
+          className="h-full w-full object-contain rounded-xs"
           onError={() => setHasError(true)}
         />
       </div>
     )
   }
   return (
-    <div className="h-6 w-6 rounded-md bg-secondary/50 border border-border shrink-0 flex items-center justify-center font-mono text-[9px] font-bold uppercase text-foreground shadow-sm">
+    <div className="h-6 w-6 rounded-md bg-secondary/50 border border-border shrink-0 flex items-center justify-center font-mono text-[9px] font-bold uppercase text-foreground shadow-xs">
       {name.slice(0, 2).toUpperCase()}
     </div>
   )

@@ -52,19 +52,19 @@ function BankIconBadge({ domain, name, isApple }: { domain?: string; name: strin
   }
   if (domain && !hasError) {
     return (
-      <div className="h-8 w-8 rounded-lg bg-secondary/40 border border-border shrink-0 flex items-center justify-center p-1 overflow-hidden shadow-sm">
+      <div className="h-8 w-8 rounded-lg bg-secondary/40 border border-border shrink-0 flex items-center justify-center p-1 overflow-hidden shadow-xs relative">
         <img
           src={`https://www.google.com/s2/favicons?domain=${domain}&sz=128`}
           alt={name}
           loading="eager"
-          className="h-full w-full object-contain rounded-sm"
+          className="h-full w-full object-contain rounded-xs"
           onError={() => setHasError(true)}
         />
       </div>
     )
   }
   return (
-    <div className="h-8 w-8 rounded-lg bg-secondary/50 border border-border shrink-0 flex items-center justify-center font-mono text-[10px] font-bold uppercase text-foreground shadow-sm">
+    <div className="h-8 w-8 rounded-lg bg-secondary/50 border border-border shrink-0 flex items-center justify-center font-mono text-[10px] font-bold uppercase text-foreground shadow-xs">
       {name.slice(0, 2).toUpperCase()}
     </div>
   )

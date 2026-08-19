@@ -73,13 +73,23 @@ export async function POST(req: Request) {
     }
 
     const now = Date.now();
+    const adminDb = getAdminClient();
 
-    // Check user request throttle
-    const lastUserFetch = userLastFetchMap.get(user.id) || 0;
+    // Check user role for manual force refresh permissions
+    const { data: profile } = await adminDb
+      .from("profiles")
+      .select("is_admin, role")
+      .eq("id", user.id)
+      .maybeSingle();
+
+    const isAdmin = profile?.is_admin === true || profile?.role === "admin" || profile?.role === "super_admin";
     const body = await req.json().catch(() => ({}));
-    const forceRefresh = body?.force === true;
+    const requestedForce = body?.force === true;
+    const effectiveForce = requestedForce && isAdmin;
 
-    if (forceRefresh && now - lastUserFetch < USER_THROTTLE_MS) {
+    // Check admin request throttle
+    const lastUserFetch = userLastFetchMap.get(user.id) || 0;
+    if (effectiveForce && now - lastUserFetch < USER_THROTTLE_MS) {
       const waitSeconds = Math.ceil((USER_THROTTLE_MS - (now - lastUserFetch)) / 1000);
       return NextResponse.json(
         { error: `Rate limit hit. Please wait ${waitSeconds} seconds before forcing another market price update.` },
@@ -87,11 +97,10 @@ export async function POST(req: Request) {
       );
     }
 
-    if (forceRefresh) {
+    if (effectiveForce) {
       userLastFetchMap.set(user.id, now);
     }
 
-    const adminDb = getAdminClient();
     const { data: assets, error: dbError } = await adminDb
       .from("portfolio_assets")
       .select("*")
@@ -111,12 +120,12 @@ export async function POST(req: Request) {
     const updatedPrices: Record<string, CachedPrice> = {};
     const assetsToFetchRemote: typeof validAssets = [];
 
-    // Check cache first unless forceRefresh is set
+    // Check cache first unless effectiveForce is set
     validAssets.forEach((asset: any) => {
       const cacheKey = `${asset.asset_type}:${asset.symbol.toUpperCase()}`;
       const cached = priceCache.get(cacheKey);
 
-      if (!forceRefresh && cached && now - cached.timestamp < CACHE_TTL_MS) {
+      if (!effectiveForce && cached && now - cached.timestamp < CACHE_TTL_MS) {
         updatedPrices[asset.id] = cached;
       } else {
         assetsToFetchRemote.push(asset);
@@ -233,6 +242,7 @@ export async function POST(req: Request) {
       const updatedMeta = {
         ...(existingAsset?.metadata || {}),
         change24h: data.change24h,
+        last_synced_at: new Date().toISOString(),
       };
 
       return adminDb
@@ -247,6 +257,104 @@ export async function POST(req: Request) {
     });
 
     await Promise.all(updatePromises);
+
+    // Auto-update today's snapshot for accurate trajectory charting
+    try {
+      const [{ data: latestBalance }, { data: refreshedAssets }] = await Promise.all([
+        adminDb
+          .from("account_balance")
+          .select("amount, date")
+          .eq("user_id", user.id)
+          .order("date", { ascending: false })
+          .limit(1)
+          .maybeSingle(),
+        adminDb
+          .from("portfolio_assets")
+          .select("quantity, current_price, buy_price, asset_type")
+          .eq("user_id", user.id),
+      ]);
+
+      let liquidCash = 0;
+      if (latestBalance?.amount) {
+        const baseSnap = parseFloat(latestBalance.amount) || 0;
+        const snapDateStr = typeof latestBalance.date === "string"
+          ? latestBalance.date.split("T")[0]
+          : new Date(latestBalance.date).toISOString().split("T")[0];
+
+        const { data: txs } = await adminDb
+          .from("tracker_expense")
+          .select("amount")
+          .eq("user_id", user.id)
+          .gte("date", `${snapDateStr}T00:00:00.000Z`);
+
+        const netTx = (txs || []).reduce((sum: number, tx: any) => sum + (parseFloat(tx.amount) || 0), 0);
+        liquidCash = parseFloat((baseSnap + netTx).toFixed(2));
+      }
+
+      let totalVal = 0;
+      let totalCost = 0;
+      const breakdown: Record<string, { valuation: number; count: number }> = {
+        stock_etf: { valuation: 0, count: 0 },
+        crypto: { valuation: 0, count: 0 },
+        cash_equivalent: { valuation: 0, count: 0 },
+        commodity: { valuation: 0, count: 0 },
+        other: { valuation: 0, count: 0 },
+      };
+
+      (refreshedAssets || []).forEach((a: any) => {
+        const q = Number(a.quantity) || 0;
+        const cp = Number(a.current_price) || 0;
+        const bp = Number(a.buy_price) || 0;
+        const assetVal = q * cp;
+        totalVal += assetVal;
+        totalCost += q * bp;
+
+        const type = a.asset_type || "other";
+        if (!breakdown[type]) breakdown[type] = { valuation: 0, count: 0 };
+        breakdown[type].valuation += assetVal;
+        breakdown[type].count += 1;
+      });
+
+      const todayStr = new Date().toISOString().split("T")[0];
+      const currVal = parseFloat(totalVal.toFixed(2));
+
+      // Fetch existing today snapshot to track intraday min/max range
+      const { data: existingTodaySnap } = await adminDb
+        .from("portfolio_snapshots")
+        .select("min_valuation, max_valuation")
+        .eq("user_id", user.id)
+        .eq("snapshot_date", todayStr)
+        .maybeSingle();
+
+      let minVal = currVal;
+      let maxVal = currVal;
+
+      if (existingTodaySnap) {
+        const prevMin = parseFloat(existingTodaySnap.min_valuation);
+        const prevMax = parseFloat(existingTodaySnap.max_valuation);
+        if (!isNaN(prevMin) && prevMin > 0) minVal = Math.min(prevMin, currVal);
+        if (!isNaN(prevMax) && prevMax > 0) maxVal = Math.max(prevMax, currVal);
+      }
+
+      await adminDb.from("portfolio_snapshots").upsert(
+        {
+          user_id: user.id,
+          snapshot_date: todayStr,
+          total_net_worth: parseFloat((liquidCash + totalVal).toFixed(2)),
+          liquid_cash: parseFloat(liquidCash.toFixed(2)),
+          invested_capital: parseFloat(totalCost.toFixed(2)),
+          total_gain_loss: parseFloat((totalVal - totalCost).toFixed(2)),
+          min_valuation: parseFloat(minVal.toFixed(2)),
+          max_valuation: parseFloat(maxVal.toFixed(2)),
+          closing_valuation: currVal,
+          asset_breakdown: breakdown,
+          created_at: new Date().toISOString(),
+        },
+        { onConflict: "user_id,snapshot_date" }
+      );
+    } catch (snapErr) {
+      console.warn("Snapshot auto-refresh non-fatal warning:", snapErr);
+    }
 
     return NextResponse.json({
       prices: updatedPrices,

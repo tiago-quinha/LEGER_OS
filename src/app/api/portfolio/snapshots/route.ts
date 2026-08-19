@@ -129,6 +129,25 @@ export async function POST(req: Request) {
     const totalNetWorth = liquidCash + portfolioValuation;
     const totalGainLoss = portfolioValuation - investedCapital;
     const todayStr = new Date().toISOString().split("T")[0];
+    const currVal = parseFloat(portfolioValuation.toFixed(2));
+
+    // Fetch existing today snapshot to track intraday min/max range
+    const { data: existingTodaySnap } = await adminDb
+      .from("portfolio_snapshots")
+      .select("min_valuation, max_valuation")
+      .eq("user_id", user.id)
+      .eq("snapshot_date", todayStr)
+      .maybeSingle();
+
+    let minVal = currVal;
+    let maxVal = currVal;
+
+    if (existingTodaySnap) {
+      const prevMin = parseFloat(existingTodaySnap.min_valuation);
+      const prevMax = parseFloat(existingTodaySnap.max_valuation);
+      if (!isNaN(prevMin) && prevMin > 0) minVal = Math.min(prevMin, currVal);
+      if (!isNaN(prevMax) && prevMax > 0) maxVal = Math.max(prevMax, currVal);
+    }
 
     const { data: snapshot, error: snapshotError } = await adminDb
       .from("portfolio_snapshots")
@@ -140,6 +159,9 @@ export async function POST(req: Request) {
           liquid_cash: parseFloat(liquidCash.toFixed(2)),
           invested_capital: parseFloat(investedCapital.toFixed(2)),
           total_gain_loss: parseFloat(totalGainLoss.toFixed(2)),
+          min_valuation: parseFloat(minVal.toFixed(2)),
+          max_valuation: parseFloat(maxVal.toFixed(2)),
+          closing_valuation: currVal,
           asset_breakdown: breakdown,
           created_at: new Date().toISOString(),
         },
