@@ -7,6 +7,7 @@ import { User, Session } from "@supabase/supabase-js"
 import { formatCurrency as formatCurr, formatDate as formatDt, getCurrencySymbol, getProPrice } from "@/lib/format"
 import { StripePaymentModal } from "@/components/StripePaymentModal"
 import { StripeManageDrawer } from "@/components/StripeManageDrawer"
+import { FeedbackDrawer } from "@/components/FeedbackDrawer"
 import { toast } from "sonner"
 
 interface SystemContextType {
@@ -57,6 +58,11 @@ interface SystemContextType {
   setSettingsActiveTab: (val: string) => void
   isSubscriptionOnly: boolean
   setSubscriptionOnly: (val: boolean) => void
+
+  // Feedback & Bug Reporting Drawer
+  isFeedbackOpen: boolean
+  setFeedbackOpen: (val: boolean) => void
+  openFeedbackDrawer: (category?: string, context?: string) => void
 }
 
 const SystemContext = createContext<SystemContextType | undefined>(undefined)
@@ -79,43 +85,80 @@ export function SystemProvider({ children }: { children: React.ReactNode }) {
   const [settingsActiveTab, setSettingsActiveTab] = useState("paycheck")
   const [isSubscriptionOnly, setSubscriptionOnly] = useState(false)
 
+  // Feedback & Bug Reporting Drawer state
+  const [feedbackState, setFeedbackState] = useState<{
+    isOpen: boolean
+    category: string
+    context: string
+  }>({
+    isOpen: false,
+    category: "general",
+    context: "",
+  })
+
+  const openFeedbackDrawer = (category: string = "general", context: string = "") => {
+    setFeedbackState({
+      isOpen: true,
+      category,
+      context,
+    })
+  }
+
+  const setFeedbackOpen = (val: boolean) => {
+    setFeedbackState(prev => ({ ...prev, isOpen: val }))
+  }
+
   // Auth initialization
   useEffect(() => {
+    let isMounted = true
+
     const initAuth = async () => {
-      const { data: { session } } = await supabase.auth.getSession()
-      setSession(session)
-      setUser(session?.user || null)
-      
-      if (session?.user) {
-        const { data: profile } = await supabase
-          .from('profiles')
-          .select('*')
-          .eq('id', session.user.id)
-          .single()
-        setProfile(profile)
+      try {
+        const { data: { session } } = await supabase.auth.getSession()
+        if (!isMounted) return
+
+        setSession(session)
+        setUser(session?.user || null)
+        
+        if (session?.user) {
+          const { data: profile } = await supabase
+            .from('profiles')
+            .select('*')
+            .eq('id', session.user.id)
+            .single()
+          if (isMounted) setProfile(profile)
+        }
+      } catch (err) {
+        console.warn("[Auth Init Error]:", err)
+      } finally {
+        if (isMounted) setIsLoading(false)
       }
-      setIsLoading(false)
     }
 
     initAuth()
 
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (_event, session) => {
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
+      if (!isMounted) return
       setSession(session)
       setUser(session?.user || null)
+
       if (session?.user) {
         const { data: profile } = await supabase
           .from('profiles')
           .select('*')
           .eq('id', session.user.id)
           .single()
-        setProfile(profile)
+        if (isMounted) setProfile(profile)
       } else {
-        setProfile(null)
+        if (isMounted) setProfile(null)
       }
-      setIsLoading(false)
+      if (isMounted) setIsLoading(false)
     })
 
-    return () => subscription.unsubscribe()
+    return () => {
+      isMounted = false
+      subscription.unsubscribe()
+    }
   }, [])
 
   const refreshData = () => {
@@ -402,7 +445,10 @@ export function SystemProvider({ children }: { children: React.ReactNode }) {
       settingsActiveTab,
       setSettingsActiveTab,
       isSubscriptionOnly,
-      setSubscriptionOnly
+      setSubscriptionOnly,
+      isFeedbackOpen: feedbackState.isOpen,
+      setFeedbackOpen,
+      openFeedbackDrawer,
     }}>
       {children}
       <StripePaymentModal
@@ -416,6 +462,12 @@ export function SystemProvider({ children }: { children: React.ReactNode }) {
         isOpen={stripeManageState.isOpen}
         onClose={() => setStripeManageState(prev => ({ ...prev, isOpen: false }))}
         clientSecret={stripeManageState.clientSecret}
+      />
+      <FeedbackDrawer
+        isOpen={feedbackState.isOpen}
+        onClose={() => setFeedbackState(prev => ({ ...prev, isOpen: false }))}
+        initialCategory={feedbackState.category}
+        initialContext={feedbackState.context}
       />
     </SystemContext.Provider>
   )

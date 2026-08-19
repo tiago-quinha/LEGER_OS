@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useMemo, useCallback, useTransition } from "react";
+import { useState, useEffect, useMemo, useCallback, useTransition, useRef } from "react";
 import { createPortal } from "react-dom";
 import { useRouter } from "next/navigation";
 import { motion, AnimatePresence, useDragControls } from "framer-motion";
@@ -405,10 +405,23 @@ function CustomPortfolioTooltip({ active, payload, label, formatCurrency, select
               })}
             </div>
           )}
+          {/* Day Return (Daily / 24H Return) */}
+          {data.dayReturn != null && (
+            <p className="flex justify-between gap-6 md:gap-8 uppercase text-[9px] border-t border-border/40 pt-1">
+              <span>Day Return:</span>
+              <span className={data.dayReturn >= 0 ? "text-emerald-500 font-semibold" : "text-destructive font-semibold"}>
+                {data.dayReturn >= 0 ? "+" : ""}{formatCurrency(data.dayReturn)}
+                {data.dayReturnPct != null && !isNaN(data.dayReturnPct) && ` (${data.dayReturnPct >= 0 ? "+" : ""}${data.dayReturnPct.toFixed(2)}%)`}
+              </span>
+            </p>
+          )}
+
+          {/* Total Unrealized Return */}
           <p className="flex justify-between gap-6 md:gap-8 uppercase text-[9px] border-t border-border/40 pt-1">
-            <span>Return:</span>
+            <span>Total Return:</span>
             <span className={data.gainLoss >= 0 ? "text-emerald-500 font-semibold" : "text-destructive font-semibold"}>
               {data.gainLoss >= 0 ? "+" : ""}{formatCurrency(data.gainLoss)}
+              {data.invested > 0 && ` (${data.gainLoss >= 0 ? "+" : ""}${((data.gainLoss / data.invested) * 100).toFixed(2)}%)`}
             </span>
           </p>
         </div>
@@ -988,6 +1001,16 @@ export function PortfolioView({
   }, [assets, liquidBalance, currentCycle, currentIndex]);
 
   const [selectedChartMode, setSelectedChartMode] = useState<string>("all");
+  const chartSectionRef = useRef<HTMLElement>(null);
+
+  const handleSelectAssetChart = (mode: string) => {
+    setSelectedChartMode(mode);
+    if (chartSectionRef.current) {
+      chartSectionRef.current.scrollIntoView({ behavior: "smooth", block: "start" });
+    } else {
+      window.scrollTo({ top: 0, behavior: "smooth" });
+    }
+  };
 
   // Chart Data memo: exact day-by-day trajectory reflecting asset purchase dates + future dashed separation
   const chartData = useMemo(() => {
@@ -1089,6 +1112,8 @@ export function PortfolioView({
           projectionValuation: null,
           invested: 0,
           gainLoss: 0,
+          dayReturn: null,
+          dayReturnPct: null,
           ...perAsset,
         };
       });
@@ -1137,6 +1162,9 @@ export function PortfolioView({
           }
         }
 
+        const dayReturn = isToday ? metrics.total24hChange : null;
+        const dayReturnPct = isToday ? metrics.total24hChangePct : null;
+
         return {
           date: dateStr,
           dateLabel,
@@ -1148,6 +1176,8 @@ export function PortfolioView({
           projectionValuation: isToday || isFuture ? dayCloseVal : null,
           invested: dayInvested,
           gainLoss: dayGainLoss,
+          dayReturn,
+          dayReturnPct,
         };
       });
     } else if (["stock_etf", "crypto", "commodity"].includes(selectedChartMode)) {
@@ -1188,10 +1218,32 @@ export function PortfolioView({
           projectionValuation: null,
           invested: formattedInvested,
           gainLoss: parseFloat((val - invested).toFixed(2)),
+          dayReturn: null,
+          dayReturnPct: null,
         };
       });
     } else {
-      const targetAsset = assets.find((a) => a.id === selectedChartMode);
+      const targetAsset = assets.find(
+        (a) => String(a.id) === String(selectedChartMode) || (a.symbol && a.symbol.toLowerCase() === selectedChartMode.toLowerCase())
+      );
+
+      const qty = Number(targetAsset?.quantity) || 0;
+      const buyPrice = Number(targetAsset?.buy_price) || Number(targetAsset?.current_price) || 0;
+      const currPrice = Number(targetAsset?.current_price) || buyPrice;
+      const assetInvested = parseFloat((qty * buyPrice).toFixed(2));
+      const assetCurrentVal = parseFloat((qty * currPrice).toFixed(2));
+      const assetGainLoss = parseFloat((assetCurrentVal - assetInvested).toFixed(2));
+
+      const change24hPct = Number(targetAsset?.metadata?.change24h || 0);
+      const prevPrice = change24hPct !== 0 ? currPrice / (1 + change24hPct / 100) : buyPrice;
+      const todayDayReturn = change24hPct !== 0 
+        ? parseFloat((assetCurrentVal - qty * prevPrice).toFixed(2)) 
+        : parseFloat((assetCurrentVal - assetInvested).toFixed(2));
+      const todayDayReturnPct = change24hPct !== 0 ? change24hPct : (assetInvested > 0 ? (assetGainLoss / assetInvested) * 100 : 0);
+
+      const assetAcquisitionDate = targetAsset?.created_at
+        ? targetAsset.created_at.split("T")[0]
+        : (earliestActiveDate || "2026-08-17");
 
       return Array.from({ length: cycleDaysCount }).map((_, i) => {
         const d = new Date(startD);
@@ -1202,36 +1254,43 @@ export function PortfolioView({
         const isPast = dateStr < todayStr;
         const isToday = dateStr === todayStr;
 
-        const qty = Number(targetAsset?.quantity) || 0;
-        const buyPrice = Number(targetAsset?.buy_price) || 0;
-        const currPrice = Number(targetAsset?.current_price) || buyPrice;
+        let val: number | null = null;
+        let dayReturn: number | null = null;
+        let dayReturnPct: number | null = null;
 
-        let val = 0;
-        if (dateStr <= (earliestActiveDate || "2026-08-17")) {
-          val = qty * buyPrice;
-        } else if (isPast || isToday) {
-          val = qty * currPrice;
+        if (dateStr < assetAcquisitionDate) {
+          val = null;
+        } else if (dateStr === assetAcquisitionDate) {
+          val = assetInvested;
+          dayReturn = 0;
+          dayReturnPct = 0;
+        } else if (isToday) {
+          val = assetCurrentVal;
+          dayReturn = todayDayReturn;
+          dayReturnPct = todayDayReturnPct;
+        } else if (isPast) {
+          val = assetCurrentVal;
+          dayReturn = 0;
+          dayReturnPct = 0;
         }
-
-        const assetInvested = qty * buyPrice;
-        const formattedVal = parseFloat(val.toFixed(2));
-        const formattedInvested = parseFloat(assetInvested.toFixed(2));
 
         return {
           date: dateStr,
           dateLabel,
-          valuation: formattedVal,
-          actualValuation: isPast || isToday ? formattedVal : null,
-          minValuation: isPast || isToday ? formattedVal : null,
-          maxValuation: isPast || isToday ? formattedVal : null,
-          closingValuation: isPast || isToday ? formattedVal : null,
+          valuation: val ?? 0,
+          actualValuation: val,
+          minValuation: val,
+          maxValuation: val,
+          closingValuation: val,
           projectionValuation: null,
-          invested: formattedInvested,
-          gainLoss: parseFloat((val - assetInvested).toFixed(2)),
+          invested: assetInvested,
+          gainLoss: assetGainLoss,
+          dayReturn,
+          dayReturnPct,
         };
       });
     }
-  }, [selectedChartMode, assets, snapshots, currentCycle, expenses, injectedStartBalance, liquidBalance]);
+  }, [selectedChartMode, assets, snapshots, currentCycle, expenses, injectedStartBalance, liquidBalance, metrics]);
 
   // Clean dynamic integer vertical domain with dynamic zoom and increments (no commas or decimals)
   const { yAxisDomain, yAxisTicks, yAxisTickFormatter } = useMemo(() => {
@@ -1271,11 +1330,12 @@ export function PortfolioView({
     else if (spread > 50) step = 10;
     else if (spread > 20) step = 5;
     else if (spread > 8) step = 2;
-    else step = 1;
+    else if (spread > 2) step = 1;
+    else step = 0.5;
 
     // Tight dynamic bounds centered around the active holdings
-    const low = Math.max(0, Math.floor((min - (spread === 0 ? step : 0.5)) / step) * step);
-    const high = Math.max(low + step, Math.ceil((max + (spread === 0 ? step : 0.5)) / step) * step);
+    const low = Math.max(0, Math.floor((min - (spread === 0 ? step * 2 : step * 0.5)) / step) * step);
+    const high = Math.max(low + step * 2, Math.ceil((max + (spread === 0 ? step * 2 : step * 0.5)) / step) * step);
 
     const ticks: number[] = [];
     for (let t = low; t <= high; t += step) {
@@ -1285,7 +1345,7 @@ export function PortfolioView({
     return {
       yAxisDomain: [low, high],
       yAxisTicks: ticks,
-      yAxisTickFormatter: (val: number) => `${currencySymbol}${Math.round(val)}`,
+      yAxisTickFormatter: (val: number) => step < 1 ? `${currencySymbol}${val.toFixed(1)}` : `${currencySymbol}${Math.round(val)}`,
     };
   }, [chartData, currencySymbol, selectedChartMode, assets]);
 
@@ -1397,7 +1457,7 @@ export function PortfolioView({
       </header>
 
       {/* 2. Portfolio Valuation Graph FIRST (Clean Dashboard Layout) */}
-      <section className="space-y-4 border border-border ledger-border p-4 md:p-6 bg-card/20 relative" data-no-swipe="true">
+      <section ref={chartSectionRef} className="space-y-4 border border-border ledger-border p-4 md:p-6 bg-card/20 relative scroll-mt-6" data-no-swipe="true">
         {!isPro && (
           <div className="absolute inset-0 z-30 bg-background/95 backdrop-blur-md flex flex-col items-center justify-center p-4 text-center">
             <ProLockOverlay
@@ -1602,36 +1662,59 @@ export function PortfolioView({
                   />
                 );
               })}
-              {/* Intraday High/Low Range Channel (Total Mode Only) */}
+              {/* Intraday High/Low Range Channel (Total Mode Only) - Colored High/Low Points */}
               {selectedChartMode === "all" && (
                 <RechartsArea
                   type="stepAfter"
                   dataKey="maxValuation"
-                  stroke="var(--foreground)"
-                  strokeOpacity={0.25}
-                  strokeWidth={1}
-                  strokeDasharray="2 2"
-                  fill="url(#activeGradient)"
-                  fillOpacity={0.05}
+                  stroke="none"
+                  fill="none"
                   name="Day High (Max)"
                   connectNulls={false}
                   baseValue="dataMin"
                   isAnimationActive={true}
+                  activeDot={(props: any) => {
+                    const { cx, cy, payload } = props;
+                    if (!payload || payload.maxValuation == null) return null;
+                    return (
+                      <circle
+                        key={`max-dot-${cx}-${cy}`}
+                        cx={cx}
+                        cy={cy}
+                        r={4.5}
+                        fill="#10b981"
+                        stroke="#09090b"
+                        strokeWidth={2}
+                      />
+                    );
+                  }}
                 />
               )}
               {selectedChartMode === "all" && (
                 <RechartsArea
                   type="stepAfter"
                   dataKey="minValuation"
-                  stroke="var(--foreground)"
-                  strokeOpacity={0.25}
-                  strokeWidth={1}
-                  strokeDasharray="2 2"
+                  stroke="none"
                   fill="none"
                   name="Day Low (Min)"
                   connectNulls={false}
                   baseValue="dataMin"
                   isAnimationActive={true}
+                  activeDot={(props: any) => {
+                    const { cx, cy, payload } = props;
+                    if (!payload || payload.minValuation == null) return null;
+                    return (
+                      <circle
+                        key={`min-dot-${cx}-${cy}`}
+                        cx={cx}
+                        cy={cy}
+                        r={4.5}
+                        fill="#f43f5e"
+                        stroke="#09090b"
+                        strokeWidth={2}
+                      />
+                    );
+                  }}
                 />
               )}
               {selectedChartMode !== "compare" && (
@@ -1649,6 +1732,20 @@ export function PortfolioView({
                   animationBegin={0}
                   animationDuration={1000}
                   animationEasing="ease-out"
+                  activeDot={(props: any) => {
+                    const { cx, cy } = props;
+                    return (
+                      <circle
+                        key={`actual-dot-${cx}-${cy}`}
+                        cx={cx}
+                        cy={cy}
+                        r={5}
+                        fill="var(--foreground)"
+                        stroke="#09090b"
+                        strokeWidth={2}
+                      />
+                    );
+                  }}
                 />
               )}
               {selectedChartMode !== "compare" && (
@@ -1952,10 +2049,9 @@ export function PortfolioView({
                             size="sm"
                             onClick={(e) => {
                               e.stopPropagation();
-                              setSelectedChartMode(asset.id);
-                              window.scrollTo({ top: 0, behavior: "smooth" });
+                              handleSelectAssetChart(asset.id);
                             }}
-                            className="h-8 rounded-none font-mono text-[9px] uppercase tracking-widest border-border hover:bg-secondary"
+                            className="h-8 rounded-none font-mono text-[9px] uppercase tracking-widest border-border hover:bg-secondary cursor-pointer"
                           >
                             <TrendingUp className="h-3 w-3 mr-1" /> Chart
                           </Button>

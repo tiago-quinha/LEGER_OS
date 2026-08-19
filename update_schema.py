@@ -218,9 +218,30 @@ BEGIN
     END IF;
 END $$;
 
--- Indexes for fast query performance
-CREATE INDEX IF NOT EXISTS idx_portfolio_assets_user_type ON public.portfolio_assets (user_id, asset_type);
-CREATE INDEX IF NOT EXISTS idx_portfolio_snapshots_user_date ON public.portfolio_snapshots (user_id, snapshot_date);
+-- System Feedback table
+CREATE TABLE IF NOT EXISTS public.system_feedback (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    user_id UUID REFERENCES auth.users(id) ON DELETE SET NULL,
+    user_email TEXT,
+    category TEXT NOT NULL DEFAULT 'General Feedback',
+    message TEXT NOT NULL,
+    include_telemetry BOOLEAN DEFAULT false,
+    telemetry JSONB DEFAULT '{}'::jsonb,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
+
+-- Enable RLS on system_feedback
+ALTER TABLE public.system_feedback ENABLE ROW LEVEL SECURITY;
+
+DO $$
+BEGIN
+    IF NOT EXISTS (SELECT 1 FROM pg_policies WHERE tablename = 'system_feedback' AND policyname = 'Users can insert their own feedback') THEN
+        CREATE POLICY "Users can insert their own feedback" ON public.system_feedback FOR INSERT WITH CHECK (true);
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM pg_policies WHERE tablename = 'system_feedback' AND policyname = 'Admins can view feedback') THEN
+        CREATE POLICY "Admins can view feedback" ON public.system_feedback FOR SELECT USING (auth.uid() = user_id);
+    END IF;
+END $$;
 
 -- Reload PostgREST schema cache in Supabase so new columns and indexes are immediately recognized by the API
 NOTIFY pgrst, 'reload schema';

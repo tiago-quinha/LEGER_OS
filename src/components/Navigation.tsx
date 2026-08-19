@@ -181,41 +181,46 @@ export function Navigation() {
           
           {/* Quick Controls & Hardware Status Footer */}
           <div className="px-6 pt-4 border-t border-border mt-auto space-y-4">
-            {/* Compact 3-Button Control Grid */}
-            <div className="grid grid-cols-3 gap-1.5">
+            {/* Minimal Unified 3-Button Control Grid */}
+            <div className="grid grid-cols-3 border border-border/80 bg-card/60 divide-x divide-border/60 shadow-xs">
               <button
+                type="button"
                 onClick={() => setPrivacyMode(!isPrivacyMode)}
                 className={cn(
-                  "flex flex-col items-center justify-center py-2 px-1 border transition-all text-[8px] font-mono uppercase font-bold gap-1 select-none",
-                  isPrivacyMode ? "bg-foreground/10 border-foreground text-foreground shadow-sm" : "bg-card border-border text-muted-foreground hover:bg-secondary hover:text-foreground"
+                  "flex items-center justify-center py-2.5 px-1 transition-all text-[8px] font-mono uppercase font-bold gap-1 select-none cursor-pointer",
+                  isPrivacyMode
+                    ? "bg-foreground text-background"
+                    : "text-muted-foreground hover:text-foreground hover:bg-secondary/40"
                 )}
                 title="Toggle Safe-Deposit Privacy Mode"
               >
-                {isPrivacyMode ? <Shield className="h-3.5 w-3.5" /> : <ShieldOff className="h-3.5 w-3.5 opacity-60" />}
+                {isPrivacyMode ? <Shield className="h-3 w-3 shrink-0" /> : <ShieldOff className="h-3 w-3 shrink-0 opacity-60" />}
                 <span>{isPrivacyMode ? "Secure" : "Privacy"}</span>
               </button>
 
               <button
+                type="button"
                 onClick={() => setTheme(theme === "dark" ? "light" : "dark")}
-                className="flex flex-col items-center justify-center py-2 px-1 border border-border bg-card text-muted-foreground hover:bg-secondary hover:text-foreground transition-all text-[8px] font-mono uppercase font-bold gap-1 select-none"
+                className="flex items-center justify-center py-2.5 px-1 text-muted-foreground hover:text-foreground hover:bg-secondary/40 transition-all text-[8px] font-mono uppercase font-bold gap-1 select-none cursor-pointer"
                 title="Switch Theme"
               >
                 {!mounted ? (
-                  <div className="h-3.5 w-3.5 animate-pulse bg-muted" />
+                  <div className="h-3 w-3 animate-pulse bg-muted rounded-full" />
                 ) : theme === "dark" ? (
-                  <Moon className="h-3.5 w-3.5" />
+                  <Moon className="h-3 w-3 shrink-0" />
                 ) : (
-                  <Sun className="h-3.5 w-3.5" />
+                  <Sun className="h-3 w-3 shrink-0" />
                 )}
                 <span>{!mounted ? "Theme" : theme === "dark" ? "Dark" : "Light"}</span>
               </button>
 
               <button
+                type="button"
                 onClick={() => setSettingsOpen(true)}
-                className="flex flex-col items-center justify-center py-2 px-1 border border-border bg-card text-muted-foreground hover:bg-secondary hover:text-foreground transition-all text-[8px] font-mono uppercase font-bold gap-1 select-none cursor-pointer"
+                className="flex items-center justify-center py-2.5 px-1 text-muted-foreground hover:text-foreground hover:bg-secondary/40 transition-all text-[8px] font-mono uppercase font-bold gap-1 select-none cursor-pointer"
                 title="System Configuration Matrix"
               >
-                <Sliders className="h-3.5 w-3.5" />
+                <Sliders className="h-3 w-3 shrink-0" />
                 <span>Config</span>
               </button>
             </div>

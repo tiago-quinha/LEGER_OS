@@ -14,7 +14,12 @@ function LayoutInner({ children }: { children: React.ReactNode }) {
   const searchParams = useSearchParams()
   const { profile } = useSystem()
 
-  const isPublicPage = pathname === '/login' || pathname === '/signup'
+  const isPublicPage = 
+    pathname === '/login' || 
+    pathname === '/signup' || 
+    pathname?.startsWith('/shortcuts') || 
+    pathname === '/terms' || 
+    pathname === '/privacy'
   const isOnboarding = searchParams.get('onboarding') === 'true' || 
                        searchParams.get('force_onboarding') === 'true' || 
                        (pathname === '/' && profile && profile.onboarding_completed === false)

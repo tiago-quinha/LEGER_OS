@@ -15,7 +15,8 @@ import { getAIHeaders } from "@/lib/ai-client"
 import { 
   Sparkles, Check, X, Sliders, Brain, Smartphone, Shield, ShieldOff, Sun, Moon, 
   LogOut, ShieldAlert, Copy, ChevronDown, Plus, Trash2, Search, Terminal, Zap, 
-  Database, FileJson, Rocket, Landmark, Lock, CreditCard, Download, Upload, FileSpreadsheet
+  Database, FileJson, Rocket, Landmark, Lock, CreditCard, Download, Upload, FileSpreadsheet,
+  MessageSquare
 } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { GlowingBadge } from "@/components/unlumen-ui/glowing-badge"
@@ -98,7 +99,8 @@ export function SystemSettingsModal({ open, onOpenChange }: SystemSettingsModalP
     setPrivacyMode,
     refreshProfile,
     refreshData,
-    signOut
+    signOut,
+    openFeedbackDrawer
   } = useSystem()
 
   const { theme, setTheme } = useTheme()
@@ -1155,7 +1157,7 @@ export function SystemSettingsModal({ open, onOpenChange }: SystemSettingsModalP
             <TabsContent value="account" className="space-y-4 flex-1 overflow-y-auto pr-1 min-h-0">
               {/* DATA PORTABILITY & VAULT BACKUP */}
               <div className="p-4 bg-card border border-border space-y-3 font-mono">
-                <div className="flex items-center justify-between border-b border-border/40 pb-2.5">
+                <div className="border-b border-border/40 pb-2.5">
                   <div className="space-y-0.5">
                     <span className="text-xs font-bold uppercase text-foreground flex items-center gap-1.5 font-mono">
                       <Database className="h-3.5 w-3.5 text-foreground" /> Data Portability & Vault Backup
@@ -1164,9 +1166,6 @@ export function SystemSettingsModal({ open, onOpenChange }: SystemSettingsModalP
                       Export full offline JSON snapshots or spreadsheet-ready CSV ledgers.
                     </p>
                   </div>
-                  <span className="text-[9px] font-mono font-bold uppercase text-foreground bg-secondary/80 border border-border px-2 py-0.5 shrink-0">
-                    SOVEREIGN
-                  </span>
                 </div>
 
                 <div className="space-y-2 pt-1">
@@ -1229,10 +1228,31 @@ export function SystemSettingsModal({ open, onOpenChange }: SystemSettingsModalP
               <div className="p-4 bg-card border border-border space-y-3">
                 <div className="flex items-center justify-between">
                   <div>
-                    <span className="font-mono text-xs font-bold uppercase text-foreground block">Session Node</span>
-                    <span className="font-mono text-[10px] text-muted-foreground truncate block">{user?.email || "USER"}</span>
+                    <span className="font-mono text-xs font-bold uppercase text-foreground flex items-center gap-1.5">
+                      <MessageSquare className="h-3.5 w-3.5 text-foreground" /> Direct Support & Feedback
+                    </span>
+                    <span className="font-mono text-[10px] text-muted-foreground block mt-0.5">
+                      Report bank parsing anomalies, layout bugs, or request integrations.
+                    </span>
                   </div>
-                  <span className="text-[9px] font-mono font-bold uppercase text-muted-foreground bg-secondary/80 border border-border px-2 py-0.5">SECURE</span>
+                </div>
+                <Button
+                  type="button"
+                  onClick={() => {
+                    handleOpenChange(false)
+                    openFeedbackDrawer("general")
+                  }}
+                  variant="outline"
+                  className="w-full rounded-none h-8 text-[9px] uppercase font-mono font-bold bg-secondary/30 hover:bg-foreground hover:text-background border-border cursor-pointer flex items-center justify-center gap-1.5"
+                >
+                  <MessageSquare className="h-3 w-3" /> Transmit Anomaly or Feedback Report
+                </Button>
+              </div>
+
+              <div className="p-4 bg-card border border-border space-y-3">
+                <div>
+                  <span className="font-mono text-xs font-bold uppercase text-foreground block">Session Node</span>
+                  <span className="font-mono text-[10px] text-muted-foreground truncate block">{user?.email || "USER"}</span>
                 </div>
                 <Button
                   type="button"

@@ -206,26 +206,6 @@ export function DeviceSyncManager({ user: propUser, isPro: propIsPro, onUpgradeC
     toast.info("Cleared bank app selection")
   }
 
-  const testDailyOutlook = async () => {
-    if (!user?.id) {
-      toast.error("User session missing")
-      return
-    }
-    try {
-      const res = await fetch(`/api/notifications/daily-outlook?userId=${user.id}&type=morning`)
-      const data = await res.json()
-      if (data?.notification) {
-        toast(data.notification.title, {
-          description: data.notification.body
-        })
-      } else {
-        toast.error("Unable to calculate Daily Outlook")
-      }
-    } catch (e) {
-      toast.error("Failed to generate Daily Outlook")
-    }
-  }
-
   const showPlatformSwitcher = isSuperUser || detectedOS === "desktop"
 
   return (
@@ -465,22 +445,85 @@ export function DeviceSyncManager({ user: propUser, isPro: propIsPro, onUpgradeC
 
           {activePlatform === "ios" && (
             <div className="space-y-4">
-              <div className="p-4 bg-card border border-border space-y-3">
-                <div className="flex items-center justify-between border-b border-border/40 pb-2">
+              <div className="p-4 bg-card border border-border space-y-4">
+                <div className="flex items-center justify-between border-b border-border/40 pb-3">
                   <div className="space-y-0.5">
                     <span className="text-xs uppercase font-mono font-bold text-foreground flex items-center gap-1.5">
-                      <Apple className="h-3.5 w-3.5" /> Apple Shortcuts Automation (iOS 17+)
+                      <Apple className="h-4 w-4 text-foreground" /> Apple Shortcuts Automation (iOS 17+)
                     </span>
                     <p className="text-[10px] text-muted-foreground font-sans">
-                      Apple iOS isolates apps from notification drawers. Use an Apple Pay or Wallet Automation to sync transactions in real-time.
+                      Apple iOS isolates apps from notification drawers. Connect Apple Wallet to stream transactions autonomously in real-time.
                     </p>
                   </div>
+                  <span className="text-[9px] font-mono uppercase bg-emerald-500/10 text-emerald-500 border border-emerald-500/30 px-2 py-0.5 font-bold shrink-0">
+                    Active Node
+                  </span>
                 </div>
 
+                {/* 1-Tap Open Shortcuts Button */}
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+                  <Button
+                    type="button"
+                    onClick={() => {
+                      if (typeof window !== "undefined") {
+                        window.location.href = "shortcuts://"
+                      }
+                    }}
+                    className="w-full rounded-none uppercase font-mono text-[10px] font-bold tracking-wider h-10 bg-foreground text-background hover:bg-foreground/90 cursor-pointer flex items-center justify-center gap-2 shadow-xs"
+                  >
+                    <Apple className="h-3.5 w-3.5" />
+                    <span>Open Apple Shortcuts App</span>
+                  </Button>
+
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={async () => {
+                      if (!user?.id) return
+                      const toastId = toast.loading("Sending test Apple Pay transaction...")
+                      try {
+                        const res = await fetch("/api/transactions/device-push", {
+                          method: "POST",
+                          headers: { "Content-Type": "application/json" },
+                          body: JSON.stringify({
+                            userId: user.id,
+                            amount: -3.80,
+                            merchant: "Apple Pay Test Merchant",
+                            bank_app: "Apple Wallet",
+                            source: "apple-shortcuts-test",
+                            raw_text: "Payment of €3.80 at Apple Pay Test Merchant",
+                            date: new Date().toISOString()
+                          })
+                        })
+                        const data = await res.json()
+                        toast.dismiss(toastId)
+                        if (res.ok && data.success) {
+                          toast.success("Test transaction ingested into Ledger (-€3.80)!")
+                        } else {
+                          toast.error(data.error || "Test dispatch failed")
+                        }
+                      } catch (err: any) {
+                        toast.dismiss(toastId)
+                        toast.error(err.message || "Failed to send test payload")
+                      }
+                    }}
+                    className="w-full rounded-none uppercase font-mono text-[10px] font-bold tracking-wider h-10 bg-card border-border hover:bg-secondary/40 text-foreground cursor-pointer flex items-center justify-center gap-2"
+                  >
+                    <Sparkles className="h-3.5 w-3.5 text-emerald-500" />
+                    <span>Test Webhook Payload</span>
+                  </Button>
+                </div>
+
+                {/* Pre-authenticated Webhook URL */}
                 <div className="space-y-1.5 pt-1">
-                  <Label className="text-[9px] font-mono uppercase font-bold text-muted-foreground">
-                    Your Private Webhook URL (Pre-authenticated)
-                  </Label>
+                  <div className="flex items-center justify-between">
+                    <Label className="text-[9px] font-mono uppercase font-bold text-muted-foreground">
+                      Your Private Pre-Authenticated Webhook URL
+                    </Label>
+                    <span className="text-[8px] font-mono text-emerald-500 uppercase font-bold">
+                      256-Bit SSL Encrypted
+                    </span>
+                  </div>
                   <div className="bg-secondary/40 border border-border p-2.5 font-mono text-[9px] break-all select-all flex items-center justify-between gap-2 text-foreground">
                     <span className="truncate">{productionEndpoint}</span>
                     <button
@@ -494,14 +537,14 @@ export function DeviceSyncManager({ user: propUser, isPro: propIsPro, onUpgradeC
                   </div>
                 </div>
 
+                {/* 3-Step Setup Guide */}
                 <div className="space-y-2 pt-2 border-t border-border/40 text-[10px] font-sans text-muted-foreground leading-relaxed">
-                  <p className="font-mono text-[9px] font-bold text-foreground uppercase">Setup in Apple Shortcuts App:</p>
+                  <p className="font-mono text-[9px] font-bold text-foreground uppercase">1-Minute Setup in Apple Shortcuts:</p>
                   <ol className="list-decimal list-inside space-y-1.5">
-                    <li>Open the <strong className="text-foreground">Shortcuts</strong> app on your iPhone and go to the <strong className="text-foreground">Automation</strong> tab.</li>
-                    <li>Create Personal Automation → Trigger: <strong className="text-foreground">"Transaction" (Apple Pay / Wallet)</strong>.</li>
-                    <li>Add Action: <strong className="text-foreground">"Get Contents of URL"</strong>.</li>
-                    <li>Set Method to <strong className="text-foreground">POST</strong>, paste your webhook URL above, and pass the transaction text in JSON body <code className="font-mono bg-secondary px-1 text-foreground">{"{\"raw_text\": \"Shortcut Input\"}"}</code>.</li>
-                    <li>Set "Run Immediately" to make it 100% autonomous without confirmation prompts.</li>
+                    <li>Open <strong className="text-foreground">Shortcuts</strong> on your iPhone $\rightarrow$ Tap the <strong className="text-foreground">Automation</strong> tab at the bottom $\rightarrow$ Tap <strong className="text-foreground">+</strong>.</li>
+                    <li>Create Personal Automation $\rightarrow$ Choose <strong className="text-foreground">Transaction</strong> (Apple Pay / Wallet) $\rightarrow$ Card: <strong className="text-foreground">Any</strong>.</li>
+                    <li>Select <strong className="text-foreground">Run Immediately</strong> and disable "Notify When Run".</li>
+                    <li>Add Action: <strong className="text-foreground">Get Contents of URL</strong> $\rightarrow$ Set Method to <strong className="text-foreground">POST</strong> $\rightarrow$ Paste your URL above $\rightarrow$ Set Request Body to <strong className="text-foreground">Shortcut Input</strong>.</li>
                   </ol>
                 </div>
               </div>
@@ -557,15 +600,17 @@ export function DeviceSyncManager({ user: propUser, isPro: propIsPro, onUpgradeC
         </div>
       )}
 
-      <div className="p-4 bg-card/40 border border-border space-y-3">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <div className="h-7 w-7 bg-foreground/10 border border-border flex items-center justify-center">
-              <Bell className="h-3.5 w-3.5 text-foreground" />
+      <div className="p-4 bg-card border border-border space-y-3">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+          <div className="flex items-start gap-3">
+            <div className="h-8 w-8 bg-foreground/10 border border-border flex items-center justify-center shrink-0 mt-0.5">
+              <Bell className="h-4 w-4 text-foreground" />
             </div>
-            <div>
-              <h4 className="text-xs font-mono font-bold uppercase tracking-wider text-foreground flex items-center gap-2">
-                Actionable Web Push Alerts
+            <div className="space-y-0.5">
+              <div className="flex items-center gap-2">
+                <h4 className="text-xs font-mono font-bold uppercase tracking-wider text-foreground">
+                  Push Notification Alerts
+                </h4>
                 {isPushSubscribed ? (
                   <span className="text-[9px] font-mono px-1.5 py-0.2 bg-emerald-500/10 text-emerald-500 border border-emerald-500/30 font-bold uppercase">
                     Active
@@ -575,24 +620,14 @@ export function DeviceSyncManager({ user: propUser, isPro: propIsPro, onUpgradeC
                     Disabled
                   </span>
                 )}
-              </h4>
-              <p className="text-[10px] font-sans text-muted-foreground">
-                Get an instant notification when Santander or MB WAY charges card debit, allowing 1-tap store naming.
+              </div>
+              <p className="text-[10px] font-sans text-muted-foreground leading-relaxed">
+                Receive instant notifications when new card transactions occur, allowing 1-tap merchant renaming and live safe daily burn updates.
               </p>
             </div>
           </div>
 
-          <div className="flex items-center gap-2">
-            <Button
-              type="button"
-              variant="outline"
-              size="sm"
-              onClick={testDailyOutlook}
-              className="h-8 rounded-none border-border font-mono text-[10px] uppercase cursor-pointer flex items-center gap-1.5"
-              title="Test Daily Financial Outlook Notification"
-            >
-              <Sparkles className="h-3 w-3 text-emerald-500" /> Morning Outlook
-            </Button>
+          <div className="flex items-center gap-2 shrink-0 self-end sm:self-center">
             {isPushSubscribed ? (
               <>
                 <Button
@@ -602,7 +637,7 @@ export function DeviceSyncManager({ user: propUser, isPro: propIsPro, onUpgradeC
                   onClick={sendTestPush}
                   className="h-8 rounded-none border-border font-mono text-[10px] uppercase cursor-pointer flex items-center gap-1.5"
                 >
-                  <Send className="h-3 w-3" /> Test
+                  <Send className="h-3 w-3" /> Test Alert
                 </Button>
                 <Button
                   type="button"
@@ -621,9 +656,9 @@ export function DeviceSyncManager({ user: propUser, isPro: propIsPro, onUpgradeC
                 size="sm"
                 disabled={isPushLoading || !isPushSupported}
                 onClick={subscribePush}
-                className="h-8 rounded-none bg-foreground text-background hover:bg-foreground/90 font-mono text-[10px] uppercase font-bold tracking-wider cursor-pointer"
+                className="h-8 px-4 rounded-none bg-foreground text-background hover:bg-foreground/90 font-mono text-[10px] uppercase font-bold tracking-wider cursor-pointer shadow-xs"
               >
-                {isPushLoading ? "Enabling..." : "Enable Push"}
+                {isPushLoading ? "Enabling..." : "Enable Push Alerts"}
               </Button>
             )}
           </div>

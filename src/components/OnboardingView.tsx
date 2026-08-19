@@ -763,16 +763,27 @@ export function OnboardingView() {
                                     </button>
                                   </div>
 
-                                  <Button 
-                                    onClick={() => {
-                                      navigator.clipboard.writeText(productionEndpoint)
-                                      toast.success("Webhook URL copied to clipboard!")
-                                      setIosStage(1)
-                                    }}
-                                    className="w-full rounded-none uppercase font-mono text-[11px] sm:text-xs tracking-wider h-11 sm:h-12 bg-foreground text-background hover:bg-foreground/90 cursor-pointer flex items-center justify-center gap-2"
-                                  >
-                                    <Copy className="h-3.5 w-3.5" /> Copy URL & Continue <ArrowRight className="h-3.5 w-3.5 ml-1" />
-                                  </Button>
+                                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                                    <button
+                                      type="button"
+                                      onClick={() => {
+                                        if (typeof window !== "undefined") {
+                                          window.location.href = "shortcuts://"
+                                        }
+                                      }}
+                                      className="w-full py-2.5 px-3 bg-secondary/50 border border-border text-[10px] font-mono uppercase font-bold text-foreground hover:bg-secondary transition-colors flex items-center justify-center gap-1.5 cursor-pointer shadow-xs"
+                                    >
+                                      <Apple className="h-3.5 w-3.5" />
+                                      <span>Open Shortcuts App</span>
+                                    </button>
+
+                                    <Button 
+                                      onClick={handleProceedFromStep4} 
+                                      className="w-full rounded-none uppercase font-mono text-[10px] font-bold tracking-wider h-10 bg-foreground text-background hover:bg-foreground/90 cursor-pointer flex items-center justify-center gap-1.5 shadow-xs"
+                                    >
+                                      <span>Finish & Activate</span> <ArrowRight className="h-3.5 w-3.5" />
+                                    </Button>
+                                  </div>
                                 </motion.div>
                               ) : (
                                 <motion.div
@@ -814,12 +825,27 @@ export function OnboardingView() {
                                     </ol>
                                   </div>
 
-                                  <Button 
-                                    onClick={handleProceedFromStep4} 
-                                    className="w-full rounded-none uppercase font-mono text-[11px] sm:text-xs tracking-wider h-11 sm:h-12 bg-foreground text-background hover:bg-foreground/90 cursor-pointer flex items-center justify-center gap-2"
-                                  >
-                                    Finish Setup & Activate <ArrowRight className="h-3.5 w-3.5 ml-1" />
-                                  </Button>
+                                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                                    <button
+                                      type="button"
+                                      onClick={() => {
+                                        if (typeof window !== "undefined") {
+                                          window.location.href = "shortcuts://"
+                                        }
+                                      }}
+                                      className="w-full py-2.5 px-3 bg-secondary/50 border border-border text-[10px] font-mono uppercase font-bold text-foreground hover:bg-secondary transition-colors flex items-center justify-center gap-1.5 cursor-pointer shadow-xs"
+                                    >
+                                      <Apple className="h-3.5 w-3.5" />
+                                      <span>Open Shortcuts App</span>
+                                    </button>
+
+                                    <Button 
+                                      onClick={handleProceedFromStep4} 
+                                      className="w-full rounded-none uppercase font-mono text-[10px] font-bold tracking-wider h-10 bg-foreground text-background hover:bg-foreground/90 cursor-pointer flex items-center justify-center gap-1.5 shadow-xs"
+                                    >
+                                      <span>Finish & Activate</span> <ArrowRight className="h-3.5 w-3.5" />
+                                    </Button>
+                                  </div>
                                 </motion.div>
                               )}
                             </AnimatePresence>

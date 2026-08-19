@@ -740,18 +740,15 @@ export function SystemConfigView() {
 
               {/* DATA PORTABILITY & VAULT BACKUP */}
               <div className="p-5 bg-secondary/10 border border-border space-y-4 pt-4">
-                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-border/40 pb-3">
+                <div className="border-b border-border/40 pb-3">
                   <div>
                     <span className="text-xs uppercase tracking-widest text-foreground font-bold flex items-center gap-1.5 font-mono">
-                      <Database className="h-3.5 w-3.5" /> Data Portability & Vault Backup
+                      <Database className="h-3.5 w-3.5 text-foreground" /> Data Portability & Vault Backup
                     </span>
                     <span className="text-[10px] text-muted-foreground block font-sans mt-0.5">
                       Export full offline JSON backups or spreadsheet-ready CSV tables.
                     </span>
                   </div>
-                  <span className="text-[9px] font-mono font-bold uppercase text-foreground bg-secondary/80 border border-border px-2 py-0.5 w-fit">
-                    SOVEREIGN
-                  </span>
                 </div>
 
                 <div className="space-y-3 pt-1">
@@ -1253,12 +1250,9 @@ export function SystemConfigView() {
           <TabsContent value="devtools" className="space-y-6">
             <Card className="rounded-none border-border bg-card shadow-lg pt-0">
               <CardHeader className="border-b border-border px-6 py-5 bg-secondary/10">
-                <div className="flex items-center justify-between">
-                  <CardTitle className="text-base font-bold uppercase tracking-wider flex items-center gap-2 text-foreground">
-                    <Terminal className="h-4 w-4" /> Super User Diagnostic Matrix
-                  </CardTitle>
-                  <span className="text-[10px] font-mono font-bold uppercase text-muted-foreground bg-secondary/80 border border-border px-2 py-0.5">ADMIN MODE</span>
-                </div>
+                <CardTitle className="text-base font-bold uppercase tracking-wider flex items-center gap-2 text-foreground">
+                  <Terminal className="h-4 w-4" /> Super User Diagnostic Matrix
+                </CardTitle>
                 <CardDescription className="text-xs uppercase tracking-wider text-muted-foreground mt-1">
                   System diagnostics, bridge probing, and onboarding state testing.
                 </CardDescription>

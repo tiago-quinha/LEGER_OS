@@ -10,7 +10,12 @@ export function SystemGuard({ children }: { children: React.ReactNode }) {
   const router = useRouter()
   const pathname = usePathname()
 
-  const isPublicPage = pathname === '/login' || pathname === '/signup'
+  const isPublicPage = 
+    pathname === '/login' || 
+    pathname === '/signup' || 
+    pathname?.startsWith('/shortcuts') || 
+    pathname === '/terms' || 
+    pathname === '/privacy'
 
   useEffect(() => {
     if (!isLoading && !user && !isPublicPage) {
@@ -18,35 +23,16 @@ export function SystemGuard({ children }: { children: React.ReactNode }) {
     }
   }, [user, isLoading, isPublicPage, router])
 
-  // Optimize hydration behavior: check if a session token exists in local storage
-  // to avoid flashing the boot screen for already-logged-in users.
-  const [hasToken, setHasToken] = React.useState<boolean>(true)
-
-  useEffect(() => {
-    try {
-      const hasLocalToken = Object.keys(localStorage).some(
-        key => key.startsWith("sb-") && key.endsWith("-auth-token")
-      )
-      const hasCookieToken = document.cookie.split(";").some(
-        c => c.trim().startsWith("sb-")
-      )
-      if (!hasLocalToken && !hasCookieToken) {
-        setHasToken(false)
-      }
-    } catch (e) {
-      // Fallback if storage/cookies are blocked
-      setHasToken(false)
-    }
-  }, [])
-
-  if (isLoading && !isPublicPage && !hasToken) {
+  // If loading and accessing a protected page, keep the boot screen visible
+  // until Supabase session is verified.
+  if (isLoading && !isPublicPage) {
     return (
       <div className="fixed inset-0 flex flex-col items-center justify-center bg-background z-[9999] space-y-8">
         <div className="relative flex items-center justify-center w-16 h-16">
            <Cpu className="h-12 w-12 text-foreground animate-spin-slow opacity-20 absolute" />
            <Brain className="h-12 w-12 text-foreground animate-pulse absolute" />
         </div>
-        <p className="technical-label animate-pulse tracking-[0.3em] uppercase text-[10px]">Booting LEGER_OS // Session_Init</p>
+        <p className="technical-label animate-pulse tracking-[0.3em] uppercase text-[10px]">Authenticating Session // LEGER_OS</p>
       </div>
     )
   }
