@@ -3,7 +3,6 @@
 import React, { useEffect } from "react"
 import { useSystem } from "@/lib/SystemContext"
 import { useRouter, usePathname } from "next/navigation"
-import { Cpu, Brain } from "lucide-react"
 
 export function SystemGuard({ children }: { children: React.ReactNode }) {
   const { user, isLoading } = useSystem()
@@ -23,19 +22,7 @@ export function SystemGuard({ children }: { children: React.ReactNode }) {
     }
   }, [user, isLoading, isPublicPage, router])
 
-  // If loading and accessing a protected page, keep the boot screen visible
-  // until Supabase session is verified.
-  if (isLoading && !isPublicPage) {
-    return (
-      <div className="fixed inset-0 flex flex-col items-center justify-center bg-background z-[9999] space-y-8">
-        <div className="relative flex items-center justify-center w-16 h-16">
-           <Cpu className="h-12 w-12 text-foreground animate-spin-slow opacity-20 absolute" />
-           <Brain className="h-12 w-12 text-foreground animate-pulse absolute" />
-        </div>
-        <p className="technical-label animate-pulse tracking-[0.3em] uppercase text-[10px]">Authenticating Session // LEGER_OS</p>
-      </div>
-    )
-  }
-
+  // Allow route-specific skeletons and page content to mount instantly
+  // while Supabase verifies the session in the background
   return <>{children}</>
 }
