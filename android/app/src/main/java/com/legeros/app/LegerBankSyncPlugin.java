@@ -133,14 +133,7 @@ public class LegerBankSyncPlugin extends Plugin {
     }
 
     private boolean isLikelyFinanceApp(String name, String pkg, ApplicationInfo appInfo) {
-        // 1. Official Android OS Category Check
-        if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.O) {
-            if (appInfo.category == ApplicationInfo.CATEGORY_FINANCE) {
-                return true;
-            }
-        }
-
-        // 2. Comprehensive 100+ Bank & Fintech Name and Package Matching
+        // Comprehensive 100+ Bank, Fintech, Neobank, Payment and Crypto App Matching
         String n = name.toLowerCase();
         String p = pkg.toLowerCase();
 
