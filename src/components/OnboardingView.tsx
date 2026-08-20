@@ -1,8 +1,8 @@
 "use client"
 
-import React, { useState, useEffect } from "react"
+import React, { useState, useEffect, useMemo } from "react"
 import { motion, AnimatePresence } from "framer-motion"
-import { Landmark, Upload, Terminal, Sparkles, ArrowRight, Calendar, Check, Sliders, Smartphone, ShieldCheck, Copy, Apple, Globe, Building2, Zap, CreditCard } from "lucide-react"
+import { Landmark, Upload, Terminal, Sparkles, ArrowRight, Calendar, Check, Sliders, Smartphone, ShieldCheck, Copy, Apple, Globe, Building2, Zap, CreditCard, Search, Building, LayoutGrid } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
@@ -12,6 +12,8 @@ import { supabase } from "@/lib/supabase"
 import { toast } from "sonner"
 import { cn } from "@/lib/utils"
 import { getProPrice, formatCurrency } from "@/lib/format"
+import { Capacitor, registerPlugin } from "@capacitor/core"
+import { PRESET_BANK_APPS } from "@/lib/banking-apps-registry"
 
 const HABIT_PRESETS = [
   { id: "groceries", name: "Supermarkets & Groceries", desc: "Walmart, Aldi, Carrefour, Costco", category: "Food", keywords: ["Walmart", "Aldi", "Carrefour", "Costco", "Tesco", "Lidl"] },
@@ -80,6 +82,99 @@ export function OnboardingView() {
   const [iosStage, setIosStage] = useState<0 | 1>(0)
   const [showProOffer, setShowProOffer] = useState(false)
   const [selectedBankApps, setSelectedBankApps] = useState<string[]>(["revolut", "santander", "chase", "mbway", "n26", "wise", "apple_pay"])
+  const [installedApps, setInstalledApps] = useState<{ name: string; packageName: string; isFinance: boolean }[]>([])
+  const [isLoadingNativeApps, setIsLoadingNativeApps] = useState<boolean>(() => {
+    if (typeof window !== "undefined") {
+      return Boolean((window as any).Capacitor?.isNativePlatform?.() || (window as any).Capacitor?.platform === "android")
+    }
+    return false
+  })
+  const [appScopeTab, setAppScopeTab] = useState<"finance" | "all">("finance")
+  const [searchQuery, setSearchQuery] = useState("")
+
+  // Scan real installed apps on Android device via Capacitor LegerBankSync
+  useEffect(() => {
+    if (typeof window !== "undefined" && Capacitor.isNativePlatform()) {
+      const BankSync = registerPlugin<any>("LegerBankSync")
+      if (BankSync) {
+        setIsLoadingNativeApps(true)
+        BankSync.getInstalledApps().then((res: any) => {
+          if (res?.apps && Array.isArray(res.apps)) {
+            const sorted = [...res.apps].sort((a, b) => {
+              if (a.isFinance && !b.isFinance) return -1
+              if (!a.isFinance && b.isFinance) return 1
+              return a.name.localeCompare(b.name)
+            })
+            setInstalledApps(sorted)
+          }
+        }).catch((err: any) => {
+          console.error("Failed to load native apps in onboarding:", err)
+        }).finally(() => {
+          setIsLoadingNativeApps(false)
+        })
+
+        BankSync.getSelectedBankPackages().then((res: any) => {
+          if (res?.packages && Array.isArray(res.packages) && res.packages.length > 0) {
+            setSelectedBankApps(res.packages)
+          }
+        }).catch(() => {})
+      }
+    }
+  }, [])
+
+  const displayBanks = useMemo(() => {
+    if (installedApps.length > 0) {
+      let list = appScopeTab === "finance" 
+        ? installedApps.filter(app => app.isFinance)
+        : installedApps
+
+      if (searchQuery.trim()) {
+        const q = searchQuery.toLowerCase()
+        list = list.filter(app => app.name.toLowerCase().includes(q) || app.packageName.toLowerCase().includes(q))
+      }
+
+      return list.map(app => {
+        const matchingPreset = PRESET_BANK_APPS.find(p => p.package === app.packageName || p.name.toLowerCase() === app.name.toLowerCase())
+        return {
+          id: app.packageName,
+          name: app.name,
+          package: app.packageName,
+          type: app.isFinance ? "Finance / Bank" : "Device App",
+          domain: matchingPreset?.domain || "app",
+          isFinance: app.isFinance
+        }
+      })
+    }
+
+    let list = [...PRESET_BANK_APPS]
+    if (searchQuery.trim()) {
+      const q = searchQuery.toLowerCase()
+      list = list.filter(app => app.name.toLowerCase().includes(q) || app.package.toLowerCase().includes(q))
+    }
+    return list.map(b => ({
+      id: b.id,
+      name: b.name,
+      package: b.package,
+      type: b.region,
+      domain: b.domain,
+      isFinance: true
+    }))
+  }, [installedApps, appScopeTab, searchQuery])
+
+  const toggleBankSelection = (id: string, pkg?: string) => {
+    const targetKey = pkg || id
+    const newSel = selectedBankApps.includes(targetKey)
+      ? selectedBankApps.filter(item => item !== targetKey)
+      : [...selectedBankApps, targetKey]
+    setSelectedBankApps(newSel)
+    if (typeof window !== "undefined") {
+      localStorage.setItem(`leger_monitored_banks_${user?.id || "default"}`, JSON.stringify(newSel))
+    }
+    if (Capacitor.isNativePlatform()) {
+      const BankSync = registerPlugin<any>("LegerBankSync")
+      BankSync?.setSelectedBankPackages({ packages: newSel }).catch(() => {})
+    }
+  }
 
   // Pricing calculations for €2.50 / 50% introductory rate
   const decimals = currency === "JPY" ? 0 : 2
@@ -579,48 +674,134 @@ export function OnboardingView() {
                         </button>
                       </div>
 
-                      {/* Bank App Cards Grid */}
-                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5 max-h-[320px] sm:max-h-[360px] overflow-y-auto pr-1">
-                        {ONBOARDING_BANK_APPS.filter(app => !app.isApple).map((app) => {
-                          const isSelected = selectedBankApps.includes(app.id)
-                          return (
-                            <div
-                              key={app.id}
-                              onClick={() => {
-                                if (isSelected) {
-                                  setSelectedBankApps(selectedBankApps.filter(id => id !== app.id))
-                                } else {
-                                  setSelectedBankApps([...selectedBankApps, app.id])
-                                }
-                              }}
-                              className={cn(
-                                "p-3 border text-left cursor-pointer transition-all flex items-center justify-between select-none relative",
-                                isSelected 
-                                  ? "bg-foreground/5 border-foreground ring-1 ring-foreground shadow-sm" 
-                                  : "bg-secondary/10 border-border hover:border-border-hover opacity-70 hover:opacity-100"
-                              )}
-                            >
-                              <div className="flex items-center gap-2.5 min-w-0 pr-2">
-                                <BankIconBadge domain={app.domain} name={app.name} />
-                                <div className="space-y-0.5 truncate">
-                                  <div className="text-xs font-bold uppercase font-mono tracking-wide text-foreground truncate">
-                                    {app.name}
-                                  </div>
-                                  <p className="text-[9px] text-muted-foreground font-mono truncate">
-                                    {app.type}
-                                  </p>
+                      {/* Search Bar & Scope Filters */}
+                      <div className="space-y-2">
+                        <div className="relative">
+                          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground/60" />
+                          <input
+                            type="text"
+                            value={searchQuery}
+                            onChange={(e) => setSearchQuery(e.target.value)}
+                            placeholder="Search banking, fintech, or installed apps..."
+                            className="w-full h-8 pl-9 pr-3 text-xs bg-secondary/30 border border-border/60 rounded-none font-sans text-foreground placeholder:text-muted-foreground/40 focus:outline-none focus:border-foreground"
+                          />
+                        </div>
+
+                        {/* Scope Filter Tabs */}
+                        <div className="flex items-center gap-2 border-b border-border/40 pb-2 overflow-x-auto no-scrollbar">
+                          <button
+                            type="button"
+                            onClick={() => setAppScopeTab("finance")}
+                            className={cn(
+                              "px-2.5 py-1 text-[9px] font-mono font-bold uppercase tracking-wider border cursor-pointer select-none transition-all shrink-0 flex items-center gap-1.5",
+                              appScopeTab === "finance"
+                                ? "bg-foreground border-foreground text-background font-black shadow-xs"
+                                : "bg-secondary/20 border-border/60 text-muted-foreground hover:border-border hover:text-foreground"
+                            )}
+                          >
+                            <Building className="h-3 w-3" />
+                            Finance & Banking ({installedApps.length > 0 ? installedApps.filter(a => a.isFinance).length : PRESET_BANK_APPS.length})
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => setAppScopeTab("all")}
+                            className={cn(
+                              "px-2.5 py-1 text-[9px] font-mono font-bold uppercase tracking-wider border cursor-pointer select-none transition-all shrink-0 flex items-center gap-1.5",
+                              appScopeTab === "all"
+                                ? "bg-foreground border-foreground text-background font-black shadow-xs"
+                                : "bg-secondary/20 border-border/60 text-muted-foreground hover:border-border hover:text-foreground"
+                            )}
+                          >
+                            <LayoutGrid className="h-3 w-3" />
+                            All Installed Apps ({installedApps.length > 0 ? installedApps.length : PRESET_BANK_APPS.length})
+                          </button>
+                        </div>
+                      </div>
+
+                      {/* Bank App Cards Grid / Skeleton / Empty State */}
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5 max-h-[300px] sm:max-h-[340px] overflow-y-auto pr-1">
+                        {isLoadingNativeApps ? (
+                          /* Loading Skeleton */
+                          Array.from({ length: 6 }).map((_, i) => (
+                            <div key={i} className="p-3 border border-border/50 bg-secondary/20 flex items-center justify-between animate-pulse">
+                              <div className="flex items-center gap-2.5 min-w-0">
+                                <div className="h-8 w-8 rounded-lg bg-secondary/60 shrink-0" />
+                                <div className="space-y-1.5">
+                                  <div className="h-3 w-28 bg-secondary/60 rounded-xs" />
+                                  <div className="h-2 w-16 bg-secondary/40 rounded-xs" />
                                 </div>
                               </div>
-
-                              <div className={cn(
-                                "w-4 h-4 flex items-center justify-center border shrink-0",
-                                isSelected ? "bg-foreground text-background border-foreground" : "border-border bg-background"
-                              )}>
-                                {isSelected && <Check className="h-3 w-3 stroke-[3]" />}
-                              </div>
+                              <div className="w-4 h-4 rounded-xs bg-secondary/60 shrink-0" />
                             </div>
-                          )
-                        })}
+                          ))
+                        ) : displayBanks.length === 0 ? (
+                          /* Empty Detection State */
+                          <div className="col-span-full p-5 border border-dashed border-border text-center space-y-3 bg-secondary/10">
+                            <div className="h-9 w-9 rounded-full bg-secondary/60 flex items-center justify-center mx-auto text-muted-foreground">
+                              <Building className="h-4 w-4" />
+                            </div>
+                            <div className="space-y-1 max-w-sm mx-auto">
+                              <h4 className="text-xs font-mono font-bold uppercase tracking-wider text-foreground">
+                                No Banking Apps Detected
+                              </h4>
+                              <p className="text-[10px] font-sans text-muted-foreground leading-relaxed">
+                                {installedApps.length > 0
+                                  ? "None of the installed apps were automatically recognized as banking services. Switch to All Apps to select any application on your device."
+                                  : "No applications matched your search filter."}
+                              </p>
+                            </div>
+                            {installedApps.length > 0 && appScopeTab === "finance" && (
+                              <Button
+                                type="button"
+                                variant="outline"
+                                size="sm"
+                                onClick={() => {
+                                  setAppScopeTab("all")
+                                  setSearchQuery("")
+                                }}
+                                className="h-8 rounded-none border-border font-mono text-[10px] uppercase font-bold tracking-wider cursor-pointer"
+                              >
+                                Select from All {installedApps.length} Apps on Phone →
+                              </Button>
+                            )}
+                          </div>
+                        ) : (
+                          displayBanks.map((app) => {
+                            const targetKey = app.package || app.id
+                            const isSelected = selectedBankApps.includes(targetKey) || selectedBankApps.includes(app.id)
+                            return (
+                              <div
+                                key={targetKey}
+                                onClick={() => toggleBankSelection(app.id, app.package)}
+                                className={cn(
+                                  "p-3 border text-left cursor-pointer transition-all flex items-center justify-between select-none relative",
+                                  isSelected 
+                                    ? "bg-foreground/5 border-foreground ring-1 ring-foreground shadow-sm" 
+                                    : "bg-secondary/10 border-border hover:border-border-hover opacity-70 hover:opacity-100"
+                                )}
+                              >
+                                <div className="flex items-center gap-2.5 min-w-0 pr-2">
+                                  <BankIconBadge domain={app.domain} name={app.name} />
+                                  <div className="space-y-0.5 truncate">
+                                    <div className="text-xs font-bold uppercase font-mono tracking-wide text-foreground truncate">
+                                      {app.name}
+                                    </div>
+                                    <p className="text-[9px] text-muted-foreground font-mono truncate">
+                                      {app.type}
+                                    </p>
+                                  </div>
+                                </div>
+
+                                <div className={cn(
+                                  "w-4 h-4 flex items-center justify-center border shrink-0",
+                                  isSelected ? "bg-foreground text-background border-foreground" : "border-border bg-background"
+                                )}>
+                                  {isSelected && <Check className="h-3 w-3 stroke-[3]" />}
+                                </div>
+                              </div>
+                            )
+                          })
+                        )}
                       </div>
 
                       <div className="flex gap-3 pt-1">

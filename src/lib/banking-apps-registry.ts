@@ -131,3 +131,6 @@ export const BANKING_APPS_REGISTRY: BankingAppPreset[] = [
   { id: "kraken", name: "Kraken", package: "com.kraken.invest.app", region: "Global", domain: "kraken.com" },
   { id: "bybit", name: "Bybit", package: "com.bybit.app", region: "Global", domain: "bybit.com" }
 ]
+
+export const PRESET_BANK_APPS = BANKING_APPS_REGISTRY
+
