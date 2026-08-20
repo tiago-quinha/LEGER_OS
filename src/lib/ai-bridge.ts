@@ -49,8 +49,15 @@ export async function generateAIContent(prompt: string, options: AIBridgeOptions
       throw new Error("Gemini API key is missing. Configure it in settings or .env");
     }
     const genAI = new GoogleGenerativeAI(cleanApiKey);
-    const preferredModel = process.env.GEMINI_MODEL || "gemini-2.5-flash";
-    const candidateModels = Array.from(new Set([preferredModel, "gemini-3.5-flash-lite", "gemini-2.5-flash-lite", "gemini-2.5-flash", "gemini-2.5-pro"]));
+    const preferredModel = process.env.GEMINI_MODEL || (options.modelType === "pro" ? "gemini-3.1-pro-preview" : "gemini-3.5-flash-lite");
+    const candidateModels = Array.from(new Set([
+      preferredModel, 
+      "gemini-3.5-flash-lite",
+      "gemini-3.6-flash", 
+      "gemini-2.5-flash", 
+      "gemini-3.1-pro-preview", 
+      "gemini-2.5-pro"
+    ]));
     
     let lastError: any = null;
     let success = false;

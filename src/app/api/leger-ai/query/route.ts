@@ -117,74 +117,80 @@ export async function POST(request: Request) {
     }
 
     // --- STEP 1: Intent Analysis for Database Queries & Live Web Search ---
-    const intentPrompt = `
-      You are the intent routing node of LEGER_OS, a personal finance terminal.
-      
-      CURRENT DATE: ${clientDate || new Date().toISOString()}
-
-      ${activeCycleContextForIntent}
-      ${categoriesContextForIntent}
-      ${portfolioContextForIntent}
-      ${historyContext}
-      The user is asking: "${query}"
-      
-      Determine:
-      1. If this query requires database records (e.g., specific transactions, merchant history, budget records, portfolio holdings).
-         - DATABASE QUERY ROUTING RULES:
-           * If the user asks for a "breakdown", "analysis", "audit", "comparison", "list", "where did my money go", "how much on X", "income vs expenses", or mentions specific merchants or categories:
-             ALWAYS set "requiresDb": true and query "tracker_expense" for the active cycle date range (e.g. gte cycle start date) with limit 100, ordered by date descending or amount.
-      2. If this query requires LIVE WEB SEARCH GROUNDING for external world context:
-         - PROACTIVE ASSET & PORTFOLIO SEARCH RULE:
-           * If the user asks to "analyze", "review", "check", "outlook", "promising", "is it good", "earnings", or assess the performance/future of their portfolio or specific stock/crypto holdings:
-             ALWAYS set "requiresWebSearch": true and craft a specific, ticker-targeted search query using their actual portfolio tickers (e.g. "PLTR ALAB NET IOT NBIS stock news earnings outlook" or specific ticker catalysts). NEVER use vague queries like "current market news".
-         - Also trigger for: current ECB/Euribor/Fed interest rates, inflation figures, subscription price changes, merchant inquiries, or macroeconomic trends.
-      
-      Format your response as a strict JSON object:
-      {
-        "requiresDb": boolean,
-        "requiresWebSearch": boolean,
-        "webSearchQuery": string | null, // e.g. "PLTR ALAB NET stock news outlook 2026", "ECB current deposit interest rate", "Spotify price increase Portugal"
-        "dbQueries": [
-          {
-            "table": "tracker_expense" | "categories" | "budgets" | "income" | "account_balance" | "merchant_rules" | "portfolio_assets",
-            "select": "comma,separated,columns,to,select" | "*",
-            "filter": [
-              {
-                "column": string,
-                "operator": "eq" | "ilike" | "gte" | "lte" | "is_null" | "is_not_null",
-                "value": any
-              }
-            ] | null,
-            "orderBy": {
-              "column": string,
-              "ascending": boolean
-            } | null,
-            "limit": number
-          }
-        ] | null
-      }
-    `;
+    const isCasualGreeting = /^(hello|hi|hey|good\s+(morning|afternoon|evening|day)|olá|ola|boas|howdy|sup|oi|tudo\s+bem)[\s!.,?]*$/i.test(query.trim());
 
     let dbQueries: any[] = [];
     let requiresDb = false;
     let requiresWebSearch = false;
     let webSearchQuery = "";
 
-    try {
-      const intentResText = await generateAIContent(intentPrompt, {
-        provider: request.headers.get("x-ai-provider") || undefined,
-        customKey: request.headers.get("x-custom-api-key") || undefined,
-        jsonMode: true,
-        modelType: "flash"
-      });
+    if (!isCasualGreeting) {
+      const intentPrompt = `
+        You are the intent routing node of LEGER_OS, a personal finance terminal.
+        
+        CURRENT DATE: ${clientDate || new Date().toISOString()}
 
-      const intentRes = JSON.parse(intentResText);
-      requiresDb = !!intentRes.requiresDb;
-      requiresWebSearch = !!intentRes.requiresWebSearch;
-      webSearchQuery = (intentRes.webSearchQuery || "").trim();
-      dbQueries = intentRes.dbQueries || [];
-    } catch (e) {
-      console.error("Failed to parse AI intent:", e);
+        ${activeCycleContextForIntent}
+        ${categoriesContextForIntent}
+        ${portfolioContextForIntent}
+        ${historyContext}
+        The user is asking: "${query}"
+        
+        Determine:
+        1. If this query requires database records (e.g., specific transactions, merchant history, budget records, portfolio holdings).
+           - DATABASE QUERY ROUTING RULES:
+             * If the user asks for a "breakdown", "analysis", "audit", "comparison", "list", "where did my money go", "how much on X", "income vs expenses", or mentions specific merchants or categories:
+               ALWAYS set "requiresDb": true and query "tracker_expense" for the active cycle date range (e.g. gte cycle start date) with limit 100, ordered by date descending or amount.
+        2. If this query requires LIVE WEB SEARCH GROUNDING for external world context:
+           - PROACTIVE ASSET & PORTFOLIO SEARCH RULE:
+             * If the user asks to "analyze", "review", "check", "outlook", "promising", "is it good", "earnings", or assess the performance/future of their portfolio or specific stock/crypto holdings:
+               ALWAYS set "requiresWebSearch": true and craft a specific, ticker-targeted search query using their actual portfolio tickers (e.g. "PLTR ALAB NET IOT NBIS stock news earnings outlook" or specific ticker catalysts). NEVER use vague queries like "current market news".
+           - Also trigger for: current ECB/Euribor/Fed interest rates, inflation figures, subscription price changes, merchant inquiries, or macroeconomic trends.
+        
+        Format your response as a strict JSON object:
+        {
+          "requiresDb": boolean,
+          "requiresWebSearch": boolean,
+          "webSearchQuery": string | null, // e.g. "PLTR ALAB NET stock news outlook 2026", "ECB current deposit interest rate", "Spotify price increase Portugal"
+          "dbQueries": [
+            {
+              "table": "tracker_expense" | "categories" | "budgets" | "income" | "account_balance" | "merchant_rules" | "portfolio_assets",
+              "select": "comma,separated,columns,to,select" | "*",
+              "filter": [
+                {
+                  "column": string,
+                  "operator": "eq" | "ilike" | "gte" | "lte" | "is_null" | "is_not_null",
+                  "value": any
+                }
+              ] | null,
+              "orderBy": {
+                "column": string,
+                "ascending": boolean
+              } | null,
+              "limit": number
+            }
+          ] | null
+        }
+      `;
+
+      try {
+        const intentResText = await generateAIContent(intentPrompt, {
+          provider: request.headers.get("x-ai-provider") || undefined,
+          customKey: request.headers.get("x-custom-api-key") || undefined,
+          jsonMode: true,
+          modelType: "flash"
+        });
+
+        const parsed = JSON.parse(intentResText);
+        requiresDb = !!parsed.requiresDb;
+        requiresWebSearch = !!parsed.requiresWebSearch;
+        webSearchQuery = (parsed.webSearchQuery || "").trim();
+        if (parsed.dbQueries && Array.isArray(parsed.dbQueries)) {
+          dbQueries = parsed.dbQueries;
+        }
+      } catch (e) {
+        console.error("Failed to parse intent JSON:", e);
+      }
     }
 
     // Sanitize AI-proposed DB queries to an allowlist to prevent injection or expensive scans
@@ -488,8 +494,11 @@ export async function POST(request: Request) {
       COGNITIVE PERSONA & CONVERSATIONAL PHILOSOPHY:
       - You are LEGER_OS AI: an elite, razor-sharp private CFO, senior quantitative analyst, and high-precision financial engineer.
       - NEVER sound like a generic customer service chatbot, a lazy corporate assistant, or a superficial summarizer.
-      - STRICT ANTI-LAZINESS & ANTI-DEFLECTION INVARIANT:
-        * NEVER output generic 2-paragraph summaries with lazy follow-up questions asking if the user wants details later (e.g., NEVER say "Would you like me to analyze specific sectors or holdings?").
+      - CONVERSATIONAL GREETINGS & CASUAL INTERACTION RULE:
+        * If the user simply sends a greeting or casual opener (e.g., "Hello", "Hi", "Good morning", "Hey", "How are you", "Thank you"):
+          Respond with a friendly, sharp, concise greeting in 1-2 sentences acknowledging the user and asking what specific financial audit, budget review, or portfolio inquiry they'd like to run today. Do NOT dump an unprompted 500-word financial analysis report or cycle metrics unasked.
+      - STRICT ANTI-LAZINESS & ANTI-DEFLECTION INVARIANT (For financial/analytical queries):
+        * When the user asks an analytical question (e.g. about spending, projections, budget, holdings), NEVER output generic 2-paragraph summaries with lazy follow-up questions asking if the user wants details later.
         * ALWAYS DELIVER THE FULL, EXHAUSTIVE, DETAILED BREAKDOWN UPFRONT.
         * NO MACROECONOMIC FILLER FLUFF: NEVER waste words with generic boilerplate openers like "Scanning live financial markets...", "Global equities remain on an upward path...", or "Navigating lingering inflation anchors...". Get straight to the user's real numbers, holdings, and metrics immediately.
         * BE EXHAUSTIVE & COMPLETE: Provide exact numbers, calculations, percentages, risk matrices, and actionable conclusions directly. Show the math.
