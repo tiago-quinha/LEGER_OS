@@ -793,15 +793,17 @@ export function DeviceSyncManager({ user: propUser, isPro: propIsPro, onUpgradeC
           <div className="flex items-center gap-2 shrink-0 self-end sm:self-center">
             {isPushSubscribed ? (
               <>
-                <Button
-                  type="button"
-                  variant="outline"
-                  size="sm"
-                  onClick={sendTestPush}
-                  className="h-8 rounded-none border-border font-mono text-[10px] uppercase cursor-pointer flex items-center gap-1.5"
-                >
-                  <Send className="h-3 w-3" /> Test Alert
-                </Button>
+                {isSuperUser && (
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    onClick={sendTestPush}
+                    className="h-8 rounded-none border-border font-mono text-[10px] uppercase cursor-pointer flex items-center gap-1.5"
+                  >
+                    <Send className="h-3 w-3" /> Test Alert
+                  </Button>
+                )}
                 <Button
                   type="button"
                   variant="outline"
