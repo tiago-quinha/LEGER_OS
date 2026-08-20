@@ -3,7 +3,7 @@
 import React, { useState, useEffect, useMemo } from "react"
 import { 
   Smartphone, Apple, Sparkles, Check, Copy, ShieldCheck, 
-  Terminal, Search, Filter, RotateCcw, Laptop, Layers, Bell, Send
+  Terminal, Search, Filter, RotateCcw, Laptop, Layers, Bell, Send, Building2
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -218,16 +218,37 @@ export function DeviceSyncManager({ user: propUser, isPro: propIsPro, onUpgradeC
     toast.success(`${label} copied to clipboard!`)
   }
 
-  // Filtered Banks strictly by Search Query & Real Device Installed Apps
+  const [appScopeTab, setAppScopeTab] = useState<"finance" | "all">("finance")
+
+  // Count finance vs all apps
+  const financeAppsCount = useMemo(() => {
+    if (installedApps.length > 0) {
+      return installedApps.filter(a => a.isFinance).length
+    }
+    return PRESET_BANK_APPS.length
+  }, [installedApps])
+
+  const allAppsCount = useMemo(() => {
+    if (installedApps.length > 0) {
+      return installedApps.length
+    }
+    return PRESET_BANK_APPS.length
+  }, [installedApps])
+
+  // Filtered Banks strictly by Search Query, Scope Tab & Real Device Installed Apps
   const displayBanks = useMemo(() => {
     if (installedApps.length > 0) {
-      return installedApps.map(app => {
+      const source = appScopeTab === "finance" 
+        ? installedApps.filter(app => app.isFinance)
+        : installedApps
+
+      return source.map(app => {
         const matchingPreset = PRESET_BANK_APPS.find(p => p.package === app.packageName || p.name.toLowerCase() === app.name.toLowerCase())
         return {
           id: app.packageName,
           name: app.name,
           package: app.packageName,
-          region: app.isFinance ? "Finance / Bank" : "Installed App",
+          region: app.isFinance ? "Finance / Bank" : "Device App",
           domain: matchingPreset?.domain || "app",
           isFinance: app.isFinance,
           isInstalledOnDevice: true
@@ -235,7 +256,7 @@ export function DeviceSyncManager({ user: propUser, isPro: propIsPro, onUpgradeC
       })
     }
     return PRESET_BANK_APPS.map(b => ({ ...b, isFinance: true, isInstalledOnDevice: false }))
-  }, [installedApps])
+  }, [installedApps, appScopeTab])
 
   const filteredBanks = useMemo(() => {
     if (!bankSearchQuery.trim()) return displayBanks
@@ -426,76 +447,132 @@ export function DeviceSyncManager({ user: propUser, isPro: propIsPro, onUpgradeC
                 <div className="relative pt-1">
                   <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground mt-0.5" />
                   <Input
-                    placeholder="Search bank name (Santander, Revolut, MB WAY, CGD, N26...)"
+                    placeholder="Search bank name or app (Santander, Revolut, MB WAY, CGD, N26...)"
                     value={bankSearchQuery}
                     onChange={(e) => setBankSearchQuery(e.target.value)}
                     className="pl-8 text-xs h-8 rounded-none font-mono bg-background"
                   />
                 </div>
 
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2 pt-1 max-h-[280px] overflow-y-auto pr-1">
-                  {filteredBanks.map((bank) => {
-                    const isSelected = selectedBanks.includes(bank.id)
-                    return (
-                      <div
-                        key={bank.id}
-                        onClick={() => toggleBankSelection(bank.id)}
-                        className={cn(
-                          "p-2.5 border cursor-pointer transition-all flex flex-col justify-between space-y-1.5",
-                          isSelected
-                            ? "bg-foreground/5 border-foreground ring-1 ring-foreground"
-                            : "bg-card border-border hover:bg-secondary/20 opacity-70"
-                        )}
-                      >
-                        <div className="flex items-center justify-between gap-1">
-                          <div className="flex items-center gap-2 min-w-0 pr-1 truncate">
-                            <BankIconBadge domain={bank.domain} name={bank.name} />
-                            <span className="font-bold text-[10px] font-mono text-foreground uppercase truncate">
-                              {bank.name}
-                            </span>
-                          </div>
-                          <div className={cn(
-                            "w-3.5 h-3.5 flex items-center justify-center border shrink-0",
-                            isSelected ? "bg-foreground text-background border-foreground" : "border-border bg-background"
-                          )}>
-                            {isSelected && <Check className="h-2.5 w-2.5 stroke-[3]" />}
-                          </div>
-                        </div>
-                        <div className="flex items-center justify-between text-[8px] font-mono text-muted-foreground">
-                          <span className="truncate max-w-[130px]">{bank.package}</span>
-                          <span className="opacity-80 font-semibold">{bank.region}</span>
-                        </div>
-                      </div>
-                    )
-                  })}
-
-                  {customBanks.map((customName) => {
-                    const isSelected = selectedBanks.includes(customName)
-                    return (
-                      <div
-                        key={customName}
-                        onClick={() => toggleBankSelection(customName)}
-                        className={cn(
-                          "p-2.5 border cursor-pointer flex flex-col justify-between space-y-1.5",
-                          isSelected ? "border-foreground bg-foreground/5" : "border-border bg-card opacity-70"
-                        )}
-                      >
-                        <div className="flex items-center justify-between gap-1">
-                          <span className="font-bold text-[10px] font-mono text-foreground uppercase truncate">
-                            {customName}
-                          </span>
-                          <div className={cn(
-                            "w-3.5 h-3.5 flex items-center justify-center border shrink-0",
-                            isSelected ? "bg-foreground text-background border-foreground" : "border-border bg-background"
-                          )}>
-                            {isSelected && <Check className="h-2.5 w-2.5 stroke-[3]" />}
-                          </div>
-                        </div>
-                        <span className="text-[8px] font-mono text-muted-foreground">Custom App Filter</span>
-                      </div>
-                    )
-                  })}
+                <div className="flex items-center gap-2 overflow-x-auto pb-1 pt-0.5 scrollbar-none">
+                  <button
+                    type="button"
+                    onClick={() => setAppScopeTab("finance")}
+                    className={cn(
+                      "px-3.5 py-1.5 text-[9px] font-mono font-bold uppercase tracking-wider border cursor-pointer select-none transition-all shrink-0",
+                      appScopeTab === "finance"
+                        ? "bg-foreground border-foreground text-background font-black"
+                        : "bg-card border-border/60 text-muted-foreground hover:border-border hover:text-foreground"
+                    )}
+                  >
+                    Finance & Banking ({financeAppsCount})
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setAppScopeTab("all")}
+                    className={cn(
+                      "px-3.5 py-1.5 text-[9px] font-mono font-bold uppercase tracking-wider border cursor-pointer select-none transition-all shrink-0",
+                      appScopeTab === "all"
+                        ? "bg-foreground border-foreground text-background font-black"
+                        : "bg-card border-border/60 text-muted-foreground hover:border-border hover:text-foreground"
+                    )}
+                  >
+                    All Installed Apps ({allAppsCount})
+                  </button>
                 </div>
+
+                {filteredBanks.length === 0 ? (
+                  <div className="p-6 border border-dashed border-border/80 bg-secondary/10 text-center space-y-3">
+                    <div className="mx-auto w-8 h-8 rounded-full bg-secondary flex items-center justify-center text-muted-foreground">
+                      <Building2 className="h-4 w-4" />
+                    </div>
+                    <div className="space-y-1">
+                      <p className="text-xs font-mono font-bold uppercase text-foreground">
+                        {appScopeTab === "finance" ? "No Banking Apps Detected" : "No Apps Match Search"}
+                      </p>
+                      <p className="text-[10px] text-muted-foreground max-w-sm mx-auto font-sans">
+                        {appScopeTab === "finance"
+                          ? "None of the installed applications on this device were automatically recognized as banking or payment services."
+                          : `No applications matching "${bankSearchQuery}" were found.`}
+                      </p>
+                    </div>
+                    {appScopeTab === "finance" && (
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        onClick={() => setAppScopeTab("all")}
+                        className="text-[9px] font-mono uppercase tracking-wider font-bold h-7 rounded-none border-border cursor-pointer"
+                      >
+                        Select from All {allAppsCount} Apps on Phone &rarr;
+                      </Button>
+                    )}
+                  </div>
+                ) : (
+                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2 pt-1 max-h-[280px] overflow-y-auto pr-1">
+                    {filteredBanks.map((bank) => {
+                      const isSelected = selectedBanks.includes(bank.id)
+                      return (
+                        <div
+                          key={bank.id}
+                          onClick={() => toggleBankSelection(bank.id)}
+                          className={cn(
+                            "p-2.5 border cursor-pointer transition-all flex flex-col justify-between space-y-1.5",
+                            isSelected
+                              ? "bg-foreground/5 border-foreground ring-1 ring-foreground"
+                              : "bg-card border-border hover:bg-secondary/20 opacity-70"
+                          )}
+                        >
+                          <div className="flex items-center justify-between gap-1">
+                            <div className="flex items-center gap-2 min-w-0 pr-1 truncate">
+                              <BankIconBadge domain={bank.domain} name={bank.name} />
+                              <span className="font-bold text-[10px] font-mono text-foreground uppercase truncate">
+                                {bank.name}
+                              </span>
+                            </div>
+                            <div className={cn(
+                              "w-3.5 h-3.5 flex items-center justify-center border shrink-0",
+                              isSelected ? "bg-foreground text-background border-foreground" : "border-border bg-background"
+                            )}>
+                              {isSelected && <Check className="h-2.5 w-2.5 stroke-[3]" />}
+                            </div>
+                          </div>
+                          <div className="flex items-center justify-between text-[8px] font-mono text-muted-foreground">
+                            <span className="truncate max-w-[130px]">{bank.package}</span>
+                            <span className="opacity-80 font-semibold">{bank.region}</span>
+                          </div>
+                        </div>
+                      )
+                    })}
+
+                    {customBanks.map((customName) => {
+                      const isSelected = selectedBanks.includes(customName)
+                      return (
+                        <div
+                          key={customName}
+                          onClick={() => toggleBankSelection(customName)}
+                          className={cn(
+                            "p-2.5 border cursor-pointer flex flex-col justify-between space-y-1.5",
+                            isSelected ? "border-foreground bg-foreground/5" : "border-border bg-card opacity-70"
+                          )}
+                        >
+                          <div className="flex items-center justify-between gap-1">
+                            <span className="font-bold text-[10px] font-mono text-foreground uppercase truncate">
+                              {customName}
+                            </span>
+                            <div className={cn(
+                              "w-3.5 h-3.5 flex items-center justify-center border shrink-0",
+                              isSelected ? "bg-foreground text-background border-foreground" : "border-border bg-background"
+                            )}>
+                              {isSelected && <Check className="h-2.5 w-2.5 stroke-[3]" />}
+                            </div>
+                          </div>
+                          <span className="text-[8px] font-mono text-muted-foreground">Custom App Filter</span>
+                        </div>
+                      )
+                    })}
+                  </div>
+                )}
 
                 <div className="flex items-center justify-between pt-1 border-t border-border/40">
                   <button
