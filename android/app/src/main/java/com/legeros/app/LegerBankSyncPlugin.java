@@ -133,16 +133,52 @@ public class LegerBankSyncPlugin extends Plugin {
     }
 
     private boolean isLikelyFinanceApp(String name, String pkg, ApplicationInfo appInfo) {
-        String lowerName = name.toLowerCase();
-        String lowerPkg = pkg.toLowerCase();
+        // 1. Official Android OS Category Check
+        if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.O) {
+            if (appInfo.category == ApplicationInfo.CATEGORY_FINANCE) {
+                return true;
+            }
+        }
 
-        return lowerName.contains("bank") || lowerName.contains("banco") || lowerName.contains("mb way") ||
-                lowerName.contains("mbway") || lowerName.contains("santander") || lowerName.contains("revolut") ||
-                lowerName.contains("caixa") || lowerName.contains("cgd") || lowerName.contains("millennium") ||
-                lowerName.contains("bcp") || lowerName.contains("activo") || lowerName.contains("pay") ||
-                lowerName.contains("wallet") || lowerName.contains("wise") || lowerName.contains("n26") ||
-                lowerName.contains("trade republic") || lowerName.contains("crypto") || lowerName.contains("finance") ||
-                lowerPkg.contains("bank") || lowerPkg.contains("banco") || lowerPkg.contains("sibs") ||
-                lowerPkg.contains("revolut") || lowerPkg.contains("finance") || lowerPkg.contains("wallet");
+        // 2. Comprehensive 100+ Bank & Fintech Name and Package Matching
+        String n = name.toLowerCase();
+        String p = pkg.toLowerCase();
+
+        return n.contains("bank") || n.contains("banco") || n.contains("mb way") || n.contains("mbway") ||
+                n.contains("santander") || n.contains("revolut") || n.contains("caixa") || n.contains("cgd") ||
+                n.contains("millennium") || n.contains("bcp") || n.contains("activo") || n.contains("novobanco") ||
+                n.contains("novo banco") || n.contains("banco ctt") || n.contains("bpi") || n.contains("bankinter") ||
+                n.contains("montepio") || n.contains("moey") || n.contains("eurobic") || n.contains("abanca") ||
+                n.contains("universo") || n.contains("wizink") || n.contains("cofidis") || n.contains("bbva") ||
+                n.contains("caixabank") || n.contains("sabadell") || n.contains("openbank") || n.contains("imagin") ||
+                n.contains("bizum") || n.contains("monzo") || n.contains("starling") || n.contains("barclays") ||
+                n.contains("hsbc") || n.contains("lloyds") || n.contains("natwest") || n.contains("halifax") ||
+                n.contains("nationwide") || n.contains("chase") || n.contains("n26") || n.contains("wise") ||
+                n.contains("trade republic") || n.contains("scalable") || n.contains("bunq") || n.contains("klarna") ||
+                n.contains("curve") || n.contains("plum") || n.contains("vivid") || n.contains("trading 212") ||
+                n.contains("xtb") || n.contains("degiro") || n.contains("etoro") || n.contains("bitpanda") ||
+                n.contains("boursobank") || n.contains("lydia") || n.contains("bnp paribas") || n.contains("société générale") ||
+                n.contains("crédit agricole") || n.contains("sparkasse") || n.contains("deutsche bank") || n.contains("commerzbank") ||
+                n.contains("dkb") || n.contains("ing") || n.contains("intesa") || n.contains("unicredit") ||
+                n.contains("postepay") || n.contains("fineco") || n.contains("satispay") || n.contains("bank of america") ||
+                n.contains("wells fargo") || n.contains("citi") || n.contains("capital one") || n.contains("amex") ||
+                n.contains("discover") || n.contains("us bank") || n.contains("pnc") || n.contains("sofi") ||
+                n.contains("venmo") || n.contains("cash app") || n.contains("zelle") || n.contains("robinhood") ||
+                n.contains("coinbase") || n.contains("fidelity") || n.contains("schwab") || n.contains("vanguard") ||
+                n.contains("paypal") || n.contains("wallet") || n.contains("pay") || n.contains("nubank") ||
+                n.contains("itaú") || n.contains("bradesco") || n.contains("inter") || n.contains("c6 bank") ||
+                n.contains("mercado pago") || n.contains("picpay") || n.contains("pagbank") || n.contains("binance") ||
+                n.contains("kraken") || n.contains("bybit") || n.contains("crypto") || n.contains("finance") ||
+                p.contains("bank") || p.contains("banco") || p.contains("sibs") || p.contains("santander") ||
+                p.contains("revolut") || p.contains("cgd") || p.contains("bcp") || p.contains("activo") ||
+                p.contains("novobanco") || p.contains("bpi") || p.contains("bankinter") || p.contains("montepio") ||
+                p.contains("abanca") || p.contains("bbva") || p.contains("caixabank") || p.contains("bizum") ||
+                p.contains("monzo") || p.contains("starling") || p.contains("barclays") || p.contains("hsbc") ||
+                p.contains("lloyds") || p.contains("rbs") || p.contains("chase") || p.contains("number26") ||
+                p.contains("transferwise") || p.contains("traderepublic") || p.contains("klarna") || p.contains("curve") ||
+                p.contains("trading212") || p.contains("xtb") || p.contains("degiro") || p.contains("etoro") ||
+                p.contains("paypal") || p.contains("wallet") || p.contains("bofa") || p.contains("nu.production") ||
+                p.contains("itau") || p.contains("bradesco") || p.contains("binance") || p.contains("kraken") ||
+                p.contains("finance");
     }
 }

@@ -34,27 +34,9 @@ function AndroidIcon({ className = "h-4 w-4" }: { className?: string }) {
   )
 }
 
-const PRESET_BANK_APPS = [
-  { id: "santander", name: "Santander", package: "com.santander.app", region: "Portugal / EU", domain: "santander.pt" },
-  { id: "revolut", name: "Revolut", package: "com.revolut.revolut", region: "Global / Digital", domain: "revolut.com" },
-  { id: "mbway", name: "MB WAY", package: "com.sibs.mbway", region: "Portugal", domain: "www.mbway.pt" },
-  { id: "cgd", name: "Caixa Geral de Depósitos", package: "pt.cgd.caixadirecta", region: "Portugal", domain: "cgd.pt" },
-  { id: "millennium", name: "Millennium bcp", package: "pt.bcp.app", region: "Portugal", domain: "millenniumbcp.pt" },
-  { id: "activobank", name: "ActivoBank", package: "pt.activobank.mobile", region: "Portugal", domain: "activobank.pt" },
-  { id: "novobanco", name: "Novo Banco", package: "pt.novobanco.app", region: "Portugal", domain: "novobanco.pt" },
-  { id: "bancoctt", name: "Banco CTT", package: "pt.bancoctt.app", region: "Portugal", domain: "bancoctt.pt" },
-  { id: "n26", name: "N26", package: "de.number26.android", region: "EU / Global", domain: "n26.com" },
-  { id: "wise", name: "Wise", package: "com.transferwise.android", region: "Global / Digital", domain: "wise.com" },
-  { id: "bbva", name: "BBVA", package: "com.bbva.bbvacontigo", region: "Spain / LATAM", domain: "bbva.es" },
-  { id: "caixabank", name: "CaixaBankNow", package: "es.caixabank.caixabanknow", region: "Spain", domain: "caixabank.es" },
-  { id: "chase", name: "Chase Mobile", package: "com.chase.sig.android", region: "US", domain: "chase.com" },
-  { id: "bankofamerica", name: "Bank of America", package: "com.infonow.bofa", region: "US", domain: "bankofamerica.com" },
-  { id: "wells_fargo", name: "Wells Fargo", package: "com.wf.wellsfargomobile", region: "US", domain: "wellsfargo.com" },
-  { id: "monzo", name: "Monzo", package: "co.uk.monzo", region: "UK", domain: "monzo.com" },
-  { id: "barclays", name: "Barclays", package: "com.barclays.android.barclaysmobilebanking", region: "UK", domain: "barclays.co.uk" },
-  { id: "nubank", name: "Nubank", package: "com.nu.production", region: "Brazil / LATAM", domain: "nubank.com.br" },
-  { id: "itau", name: "Itaú", package: "com.itau", region: "Brazil / LATAM", domain: "itau.com.br" },
-]
+import { BANKING_APPS_REGISTRY } from "@/lib/banking-apps-registry"
+
+const PRESET_BANK_APPS = BANKING_APPS_REGISTRY
 
 function BankIconBadge({ domain, name }: { domain?: string; name: string }) {
   const [hasError, setHasError] = useState(false)
