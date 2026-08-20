@@ -2,6 +2,9 @@
 
 import { useState, useEffect, useCallback } from "react"
 import { toast } from "sonner"
+import { Capacitor } from "@capacitor/core"
+import { PushNotifications } from "@capacitor/push-notifications"
+import { LocalNotifications } from "@capacitor/local-notifications"
 
 function urlBase64ToUint8Array(base64String: string) {
   const padding = "=".repeat((4 - (base64String.length % 4)) % 4)
@@ -20,11 +23,27 @@ export function useWebPush() {
   const [subscription, setSubscription] = useState<PushSubscription | null>(null)
   const [isLoading, setIsLoading] = useState(false)
 
-  // 1. Check support and register Service Worker
+  // 1. Check support and register Service Worker or Native Push
   useEffect(() => {
+    if (Capacitor.isNativePlatform()) {
+      setIsSupported(true)
+      PushNotifications.checkPermissions().then((status) => {
+        if (status.receive === "granted") {
+          setPermission("granted")
+        } else if (status.receive === "denied") {
+          setPermission("denied")
+        } else {
+          setPermission("default")
+        }
+      }).catch(() => {})
+      return
+    }
+
     if (typeof window !== "undefined" && "serviceWorker" in navigator && "PushManager" in window) {
       setIsSupported(true)
-      setPermission(Notification.permission)
+      if (typeof Notification !== "undefined") {
+        setPermission(Notification.permission)
+      }
 
       navigator.serviceWorker
         .register("/sw.js")
@@ -40,15 +59,33 @@ export function useWebPush() {
     }
   }, [])
 
-  // 2. Subscribe to Web Push
+  // 2. Subscribe to Web Push / Native Push
   const subscribe = useCallback(async () => {
-    if (!isSupported) {
-      toast.error("Web Push notifications are not supported in this browser.")
-      return false
-    }
-
     setIsLoading(true)
     try {
+      if (Capacitor.isNativePlatform()) {
+        const pushPerm = await PushNotifications.requestPermissions()
+        await LocalNotifications.requestPermissions()
+        
+        if (pushPerm.receive === "granted") {
+          setPermission("granted")
+          toast.success("Native push alerts active: instant transaction prompts enabled.")
+          setIsLoading(false)
+          return true
+        } else {
+          setPermission("denied")
+          toast.error("Notification permission not granted in device settings.")
+          setIsLoading(false)
+          return false
+        }
+      }
+
+      if (!isSupported) {
+        toast.error("Web Push notifications are not supported in this browser.")
+        setIsLoading(false)
+        return false
+      }
+
       const reg = await navigator.serviceWorker.ready
       const perm = await Notification.requestPermission()
       setPermission(perm)
