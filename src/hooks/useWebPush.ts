@@ -18,7 +18,15 @@ function urlBase64ToUint8Array(base64String: string) {
 }
 
 export function useWebPush() {
-  const [isSupported, setIsSupported] = useState(false)
+  const [isSupported, setIsSupported] = useState(() => {
+    if (typeof window !== "undefined") {
+      return (
+        Boolean((window as any).Capacitor) ||
+        ("serviceWorker" in navigator && "PushManager" in window)
+      )
+    }
+    return false
+  })
   const [permission, setPermission] = useState<NotificationPermission>("default")
   const [subscription, setSubscription] = useState<PushSubscription | null>(null)
   const [isLoading, setIsLoading] = useState(false)
@@ -129,6 +137,12 @@ export function useWebPush() {
 
   // 3. Unsubscribe
   const unsubscribe = useCallback(async () => {
+    if (Capacitor.isNativePlatform()) {
+      setPermission("default")
+      toast.info("Push alerts disabled.")
+      return true
+    }
+
     if (!subscription) return false
 
     setIsLoading(true)
@@ -136,6 +150,7 @@ export function useWebPush() {
       const endpoint = subscription.endpoint
       await subscription.unsubscribe()
 
+      // Inform server
       await fetch("/api/push/subscribe", {
         method: "DELETE",
         headers: { "Content-Type": "application/json" },
@@ -157,6 +172,21 @@ export function useWebPush() {
   // 4. Send Test Push Alert
   const sendTestNotification = useCallback(async () => {
     try {
+      if (Capacitor.isNativePlatform()) {
+        await LocalNotifications.schedule({
+          notifications: [
+            {
+              id: Math.floor(Math.random() * 10000),
+              title: "💳 Santander: -€14.50 EUR",
+              body: "Tap to name this merchant (e.g. Continente, Pingo Doce, Uber)",
+              schedule: { at: new Date(Date.now() + 500) }
+            }
+          ]
+        })
+        toast.success("Test notification dispatched to your device.")
+        return
+      }
+
       const res = await fetch("/api/push/send", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -178,10 +208,12 @@ export function useWebPush() {
     }
   }, [])
 
+  const isSubscribed = Boolean(subscription) || (Capacitor.isNativePlatform() && permission === "granted")
+
   return {
     isSupported,
     permission,
-    isSubscribed: Boolean(subscription),
+    isSubscribed,
     isLoading,
     subscribe,
     unsubscribe,

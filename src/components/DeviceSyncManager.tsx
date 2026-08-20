@@ -817,7 +817,7 @@ export function DeviceSyncManager({ user: propUser, isPro: propIsPro, onUpgradeC
               <Button
                 type="button"
                 size="sm"
-                disabled={isPushLoading || !isPushSupported}
+                disabled={isPushLoading}
                 onClick={subscribePush}
                 className="h-8 px-4 rounded-none bg-foreground text-background hover:bg-foreground/90 font-mono text-[10px] uppercase font-bold tracking-wider cursor-pointer shadow-xs"
               >
