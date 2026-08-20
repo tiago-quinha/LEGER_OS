@@ -255,8 +255,8 @@ export async function POST(request: Request) {
 
       if (isGenericMerchant) {
         await sendPushToUser(supabaseAdmin, userId, {
-          title: `💳 ${bankTitle}: ${amountStr}`,
-          body: "Tap to name this merchant (e.g. Continente, Pingo Doce, Uber)",
+          title: `${bankTitle} · ${amountStr}`,
+          body: "Tap to categorize and update safe daily burn.",
           url: `/?resolveTxId=${insertedTx.id}`,
           data: {
             txId: insertedTx.id,
@@ -267,8 +267,8 @@ export async function POST(request: Request) {
         })
       } else {
         await sendPushToUser(supabaseAdmin, userId, {
-          title: `💳 ${finalMerchant}: ${amountStr}`,
-          body: `Transaction recorded in LEGER_OS · Tap to view`,
+          title: `${finalMerchant} · ${amountStr}`,
+          body: "Transaction logged in LEGER_OS · Tap to view.",
           url: `/?resolveTxId=${insertedTx.id}`,
           data: {
             txId: insertedTx.id,

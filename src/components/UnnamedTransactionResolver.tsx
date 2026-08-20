@@ -90,9 +90,19 @@ export function UnnamedTransactionResolver({
   useEffect(() => {
     const resolveTxId = searchParams.get("resolveTxId")
     if (resolveTxId) {
-      const match = expenses.find((e) => String(e.id) === String(resolveTxId))
-      if (match) {
-        openResolver(match)
+      if (resolveTxId === "demo") {
+        openResolver({
+          id: "demo",
+          amount: -14.50,
+          merchant: "Santander Outflow",
+          date: new Date().toISOString().split("T")[0],
+          category_id: null
+        })
+      } else {
+        const match = expenses.find((e) => String(e.id) === String(resolveTxId))
+        if (match) {
+          openResolver(match)
+        }
       }
     }
   }, [searchParams, expenses])

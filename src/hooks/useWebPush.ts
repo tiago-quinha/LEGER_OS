@@ -44,6 +44,24 @@ export function useWebPush() {
           setPermission("default")
         }
       }).catch(() => {})
+
+      // Wire tap listener to route to Transaction Resolver drawer
+      LocalNotifications.addListener('localNotificationActionPerformed', (action) => {
+        const extra = action.notification.extra
+        const txId = extra?.txId || "demo"
+        if (typeof window !== "undefined") {
+          window.location.href = `/?resolveTxId=${txId}`
+        }
+      }).catch(() => {})
+
+      PushNotifications.addListener('pushNotificationActionPerformed', (action) => {
+        const data = action.notification.data
+        const txId = data?.txId || "demo"
+        if (typeof window !== "undefined") {
+          window.location.href = `/?resolveTxId=${txId}`
+        }
+      }).catch(() => {})
+
       return
     }
 
@@ -177,8 +195,9 @@ export function useWebPush() {
           notifications: [
             {
               id: Math.floor(Math.random() * 10000),
-              title: "💳 Santander: -€14.50 EUR",
-              body: "Tap to name this merchant (e.g. Continente, Pingo Doce, Uber)",
+              title: "Santander · €14.50 Outflow",
+              body: "Tap to review and update safe daily burn.",
+              extra: { txId: "demo" },
               schedule: { at: new Date(Date.now() + 500) }
             }
           ]
@@ -191,8 +210,8 @@ export function useWebPush() {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          title: "💳 Santander: -€14.50 EUR",
-          body: "Tap to name this merchant (e.g. Continente, Pingo Doce, Uber)",
+          title: "Santander · €14.50 Outflow",
+          body: "Tap to review and update safe daily burn.",
           amount: -14.50,
           url: "/?resolveTxId=demo"
         })
