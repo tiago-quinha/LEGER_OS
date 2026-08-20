@@ -45,6 +45,9 @@ public class LegerBankNotificationListenerService extends NotificationListenerSe
         "com.google.android.apps.walletnfcrel" // Google Wallet / Pay
     ));
 
+    private static final String PREFS_NAME = "leger_bank_sync_prefs";
+    private static final String KEY_PACKAGES = "selected_bank_packages";
+
     @Override
     public void onNotificationPosted(StatusBarNotification sbn) {
         if (sbn == null || sbn.getNotification() == null) return;
@@ -52,8 +55,13 @@ public class LegerBankNotificationListenerService extends NotificationListenerSe
         String packageName = sbn.getPackageName();
         if (packageName == null) return;
 
-        // Check if the notification comes from a known bank / payment provider
-        boolean isBank = BANK_PACKAGES.contains(packageName.toLowerCase());
+        // Check user's dynamically selected apps from SharedPreferences
+        Set<String> userSelectedPackages = getSharedPreferences(PREFS_NAME, MODE_PRIVATE).getStringSet(KEY_PACKAGES, null);
+
+        boolean isSelectedByUser = userSelectedPackages != null && userSelectedPackages.contains(packageName);
+        boolean isDefaultBank = BANK_PACKAGES.contains(packageName.toLowerCase());
+
+        boolean isBank = isSelectedByUser || (userSelectedPackages == null && isDefaultBank);
 
         // Extract title and text
         Bundle extras = sbn.getNotification().extras;
@@ -61,16 +69,16 @@ public class LegerBankNotificationListenerService extends NotificationListenerSe
         CharSequence textChar = extras != null ? extras.getCharSequence(Notification.EXTRA_TEXT) : "";
         String text = textChar != null ? textChar.toString() : "";
 
-        // Also check if text contains currency symbols or keywords if package is from an unrecognized bank
+        // Check if text contains transaction markers
         boolean containsTransactionKeywords = text.contains("€") || text.contains("EUR") || text.contains("$") || text.contains("£") ||
                 text.toLowerCase().contains("compra") || text.toLowerCase().contains("pagamento") || text.toLowerCase().contains("pago") ||
                 text.toLowerCase().contains("transferência") || text.toLowerCase().contains("spent") || text.toLowerCase().contains("paid");
 
         if (!isBank && !containsTransactionKeywords) {
-            return; // Ignore regular non-banking notifications (WhatsApp, Telegram, etc.)
+            return; // Ignore regular non-banking notifications
         }
 
-        Log.d(TAG, "Bank Notification Detected from: " + packageName + " | Title: " + title + " | Text: " + text);
+        Log.d(TAG, "Bank Notification Captured from: " + packageName + " | Title: " + title + " | Text: " + text);
 
         // Dispatch transaction to LEGER_OS Webhook asynchronously
         dispatchToLegerOS(packageName, title, text);

@@ -13,6 +13,7 @@ import { cn } from "@/lib/utils"
 import { ProLockOverlay } from "@/components/ProLockOverlay"
 import { useSystem } from "@/lib/SystemContext"
 import { useWebPush } from "@/hooks/useWebPush"
+import { Capacitor, registerPlugin } from "@capacitor/core"
 
 interface DeviceSyncManagerProps {
   user?: any
@@ -121,8 +122,11 @@ export function DeviceSyncManager({ user: propUser, isPro: propIsPro, onUpgradeC
   const [bankSearchQuery, setBankSearchQuery] = useState("")
   const [customBankInput, setCustomBankInput] = useState("")
   const [customBanks, setCustomBanks] = useState<string[]>([])
+  const [installedApps, setInstalledApps] = useState<{ name: string; packageName: string; isFinance: boolean }[]>([])
+  const [hasNotificationAccess, setHasNotificationAccess] = useState<boolean>(false)
+  const [isLoadingNativeApps, setIsLoadingNativeApps] = useState<boolean>(false)
 
-  // Load saved bank selections from localStorage
+  // Load saved bank selections & scan native installed apps on Android device
   useEffect(() => {
     if (typeof window !== "undefined") {
       const saved = localStorage.getItem(`leger_monitored_banks_${user?.id || "default"}`)
@@ -132,6 +136,39 @@ export function DeviceSyncManager({ user: propUser, isPro: propIsPro, onUpgradeC
           if (Array.isArray(parsed)) setSelectedBanks(parsed)
         } catch {}
       }
+
+      // Check native Capacitor platform
+      if (Capacitor.isNativePlatform()) {
+        const BankSync = registerPlugin<any>("LegerBankSync")
+        if (BankSync) {
+          BankSync.isNotificationAccessGranted().then((res: any) => {
+            setHasNotificationAccess(!!res.granted)
+          }).catch(() => {})
+
+          setIsLoadingNativeApps(true)
+          BankSync.getInstalledApps().then((res: any) => {
+            if (res?.apps && Array.isArray(res.apps)) {
+              // Sort finance apps first, then alphabetically
+              const sorted = [...res.apps].sort((a, b) => {
+                if (a.isFinance && !b.isFinance) return -1
+                if (!a.isFinance && b.isFinance) return 1
+                return a.name.localeCompare(b.name)
+              })
+              setInstalledApps(sorted)
+            }
+          }).catch((err: any) => {
+            console.error("Failed to load native apps:", err)
+          }).finally(() => {
+            setIsLoadingNativeApps(false)
+          })
+
+          BankSync.getSelectedBankPackages().then((res: any) => {
+            if (res?.packages && Array.isArray(res.packages) && res.packages.length > 0) {
+              setSelectedBanks(res.packages)
+            }
+          }).catch(() => {})
+        }
+      }
     }
   }, [user?.id])
 
@@ -140,6 +177,21 @@ export function DeviceSyncManager({ user: propUser, isPro: propIsPro, onUpgradeC
     setSelectedBanks(newBanks)
     if (typeof window !== "undefined") {
       localStorage.setItem(`leger_monitored_banks_${user?.id || "default"}`, JSON.stringify(newBanks))
+    }
+    if (Capacitor.isNativePlatform()) {
+      const BankSync = registerPlugin<any>("LegerBankSync")
+      BankSync?.setSelectedBankPackages({ packages: newBanks }).catch(() => {})
+    }
+  }
+
+  const handleOpenNativeSettings = () => {
+    if (Capacitor.isNativePlatform()) {
+      const BankSync = registerPlugin<any>("LegerBankSync")
+      BankSync?.openNotificationAccessSettings().then(() => {
+        toast.info("Enable LEGER_OS in Device & App Notifications settings.")
+      }).catch(() => {
+        toast.error("Could not open system notification settings automatically.")
+      })
     }
   }
 
@@ -184,15 +236,33 @@ export function DeviceSyncManager({ user: propUser, isPro: propIsPro, onUpgradeC
     toast.success(`${label} copied to clipboard!`)
   }
 
-  // Filtered Banks strictly by Search Query
+  // Filtered Banks strictly by Search Query & Real Device Installed Apps
+  const displayBanks = useMemo(() => {
+    if (installedApps.length > 0) {
+      return installedApps.map(app => {
+        const matchingPreset = PRESET_BANK_APPS.find(p => p.package === app.packageName || p.name.toLowerCase() === app.name.toLowerCase())
+        return {
+          id: app.packageName,
+          name: app.name,
+          package: app.packageName,
+          region: app.isFinance ? "Finance / Bank" : "Installed App",
+          domain: matchingPreset?.domain || "app",
+          isFinance: app.isFinance,
+          isInstalledOnDevice: true
+        }
+      })
+    }
+    return PRESET_BANK_APPS.map(b => ({ ...b, isFinance: true, isInstalledOnDevice: false }))
+  }, [installedApps])
+
   const filteredBanks = useMemo(() => {
-    if (!bankSearchQuery.trim()) return PRESET_BANK_APPS
+    if (!bankSearchQuery.trim()) return displayBanks
     const q = bankSearchQuery.toLowerCase()
-    return PRESET_BANK_APPS.filter(bank => 
+    return displayBanks.filter(bank => 
       bank.name.toLowerCase().includes(q) || 
       bank.package.toLowerCase().includes(q)
     )
-  }, [bankSearchQuery])
+  }, [bankSearchQuery, displayBanks])
 
   const handleSelectAllVisible = () => {
     const visibleIds = filteredBanks.map(b => b.id)
@@ -311,14 +381,48 @@ export function DeviceSyncManager({ user: propUser, isPro: propIsPro, onUpgradeC
                 </div>
               </div>
 
+              {Capacitor.isNativePlatform() && (
+                <div className={cn(
+                  "p-3 border flex items-center justify-between gap-3 text-xs font-mono transition-all",
+                  hasNotificationAccess
+                    ? "bg-emerald-500/10 border-emerald-500/30 text-emerald-400"
+                    : "bg-amber-500/10 border-amber-500/30 text-amber-300"
+                )}>
+                  <div className="flex items-center gap-2.5 min-w-0">
+                    <Bell className="h-4 w-4 shrink-0" />
+                    <div className="min-w-0">
+                      <span className="font-bold uppercase tracking-wider block">
+                        {hasNotificationAccess ? "Notification Listener Active" : "Notification Access Required"}
+                      </span>
+                      <span className="text-[10px] text-muted-foreground block truncate">
+                        {hasNotificationAccess
+                          ? "LEGER_OS is monitoring selected bank push notifications in real time."
+                          : "Enable LEGER_OS in Android device settings to allow auto-ingestion."}
+                      </span>
+                    </div>
+                  </div>
+                  {!hasNotificationAccess && (
+                    <Button
+                      size="sm"
+                      onClick={handleOpenNativeSettings}
+                      className="h-7 text-[10px] font-mono uppercase bg-amber-500 text-black hover:bg-amber-400 font-bold shrink-0 rounded-none cursor-pointer"
+                    >
+                      Grant Access
+                    </Button>
+                  )}
+                </div>
+              )}
+
               <div className="p-4 bg-card border border-border space-y-3">
                 <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-border/40 pb-3">
                   <div>
                     <span className="text-xs uppercase font-mono font-bold text-foreground block">
-                      Select Your Banking & Payment Apps
+                      {installedApps.length > 0 ? "Installed Apps on Your Device" : "Select Your Banking & Payment Apps"}
                     </span>
                     <span className="text-[10px] text-muted-foreground font-sans">
-                      Choose which banking apps to monitor on this device.
+                      {installedApps.length > 0 
+                        ? `Scanned ${installedApps.length} apps installed on your phone. Finance apps prioritized.`
+                        : "Choose which banking apps to monitor on this device."}
                     </span>
                   </div>
                   <div className="flex items-center gap-2">
