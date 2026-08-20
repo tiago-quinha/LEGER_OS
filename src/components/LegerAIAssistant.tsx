@@ -789,7 +789,14 @@ export function LegerAIAssistant() {
 
   // Dynamic Floaty AI Pill Banner States (starts CLOSED by default)
   const [isPillExpanded, setIsPillExpanded] = useState(false)
+  const [isPillDismissed, setIsPillDismissed] = useState(false)
   const userClickedPillRef = useRef(false)
+
+  // Reset dismissal state cleanly when user navigates to a new page
+  useEffect(() => {
+    setIsPillDismissed(false)
+    setIsPillExpanded(false)
+  }, [pathname])
 
   // Listen for active bulk selection mode to dynamically adjust floating height
   const [isBulkActive, setIsBulkActive] = useState(false)
@@ -912,6 +919,7 @@ export function LegerAIAssistant() {
 
   // Smart Event-Driven & Token-Efficient Auto-Expansion (Triggers on high-priority events or throttled probability)
   useEffect(() => {
+    if (isPillDismissed) return
     userClickedPillRef.current = false
     setIsPillExpanded(false)
 
@@ -935,7 +943,9 @@ export function LegerAIAssistant() {
     lastExpandedTimeRef.current = now
 
     const openTimer = setTimeout(() => {
-      setIsPillExpanded(true)
+      if (!isPillDismissed) {
+        setIsPillExpanded(true)
+      }
     }, 1500)
 
     const closeTimer = setTimeout(() => {
@@ -948,7 +958,7 @@ export function LegerAIAssistant() {
       clearTimeout(openTimer)
       clearTimeout(closeTimer)
     }
-  }, [pathname, pillScenario.banner, telemetry])
+  }, [pathname, pillScenario.banner, telemetry, isPillDismissed])
 
   useEffect(() => {
     const handleExpand = () => setIsPillExpanded(true)
@@ -2038,37 +2048,25 @@ export function LegerAIAssistant() {
           )}
         </AnimatePresence>
 
-        {/* Dynamic Floaty AI Banner Trigger Node (Floaty Elastic + Side Edge Snapping) */}
-        <motion.div
-          drag
-          dragMomentum={false}
-          dragElastic={0.12}
-          style={{ x: dragX, y: dragY }}
-          animate={dragControls}
-          onDragEnd={handleTriggerDragEnd}
-          whileDrag={{ scale: 1.04, cursor: "grabbing" }}
-          whileHover={{ scale: 1.02 }}
-          className={cn(
-            "fixed pointer-events-auto left-4 right-4 sm:left-6 sm:right-6 md:left-auto md:right-6 z-[99998] flex justify-end cursor-grab active:cursor-grabbing",
-            isBulkActive || pathname === "/expenses" || pathname === "/portfolio"
-              ? "bottom-[172px] sm:bottom-24" 
-              : hasCycleBar || pathname === "/" || pathname === "/budgets" || pathname === "/categories"
-              ? "bottom-28" 
-              : "bottom-20",
-            "md:bottom-6",
-            (isOpen || isSettingsOpen || pathname === "/leger-ai") && "hidden"
-          )}
-        >
-          <AnimatePresence mode="wait">
-            {isPillExpanded ? (
-              <motion.div
-                key="expanded-pill"
-                initial={{ opacity: 0, scale: 0.95, y: 14 }}
-                animate={{ opacity: 1, scale: 1, y: 0 }}
-                exit={{ opacity: 0, scale: 0.95, y: 14 }}
-                transition={{ type: "spring", stiffness: 380, damping: 26 }}
-                className="group flex items-center gap-3 h-11 px-3 bg-card/95 dark:bg-zinc-900/95 backdrop-blur-xl border border-border shadow-[0_12px_40px_rgba(0,0,0,0.4)] rounded-full text-foreground w-full md:w-[480px] max-w-full select-none relative overflow-hidden"
-              >
+        {/* 1. Anchored Non-Draggable Proactive AI Pill Banner (Bottom-anchored, never covers '+' FAB) */}
+        <AnimatePresence>
+          {isPillExpanded && !isPillDismissed && !isOpen && !isSettingsOpen && pathname !== "/leger-ai" && (
+            <motion.div
+              key="anchored-pill-banner"
+              initial={{ opacity: 0, y: 16, scale: 0.96 }}
+              animate={{ opacity: 1, y: 0, scale: 1 }}
+              exit={{ opacity: 0, y: 16, scale: 0.96 }}
+              transition={{ type: "spring", stiffness: 380, damping: 26 }}
+              className={cn(
+                "fixed z-[99990] select-none pointer-events-auto",
+                // Mobile positioning: docked cleanly above cycle mobile bar or bottom nav, leaving right margin for FAB/Orb
+                hasCycleBar || pathname === "/" || pathname === "/budgets" || pathname === "/categories"
+                  ? "bottom-[104px]"
+                  : "bottom-[68px]",
+                "left-3 right-20 sm:left-4 sm:right-24 md:left-6 md:right-auto md:w-[460px] md:bottom-6"
+              )}
+            >
+              <div className="group flex items-center gap-3 h-11 px-3 bg-card/95 dark:bg-zinc-900/95 backdrop-blur-xl border border-border shadow-[0_12px_40px_rgba(0,0,0,0.5)] rounded-full text-foreground w-full select-none relative overflow-hidden">
                 {/* Left Emblem Avatar Badge */}
                 <button
                   onClick={handlePillClick}
@@ -2081,7 +2079,7 @@ export function LegerAIAssistant() {
                   )}
                 </button>
 
-                {/* Center Natural Context Insight (Full width text) */}
+                {/* Center Natural Context Insight */}
                 <div
                   onClick={handlePillClick}
                   className="flex-1 min-w-0 cursor-pointer pr-1"
@@ -2101,9 +2099,12 @@ export function LegerAIAssistant() {
                     <ChevronUp className="h-4 w-4" />
                   </button>
                   <button
-                    onClick={() => setIsPillExpanded(false)}
+                    onClick={() => {
+                      setIsPillDismissed(true)
+                      setIsPillExpanded(false)
+                    }}
                     className="p-1 text-muted-foreground/60 hover:text-foreground transition-colors cursor-pointer"
-                    title="Minimize"
+                    title="Dismiss"
                   >
                     <X className="h-3.5 w-3.5" />
                   </button>
@@ -2111,38 +2112,59 @@ export function LegerAIAssistant() {
 
                 {/* Subtle bottom accent glow */}
                 <div className="absolute bottom-0 left-4 right-4 h-[1px] bg-gradient-to-r from-transparent via-emerald-500/30 to-transparent" />
-              </motion.div>
+              </div>
+            </motion.div>
+          )}
+        </AnimatePresence>
+
+        {/* 2. Dynamic Floaty AI Orb Trigger Node (Draggable + Edge Snapping) */}
+        <motion.div
+          drag
+          dragMomentum={false}
+          dragElastic={0.12}
+          style={{ x: dragX, y: dragY }}
+          animate={dragControls}
+          onDragEnd={handleTriggerDragEnd}
+          whileDrag={{ scale: 1.04, cursor: "grabbing" }}
+          whileHover={{ scale: 1.02 }}
+          className={cn(
+            "fixed pointer-events-auto right-4 sm:right-6 md:right-6 z-[99998] cursor-grab active:cursor-grabbing",
+            isBulkActive || pathname === "/expenses" || pathname === "/portfolio"
+              ? "bottom-[168px] sm:bottom-24" 
+              : hasCycleBar || pathname === "/" || pathname === "/budgets" || pathname === "/categories"
+              ? "bottom-28" 
+              : "bottom-20",
+            "md:bottom-6",
+            (isOpen || isSettingsOpen || pathname === "/leger-ai") && "hidden"
+          )}
+        >
+          <motion.button
+            key="collapsed-pill"
+            initial={{ opacity: 0, scale: 0.8 }}
+            animate={{ opacity: 1, scale: 1 }}
+            exit={{ opacity: 0, scale: 0.8 }}
+            transition={{ type: "spring", stiffness: 380, damping: 26 }}
+            onClick={() => {
+              userClickedPillRef.current = true
+              setIsOpen(true)
+            }}
+            className="w-12 h-12 rounded-full bg-foreground text-background flex items-center justify-center shadow-2xl relative border border-border border-white/20 select-none overflow-hidden transition-all duration-300 hover:scale-105 hover:shadow-[0_0_20px_rgba(255,255,255,0.2)] cursor-pointer"
+          >
+            {!isPro ? (
+              <div className="relative flex items-center justify-center">
+                <Brain className="h-5 w-5 text-background/80" />
+                <span className="absolute -top-1.5 -right-1.5 w-4 h-4 bg-card text-foreground rounded-full flex items-center justify-center border border-border shadow-md">
+                  <Lock className="h-2.5 w-2.5 text-muted-foreground" />
+                </span>
+              </div>
             ) : (
-              <motion.button
-                key="collapsed-pill"
-                initial={{ opacity: 0, scale: 0.8 }}
-                animate={{ opacity: 1, scale: 1 }}
-                exit={{ opacity: 0, scale: 0.8 }}
-                transition={{ type: "spring", stiffness: 380, damping: 26 }}
-                onClick={() => {
-                  userClickedPillRef.current = true
-                  setIsOpen(true)
-                }}
-                onMouseEnter={() => setIsPillExpanded(true)}
-                className="w-12 h-12 rounded-full bg-foreground text-background flex items-center justify-center shadow-2xl relative border border-border border-white/20 select-none overflow-hidden transition-all duration-300 hover:scale-105 hover:shadow-[0_0_20px_rgba(255,255,255,0.2)] cursor-pointer"
-              >
-                {!isPro ? (
-                  <div className="relative flex items-center justify-center">
-                    <Brain className="h-5 w-5 text-background/80" />
-                    <span className="absolute -top-1.5 -right-1.5 w-4 h-4 bg-card text-foreground rounded-full flex items-center justify-center border border-border shadow-md">
-                      <Lock className="h-2.5 w-2.5 text-muted-foreground" />
-                    </span>
-                  </div>
-                ) : (
-                  <div className="relative">
-                    <Brain className="h-5 w-5 text-background animate-pulse" />
-                    <span className="absolute -top-1 -right-1 w-2 h-2 bg-emerald-500 rounded-full border border-foreground animate-ping" />
-                    <span className="absolute -top-1 -right-1 w-2 h-2 bg-emerald-500 rounded-full border border-foreground" />
-                  </div>
-                )}
-              </motion.button>
+              <div className="relative">
+                <Brain className="h-5 w-5 text-background animate-pulse" />
+                <span className="absolute -top-1 -right-1 w-2 h-2 bg-emerald-500 rounded-full border border-foreground animate-ping" />
+                <span className="absolute -top-1 -right-1 w-2 h-2 bg-emerald-500 rounded-full border border-foreground" />
+              </div>
             )}
-          </AnimatePresence>
+          </motion.button>
         </motion.div>
         
       </div>
