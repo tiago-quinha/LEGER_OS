@@ -143,35 +143,49 @@ async function handleDispatch(request: NextRequest) {
   const startTime = Date.now()
   try {
     const { searchParams } = new URL(request.url)
-    const userId = searchParams.get("userId") || searchParams.get("user_id")
+    const queryUserId = searchParams.get("userId") || searchParams.get("user_id")
+    const isNativeAndroid = searchParams.get("source") === "native_android"
     const forceAllTimezones = searchParams.get("forceTimezone") === "true" || searchParams.get("all_tz") === "true"
     const type = searchParams.get("type") || "all" // "morning" | "subscriptions" | "closing" | "all"
     const cronSecret = process.env.CRON_SECRET
 
+    const supabaseAdmin = getAdminClient()
+
+    // 1. Resolve Target User ID (explicit or primary admin fallback for native device alarm)
+    let targetUserId = queryUserId
+    if (!targetUserId && isNativeAndroid) {
+      const { data: fallbackProfiles } = await supabaseAdmin
+        .from("profiles")
+        .select("id, currency, timezone")
+        .order("updated_at", { ascending: false })
+        .limit(1)
+      if (fallbackProfiles && fallbackProfiles.length >= 1) {
+        targetUserId = fallbackProfiles[0].id
+      }
+    }
+
     // Optional Bearer token check if CRON_SECRET is configured
-    if (cronSecret) {
+    if (cronSecret && !targetUserId) {
       const authHeader = request.headers.get("authorization")
-      if (authHeader && authHeader !== `Bearer ${cronSecret}` && !userId) {
+      if (authHeader && authHeader !== `Bearer ${cronSecret}`) {
         return NextResponse.json({ error: "Unauthorized cron trigger" }, { status: 401 })
       }
     }
 
-    const supabaseAdmin = getAdminClient()
-
-    // 1. Fetch eligible profiles
+    // 2. Fetch eligible profiles
     let targetProfiles: { id: string; currency: string; timezone: string }[] = []
 
-    if (userId) {
-      // Direct explicit user dispatch (e.g. test notification / debug trigger)
+    if (targetUserId) {
+      // Direct explicit user dispatch (e.g. native device alarm / test notification / debug trigger)
       const { data: profile } = await supabaseAdmin
         .from("profiles")
         .select("id, currency, timezone")
-        .eq("id", userId)
+        .eq("id", targetUserId)
         .single()
 
       if (profile) targetProfiles = [profile]
     } else {
-      // Scalable query: Fetch users with registered push subscriptions
+      // Scalable query: Fetch users with registered push subscriptions (Server Cron)
       const { data: activeProfiles, error: fetchErr } = await supabaseAdmin
         .from("profiles")
         .select("id, currency, timezone, push_subscriptions")
@@ -190,7 +204,7 @@ async function handleDispatch(request: NextRequest) {
       })
     }
 
-    if (targetProfiles.length === 0) {
+    if (targetProfiles.length === 0 && !targetUserId) {
       return NextResponse.json({
         success: true,
         message: "No users in current 08:30 AM timezone window",
@@ -223,7 +237,7 @@ async function handleDispatch(request: NextRequest) {
     const durationMs = Date.now() - startTime
     const totalDispatches = allDispatchedResults.reduce((acc, curr) => acc + curr.results.length, 0)
 
-    let targetUId = userId
+    let targetUId = targetUserId
     if (!targetUId) {
       const { data: fallbackProfiles } = await supabaseAdmin
         .from("profiles")
