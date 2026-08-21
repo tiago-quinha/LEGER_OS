@@ -31,7 +31,7 @@ export function useWebPush() {
   const [subscription, setSubscription] = useState<PushSubscription | null>(null)
   const [isLoading, setIsLoading] = useState(false)
 
-  // 1. Check support and register Service Worker or Native Push
+  // 1. Check support and register Service Worker and Native Push
   useEffect(() => {
     if (Capacitor.isNativePlatform()) {
       setIsSupported(true)
@@ -62,7 +62,20 @@ export function useWebPush() {
         }
       }).catch(() => {})
 
-      return
+      PushNotifications.addListener('registration', async (token) => {
+        const userTimezone = typeof Intl !== "undefined" ? Intl.DateTimeFormat().resolvedOptions().timeZone : "UTC"
+        fetch("/api/push/subscribe", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            subscription: {
+              endpoint: `https://fcm.googleapis.com/fcm/send/${token.value}`,
+              keys: { p256dh: token.value, auth: token.value }
+            },
+            timezone: userTimezone
+          })
+        }).catch(() => {})
+      }).catch(() => {})
     }
 
     if (typeof window !== "undefined" && "serviceWorker" in navigator && "PushManager" in window) {
@@ -90,65 +103,63 @@ export function useWebPush() {
     setIsLoading(true)
     try {
       if (Capacitor.isNativePlatform()) {
-        const pushPerm = await PushNotifications.requestPermissions()
-        await LocalNotifications.requestPermissions()
-        
-        if (pushPerm.receive === "granted") {
-          setPermission("granted")
-          toast.success("Native push alerts active: instant transaction prompts enabled.")
-          setIsLoading(false)
-          return true
-        } else {
-          setPermission("denied")
-          toast.error("Notification permission not granted in device settings.")
-          setIsLoading(false)
-          return false
+        try {
+          await LocalNotifications.requestPermissions()
+          const pushPerm = await PushNotifications.requestPermissions()
+          if (pushPerm.receive === "granted") {
+            setPermission("granted")
+            PushNotifications.register().catch(() => {})
+          }
+        } catch (e) {
+          console.warn("[WebPush] Native permissions error:", e)
         }
       }
 
-      if (!isSupported) {
-        toast.error("Web Push notifications are not supported in this browser.")
+      // Check browser/webview Service Worker Push Support
+      if (typeof window !== "undefined" && "serviceWorker" in navigator && "PushManager" in window) {
+        const reg = await navigator.serviceWorker.ready
+        const perm = await Notification.requestPermission()
+        setPermission(perm)
+
+        if (perm === "granted") {
+          const vapidPublicKey = process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY || "BNo8Lg0hY60s_FqM193Nn7B2tq9u_9ZcQ-P5eL1H7Y8QJ0z7w9A6B5C4D3E2F1G0H_I8J7K6L5M4N3O2P1Q"
+          const convertedKey = urlBase64ToUint8Array(vapidPublicKey)
+
+          const newSub = await reg.pushManager.subscribe({
+            userVisibleOnly: true,
+            applicationServerKey: convertedKey
+          })
+
+          const userTimezone = typeof Intl !== "undefined" ? Intl.DateTimeFormat().resolvedOptions().timeZone : "UTC"
+          const res = await fetch("/api/push/subscribe", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ 
+              subscription: newSub.toJSON(),
+              timezone: userTimezone
+            })
+          })
+
+          if (!res.ok) {
+            throw new Error("Failed to persist push subscription to server")
+          }
+
+          setSubscription(newSub)
+          toast.success("Push alerts active: instant transaction prompts enabled.")
+          setIsLoading(false)
+          return true
+        }
+      }
+
+      if (Capacitor.isNativePlatform()) {
+        toast.success("Push alerts active: instant transaction prompts enabled.")
         setIsLoading(false)
-        return false
+        return true
       }
 
-      const reg = await navigator.serviceWorker.ready
-      const perm = await Notification.requestPermission()
-      setPermission(perm)
-
-      if (perm !== "granted") {
-        toast.error("Notification permission denied in browser settings.")
-        setIsLoading(false)
-        return false
-      }
-
-      const vapidPublicKey = process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY || "BNo8Lg0hY60s_FqM193Nn7B2tq9u_9ZcQ-P5eL1H7Y8QJ0z7w9A6B5C4D3E2F1G0H_I8J7K6L5M4N3O2P1Q"
-      const convertedKey = urlBase64ToUint8Array(vapidPublicKey)
-
-      const newSub = await reg.pushManager.subscribe({
-        userVisibleOnly: true,
-        applicationServerKey: convertedKey
-      })
-
-      // Send subscription to server with detected browser timezone
-      const userTimezone = typeof Intl !== "undefined" ? Intl.DateTimeFormat().resolvedOptions().timeZone : "UTC"
-      const res = await fetch("/api/push/subscribe", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ 
-          subscription: newSub.toJSON(),
-          timezone: userTimezone
-        })
-      })
-
-      if (!res.ok) {
-        throw new Error("Failed to persist push subscription to server")
-      }
-
-      setSubscription(newSub)
-      toast.success("Push alerts active: instant transaction prompts enabled.")
+      toast.error("Web Push notifications are not supported in this browser.")
       setIsLoading(false)
-      return true
+      return false
     } catch (err: any) {
       console.error("[WebPush] Subscribe error:", err)
       toast.error(err.message || "Failed to enable push notifications.")
