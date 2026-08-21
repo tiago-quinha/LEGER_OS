@@ -807,20 +807,27 @@ export function LegerAIAssistant() {
     return () => observer.disconnect()
   }, [])
 
-  // Listen for cycle mobile bar presence to dynamically adjust floating height above lowest element
+  // Listen for floating '+' FAB and cycle mobile bar presence to dynamically adjust pill width and floating height
   const [hasCycleBar, setHasCycleBar] = useState(false)
+  const [hasFloatingFab, setHasFloatingFab] = useState(false)
 
   useEffect(() => {
-    const checkCycleBar = () => {
-      const el = document.querySelector('[data-cycle-bar="true"]') ||
-                 document.querySelector('.cycle-mobile-bar') ||
-                 document.querySelector('button[aria-label*="paycheck cycle"]')
-      setHasCycleBar(!!el)
+    const checkFabAndCycle = () => {
+      const fabEl = document.querySelector('button[aria-label="Add transaction"]') ||
+                    document.querySelector('button[aria-label="Add position"]') ||
+                    document.querySelector('.fixed.bottom-20.right-4') ||
+                    document.querySelector('[data-fab="true"]')
+      setHasFloatingFab(!!fabEl || pathname === "/expenses" || pathname === "/portfolio")
+
+      const cycleEl = document.querySelector('[data-cycle-bar="true"]') ||
+                      document.querySelector('.cycle-mobile-bar') ||
+                      document.querySelector('button[aria-label*="paycheck cycle"]')
+      setHasCycleBar(!!cycleEl || pathname === "/" || pathname === "/expenses" || pathname === "/budgets" || pathname === "/categories" || pathname === "/radar" || pathname === "/portfolio")
     }
-    checkCycleBar()
-    const t1 = setTimeout(checkCycleBar, 100)
-    const t2 = setTimeout(checkCycleBar, 400)
-    const observer = new MutationObserver(checkCycleBar)
+    checkFabAndCycle()
+    const t1 = setTimeout(checkFabAndCycle, 100)
+    const t2 = setTimeout(checkFabAndCycle, 400)
+    const observer = new MutationObserver(checkFabAndCycle)
     observer.observe(document.body, { childList: true, subtree: true, attributes: true })
     return () => {
       clearTimeout(t1)
@@ -913,7 +920,7 @@ export function LegerAIAssistant() {
     })
   }
 
-  // Smart Event-Driven & Token-Efficient Auto-Expansion (Triggers on high-priority events or throttled probability)
+  // Smart Event-Driven & Anti-Annoyance Auto-Expansion (Only triggers on urgent events or once-a-day insights)
   useEffect(() => {
     if (isPillDismissed) return
     userClickedPillRef.current = false
@@ -925,18 +932,30 @@ export function LegerAIAssistant() {
     const totalOut = telemetry?.totalOut || 0
     const limit = telemetry?.spendingLimit || profile?.target_monthly_spend || 1500
     const budgetPct = limit > 0 ? (totalOut / limit) * 100 : 0
+    const isDeficitSpike = telemetry?.projectedSurplus !== undefined && telemetry.projectedSurplus < -50
 
-    // High priority events always qualify for notification
-    const isUrgentEvent = unclassified > 0 || velocity > 1.25 || budgetPct > 85
+    // High priority events always qualify for immediate attention
+    const isUrgentEvent = unclassified > 0 || velocity > 1.25 || budgetPct > 85 || isDeficitSpike
+
+    // Check daily frequency cap in localStorage for routine telemetry
+    const lastSeenKey = `leger_pill_last_seen_${profile?.id || "default"}`
+    let lastSeenTimestamp = 0
+    try {
+      lastSeenTimestamp = parseInt(localStorage.getItem(lastSeenKey) || "0", 10)
+    } catch {}
+
     const now = Date.now()
-    const timeSinceLast = now - lastExpandedTimeRef.current
+    const hoursSinceLastSeen = (now - lastSeenTimestamp) / (1000 * 60 * 60)
+    const isNewDayInsight = hoursSinceLastSeen >= 18
 
-    // Only auto-expand if an urgent event occurred, OR (35% random chance AND >= 3 minutes elapsed)
-    const shouldAutoExpand = isUrgentEvent || (timeSinceLast > 180000 && Math.random() < 0.35)
+    // Only auto-expand if an urgent event occurred, OR (once-a-day insight on main dashboard)
+    const shouldAutoExpand = isUrgentEvent || (isNewDayInsight && pathname === "/")
 
     if (!shouldAutoExpand) return
 
-    lastExpandedTimeRef.current = now
+    try {
+      localStorage.setItem(lastSeenKey, String(now))
+    } catch {}
 
     const openTimer = setTimeout(() => {
       if (!isPillDismissed) {
@@ -954,7 +973,7 @@ export function LegerAIAssistant() {
       clearTimeout(openTimer)
       clearTimeout(closeTimer)
     }
-  }, [pathname, pillScenario.banner, telemetry, isPillDismissed])
+  }, [pathname, pillScenario.banner, telemetry, isPillDismissed, profile?.id])
 
   useEffect(() => {
     const handleExpand = () => setIsPillExpanded(true)
@@ -2055,11 +2074,15 @@ export function LegerAIAssistant() {
               transition={{ type: "spring", stiffness: 380, damping: 26 }}
               className={cn(
                 "fixed z-[99990] select-none pointer-events-auto",
-                // Mobile positioning: docked cleanly above cycle mobile bar or bottom nav, leaving right margin for FAB/Orb
-                hasCycleBar || pathname === "/" || pathname === "/budgets" || pathname === "/categories"
+                // Mobile vertical positioning: docked cleanly above lowest active bottom bar
+                hasCycleBar
                   ? "bottom-[104px]"
                   : "bottom-[68px]",
-                "left-3 right-20 sm:left-4 sm:right-24 md:left-6 md:right-auto md:w-[460px] md:bottom-6"
+                // Mobile horizontal width: full width if no '+' FAB in view, or safe right clearance if FAB is present
+                hasFloatingFab
+                  ? "left-3 right-20 sm:left-4 sm:right-24 md:left-6 md:right-auto md:w-[460px]"
+                  : "left-3 right-3 sm:left-4 sm:right-4 md:left-6 md:right-auto md:w-[460px]",
+                "md:bottom-6"
               )}
             >
               <div className="group flex items-center gap-3 h-11 px-3 bg-card/95 dark:bg-zinc-900/95 backdrop-blur-xl border border-border shadow-[0_12px_40px_rgba(0,0,0,0.5)] rounded-full text-foreground w-full select-none relative overflow-hidden">
