@@ -235,11 +235,11 @@ export function DedicatedPushResolver({
           </div>
 
           {/* Category Grid */}
-          <div className="space-y-1 flex-1 min-h-0 flex flex-col">
+          <div className="space-y-2 flex-1 min-h-0 flex flex-col">
             <label className="text-[10px] uppercase tracking-wider text-muted-foreground block font-bold shrink-0">
               Expense Category:
             </label>
-            <div className="grid grid-cols-2 gap-1.5 overflow-y-auto p-1 border border-border/40 rounded-lg bg-secondary/10 max-h-[140px] sm:max-h-[180px]">
+            <div className="grid grid-cols-2 gap-2 sm:gap-2.5 overflow-y-auto p-2 border border-border/50 rounded-xl bg-secondary/15 max-h-[220px] sm:max-h-[260px]">
               {categories.map((c) => {
                 const isSelected = selectedCategoryId === c.id
                 return (
@@ -247,14 +247,14 @@ export function DedicatedPushResolver({
                     key={c.id}
                     type="button"
                     onClick={() => setSelectedCategoryId(c.id)}
-                    className={`p-2 text-left text-xs font-mono border rounded-md flex items-center gap-2 transition-all cursor-pointer truncate ${
+                    className={`p-2.5 sm:p-3 text-left text-xs sm:text-[13px] font-mono border rounded-lg flex items-center gap-2.5 transition-all cursor-pointer truncate ${
                       isSelected
-                        ? "bg-foreground text-background border-foreground font-bold"
-                        : "bg-secondary/20 hover:bg-secondary/50 border-border/60 text-muted-foreground hover:text-foreground"
+                        ? "bg-foreground text-background border-foreground font-bold shadow-sm scale-[1.01]"
+                        : "bg-secondary/30 hover:bg-secondary/60 border-border/70 text-muted-foreground hover:text-foreground active:scale-95"
                     }`}
                   >
                     <div 
-                      className="h-2 w-2 rounded-full shrink-0" 
+                      className="h-2.5 w-2.5 rounded-full shrink-0 shadow-xs" 
                       style={{ backgroundColor: c.color || "#10b981" }} 
                     />
                     <span className="truncate">{c.name}</span>
