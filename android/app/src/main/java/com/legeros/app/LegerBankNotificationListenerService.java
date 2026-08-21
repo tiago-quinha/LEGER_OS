@@ -1,12 +1,21 @@
 package com.legeros.app;
 
 import android.app.Notification;
+import android.app.NotificationChannel;
+import android.app.NotificationManager;
+import android.app.PendingIntent;
+import android.content.Context;
+import android.content.Intent;
+import android.os.Build;
 import android.os.Bundle;
 import android.service.notification.NotificationListenerService;
 import android.service.notification.StatusBarNotification;
 import android.util.Log;
+import androidx.core.app.NotificationCompat;
 import org.json.JSONObject;
 
+import java.io.BufferedReader;
+import java.io.InputStreamReader;
 import java.io.OutputStream;
 import java.net.HttpURLConnection;
 import java.net.URL;
@@ -145,11 +154,84 @@ public class LegerBankNotificationListenerService extends NotificationListenerSe
 
                 int responseCode = conn.getResponseCode();
                 Log.d(TAG, "Dispatched bank notification to LEGER_OS: HTTP " + responseCode);
+
+                if (responseCode >= 200 && responseCode < 300) {
+                    try (BufferedReader br = new BufferedReader(new InputStreamReader(conn.getInputStream(), StandardCharsets.UTF_8))) {
+                        StringBuilder responseSb = new StringBuilder();
+                        String line;
+                        while ((line = br.readLine()) != null) {
+                            responseSb.append(line.trim());
+                        }
+
+                        JSONObject resJson = new JSONObject(responseSb.toString());
+                        String displayTitle = "LEGER_OS · Purchase Captured";
+                        String displayMsg = "Transaction logged to your ledger.";
+                        String txId = "";
+
+                        if (resJson.has("transaction")) {
+                            JSONObject txObj = resJson.getJSONObject("transaction");
+                            String merchant = txObj.optString("merchant", "");
+                            double amount = txObj.optDouble("amount", 0.0);
+                            txId = String.valueOf(txObj.opt("id"));
+                            String formattedAmt = String.format("%.2f", Math.abs(amount));
+                            displayTitle = (merchant.isEmpty() ? "Santander" : merchant) + " · -€" + formattedAmt;
+                            displayMsg = "Transaction logged in LEGER_OS · Tap to view.";
+                        }
+
+                        showNativeNotification(displayTitle, displayMsg, txId);
+                    } catch (Exception parseEx) {
+                        showNativeNotification("LEGER_OS · Purchase Logged", title + " (" + text + ")", "");
+                    }
+                }
+
                 conn.disconnect();
             } catch (Exception e) {
                 Log.e(TAG, "Failed to dispatch bank notification to LEGER_OS: " + e.getMessage());
             }
         }).start();
+    }
+
+    private void showNativeNotification(String displayTitle, String displayMsg, String txId) {
+        try {
+            NotificationManager notificationManager = (NotificationManager) getSystemService(Context.NOTIFICATION_SERVICE);
+            if (notificationManager == null) return;
+
+            String channelId = "leger_os_transactions";
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                NotificationChannel channel = new NotificationChannel(
+                    channelId,
+                    "LEGER_OS Transactions",
+                    NotificationManager.IMPORTANCE_HIGH
+                );
+                channel.setDescription("Real-time transaction capture alerts");
+                notificationManager.createNotificationChannel(channel);
+            }
+
+            Intent intent = new Intent(this, MainActivity.class);
+            if (txId != null && !txId.isEmpty()) {
+                intent.putExtra("resolveTxId", txId);
+            }
+            intent.addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP | Intent.FLAG_ACTIVITY_SINGLE_TOP);
+
+            PendingIntent pendingIntent = PendingIntent.getActivity(
+                this,
+                (int) System.currentTimeMillis(),
+                intent,
+                PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE
+            );
+
+            NotificationCompat.Builder builder = new NotificationCompat.Builder(this, channelId)
+                .setSmallIcon(android.R.drawable.stat_notify_more)
+                .setContentTitle(displayTitle)
+                .setContentText(displayMsg)
+                .setAutoCancel(true)
+                .setPriority(NotificationCompat.PRIORITY_HIGH)
+                .setContentIntent(pendingIntent);
+
+            notificationManager.notify((int) (System.currentTimeMillis() % 100000), builder.build());
+        } catch (Exception e) {
+            Log.e(TAG, "Failed to show native notification: " + e.getMessage());
+        }
     }
 
     @Override
