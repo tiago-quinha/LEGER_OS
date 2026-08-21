@@ -86,29 +86,36 @@ public class LegerBankNotificationListenerService extends NotificationListenerSe
         String packageName = sbn.getPackageName();
         if (packageName == null) return;
 
-        // Check user's dynamically selected apps from SharedPreferences
+        // Strictly enforce user's selected bank apps from SharedPreferences
         Set<String> userSelectedPackages = getSharedPreferences(PREFS_NAME, MODE_PRIVATE).getStringSet(KEY_PACKAGES, null);
 
-        boolean isSelectedByUser = userSelectedPackages != null && userSelectedPackages.contains(packageName);
-        boolean isDefaultBank = BANK_PACKAGES.contains(packageName.toLowerCase());
+        // If user hasn't selected any packages yet, fallback to default bank registry.
+        // Once user selects apps, ONLY those selected packages are ever captured.
+        boolean isPermittedApp;
+        if (userSelectedPackages != null && !userSelectedPackages.isEmpty()) {
+            isPermittedApp = userSelectedPackages.contains(packageName);
+        } else {
+            isPermittedApp = BANK_PACKAGES.contains(packageName.toLowerCase());
+        }
 
-        boolean isBank = isSelectedByUser || (userSelectedPackages == null && isDefaultBank);
+        // Hard block: NEVER process messaging, chat, social media, or system apps under ANY circumstances
+        String lowerPkg = packageName.toLowerCase();
+        if (lowerPkg.contains("telegram") || lowerPkg.contains("whatsapp") || lowerPkg.contains("discord") ||
+            lowerPkg.contains("signal") || lowerPkg.contains("viber") || lowerPkg.contains("messenger") ||
+            lowerPkg.contains("instagram") || lowerPkg.contains("twitter") || lowerPkg.contains("reddit") ||
+            lowerPkg.contains("android.systemui") || lowerPkg.contains("android.providers")) {
+            return;
+        }
+
+        if (!isPermittedApp) {
+            return; // Ignore any unselected application immediately
+        }
 
         // Extract title and text
         Bundle extras = sbn.getNotification().extras;
         String title = extras != null ? extras.getString(Notification.EXTRA_TITLE, "") : "";
         CharSequence textChar = extras != null ? extras.getCharSequence(Notification.EXTRA_TEXT) : "";
         String text = textChar != null ? textChar.toString() : "";
-
-        // Check if text contains transaction markers
-        boolean containsTransactionKeywords = text.contains("€") || text.contains("EUR") || text.contains("$") || text.contains("£") ||
-                text.toLowerCase().contains("compra") || text.toLowerCase().contains("pagamento") || text.toLowerCase().contains("pago") ||
-                text.toLowerCase().contains("transferência") || text.toLowerCase().contains("transferencia") ||
-                text.toLowerCase().contains("spent") || text.toLowerCase().contains("paid") || text.toLowerCase().contains("autorizada");
-
-        if (!isBank && !containsTransactionKeywords) {
-            return; // Ignore regular non-banking notifications
-        }
 
         Log.d(TAG, "Bank Notification Captured from: " + packageName + " | Title: " + title + " | Text: " + text);
 
