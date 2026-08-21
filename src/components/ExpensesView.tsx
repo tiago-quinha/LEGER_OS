@@ -421,6 +421,7 @@ export function ExpensesView({ initialExpenses, categories: initialCategories, i
 
   // Manual Ingestion State
   const [isAddOpen, setIsAddOpen] = useState(false)
+  const [isFabMenuOpen, setIsFabMenuOpen] = useState(false)
   const [mounted, setMounted] = useState(false)
   const sheetDragControls = useDragControls()
   const [manualAmount, setManualAmount] = useState("")
@@ -2951,14 +2952,84 @@ export function ExpensesView({ initialExpenses, categories: initialCategories, i
           </TabsContent>
         </Tabs>
       </motion.div>
-      {/* Mobile Floating Action Button (FAB) matching Portfolio style */}
-      <button
-        onClick={() => setIsAddOpen(true)}
-        className="fixed bottom-[108px] md:bottom-8 right-4 md:right-8 z-50 h-12 w-12 rounded-xl bg-white text-black font-extrabold shadow-2xl flex items-center justify-center hover:bg-gray-100 border border-white/20 cursor-pointer select-none transition-all active:scale-95"
-        aria-label="Add Transaction manual entry"
-      >
-        <Plus className="h-6 w-6 stroke-[3]" />
-      </button>
+      {/* Mobile Floating Action Button (FAB) & Smooth Speed Dial Popup */}
+      <div className="fixed bottom-[72px] md:bottom-8 right-4 md:right-8 z-50 flex flex-col items-end">
+        <AnimatePresence>
+          {isFabMenuOpen && (
+            <>
+              {/* Dismiss backdrop overlay */}
+              <motion.div
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                onClick={() => setIsFabMenuOpen(false)}
+                className="fixed inset-0 bg-background/60 backdrop-blur-xs z-40"
+              />
+
+              {/* Speed Dial Action Cards */}
+              <motion.div
+                initial={{ opacity: 0, y: 14, scale: 0.92 }}
+                animate={{ opacity: 1, y: 0, scale: 1 }}
+                exit={{ opacity: 0, y: 14, scale: 0.92 }}
+                transition={{ type: "spring", stiffness: 420, damping: 28 }}
+                className="relative z-50 mb-3 space-y-2 flex flex-col items-end pointer-events-auto select-none"
+              >
+                {/* Option 1: Ingest Statement */}
+                <button
+                  onClick={() => {
+                    setIsFabMenuOpen(false)
+                    setActiveTab("ingest")
+                    window.scrollTo({ top: 0, behavior: "smooth" })
+                  }}
+                  className="flex items-center gap-3 px-4 py-2.5 bg-card/95 backdrop-blur-md border border-border text-foreground shadow-2xl hover:bg-secondary/90 transition-all cursor-pointer group active:scale-95 rounded-none"
+                >
+                  <div className="text-right">
+                    <p className="text-[11px] font-mono font-bold uppercase tracking-wider text-foreground">INGEST STATEMENT</p>
+                    <p className="text-[9px] font-mono text-muted-foreground uppercase">PDF / CSV Bank Extract</p>
+                  </div>
+                  <div className="w-9 h-9 bg-secondary border border-border flex items-center justify-center text-foreground group-hover:bg-foreground group-hover:text-background transition-colors shrink-0">
+                    <Upload className="h-4 w-4" />
+                  </div>
+                </button>
+
+                {/* Option 2: Add Transaction */}
+                <button
+                  onClick={() => {
+                    setIsFabMenuOpen(false)
+                    setIsAddOpen(true)
+                  }}
+                  className="flex items-center gap-3 px-4 py-2.5 bg-card/95 backdrop-blur-md border border-border text-foreground shadow-2xl hover:bg-secondary/90 transition-all cursor-pointer group active:scale-95 rounded-none"
+                >
+                  <div className="text-right">
+                    <p className="text-[11px] font-mono font-bold uppercase tracking-wider text-foreground">ADD TRANSACTION</p>
+                    <p className="text-[9px] font-mono text-muted-foreground uppercase">Manual Ledger Entry</p>
+                  </div>
+                  <div className="w-9 h-9 bg-foreground text-background flex items-center justify-center shrink-0 shadow-md group-hover:scale-105 transition-transform">
+                    <Plus className="h-4 w-4 stroke-[2.5]" />
+                  </div>
+                </button>
+              </motion.div>
+            </>
+          )}
+        </AnimatePresence>
+
+        {/* Main Trigger Button */}
+        <button
+          onClick={() => setIsFabMenuOpen(prev => !prev)}
+          className={cn(
+            "relative z-50 h-12 w-12 rounded-xl bg-white text-black font-extrabold shadow-2xl flex items-center justify-center hover:bg-gray-100 border border-white/20 cursor-pointer select-none transition-all active:scale-95",
+            isFabMenuOpen && "bg-zinc-800 text-white border-border"
+          )}
+          aria-label="Ledger quick actions menu"
+        >
+          <motion.div
+            animate={{ rotate: isFabMenuOpen ? 45 : 0 }}
+            transition={{ type: "spring", stiffness: 350, damping: 25 }}
+          >
+            <Plus className="h-6 w-6 stroke-[3]" />
+          </motion.div>
+        </button>
+      </div>
 
       <AuditTracePanel expenses={expenses} categories={categories} />
 
