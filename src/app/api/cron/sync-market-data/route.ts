@@ -363,17 +363,17 @@ async function handleSync(req: Request) {
       let currVal = 0;
       let topMover: { symbol: string; change24h: number } | null = null;
 
-      (userAssets || []).forEach((a: any) => {
+      for (const a of (userAssets || [])) {
         const qty = a.quantity || 0;
         const price = a.current_price || a.buy_price || 0;
         currVal += qty * price;
 
-        const meta = a.metadata || {};
+        const meta = (a.metadata || {}) as any;
         const ch = typeof meta.change24h === "number" ? meta.change24h : 0;
         if (!topMover || Math.abs(ch) > Math.abs(topMover.change24h)) {
-          topMover = { symbol: a.symbol || a.asset_name || "", change24h: ch };
+          topMover = { symbol: (a.symbol || a.asset_name || "") as string, change24h: ch };
         }
-      });
+      }
 
       const todayDate = new Date().toISOString().slice(0, 10);
       const { data: previousSnaps } = await adminDb
@@ -394,9 +394,10 @@ async function handleSync(req: Request) {
 
       wrapTitle = `Portfolio Wrap · ${sign}€${absChange.toFixed(2)} (${sign}${absPct.toFixed(1)}%)`;
       wrapSummary = `Total valuation: €${currVal.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}.`;
-      if (topMover && topMover.symbol) {
-        const moverSign = topMover.change24h >= 0 ? "+" : "";
-        wrapSummary += ` Top mover: ${topMover.symbol.toUpperCase()} (${moverSign}${topMover.change24h.toFixed(1)}%).`;
+      if (topMover && (topMover as any).symbol) {
+        const mover = topMover as { symbol: string; change24h: number };
+        const moverSign = mover.change24h >= 0 ? "+" : "";
+        wrapSummary += ` Top mover: ${mover.symbol.toUpperCase()} (${moverSign}${mover.change24h.toFixed(1)}%).`;
       }
       wrapSummary += ` Tap to view portfolio.`;
     }
