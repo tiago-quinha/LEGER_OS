@@ -1074,6 +1074,11 @@ export function PortfolioView({
     });
 
     if (selectedChartMode === "compare") {
+      const totalTodayVal = assets.reduce(
+        (sum, a) => sum + (Number(a.quantity) || 0) * (Number(a.current_price) || Number(a.buy_price) || 0),
+        0
+      );
+
       return Array.from({ length: cycleDaysCount }).map((_, i) => {
         const d = new Date(startD);
         d.setDate(d.getDate() + i);
@@ -1082,6 +1087,10 @@ export function PortfolioView({
 
         const isPast = dateStr < todayStr;
         const isToday = dateStr === todayStr;
+        const recordedSnap = snapMap.get(dateStr);
+        const snapRatio = recordedSnap?.closing_valuation && totalTodayVal > 0 
+          ? Number(recordedSnap.closing_valuation) / totalTodayVal 
+          : 1;
 
         const perAsset: Record<string, number | null> = {};
         for (const a of assets) {
@@ -1089,13 +1098,22 @@ export function PortfolioView({
           const qty = Number(a.quantity) || 0;
           const buyPrice = Number(a.buy_price) || Number(a.current_price) || 0;
           const currPrice = Number(a.current_price) || buyPrice;
+          const assetAcqDate = a.created_at ? a.created_at.split("T")[0] : (earliestActiveDate || "2026-08-17");
 
-          if (dateStr <= (earliestActiveDate || "2026-08-17")) {
-            // Day 17 (purchase date): exact buy price / €50 starting basis
+          if (dateStr < assetAcqDate) {
+            perAsset[key] = null;
+          } else if (dateStr === assetAcqDate) {
             perAsset[key] = parseFloat((qty * buyPrice).toFixed(2));
-          } else if (isPast || isToday) {
-            // Latest completed market close (held steady until markets open today)
+          } else if (isToday) {
             perAsset[key] = parseFloat((qty * currPrice).toFixed(2));
+          } else if (isPast) {
+            if (recordedSnap?.closing_valuation) {
+              perAsset[key] = parseFloat((qty * currPrice * snapRatio).toFixed(2));
+            } else {
+              const change24h = Number(a.metadata?.change24h || 0);
+              const prev = change24h !== 0 ? currPrice / (1 + change24h / 100) : buyPrice;
+              perAsset[key] = parseFloat((qty * prev).toFixed(2));
+            }
           } else {
             perAsset[key] = null;
           }
@@ -1146,7 +1164,7 @@ export function PortfolioView({
         let dayMaxVal = dayValuation;
 
         if (dateStr <= (earliestActiveDate || "2026-08-17")) {
-          // On day of acquisition, initial starting valuation is €50 (cost basis)
+          // On day of acquisition, initial starting valuation is cost basis
           dayCloseVal = dayInvested;
           dayMinVal = dayInvested;
           dayMaxVal = dayInvested;
@@ -1182,6 +1200,15 @@ export function PortfolioView({
       });
     } else if (["stock_etf", "crypto", "commodity"].includes(selectedChartMode)) {
       const categoryAssets = assets.filter((a) => a.asset_type === selectedChartMode);
+      const totalTodayVal = assets.reduce(
+        (sum, a) => sum + (Number(a.quantity) || 0) * (Number(a.current_price) || Number(a.buy_price) || 0),
+        0
+      );
+      const categoryTodayVal = categoryAssets.reduce(
+        (sum, a) => sum + (Number(a.quantity) || 0) * (Number(a.current_price) || Number(a.buy_price) || 0),
+        0
+      );
+      const invested = categoryAssets.reduce((sum, a) => sum + (Number(a.quantity) || 0) * (Number(a.buy_price) || 0), 0);
 
       return Array.from({ length: cycleDaysCount }).map((_, i) => {
         const d = new Date(startD);
@@ -1191,17 +1218,22 @@ export function PortfolioView({
 
         const isPast = dateStr < todayStr;
         const isToday = dateStr === todayStr;
+        const recordedSnap = snapMap.get(dateStr);
 
         let val = 0;
-        const invested = categoryAssets.reduce((sum, a) => sum + (Number(a.quantity) || 0) * (Number(a.buy_price) || 0), 0);
 
         if (dateStr <= (earliestActiveDate || "2026-08-17")) {
           val = invested;
-        } else if (isPast || isToday) {
-          val = categoryAssets.reduce(
-            (sum, a) => sum + (Number(a.quantity) || 0) * (Number(a.current_price) || Number(a.buy_price) || 0),
-            0
-          );
+        } else if (isToday) {
+          val = categoryTodayVal;
+        } else if (isPast) {
+          if (recordedSnap?.asset_breakdown?.[selectedChartMode]?.valuation) {
+            val = Number(recordedSnap.asset_breakdown[selectedChartMode].valuation);
+          } else if (recordedSnap?.closing_valuation && totalTodayVal > 0) {
+            val = categoryTodayVal * (Number(recordedSnap.closing_valuation) / totalTodayVal);
+          } else {
+            val = categoryTodayVal;
+          }
         }
 
         const formattedVal = parseFloat(val.toFixed(2));
@@ -1245,6 +1277,11 @@ export function PortfolioView({
         ? targetAsset.created_at.split("T")[0]
         : (earliestActiveDate || "2026-08-17");
 
+      const totalTodayVal = assets.reduce(
+        (sum, a) => sum + (Number(a.quantity) || 0) * (Number(a.current_price) || Number(a.buy_price) || 0),
+        0
+      );
+
       return Array.from({ length: cycleDaysCount }).map((_, i) => {
         const d = new Date(startD);
         d.setDate(d.getDate() + i);
@@ -1253,6 +1290,10 @@ export function PortfolioView({
 
         const isPast = dateStr < todayStr;
         const isToday = dateStr === todayStr;
+        const recordedSnap = snapMap.get(dateStr);
+        const snapRatio = recordedSnap?.closing_valuation && totalTodayVal > 0
+          ? Number(recordedSnap.closing_valuation) / totalTodayVal
+          : 1;
 
         let val: number | null = null;
         let dayReturn: number | null = null;
@@ -1269,9 +1310,23 @@ export function PortfolioView({
           dayReturn = todayDayReturn;
           dayReturnPct = todayDayReturnPct;
         } else if (isPast) {
-          val = assetCurrentVal;
-          dayReturn = 0;
-          dayReturnPct = 0;
+          if (recordedSnap?.closing_valuation) {
+            val = parseFloat((assetCurrentVal * snapRatio).toFixed(2));
+            const prevD = new Date(d);
+            prevD.setDate(prevD.getDate() - 1);
+            const prevDateStr = prevD.toISOString().split("T")[0];
+            const prevSnap = snapMap.get(prevDateStr);
+            const prevRatio = prevSnap?.closing_valuation && totalTodayVal > 0 
+              ? Number(prevSnap.closing_valuation) / totalTodayVal 
+              : (prevDateStr === assetAcquisitionDate ? assetInvested / (assetCurrentVal || 1) : snapRatio);
+            const prevVal = parseFloat((assetCurrentVal * prevRatio).toFixed(2));
+            dayReturn = parseFloat((val - prevVal).toFixed(2));
+            dayReturnPct = prevVal > 0 ? parseFloat((((val - prevVal) / prevVal) * 100).toFixed(2)) : 0;
+          } else {
+            val = parseFloat((qty * prevPrice).toFixed(2));
+            dayReturn = 0;
+            dayReturnPct = 0;
+          }
         }
 
         return {

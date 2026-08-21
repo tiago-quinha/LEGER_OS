@@ -95,6 +95,9 @@ function simulateExpertDailyProjection(
     projectedTotalOut: result.projectedTotalSpend,
     projectedTotalIn: result.projectedTotalInflow,
     projectedEndingBalance: result.projectedEndingBalance,
+    currentDailyVariableBurn: result.currentDailyVariableBurn,
+    blendedDailyBurn: result.blendedDailyBurn,
+    daysRemaining: result.daysRemaining,
     empiricalMetrics: result.empiricalMetrics
   }
 }
@@ -573,23 +576,33 @@ export function DashboardView({
         .slice(0, 10)
         .map(e => ({ date: e.date, merchant: e.merchant, amount: e.amount, category_id: e.category_id }));
 
+      const unclassifiedCount = expenses.filter(e => !e.category_id || e.category_id === null).length;
+      const daysRemaining = Math.max(1, totalDaysInCycle - daysElapsed);
+
       (window as any).__leger_cycle_telemetry = {
         totalIn,
         totalOut,
         currentBalance: cycleEndBalance,
         velocity,
         daysElapsed,
+        daysRemaining,
+        daysLeft: daysRemaining,
+        totalDaysInCycle,
         spendingLimit: targetMonthlySpend,
         categories: spendingByCategory.filter(c => c.value > 0).map(c => ({ name: c.name, value: c.value })),
         netDelta: totalIn - totalOut,
+        unclassifiedCount,
         topExpenses,
         recentExpenses,
         projectedSurplus: projectedTotalIn - projectedTotalOut,
-        projectedEndBalance: estimatedFinalBalance
+        projectedEndBalance: estimatedFinalBalance,
+        dailyVariableBurn: expertProjection.blendedDailyBurn || expertProjection.currentDailyVariableBurn || 0,
+        currentDailyVariableBurn: expertProjection.currentDailyVariableBurn || 0,
+        blendedDailyBurn: expertProjection.blendedDailyBurn || 0
       };
       window.dispatchEvent(new Event("leger_telemetry_updated"));
     }
-  }, [totalIn, totalOut, cycleEndBalance, velocity, daysElapsed, targetMonthlySpend, spendingByCategory, expenses, projectedTotalIn, projectedTotalOut, estimatedFinalBalance])
+  }, [totalIn, totalOut, cycleEndBalance, velocity, daysElapsed, totalDaysInCycle, targetMonthlySpend, spendingByCategory, expenses, projectedTotalIn, projectedTotalOut, estimatedFinalBalance, expertProjection])
 
   const systemLogs = useMemo(() => {
     const logs = []

@@ -216,12 +216,24 @@ export function ExpensesView({ initialExpenses, categories: initialCategories, i
         .slice(0, 10)
         .map(e => ({ date: e.date, merchant: e.merchant, amount: e.amount, category_id: e.category_id }));
 
+      const variableOut = cycleExpenses
+        .filter(e => parseFloat(e.amount as string) < 0 && !e.is_anomaly)
+        .reduce((sum, e) => sum + Math.abs(parseFloat(e.amount as string)), 0);
+      const effectiveDays = Math.max(1, daysElapsed);
+      const dailyVariableBurn = parseFloat((variableOut / effectiveDays).toFixed(2));
+      const daysRemaining = Math.max(1, 30 - Math.min(30, daysElapsed));
+
       (window as any).__leger_cycle_telemetry = {
         totalIn,
         totalOut,
         currentBalance: totalIn - totalOut, // net delta
         velocity: 1.0,
         daysElapsed,
+        daysRemaining,
+        daysLeft: daysRemaining,
+        dailyVariableBurn,
+        currentDailyVariableBurn: dailyVariableBurn,
+        blendedDailyBurn: dailyVariableBurn,
         spendingLimit,
         categories: spendingByCategory,
         netDelta: totalIn - totalOut,

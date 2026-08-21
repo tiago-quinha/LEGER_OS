@@ -424,7 +424,7 @@ function getPagePillVariations(pathname: string, telemetry: any, profile: any, a
   const topCat = telemetry?.categories && telemetry.categories.length > 0 ? telemetry.categories[0] : null
   const lowestCat = telemetry?.categories && telemetry.categories.length > 1 ? telemetry.categories[telemetry.categories.length - 1] : null
   const daysElapsed = telemetry?.daysElapsed || 1
-  const daysLeft = Math.max(1, 30 - daysElapsed)
+  const daysLeft = telemetry?.daysRemaining || telemetry?.daysLeft || Math.max(1, (telemetry?.totalDaysInCycle || 30) - daysElapsed)
   const surplus = telemetry?.projectedSurplus !== undefined ? Math.round(telemetry.projectedSurplus) : 0
   const netDelta = telemetry?.netDelta !== undefined ? Math.round(telemetry.netDelta) : 0
   const velocity = telemetry?.velocity || 1.0
@@ -434,11 +434,7 @@ function getPagePillVariations(pathname: string, telemetry: any, profile: any, a
   const remainingBudget = spendingLimit - totalOut
   const budgetPct = spendingLimit > 0 ? Math.round((totalOut / spendingLimit) * 100) : 0
   const safeDaily = remainingBudget > 0 ? (remainingBudget / daysLeft) : 0
-  const actualDailyBurn = telemetry?.dailyVariableBurn !== undefined 
-    ? telemetry.dailyVariableBurn 
-    : telemetry?.currentDailyVariableBurn !== undefined
-    ? telemetry.currentDailyVariableBurn
-    : daysElapsed > 0 ? (totalOut / daysElapsed) : 0
+  const actualDailyBurn = Number(telemetry?.dailyVariableBurn ?? telemetry?.currentDailyVariableBurn ?? telemetry?.blendedDailyBurn ?? (daysElapsed > 0 ? totalOut / daysElapsed : 0))
   const hasCustomKey = !!(profile?.custom_api_key)
 
   switch (pathname) {
