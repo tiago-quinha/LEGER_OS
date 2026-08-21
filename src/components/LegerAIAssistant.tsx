@@ -788,11 +788,65 @@ export function LegerAIAssistant() {
   const [isPillDismissed, setIsPillDismissed] = useState(false)
   const userClickedPillRef = useRef(false)
 
-  // Reset dismissal state cleanly when user navigates to a new page
+  const hasTriggeredOnRouteRef = useRef<string>("")
+
+  // Reset dismissal & route trigger state cleanly when user navigates to a new page
   useEffect(() => {
+    hasTriggeredOnRouteRef.current = ""
     setIsPillDismissed(false)
     setIsPillExpanded(false)
   }, [pathname])
+
+  // Smart Event-Driven & Anti-Annoyance Auto-Expansion (At most once per route visit, zero infinite loops)
+  useEffect(() => {
+    if (isPillDismissed) return
+    if (hasTriggeredOnRouteRef.current === pathname) return
+
+    userClickedPillRef.current = false
+
+    // Evaluate urgent high-priority financial telemetry conditions
+    const unclassified = telemetry?.unclassifiedCount || 0
+    const velocity = telemetry?.velocity || 1.0
+    const totalOut = telemetry?.totalOut || 0
+    const limit = telemetry?.spendingLimit || profile?.target_monthly_spend || 1500
+    const budgetPct = limit > 0 ? (totalOut / limit) * 100 : 0
+    const isDeficitSpike = telemetry?.projectedSurplus !== undefined && telemetry.projectedSurplus < -50
+
+    // High priority events always qualify for immediate attention
+    const isUrgentEvent = unclassified > 0 || velocity > 1.25 || budgetPct > 85 || isDeficitSpike
+
+    // Check daily frequency cap in localStorage for routine telemetry
+    const lastSeenKey = `leger_pill_last_seen_${profile?.id || "default"}`
+    let lastSeenTimestamp = 0
+    try {
+      lastSeenTimestamp = parseInt(localStorage.getItem(lastSeenKey) || "0", 10)
+    } catch {}
+
+    const now = Date.now()
+    const hoursSinceLastSeen = (now - lastSeenTimestamp) / (1000 * 60 * 60)
+    const isNewDayInsight = hoursSinceLastSeen >= 18
+
+    // Only auto-expand if an urgent event occurred, OR (once-a-day insight on main dashboard)
+    const shouldAutoExpand = isUrgentEvent || (isNewDayInsight && pathname === "/")
+
+    if (!shouldAutoExpand) return
+
+    hasTriggeredOnRouteRef.current = pathname
+
+    try {
+      localStorage.setItem(lastSeenKey, String(now))
+    } catch {}
+
+    const openTimer = setTimeout(() => {
+      if (!isPillDismissed) {
+        setIsPillExpanded(true)
+      }
+    }, 1200)
+
+    return () => {
+      clearTimeout(openTimer)
+    }
+  }, [pathname, isPillDismissed, telemetry?.unclassifiedCount, telemetry?.velocity, telemetry?.projectedSurplus, profile?.id])
 
   // Listen for active bulk selection mode to dynamically adjust floating height
   const [isBulkActive, setIsBulkActive] = useState(false)
@@ -920,60 +974,7 @@ export function LegerAIAssistant() {
     })
   }
 
-  // Smart Event-Driven & Anti-Annoyance Auto-Expansion (Only triggers on urgent events or once-a-day insights)
-  useEffect(() => {
-    if (isPillDismissed) return
-    userClickedPillRef.current = false
-    setIsPillExpanded(false)
 
-    // Evaluate urgent high-priority financial telemetry conditions
-    const unclassified = telemetry?.unclassifiedCount || 0
-    const velocity = telemetry?.velocity || 1.0
-    const totalOut = telemetry?.totalOut || 0
-    const limit = telemetry?.spendingLimit || profile?.target_monthly_spend || 1500
-    const budgetPct = limit > 0 ? (totalOut / limit) * 100 : 0
-    const isDeficitSpike = telemetry?.projectedSurplus !== undefined && telemetry.projectedSurplus < -50
-
-    // High priority events always qualify for immediate attention
-    const isUrgentEvent = unclassified > 0 || velocity > 1.25 || budgetPct > 85 || isDeficitSpike
-
-    // Check daily frequency cap in localStorage for routine telemetry
-    const lastSeenKey = `leger_pill_last_seen_${profile?.id || "default"}`
-    let lastSeenTimestamp = 0
-    try {
-      lastSeenTimestamp = parseInt(localStorage.getItem(lastSeenKey) || "0", 10)
-    } catch {}
-
-    const now = Date.now()
-    const hoursSinceLastSeen = (now - lastSeenTimestamp) / (1000 * 60 * 60)
-    const isNewDayInsight = hoursSinceLastSeen >= 18
-
-    // Only auto-expand if an urgent event occurred, OR (once-a-day insight on main dashboard)
-    const shouldAutoExpand = isUrgentEvent || (isNewDayInsight && pathname === "/")
-
-    if (!shouldAutoExpand) return
-
-    try {
-      localStorage.setItem(lastSeenKey, String(now))
-    } catch {}
-
-    const openTimer = setTimeout(() => {
-      if (!isPillDismissed) {
-        setIsPillExpanded(true)
-      }
-    }, 1500)
-
-    const closeTimer = setTimeout(() => {
-      if (!userClickedPillRef.current) {
-        setIsPillExpanded(false)
-      }
-    }, 8500)
-
-    return () => {
-      clearTimeout(openTimer)
-      clearTimeout(closeTimer)
-    }
-  }, [pathname, pillScenario.banner, telemetry, isPillDismissed, profile?.id])
 
   useEffect(() => {
     const handleExpand = () => setIsPillExpanded(true)
