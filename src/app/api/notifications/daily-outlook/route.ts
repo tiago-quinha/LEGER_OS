@@ -151,9 +151,9 @@ async function handleDispatch(request: NextRequest) {
 
     const supabaseAdmin = getAdminClient()
 
-    // 1. Resolve Target User ID (explicit or primary admin fallback for native device alarm)
+    // 1. Resolve Target User ID (explicit query param or primary admin fallback)
     let targetUserId = queryUserId
-    if (!targetUserId && isNativeAndroid) {
+    if (!targetUserId) {
       const { data: fallbackProfiles } = await supabaseAdmin
         .from("profiles")
         .select("id, currency, timezone")
