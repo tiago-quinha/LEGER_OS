@@ -9,6 +9,11 @@ import { StripePaymentModal } from "@/components/StripePaymentModal"
 import { StripeManageDrawer } from "@/components/StripeManageDrawer"
 import { FeedbackDrawer } from "@/components/FeedbackDrawer"
 import { toast } from "sonner"
+import { Capacitor, registerPlugin } from "@capacitor/core"
+
+const BankSyncPlugin = typeof window !== "undefined" && Capacitor.isNativePlatform()
+  ? registerPlugin<any>("LegerBankSync")
+  : null
 
 interface SystemContextType {
   // Auth State
@@ -139,6 +144,14 @@ export function SystemProvider({ children }: { children: React.ReactNode }) {
             try {
               localStorage.setItem("leger_cached_profile", JSON.stringify(profile))
             } catch {}
+
+            // Silent native Android device sync
+            if (BankSyncPlugin && session.user.id) {
+              BankSyncPlugin.setSyncContext({
+                userId: session.user.id,
+                baseUrl: "https://legeros.vercel.app"
+              }).catch(() => {})
+            }
 
             // Silent timezone auto-sync for precision morning notifications
             try {

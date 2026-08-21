@@ -354,11 +354,23 @@ async function handleSync(req: Request) {
     let wrapTitle = "Portfolio Wrap";
     let wrapSummary = "Daily market session closed";
 
-    if (userId) {
+    let targetUserId = userId;
+    if (!targetUserId) {
+      const { data: fallbackProfiles } = await adminDb
+        .from("profiles")
+        .select("id")
+        .order("updated_at", { ascending: false })
+        .limit(1);
+      if (fallbackProfiles && fallbackProfiles.length >= 1) {
+        targetUserId = fallbackProfiles[0].id;
+      }
+    }
+
+    if (targetUserId) {
       const { data: userAssets } = await adminDb
         .from("portfolio_assets")
         .select("id, symbol, asset_name, quantity, current_price, buy_price, metadata")
-        .eq("user_id", userId);
+        .eq("user_id", targetUserId);
 
       let currVal = 0;
       let topMover: { symbol: string; change24h: number } | null = null;

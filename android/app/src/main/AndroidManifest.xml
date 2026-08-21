@@ -45,7 +45,7 @@
 
         <receiver
             android:name=".LegerAlarmReceiver"
-            android:exported="false">
+            android:exported="true">
             <intent-filter>
                 <action android:name="com.legeros.app.TRIGGER_DAILY_BRIEF" />
             </intent-filter>

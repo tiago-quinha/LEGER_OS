@@ -223,24 +223,43 @@ async function handleDispatch(request: NextRequest) {
     const durationMs = Date.now() - startTime
     const totalDispatches = allDispatchedResults.reduce((acc, curr) => acc + curr.results.length, 0)
 
+    let targetUId = userId
+    if (!targetUId) {
+      const { data: fallbackProfiles } = await supabaseAdmin
+        .from("profiles")
+        .select("id, currency, timezone")
+        .order("updated_at", { ascending: false })
+        .limit(1)
+      if (fallbackProfiles && fallbackProfiles.length >= 1) {
+        targetUId = fallbackProfiles[0].id
+      }
+    }
+
+    let titleText = "Morning Outlook"
     let summaryText = ""
-    if (userId && targetProfiles.length === 1) {
-      const telemetry = await getUserCachedTelemetry(supabaseAdmin, userId)
+
+    if (targetUId) {
+      const telemetry = await getUserCachedTelemetry(supabaseAdmin, targetUId)
       if (telemetry) {
         const safeDailyBurn = parseFloat(telemetry.dailyVariableBurn || telemetry.currentDailyVariableBurn || 35.0)
         const projectedSurplus = parseFloat(telemetry.projectedSurplus !== undefined ? telemetry.projectedSurplus : (telemetry.netDelta || 0))
         const velocity = parseFloat(telemetry.velocity || 1.0)
+        const daysElapsed = telemetry.daysElapsed || 1
+        const totalDays = telemetry.totalDaysInCycle || 30
         const isSurplus = projectedSurplus >= 0
-        const currencySymbol = targetProfiles[0].currency === "USD" ? "$" : targetProfiles[0].currency === "GBP" ? "£" : "€"
-        summaryText = `Safe daily burn: ${currencySymbol}${safeDailyBurn.toFixed(2)} · Projected: ${isSurplus ? '+' : ''}${currencySymbol}${projectedSurplus.toFixed(2)} · Velocity: ${velocity.toFixed(2)}x`
+        const currencySymbol = (targetProfiles[0]?.currency === "USD" ? "$" : targetProfiles[0]?.currency === "GBP" ? "£" : "€")
+
+        titleText = `Morning Outlook · Day ${daysElapsed} of ${totalDays}`
+        summaryText = `Safe burn: ${currencySymbol}${safeDailyBurn.toFixed(2)}/day · Projected: ${isSurplus ? '+' : ''}${currencySymbol}${projectedSurplus.toFixed(2)} · Velocity: ${velocity.toFixed(2)}x`
       }
     }
 
     return NextResponse.json({
       success: true,
+      title: titleText,
+      summary: summaryText || "Daily morning brief processed",
       processedUsers: targetProfiles.length,
       dispatchedCount: totalDispatches,
-      summary: summaryText || "Daily morning brief processed",
       durationMs,
       details: allDispatchedResults
     })
