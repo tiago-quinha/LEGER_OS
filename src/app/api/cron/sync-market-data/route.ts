@@ -40,9 +40,12 @@ export async function POST(req: Request) {
 async function handleSync(req: Request) {
   const startTime = Date.now();
   try {
-    // 1. Verify Cron Authorization if CRON_SECRET is configured
+    const url = new URL(req.url);
+    const userId = url.searchParams.get("userId");
+
+    // 1. Verify Cron Authorization if CRON_SECRET is configured (exempt explicit user queries)
     const cronSecret = process.env.CRON_SECRET;
-    if (cronSecret) {
+    if (cronSecret && !userId) {
       const authHeader = req.headers.get("authorization");
       if (authHeader !== `Bearer ${cronSecret}`) {
         return NextResponse.json({ error: "Unauthorized cron trigger" }, { status: 401 });
@@ -348,10 +351,21 @@ async function handleSync(req: Request) {
 
     await Promise.all(snapshotPromises);
 
+    let wrapSummary = "Daily market session closed";
+    if (userId && userGroups.has(userId)) {
+      const assets = userGroups.get(userId) || [];
+      let userVal = 0;
+      assets.forEach((a: any) => {
+        userVal += (a.quantity || 0) * (a.current_price || a.buy_price || 0);
+      });
+      wrapSummary = `Total valuation: €${userVal.toFixed(2)}. Daily market wrap ready.`;
+    }
+
     const durationMs = Date.now() - startTime;
     return NextResponse.json({
       success: true,
       message: `Server-side sync completed in ${durationMs}ms`,
+      wrapSummary,
       updatedAssets: updatedCount,
       distinctSymbols: distinctStocks.length + distinctCryptos.length,
       usersProcessed: userGroups.size,

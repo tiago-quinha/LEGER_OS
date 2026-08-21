@@ -223,10 +223,24 @@ async function handleDispatch(request: NextRequest) {
     const durationMs = Date.now() - startTime
     const totalDispatches = allDispatchedResults.reduce((acc, curr) => acc + curr.results.length, 0)
 
+    let summaryText = ""
+    if (userId && targetProfiles.length === 1) {
+      const telemetry = await getUserCachedTelemetry(supabaseAdmin, userId)
+      if (telemetry) {
+        const safeDailyBurn = parseFloat(telemetry.dailyVariableBurn || telemetry.currentDailyVariableBurn || 35.0)
+        const projectedSurplus = parseFloat(telemetry.projectedSurplus !== undefined ? telemetry.projectedSurplus : (telemetry.netDelta || 0))
+        const velocity = parseFloat(telemetry.velocity || 1.0)
+        const isSurplus = projectedSurplus >= 0
+        const currencySymbol = targetProfiles[0].currency === "USD" ? "$" : targetProfiles[0].currency === "GBP" ? "£" : "€"
+        summaryText = `Safe daily burn: ${currencySymbol}${safeDailyBurn.toFixed(2)} · Projected: ${isSurplus ? '+' : ''}${currencySymbol}${projectedSurplus.toFixed(2)} · Velocity: ${velocity.toFixed(2)}x`
+      }
+    }
+
     return NextResponse.json({
       success: true,
       processedUsers: targetProfiles.length,
       dispatchedCount: totalDispatches,
+      summary: summaryText || "Daily morning brief processed",
       durationMs,
       details: allDispatchedResults
     })

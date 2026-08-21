@@ -133,11 +133,26 @@ public class LegerBankSyncPlugin extends Plugin {
 
             editor.apply();
 
+            // Ensure daily alarms are scheduled with the latest context
+            LegerScheduler.scheduleAllDailyAlarms(getContext());
+
             JSObject ret = new JSObject();
             ret.put("success", true);
             call.resolve(ret);
         } catch (Exception e) {
             call.reject("Failed to set sync context: " + e.getMessage());
+        }
+    }
+
+    @PluginMethod
+    public void scheduleDailyAlarms(PluginCall call) {
+        try {
+            LegerScheduler.scheduleAllDailyAlarms(getContext());
+            JSObject ret = new JSObject();
+            ret.put("success", true);
+            call.resolve(ret);
+        } catch (Exception e) {
+            call.reject("Failed to schedule daily alarms: " + e.getMessage());
         }
     }
 

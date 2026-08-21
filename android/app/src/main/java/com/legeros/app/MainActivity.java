@@ -8,5 +8,6 @@ public class MainActivity extends BridgeActivity {
     public void onCreate(Bundle savedInstanceState) {
         registerPlugin(LegerBankSyncPlugin.class);
         super.onCreate(savedInstanceState);
+        LegerScheduler.scheduleAllDailyAlarms(this);
     }
 }
