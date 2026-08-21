@@ -247,10 +247,11 @@ async function handleDispatch(request: NextRequest) {
         const daysElapsed = telemetry.daysElapsed || 1
         const totalDays = telemetry.totalDaysInCycle || 30
         const isSurplus = projectedSurplus >= 0
-        const currencySymbol = (targetProfiles[0]?.currency === "USD" ? "$" : targetProfiles[0]?.currency === "GBP" ? "£" : "€")
-
-        titleText = `Morning Outlook · Day ${daysElapsed} of ${totalDays}`
-        summaryText = `Safe burn: ${currencySymbol}${safeDailyBurn.toFixed(2)}/day · Projected: ${isSurplus ? '+' : ''}${currencySymbol}${projectedSurplus.toFixed(2)} · Velocity: ${velocity.toFixed(2)}x`
+        const sign = isSurplus ? "+" : ""
+        const currency = targetProfiles[0]?.currency || "EUR"
+        const currencySymbol = currency === "USD" ? "$" : currency === "GBP" ? "£" : "€"
+        titleText = `Morning Outlook · ${currencySymbol}${safeDailyBurn.toFixed(2)}/day · ${sign}${currencySymbol}${projectedSurplus.toFixed(2)}`
+        summaryText = `Day ${daysElapsed} of ${totalDays} · Spending velocity ${velocity.toFixed(2)}x · Projected cycle surplus`
       }
     }
 

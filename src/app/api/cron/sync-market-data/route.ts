@@ -391,7 +391,7 @@ async function handleSync(req: Request) {
       const { data: previousSnaps } = await adminDb
         .from("portfolio_snapshots")
         .select("closing_valuation, snapshot_date")
-        .eq("user_id", userId)
+        .eq("user_id", targetUserId)
         .lt("snapshot_date", todayDate)
         .order("snapshot_date", { ascending: false })
         .limit(1);
