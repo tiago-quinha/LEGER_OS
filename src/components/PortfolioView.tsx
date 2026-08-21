@@ -477,13 +477,6 @@ export function PortfolioView({
     }
   };
 
-  useCycleSwipe({
-    cycles,
-    currentCycleId: selectedCycleId,
-    route: "/portfolio",
-    onCycleChange: handleCycleSelect,
-  });
-
   const [assets, setAssets] = useState<PortfolioAsset[]>(initialAssets);
   const [snapshots, setSnapshots] = useState<PortfolioSnapshot[]>([]);
   const [liquidBalance, setLiquidBalance] = useState<number>(initialLiquidBalance);

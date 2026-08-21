@@ -159,13 +159,6 @@ export function BudgetsView({ categories, budgets: initialBudgets, expenses, cyc
     }
   }
 
-  useCycleSwipe({
-    cycles,
-    currentCycleId: selectedCycleId,
-    route: "/budgets",
-    onCycleChange: handleCycleSelect,
-  })
-
   const handleBudgetChange = (categoryId: string, value: string) => {
     setEditingBudgets(prev => ({ ...prev, [categoryId]: value }))
   }

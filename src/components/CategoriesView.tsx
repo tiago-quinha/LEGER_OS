@@ -124,12 +124,6 @@ export function CategoriesView({ expenses, categories, cycles, currentCycleId }:
     }
   }
 
-  useCycleSwipe({
-    cycles,
-    currentCycleId: selectedCycleId,
-    route: "/categories",
-    onCycleChange: handleCycleSelect,
-  })
   const [typeFilter, setTypeFilter] = useState<"all" | "inflow" | "outflow">("all")
   const [searchQuery, setSearchQuery] = useState<string>("")
   const [graphMode, setGraphMode] = useState<GraphMode>("cumulative")

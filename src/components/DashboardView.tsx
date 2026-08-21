@@ -261,13 +261,6 @@ export function DashboardView({
     }
   }
 
-  useCycleSwipe({
-    cycles,
-    currentCycleId,
-    route: "/",
-    onCycleChange: handleCycleSelect,
-  })
-
   const openAudit = (id: string) => {
     setActiveTransactionId(id)
     setAuditPanelOpen(true)

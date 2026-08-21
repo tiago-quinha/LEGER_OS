@@ -75,24 +75,26 @@ export function RadarPageView({ expenses, categories, cycles, currentCycleId }: 
   const [customAmount, setCustomAmount] = useState("")
   const [customCadence, setCustomCadence] = useState<"monthly" | "annual">("monthly")
 
-  // Find active cycle
-  const currentCycle = cycles.find(c => c.id === currentCycleId) || cycles[0]
-  const currentCycleIndex = cycles.findIndex(c => c.id === currentCycleId)
+  // Optimistic active cycle tracking
+  const [selectedCycleId, setSelectedCycleId] = useState<string>(currentCycleId || (cycles[0]?.id ?? ""))
+
+  useEffect(() => {
+    if (currentCycleId) {
+      setSelectedCycleId(currentCycleId)
+    }
+  }, [currentCycleId])
+
+  const currentCycle = cycles.find(c => c.id === selectedCycleId) || cycles[0]
+  const currentCycleIndex = cycles.findIndex(c => c.id === (currentCycle?.id || ""))
 
   // Cycle navigation
   const handleCycleSelect = (id: string, dir?: 'prev' | 'next') => {
+    setSelectedCycleId(id)
     if (dir) setNavigationDirection(dir)
     startTransition(() => {
-      router.push(`/radar?cycleId=${id}`)
+      router.replace(`/radar?cycleId=${id}`, { scroll: false })
     })
   }
-
-  useCycleSwipe({
-    cycles,
-    currentCycleId,
-    route: "/radar",
-    onCycleChange: handleCycleSelect,
-  })
 
   // Load preferences from localStorage
   useEffect(() => {
@@ -243,7 +245,7 @@ export function RadarPageView({ expenses, categories, cycles, currentCycleId }: 
   return (
     <SwipeCycleWrapper
       cycles={cycles}
-      currentCycleId={currentCycleId}
+      currentCycleId={selectedCycleId}
       route="/radar"
       onCycleChange={handleCycleSelect}
     >
@@ -747,7 +749,7 @@ export function RadarPageView({ expenses, categories, cycles, currentCycleId }: 
       {/* Mobile sticky cycle bar */}
       <CycleMobileBar
         cycles={cycles}
-        currentCycleId={currentCycleId}
+        currentCycleId={selectedCycleId}
         route="/radar"
         onCycleChange={handleCycleSelect}
       />
