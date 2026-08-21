@@ -295,13 +295,10 @@ export function UnnamedTransactionResolver({
 
                 {/* Header */}
                 <div className="flex items-center justify-between border-b border-border/50 pb-3">
-                  <div className="space-y-0.5">
-                    <div className="flex items-center gap-2 text-[10px] font-mono uppercase tracking-widest text-muted-foreground">
-                      <Store className="h-3.5 w-3.5 text-amber-500" />
-                      <span>Bank Push Capture // Identify Store</span>
-                    </div>
-                    <h3 className="text-lg font-bold font-mono tracking-tight uppercase text-foreground">
-                      Resolve Merchant
+                  <div className="flex items-center gap-2">
+                    <Store className="h-4 w-4 text-foreground" />
+                    <h3 className="text-base font-bold font-mono tracking-tight uppercase text-foreground">
+                      Identify Merchant
                     </h3>
                   </div>
                   <Button
