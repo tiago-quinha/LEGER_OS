@@ -2085,16 +2085,16 @@ export function LegerAIAssistant() {
                 "md:bottom-6"
               )}
             >
-              <div className="group flex items-center gap-3 h-11 px-3 bg-card/95 dark:bg-zinc-900/95 backdrop-blur-xl border border-border shadow-[0_12px_40px_rgba(0,0,0,0.5)] rounded-full text-foreground w-full select-none relative overflow-hidden">
+              <div className="group flex items-center gap-3 h-12 px-3 bg-card/95 dark:bg-zinc-900/95 backdrop-blur-xl border border-border shadow-[0_12px_40px_rgba(0,0,0,0.5)] rounded-full text-foreground w-full select-none relative overflow-hidden">
                 {/* Left Emblem Avatar Badge */}
                 <button
                   onClick={handlePillClick}
-                  className="w-7 h-7 rounded-full bg-foreground text-background flex items-center justify-center font-bold text-xs shrink-0 shadow-md cursor-pointer hover:scale-105 transition-transform"
+                  className="w-8 h-8 rounded-full bg-foreground text-background flex items-center justify-center font-bold text-xs shrink-0 shadow-md cursor-pointer hover:scale-105 transition-transform"
                 >
                   {!isPro ? (
-                    <Lock className="h-3.5 w-3.5" />
+                    <Lock className="h-4 w-4" />
                   ) : (
-                    <Brain className="h-3.5 w-3.5 animate-pulse" />
+                    <Brain className="h-4 w-4 animate-pulse" />
                   )}
                 </button>
 

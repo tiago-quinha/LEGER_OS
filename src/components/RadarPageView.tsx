@@ -1,6 +1,7 @@
 "use client"
 
 import React, { useState, useMemo, useEffect, useTransition } from "react"
+import { createPortal } from "react-dom"
 import { motion, AnimatePresence } from "framer-motion"
 import { useRouter } from "next/navigation"
 import { 
@@ -61,8 +62,12 @@ export function RadarPageView({ expenses, categories, cycles, currentCycleId }: 
   const [dismissedMerchants, setDismissedMerchants] = useState<string[]>([])
   const [cadenceOverrides, setCadenceOverrides] = useState<Record<string, "monthly" | "annual">>({})
   const [pinnedSubscriptions, setPinnedSubscriptions] = useState<any[]>([])
+  const [mounted, setMounted] = useState(false)
   const [selectedSubForDetails, setSelectedSubForDetails] = useState<DetectedSubscription | null>(null)
   
+  useEffect(() => {
+    setMounted(true)
+  }, [])
   // Pin Recurring Drawer state
   const [isPinDrawerOpen, setIsPinDrawerOpen] = useState(false)
   const [pinSearch, setPinSearch] = useState("")
@@ -450,278 +455,284 @@ export function RadarPageView({ expenses, categories, cycles, currentCycleId }: 
         )}
       </div>
 
-      {/* 5. Native Slide-Up Drawer: Subscription Details & Cadence Control (Rule 14) */}
-      <AnimatePresence>
-        {selectedSubForDetails && (
-          <div 
-            className="fixed inset-0 z-[100003] flex items-end sm:items-center justify-center p-0 sm:p-4 bg-background/80 backdrop-blur-md"
-            onClick={(e) => {
-              if (e.target === e.currentTarget) setSelectedSubForDetails(null)
-            }}
-          >
-            <motion.div
-              initial={{ y: "100%" }}
-              animate={{ y: 0 }}
-              exit={{ y: "100%" }}
-              transition={{ type: "spring", damping: 25, stiffness: 300 }}
-              className="w-full sm:max-w-md bg-[#09090b] border-t sm:border border-border rounded-t-2xl sm:rounded-2xl shadow-2xl overflow-hidden flex flex-col font-mono text-xs max-h-[90vh]"
+      {/* 5. Native Slide-Up Drawer: Subscription Details & Cadence Control (Portaled to document.body) */}
+      {mounted && typeof document !== "undefined" && createPortal(
+        <AnimatePresence>
+          {selectedSubForDetails && (
+            <div 
+              className="fixed inset-0 z-[100003] flex items-end sm:items-center justify-center p-0 sm:p-4 bg-background/80 backdrop-blur-md"
+              onClick={(e) => {
+                if (e.target === e.currentTarget) setSelectedSubForDetails(null)
+              }}
             >
-              {/* Top Drag Handle Indicator */}
-              <div className="w-full flex sm:hidden justify-center py-2.5 bg-secondary/10 border-b border-border/40 shrink-0">
-                <div className="w-12 h-1 bg-muted-foreground/30 rounded-full" />
-              </div>
-
-              {/* Drawer Header */}
-              <div className="p-5 border-b border-border/40 flex items-center justify-between">
-                <div className="flex items-center gap-2 text-sm font-bold uppercase tracking-tight">
-                  <Radio className="h-4 w-4 text-foreground" />
-                  <span className="truncate">{selectedSubForDetails.merchant}</span>
-                </div>
-                <button 
-                  type="button" 
-                  onClick={() => setSelectedSubForDetails(null)}
-                  className="p-1.5 text-muted-foreground hover:text-foreground cursor-pointer"
-                >
-                  <X className="h-4 w-4" />
-                </button>
-              </div>
-
-              {/* Drawer Body */}
-              <div className="p-5 md:p-6 space-y-5 overflow-y-auto">
-                {/* Cadence Switcher */}
-                <div className="space-y-1.5">
-                  <span className="text-[10px] text-muted-foreground uppercase tracking-wider">SUBSCRIPTION CADENCE</span>
-                  <div className="grid grid-cols-2 gap-1.5 bg-secondary/30 p-1 border border-border">
-                    <button
-                      type="button"
-                      onClick={() => handleToggleCadence(selectedSubForDetails.merchant, "annual")}
-                      className={cn(
-                        "h-8 text-[10px] font-bold uppercase transition-colors cursor-pointer flex items-center justify-center gap-1",
-                        selectedSubForDetails.cadence === "monthly" 
-                          ? "bg-foreground text-background" 
-                          : "text-muted-foreground hover:text-foreground"
-                      )}
-                    >
-                      <span>MONTHLY</span>
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => handleToggleCadence(selectedSubForDetails.merchant, "monthly")}
-                      className={cn(
-                        "h-8 text-[10px] font-bold uppercase transition-colors cursor-pointer flex items-center justify-center gap-1",
-                        selectedSubForDetails.cadence === "annual" 
-                          ? "bg-foreground text-background" 
-                          : "text-muted-foreground hover:text-foreground"
-                      )}
-                    >
-                      <span>ANNUAL</span>
-                    </button>
-                  </div>
+              <motion.div
+                initial={{ y: "100%" }}
+                animate={{ y: 0 }}
+                exit={{ y: "100%" }}
+                transition={{ type: "spring", damping: 25, stiffness: 300 }}
+                className="w-full sm:max-w-md bg-[#09090b] border-t sm:border border-border rounded-t-2xl sm:rounded-2xl shadow-2xl overflow-hidden flex flex-col font-mono text-xs max-h-[90vh]"
+              >
+                {/* Top Drag Handle Indicator */}
+                <div className="w-full flex sm:hidden justify-center py-2.5 bg-secondary/10 border-b border-border/40 shrink-0">
+                  <div className="w-12 h-1 bg-muted-foreground/30 rounded-full" />
                 </div>
 
-                <div className="space-y-2.5 pt-2 border-t border-border/30">
-                  <div className="flex justify-between">
-                    <span className="text-muted-foreground uppercase">LATEST AMOUNT</span>
-                    <span className="font-bold text-foreground text-sm">
-                      {currencySymbol}{typeof selectedSubForDetails.latestAmount === "number" ? selectedSubForDetails.latestAmount.toFixed(2) : "0.00"}
-                    </span>
+                {/* Drawer Header */}
+                <div className="p-5 border-b border-border/40 flex items-center justify-between">
+                  <div className="flex items-center gap-2 text-sm font-bold uppercase tracking-tight">
+                    <Radio className="h-4 w-4 text-foreground" />
+                    <span className="truncate">{selectedSubForDetails.merchant}</span>
                   </div>
-                  <div className="flex justify-between">
-                    <span className="text-muted-foreground uppercase">TOTAL FREQUENCY</span>
-                    <span className="font-bold text-foreground">{selectedSubForDetails.occurrences || 1}x detected</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="text-muted-foreground uppercase">DETECTION SOURCE</span>
-                    <span className="font-bold text-foreground uppercase">{String(selectedSubForDetails.source || "statement").replace(/_/g, " ")}</span>
-                  </div>
-                  {selectedSubForDetails.nextExpectedDate && (
-                    <div className="flex justify-between">
-                      <span className="text-muted-foreground uppercase">NEXT ESTIMATED CHARGE</span>
-                      <span className="font-bold text-foreground">{String(selectedSubForDetails.nextExpectedDate).split("T")[0]}</span>
-                    </div>
-                  )}
-                </div>
-
-                <div className="pt-3 border-t border-border/40 flex items-center gap-2">
-                  <button
-                    type="button"
-                    onClick={() => handleDismiss(selectedSubForDetails.merchant)}
-                    className="w-full h-10 bg-red-500/10 hover:bg-red-500/20 text-red-400 border border-red-500/30 text-[10px] font-bold uppercase tracking-wider transition-colors cursor-pointer"
+                  <button 
+                    type="button" 
+                    onClick={() => setSelectedSubForDetails(null)}
+                    className="p-1.5 text-muted-foreground hover:text-foreground cursor-pointer"
                   >
-                    EXCLUDE FROM RECURRING RADAR
+                    <X className="h-4 w-4" />
                   </button>
                 </div>
-              </div>
-            </motion.div>
-          </div>
-        )}
-      </AnimatePresence>
 
-      {/* 6. Native Draggable Slide-Up Drawer: Pin Recurring Bill (Rule 14) */}
-      <AnimatePresence>
-        {isPinDrawerOpen && (
-          <div 
-            className="fixed inset-0 z-[100003] flex items-end sm:items-center justify-center p-0 sm:p-4 bg-background/80 backdrop-blur-md"
-            onClick={(e) => {
-              if (e.target === e.currentTarget) setIsPinDrawerOpen(false)
-            }}
-          >
-            <motion.div
-              initial={{ y: "100%" }}
-              animate={{ y: 0 }}
-              exit={{ y: "100%" }}
-              transition={{ type: "spring", damping: 25, stiffness: 300 }}
-              className="w-full sm:max-w-lg bg-[#09090b] border-t sm:border border-border rounded-t-2xl sm:rounded-2xl shadow-2xl overflow-hidden flex flex-col font-mono text-xs max-h-[92vh]"
-            >
-              {/* Drag Handle */}
-              <div className="w-full flex sm:hidden justify-center py-2.5 bg-secondary/10 border-b border-border/40 shrink-0">
-                <div className="w-12 h-1 bg-muted-foreground/30 rounded-full" />
-              </div>
-
-              {/* Drawer Header */}
-              <div className="p-5 border-b border-border/40 flex items-center justify-between">
-                <div className="flex items-center gap-2 text-sm font-bold uppercase tracking-tight">
-                  <Plus className="h-4 w-4 text-foreground" />
-                  <span>PIN RECURRING BILL / SUBSCRIPTION</span>
-                </div>
-                <button
-                  type="button"
-                  onClick={() => setIsPinDrawerOpen(false)}
-                  className="p-1 text-muted-foreground hover:text-foreground cursor-pointer"
-                >
-                  <X className="h-4 w-4" />
-                </button>
-              </div>
-
-              {/* Drawer Content */}
-              <div className="p-5 md:p-6 space-y-6 overflow-y-auto">
-                {/* Search From Statement */}
-                <div className="space-y-2">
-                  <span className="text-[10px] text-muted-foreground uppercase tracking-wider">
-                    OPTION 1: PIN RECENT TRANSACTION FROM STATEMENT
-                  </span>
-                  <div className="relative">
-                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
-                    <input
-                      type="text"
-                      placeholder="SEARCH TRANSACTION BY MERCHANT NAME..."
-                      value={pinSearch}
-                      onChange={(e) => setPinSearch(e.target.value)}
-                      className="w-full h-9 pl-9 pr-3 bg-secondary/20 border border-border text-xs uppercase font-mono placeholder:text-muted-foreground/50 focus:outline-none focus:border-foreground"
-                    />
-                  </div>
-
-                  {pinCandidates.length > 0 && (
-                    <div className="border border-border divide-y divide-border/40 max-h-40 overflow-y-auto bg-card/20">
-                      {pinCandidates.map((c, idx) => (
-                        <div 
-                          key={idx}
-                          onClick={() => {
-                            setCustomMerchant((c.merchant || c.raw_text || "").toUpperCase())
-                            setCustomAmount(Math.abs(parseFloat(c.amount)).toFixed(2))
-                            setPinSearch("")
-                          }}
-                          className="p-2.5 flex items-center justify-between hover:bg-secondary/50 cursor-pointer transition-colors"
-                        >
-                          <div className="truncate font-bold uppercase text-foreground">
-                            {c.merchant || c.raw_text}
-                          </div>
-                          <span className="text-foreground font-mono font-bold shrink-0 ml-2">
-                            {currencySymbol}{Math.abs(parseFloat(c.amount)).toFixed(2)}
-                          </span>
-                        </div>
-                      ))}
-                    </div>
-                  )}
-                </div>
-
-                <div className="relative flex py-1 items-center">
-                  <div className="flex-grow border-t border-border/40"></div>
-                  <span className="flex-shrink mx-3 text-[9px] text-muted-foreground uppercase tracking-widest">OR ENTER DETAILS</span>
-                  <div className="flex-grow border-t border-border/40"></div>
-                </div>
-
-                {/* Manual Input Form */}
-                <div className="space-y-4">
+                {/* Drawer Body */}
+                <div className="p-5 md:p-6 space-y-5 overflow-y-auto">
+                  {/* Cadence Switcher */}
                   <div className="space-y-1.5">
-                    <label className="text-[10px] text-muted-foreground uppercase tracking-wider">SERVICE / MERCHANT NAME</label>
-                    <input
-                      type="text"
-                      placeholder="E.G. DOMAIN RENEWAL, CLUB FEE, CAR TAX"
-                      value={customMerchant}
-                      onChange={(e) => setCustomMerchant(e.target.value.toUpperCase())}
-                      className="w-full h-9 px-3 bg-secondary/20 border border-border text-xs uppercase font-mono placeholder:text-muted-foreground/50 focus:outline-none focus:border-foreground"
-                    />
+                    <span className="text-[10px] text-muted-foreground uppercase tracking-wider">SUBSCRIPTION CADENCE</span>
+                    <div className="grid grid-cols-2 gap-1.5 bg-secondary/30 p-1 border border-border">
+                      <button
+                        type="button"
+                        onClick={() => handleToggleCadence(selectedSubForDetails.merchant, "annual")}
+                        className={cn(
+                          "h-8 text-[10px] font-bold uppercase transition-colors cursor-pointer flex items-center justify-center gap-1",
+                          selectedSubForDetails.cadence === "monthly" 
+                            ? "bg-foreground text-background" 
+                            : "text-muted-foreground hover:text-foreground"
+                        )}
+                      >
+                        <span>MONTHLY</span>
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => handleToggleCadence(selectedSubForDetails.merchant, "monthly")}
+                        className={cn(
+                          "h-8 text-[10px] font-bold uppercase transition-colors cursor-pointer flex items-center justify-center gap-1",
+                          selectedSubForDetails.cadence === "annual" 
+                            ? "bg-foreground text-background" 
+                            : "text-muted-foreground hover:text-foreground"
+                        )}
+                      >
+                        <span>ANNUAL</span>
+                      </button>
+                    </div>
                   </div>
 
-                  <div className="grid grid-cols-2 gap-3">
-                    <div className="space-y-1.5">
-                      <label className="text-[10px] text-muted-foreground uppercase tracking-wider">BILLING AMOUNT ({currencySymbol})</label>
-                      <input
-                        type="number"
-                        step="0.01"
-                        placeholder="0.00"
-                        value={customAmount}
-                        onChange={(e) => setCustomAmount(e.target.value)}
-                        className="w-full h-9 px-3 bg-secondary/20 border border-border text-xs font-mono placeholder:text-muted-foreground/50 focus:outline-none focus:border-foreground"
-                      />
+                  <div className="space-y-2.5 pt-2 border-t border-border/30">
+                    <div className="flex justify-between">
+                      <span className="text-muted-foreground uppercase">LATEST AMOUNT</span>
+                      <span className="font-bold text-foreground text-sm">
+                        {currencySymbol}{typeof selectedSubForDetails.latestAmount === "number" ? selectedSubForDetails.latestAmount.toFixed(2) : "0.00"}
+                      </span>
                     </div>
-
-                    <div className="space-y-1.5">
-                      <label className="text-[10px] text-muted-foreground uppercase tracking-wider">BILLING CADENCE</label>
-                      <div className="grid grid-cols-2 gap-1 bg-secondary/30 p-1 border border-border h-9">
-                        <button
-                          type="button"
-                          onClick={() => setCustomCadence("monthly")}
-                          className={cn(
-                            "text-[9px] font-bold uppercase transition-colors cursor-pointer flex items-center justify-center",
-                            customCadence === "monthly" 
-                              ? "bg-foreground text-background" 
-                              : "text-muted-foreground hover:text-foreground"
-                          )}
-                        >
-                          MONTHLY
-                        </button>
-                        <button
-                          type="button"
-                          onClick={() => setCustomCadence("annual")}
-                          className={cn(
-                            "text-[9px] font-bold uppercase transition-colors cursor-pointer flex items-center justify-center",
-                            customCadence === "annual" 
-                              ? "bg-foreground text-background" 
-                              : "text-muted-foreground hover:text-foreground"
-                          )}
-                        >
-                          ANNUAL
-                        </button>
+                    <div className="flex justify-between">
+                      <span className="text-muted-foreground uppercase">TOTAL FREQUENCY</span>
+                      <span className="font-bold text-foreground">{selectedSubForDetails.occurrences || 1}x detected</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-muted-foreground uppercase">DETECTION SOURCE</span>
+                      <span className="font-bold text-foreground uppercase">{String(selectedSubForDetails.source || "statement").replace(/_/g, " ")}</span>
+                    </div>
+                    {selectedSubForDetails.nextExpectedDate && (
+                      <div className="flex justify-between">
+                        <span className="text-muted-foreground uppercase">NEXT ESTIMATED CHARGE</span>
+                        <span className="font-bold text-foreground">{String(selectedSubForDetails.nextExpectedDate).split("T")[0]}</span>
                       </div>
-                    </div>
+                    )}
+                  </div>
+
+                  <div className="pt-3 border-t border-border/40 flex items-center gap-2">
+                    <button
+                      type="button"
+                      onClick={() => handleDismiss(selectedSubForDetails.merchant)}
+                      className="w-full h-10 bg-red-500/10 hover:bg-red-500/20 text-red-400 border border-red-500/30 text-[10px] font-bold uppercase tracking-wider transition-colors cursor-pointer"
+                    >
+                      EXCLUDE FROM RECURRING RADAR
+                    </button>
                   </div>
                 </div>
+              </motion.div>
+            </div>
+          )}
+        </AnimatePresence>,
+        document.body
+      )}
 
-                {/* Drawer Footer Actions */}
-                <div className="pt-4 border-t border-border/40 flex items-center gap-2">
-                  <button
-                    type="button"
-                    onClick={() => handleSavePinned(customMerchant, parseFloat(customAmount), customCadence)}
-                    className="flex-1 h-10 bg-foreground text-background font-bold uppercase tracking-wider text-xs hover:bg-foreground/90 transition-colors cursor-pointer flex items-center justify-center gap-1.5 shadow-sm"
-                  >
-                    <Plus className="h-4 w-4" />
-                    <span>PIN TO RADAR</span>
-                  </button>
+      {/* 6. Native Draggable Slide-Up Drawer: Pin Recurring Bill (Portaled to document.body) */}
+      {mounted && typeof document !== "undefined" && createPortal(
+        <AnimatePresence>
+          {isPinDrawerOpen && (
+            <div 
+              className="fixed inset-0 z-[100003] flex items-end sm:items-center justify-center p-0 sm:p-4 bg-background/80 backdrop-blur-md"
+              onClick={(e) => {
+                if (e.target === e.currentTarget) setIsPinDrawerOpen(false)
+              }}
+            >
+              <motion.div
+                initial={{ y: "100%" }}
+                animate={{ y: 0 }}
+                exit={{ y: "100%" }}
+                transition={{ type: "spring", damping: 25, stiffness: 300 }}
+                className="w-full sm:max-w-lg bg-[#09090b] border-t sm:border border-border rounded-t-2xl sm:rounded-2xl shadow-2xl overflow-hidden flex flex-col font-mono text-xs max-h-[92vh]"
+              >
+                {/* Drag Handle */}
+                <div className="w-full flex sm:hidden justify-center py-2.5 bg-secondary/10 border-b border-border/40 shrink-0">
+                  <div className="w-12 h-1 bg-muted-foreground/30 rounded-full" />
+                </div>
+
+                {/* Drawer Header */}
+                <div className="p-5 border-b border-border/40 flex items-center justify-between">
+                  <div className="flex items-center gap-2 text-sm font-bold uppercase tracking-tight">
+                    <Plus className="h-4 w-4 text-foreground" />
+                    <span>PIN RECURRING BILL / SUBSCRIPTION</span>
+                  </div>
                   <button
                     type="button"
                     onClick={() => setIsPinDrawerOpen(false)}
-                    className="px-5 h-10 bg-secondary hover:bg-secondary/80 text-muted-foreground hover:text-foreground font-bold uppercase tracking-wider text-xs transition-colors cursor-pointer border border-border"
+                    className="p-1 text-muted-foreground hover:text-foreground cursor-pointer"
                   >
-                    CANCEL
+                    <X className="h-4 w-4" />
                   </button>
                 </div>
-              </div>
-            </motion.div>
-          </div>
-        )}
-      </AnimatePresence>
+
+                {/* Drawer Content */}
+                <div className="p-5 md:p-6 space-y-6 overflow-y-auto">
+                  {/* Search From Statement */}
+                  <div className="space-y-2">
+                    <span className="text-[10px] text-muted-foreground uppercase tracking-wider">
+                      OPTION 1: PIN RECENT TRANSACTION FROM STATEMENT
+                    </span>
+                    <div className="relative">
+                      <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
+                      <input
+                        type="text"
+                        placeholder="SEARCH TRANSACTION BY MERCHANT NAME..."
+                        value={pinSearch}
+                        onChange={(e) => setPinSearch(e.target.value)}
+                        className="w-full h-9 pl-9 pr-3 bg-secondary/20 border border-border text-xs uppercase font-mono placeholder:text-muted-foreground/50 focus:outline-none focus:border-foreground"
+                      />
+                    </div>
+
+                    {pinCandidates.length > 0 && (
+                      <div className="border border-border divide-y divide-border/40 max-h-40 overflow-y-auto bg-card/20">
+                        {pinCandidates.map((c, idx) => (
+                          <div 
+                            key={idx}
+                            onClick={() => {
+                              setCustomMerchant((c.merchant || c.raw_text || "").toUpperCase())
+                              setCustomAmount(Math.abs(parseFloat(c.amount)).toFixed(2))
+                              setPinSearch("")
+                            }}
+                            className="p-2.5 flex items-center justify-between hover:bg-secondary/50 cursor-pointer transition-colors"
+                          >
+                            <div className="truncate font-bold uppercase text-foreground">
+                              {c.merchant || c.raw_text}
+                            </div>
+                            <span className="text-foreground font-mono font-bold shrink-0 ml-2">
+                              {currencySymbol}{Math.abs(parseFloat(c.amount)).toFixed(2)}
+                            </span>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+
+                  <div className="relative flex py-1 items-center">
+                    <div className="flex-grow border-t border-border/40"></div>
+                    <span className="flex-shrink mx-3 text-[9px] text-muted-foreground uppercase tracking-widest">OR ENTER DETAILS</span>
+                    <div className="flex-grow border-t border-border/40"></div>
+                  </div>
+
+                  {/* Manual Input Form */}
+                  <div className="space-y-4">
+                    <div className="space-y-1.5">
+                      <label className="text-[10px] text-muted-foreground uppercase tracking-wider">SERVICE / MERCHANT NAME</label>
+                      <input
+                        type="text"
+                        placeholder="E.G. DOMAIN RENEWAL, CLUB FEE, CAR TAX"
+                        value={customMerchant}
+                        onChange={(e) => setCustomMerchant(e.target.value.toUpperCase())}
+                        className="w-full h-9 px-3 bg-secondary/20 border border-border text-xs uppercase font-mono placeholder:text-muted-foreground/50 focus:outline-none focus:border-foreground"
+                      />
+                    </div>
+
+                    <div className="grid grid-cols-2 gap-3">
+                      <div className="space-y-1.5">
+                        <label className="text-[10px] text-muted-foreground uppercase tracking-wider">BILLING AMOUNT ({currencySymbol})</label>
+                        <input
+                          type="number"
+                          step="0.01"
+                          placeholder="0.00"
+                          value={customAmount}
+                          onChange={(e) => setCustomAmount(e.target.value)}
+                          className="w-full h-9 px-3 bg-secondary/20 border border-border text-xs font-mono placeholder:text-muted-foreground/50 focus:outline-none focus:border-foreground"
+                        />
+                      </div>
+
+                      <div className="space-y-1.5">
+                        <label className="text-[10px] text-muted-foreground uppercase tracking-wider">BILLING CADENCE</label>
+                        <div className="grid grid-cols-2 gap-1 bg-secondary/30 p-1 border border-border h-9">
+                          <button
+                            type="button"
+                            onClick={() => setCustomCadence("monthly")}
+                            className={cn(
+                              "text-[9px] font-bold uppercase transition-colors cursor-pointer flex items-center justify-center",
+                              customCadence === "monthly" 
+                                ? "bg-foreground text-background" 
+                                : "text-muted-foreground hover:text-foreground"
+                            )}
+                          >
+                            MONTHLY
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => setCustomCadence("annual")}
+                            className={cn(
+                              "text-[9px] font-bold uppercase transition-colors cursor-pointer flex items-center justify-center",
+                              customCadence === "annual" 
+                                ? "bg-foreground text-background" 
+                                : "text-muted-foreground hover:text-foreground"
+                            )}
+                          >
+                            ANNUAL
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Drawer Footer Actions */}
+                  <div className="pt-4 border-t border-border/40 flex items-center gap-2">
+                    <button
+                      type="button"
+                      onClick={() => handleSavePinned(customMerchant, parseFloat(customAmount), customCadence)}
+                      className="flex-1 h-10 bg-foreground text-background font-bold uppercase tracking-wider text-xs hover:bg-foreground/90 transition-colors cursor-pointer flex items-center justify-center gap-1.5 shadow-sm"
+                    >
+                      <Plus className="h-4 w-4" />
+                      <span>PIN TO RADAR</span>
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setIsPinDrawerOpen(false)}
+                      className="px-5 h-10 bg-secondary hover:bg-secondary/80 text-muted-foreground hover:text-foreground font-bold uppercase tracking-wider text-xs transition-colors cursor-pointer border border-border"
+                    >
+                      CANCEL
+                    </button>
+                  </div>
+                </div>
+              </motion.div>
+            </div>
+          )}
+        </AnimatePresence>,
+        document.body
+      )}
       </div>
 
       {/* Mobile Floating Action Button (FAB) matching Ledger/Portfolio style */}
