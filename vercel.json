@@ -6,7 +6,7 @@
     },
     {
       "path": "/api/notifications/daily-outlook",
-      "schedule": "30 * * * *"
+      "schedule": "30 7 * * *"
     }
   ]
 }
