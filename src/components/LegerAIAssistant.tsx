@@ -815,14 +815,14 @@ export function LegerAIAssistant() {
     const checkFabAndCycle = () => {
       const fabEl = document.querySelector('button[aria-label="Add transaction"]') ||
                     document.querySelector('button[aria-label="Add position"]') ||
-                    document.querySelector('.fixed.bottom-20.right-4') ||
+                    document.querySelector('button[aria-label="Pin recurring bill"]') ||
+                    document.querySelector('button[aria-label="Ledger quick actions menu"]') ||
                     document.querySelector('[data-fab="true"]')
-      setHasFloatingFab(!!fabEl || pathname === "/expenses" || pathname === "/portfolio")
+      setHasFloatingFab(!!fabEl || pathname === "/expenses" || pathname === "/portfolio" || pathname === "/radar")
 
       const cycleEl = document.querySelector('[data-cycle-bar="true"]') ||
-                      document.querySelector('.cycle-mobile-bar') ||
-                      document.querySelector('button[aria-label*="paycheck cycle"]')
-      setHasCycleBar(!!cycleEl || pathname === "/" || pathname === "/expenses" || pathname === "/budgets" || pathname === "/categories" || pathname === "/radar" || pathname === "/portfolio")
+                      document.querySelector('.cycle-mobile-bar')
+      setHasCycleBar(!!cycleEl)
     }
     checkFabAndCycle()
     const t1 = setTimeout(checkFabAndCycle, 100)
@@ -2076,8 +2076,8 @@ export function LegerAIAssistant() {
                 "fixed z-[99990] select-none pointer-events-auto",
                 // Mobile vertical positioning: docked cleanly above lowest active bottom bar
                 hasCycleBar
-                  ? "bottom-[104px]"
-                  : "bottom-[68px]",
+                  ? "bottom-[100px]"
+                  : "bottom-[64px]",
                 // Mobile horizontal width: full width if no '+' FAB in view, or safe right clearance if FAB is present
                 hasFloatingFab
                   ? "left-3 right-20 sm:left-4 sm:right-24 md:left-6 md:right-auto md:w-[460px]"
