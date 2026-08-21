@@ -76,7 +76,7 @@ export function DashboardChart({ hybridData, activeTab, onDayClick, isPro }: Das
               if (active && payload && payload.length) {
                 const data = payload[0].payload
                 return (
-                  <div className="bg-card border border-border p-2 md:p-3 font-mono text-[9px] md:text-[10px] space-y-1.5 md:space-y-2 shadow-sm z-50">
+                  <div className="bg-card/95 backdrop-blur-xs border border-border p-2 md:p-3 font-mono text-[9px] md:text-[10px] space-y-1.5 md:space-y-2 shadow-md z-50 pointer-events-none select-none">
                     <p className="font-bold border-b border-border pb-1 uppercase">{label}</p>
                     <div className="space-y-1">
                       <p className="flex justify-between gap-6 md:gap-8 uppercase">
@@ -108,6 +108,8 @@ export function DashboardChart({ hybridData, activeTab, onDayClick, isPro }: Das
               return null
             }}
             cursor={{ stroke: 'var(--border)', strokeWidth: 1 }}
+            position={isMobile ? { y: 0 } : undefined}
+            wrapperStyle={{ pointerEvents: "none", zIndex: 40 }}
           />
           <Area 
             type="stepAfter" 

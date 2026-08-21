@@ -339,7 +339,7 @@ function CustomPortfolioTooltip({ active, payload, label, formatCurrency, select
 
     if (isCompareMode) {
       return (
-        <div className="bg-card border border-border p-2.5 md:p-3 font-mono text-[9px] md:text-[10px] space-y-2 shadow-sm z-50 rounded-none min-w-[200px]">
+        <div className="bg-card/95 backdrop-blur-xs border border-border p-2.5 md:p-3 font-mono text-[9px] md:text-[10px] space-y-2 shadow-md z-50 rounded-none min-w-[200px] pointer-events-none select-none">
           <p className="font-bold border-b border-border pb-1 uppercase tracking-wider">{label} - HOLDINGS</p>
           <div className="space-y-1.5">
             {assets.map((a: any, idx: number) => {
@@ -362,7 +362,7 @@ function CustomPortfolioTooltip({ active, payload, label, formatCurrency, select
     }
 
     return (
-      <div className="bg-card border border-border p-2 md:p-3 font-mono text-[9px] md:text-[10px] space-y-1.5 md:space-y-2 shadow-sm z-50 rounded-none min-w-[190px]">
+      <div className="bg-card/95 backdrop-blur-xs border border-border p-2 md:p-3 font-mono text-[9px] md:text-[10px] space-y-1.5 md:space-y-2 shadow-md z-50 rounded-none min-w-[190px] pointer-events-none select-none">
         <p className="font-bold border-b border-border pb-1 uppercase">{label}</p>
         <div className="space-y-1">
           <p className="flex justify-between gap-6 md:gap-8 uppercase">
@@ -1695,6 +1695,8 @@ export function PortfolioView({
               <RechartsTooltip 
                 content={<CustomPortfolioTooltip formatCurrency={formatCurrency} selectedChartMode={selectedChartMode} assets={assets} />}
                 cursor={{ stroke: "var(--border)", strokeWidth: 1 }}
+                position={isMobile ? { y: 0 } : undefined}
+                wrapperStyle={{ pointerEvents: "none", zIndex: 40 }}
               />
               {/* Multi-Asset Comparison Lines (Dedicated Compare Mode) */}
               {selectedChartMode === "compare" && assets.map((a, idx) => {
