@@ -160,6 +160,11 @@ export function DeviceSyncManager({ user: propUser, isPro: propIsPro, isLoading:
               setSelectedBanks(res.packages)
             }
           }).catch(() => {})
+
+          BankSync.setSyncContext({
+            userId: user.id,
+            baseUrl: typeof window !== "undefined" ? window.location.origin : "https://legeros.vercel.app"
+          }).catch(() => {})
         }
       }
     }
@@ -173,7 +178,11 @@ export function DeviceSyncManager({ user: propUser, isPro: propIsPro, isLoading:
     }
     if (Capacitor.isNativePlatform()) {
       const BankSync = registerPlugin<any>("LegerBankSync")
-      BankSync?.setSelectedBankPackages({ packages: newBanks }).catch(() => {})
+      BankSync?.setSelectedBankPackages({ 
+        packages: newBanks,
+        userId: user?.id,
+        baseUrl: typeof window !== "undefined" ? window.location.origin : "https://legeros.vercel.app"
+      }).catch(() => {})
     }
   }
 

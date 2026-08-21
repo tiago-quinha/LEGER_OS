@@ -91,7 +91,20 @@ public class LegerBankSyncPlugin extends Plugin {
             }
 
             SharedPreferences prefs = getContext().getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE);
-            prefs.edit().putStringSet(KEY_PACKAGES, packageSet).apply();
+            SharedPreferences.Editor editor = prefs.edit();
+            editor.putStringSet(KEY_PACKAGES, packageSet);
+
+            String userId = call.getString("userId", null);
+            if (userId != null && !userId.isEmpty()) {
+                editor.putString("user_id", userId);
+            }
+
+            String baseUrl = call.getString("baseUrl", null);
+            if (baseUrl != null && !baseUrl.isEmpty()) {
+                editor.putString("base_url", baseUrl);
+            }
+
+            editor.apply();
 
             JSObject ret = new JSObject();
             ret.put("success", true);
@@ -99,6 +112,32 @@ public class LegerBankSyncPlugin extends Plugin {
             call.resolve(ret);
         } catch (Exception e) {
             call.reject("Failed to save selected packages: " + e.getMessage());
+        }
+    }
+
+    @PluginMethod
+    public void setSyncContext(PluginCall call) {
+        try {
+            SharedPreferences prefs = getContext().getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE);
+            SharedPreferences.Editor editor = prefs.edit();
+
+            String userId = call.getString("userId", null);
+            if (userId != null && !userId.isEmpty()) {
+                editor.putString("user_id", userId);
+            }
+
+            String baseUrl = call.getString("baseUrl", null);
+            if (baseUrl != null && !baseUrl.isEmpty()) {
+                editor.putString("base_url", baseUrl);
+            }
+
+            editor.apply();
+
+            JSObject ret = new JSObject();
+            ret.put("success", true);
+            call.resolve(ret);
+        } catch (Exception e) {
+            call.reject("Failed to set sync context: " + e.getMessage());
         }
     }
 
