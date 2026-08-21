@@ -1834,17 +1834,16 @@ export function PortfolioView({
               </div>
               <div className="flex flex-wrap items-center gap-1.5 pt-0.5 min-w-0">
                 <span className={cn(
-                  "px-1.5 py-0.5 border text-[8px] sm:text-[9px] font-mono font-bold uppercase truncate max-w-full inline-block",
+                  "px-1.5 py-0.5 border text-[8px] sm:text-[9px] font-mono font-bold uppercase truncate max-w-full inline-flex items-center gap-1",
                   metrics.displayChange >= 0
                     ? "text-emerald-500 border-emerald-500/20 bg-emerald-500/5"
                     : "text-rose-500 border-rose-500/20 bg-rose-500/5"
                 )}>
+                  <span className="opacity-75 tracking-wider font-extrabold">{metrics.isCurrentCycle ? "24H" : "CYCLE"}</span>
+                  <span className="opacity-40">·</span>
                   <PrivacyValue>
                     {metrics.displayChange >= 0 ? "+" : ""}{formatCurrency(metrics.displayChange)} ({metrics.displayChangePct >= 0 ? "+" : ""}{format2Decimals(metrics.displayChangePct)}%)
                   </PrivacyValue>
-                </span>
-                <span className="text-[8px] sm:text-[9px] text-muted-foreground/70 uppercase font-mono tracking-widest font-semibold shrink-0">
-                  {metrics.isCurrentCycle ? "24H" : "CYCLE"}
                 </span>
               </div>
             </div>
@@ -1862,17 +1861,16 @@ export function PortfolioView({
               </div>
               <div className="flex flex-wrap items-center gap-1 sm:gap-1.5 pt-0.5 min-w-0">
                 <span className={cn(
-                  "px-1 sm:px-1.5 py-0.5 border text-[7.5px] sm:text-[9px] font-mono font-bold uppercase truncate max-w-full inline-block",
+                  "px-1 sm:px-1.5 py-0.5 border text-[7.5px] sm:text-[9px] font-mono font-bold uppercase truncate max-w-full inline-flex items-center gap-1",
                   metrics.displayChange >= 0
                     ? "text-emerald-500 border-emerald-500/20 bg-emerald-500/5"
                     : "text-rose-500 border-rose-500/20 bg-rose-500/5"
                 )}>
+                  <span className="opacity-75 tracking-wider font-extrabold">{metrics.isCurrentCycle ? "24H" : "CYCLE"}</span>
+                  <span className="opacity-40">·</span>
                   <PrivacyValue>
                     {metrics.displayChange >= 0 ? "+" : ""}{formatCurrency(metrics.displayChange)} ({metrics.displayChangePct >= 0 ? "+" : ""}{format2Decimals(metrics.displayChangePct)}%)
                   </PrivacyValue>
-                </span>
-                <span className="text-[7.5px] sm:text-[9px] text-muted-foreground/70 uppercase font-mono tracking-widest font-semibold shrink-0 hidden xs:inline-block">
-                  {metrics.isCurrentCycle ? "24H" : "CYCLE"}
                 </span>
               </div>
             </div>
@@ -1898,18 +1896,17 @@ export function PortfolioView({
               </div>
               <div className="flex flex-wrap items-center gap-1 sm:gap-1.5 pt-0.5 min-w-0">
                 <span className={cn(
-                  "px-1 sm:px-1.5 py-0.5 border text-[7.5px] sm:text-[9px] font-mono font-bold uppercase truncate max-w-full inline-block",
+                  "px-1 sm:px-1.5 py-0.5 border text-[7.5px] sm:text-[9px] font-mono font-bold uppercase truncate max-w-full inline-flex items-center gap-1",
                   (metrics.isCurrentCycle ? metrics.totalPnLPercent : metrics.displayChangePct) >= 0
                     ? "text-emerald-500 border-emerald-500/20 bg-emerald-500/5"
                     : "text-rose-500 border-rose-500/20 bg-rose-500/5"
                 )}>
+                  <span className="opacity-75 tracking-wider font-extrabold">{metrics.isCurrentCycle ? "ALL" : "CYCLE"}</span>
+                  <span className="opacity-40">·</span>
                   <PrivacyValue>
                     {(metrics.isCurrentCycle ? metrics.totalPnLPercent : metrics.displayChangePct) >= 0 ? "+" : ""}
                     {format2Decimals(metrics.isCurrentCycle ? metrics.totalPnLPercent : metrics.displayChangePct)}%
                   </PrivacyValue>
-                </span>
-                <span className="text-[7.5px] sm:text-[9px] text-muted-foreground/70 uppercase font-mono tracking-widest font-semibold shrink-0 hidden xs:inline-block">
-                  {metrics.isCurrentCycle ? "ALL" : "CYCLE"}
                 </span>
               </div>
             </div>
