@@ -86,6 +86,11 @@ public class LegerBankNotificationListenerService extends NotificationListenerSe
         String packageName = sbn.getPackageName();
         if (packageName == null) return;
 
+        // Hard block self app notifications (never intercept LEGER_OS's own notifications)
+        if (packageName.equals("com.legeros.app") || packageName.equals(getPackageName())) {
+            return;
+        }
+
         // Strictly enforce user's selected bank apps from SharedPreferences
         Set<String> userSelectedPackages = getSharedPreferences(PREFS_NAME, MODE_PRIVATE).getStringSet(KEY_PACKAGES, null);
 
@@ -103,7 +108,8 @@ public class LegerBankNotificationListenerService extends NotificationListenerSe
         if (lowerPkg.contains("telegram") || lowerPkg.contains("whatsapp") || lowerPkg.contains("discord") ||
             lowerPkg.contains("signal") || lowerPkg.contains("viber") || lowerPkg.contains("messenger") ||
             lowerPkg.contains("instagram") || lowerPkg.contains("twitter") || lowerPkg.contains("reddit") ||
-            lowerPkg.contains("android.systemui") || lowerPkg.contains("android.providers")) {
+            lowerPkg.contains("android.systemui") || lowerPkg.contains("android.providers") ||
+            lowerPkg.contains("legeros")) {
             return;
         }
 

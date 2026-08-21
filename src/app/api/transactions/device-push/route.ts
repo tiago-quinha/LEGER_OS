@@ -57,6 +57,21 @@ export async function POST(request: Request) {
       date: customDate
     } = body
 
+    // Hard block non-banking and self notifications
+    const incomingApp = String(bank_app || body.appName || "").toLowerCase()
+    const incomingText = String(raw_text || "").toLowerCase()
+
+    if (
+      incomingApp.includes("legeros") || 
+      incomingApp.includes("telegram") || 
+      incomingApp.includes("whatsapp") || 
+      incomingApp.includes("discord") ||
+      incomingText.includes("portfolio wrap") ||
+      incomingText.includes("morning outlook")
+    ) {
+      return NextResponse.json({ success: true, message: "Ignored non-transaction / system notification" })
+    }
+
     // 1. Resolve User ID
     let userId = queryUserId || payloadUserId
 
