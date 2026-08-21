@@ -13,9 +13,12 @@ const OUTFLOW_KEYWORDS = [
 ]
 
 const INFLOW_KEYWORDS = [
-  "entrada", "crédito", "credito", "recebida", "reembolso", "depósito", "deposito", 
+  "entrada", "crédito", "credito", "recebida", "recebido", "recebeu", "recebeste",
+  "transferência recebida", "transferencia recebida", "reembolso", "depósito", "deposito", 
   "refund", "credit", "received", "salary", "payroll", "paycheck", "ingreso", 
-  "nómina", "nomina", "vencimento", "ordenado", "salário", "salario"
+  "nómina", "nomina", "vencimento", "ordenado", "salário", "salario", "cashback",
+  "mbway recebido", "mb way recebido", "enviou-te", "enviou lhe", "recebeu transferência",
+  "recebeu transferencia", "deposit", "deposited", "inflow", "rendimento", "ganho", "bonus", "bónus"
 ]
 
 export async function POST(request: Request) {
@@ -84,6 +87,7 @@ export async function POST(request: Request) {
 
     let finalMerchant = (merchant || "").trim()
     let finalAmountRaw = amount
+    let aiDetectedType: "inflow" | "outflow" | null = null
     const rawTextCombined = raw_text || (body.title ? `${body.title} - ${body.text || ""}` : "")
 
     // 3. AI Extraction - STRICTLY EXCLUSIVE TO PRO USERS
@@ -101,13 +105,14 @@ export async function POST(request: Request) {
       try {
         const aiPrompt = `
           You are the real-time bank transaction parsing engine for LEGER_OS.
-          Extract the merchant name and numerical amount from this device notification / SMS text:
+          Extract the merchant/sender name, numerical amount, and flow direction (inflow vs outflow) from this device notification / SMS text:
           "${rawTextCombined}"
           
           Format your output strictly as a JSON object:
           {
-            "merchant": string, // Extract business/store/merchant/recipient name. Clean & concise. If unknown, return "Unknown Merchant".
-            "amount": number // Extract transaction amount as a positive decimal (e.g. 14.50). If unknown, return null.
+            "merchant": string, // Extract business/store/merchant/sender/recipient name. Clean & concise. If unknown, return "Unknown Merchant".
+            "amount": number, // Extract transaction amount as a positive decimal (e.g. 14.50). If unknown, return null.
+            "type": "outflow" | "inflow" // "inflow" for money received, deposits, salary, incoming transfers, refunds; "outflow" for purchases, payments, debits, withdrawals.
           }
         `
         const aiResText = await generateAIContent(aiPrompt, {
@@ -122,6 +127,11 @@ export async function POST(request: Request) {
         }
         if ((finalAmountRaw === undefined || finalAmountRaw === null) && parsed.amount !== null) {
           finalAmountRaw = parsed.amount
+        }
+        if (parsed.type === "inflow") {
+          aiDetectedType = "inflow"
+        } else if (parsed.type === "outflow") {
+          aiDetectedType = "outflow"
         }
       } catch (aiErr) {
         console.error("[Device Push] AI Extraction failed:", aiErr)
@@ -145,18 +155,17 @@ export async function POST(request: Request) {
     let finalAmount = Math.abs(parsedAmount)
 
     const lowerRaw = (rawTextCombined || "").toLowerCase()
-    let isOutflow = false
+    const hasInflowKeyword = INFLOW_KEYWORDS.some(kw => lowerRaw.includes(kw))
+    const hasOutflowKeyword = OUTFLOW_KEYWORDS.some(kw => lowerRaw.includes(kw))
 
-    if (OUTFLOW_KEYWORDS.some(kw => lowerRaw.includes(kw))) {
-      isOutflow = true
-    }
-    if (INFLOW_KEYWORDS.some(kw => lowerRaw.includes(kw))) {
-      isOutflow = false
-    }
-
-    // Default to expense (outflow) unless marked as inflow or explicit positive deposit
-    if (isOutflow || isExplicitlyNegative || !INFLOW_KEYWORDS.some(kw => lowerRaw.includes(kw))) {
-      finalAmount = -finalAmount
+    // Inflow takes priority if explicit keyword or AI classification says inflow
+    if ((hasInflowKeyword || aiDetectedType === "inflow") && !hasOutflowKeyword) {
+      finalAmount = Math.abs(parsedAmount) // Positive Inflow
+    } else if (hasOutflowKeyword || isExplicitlyNegative || aiDetectedType === "outflow") {
+      finalAmount = -Math.abs(parsedAmount) // Negative Outflow
+    } else {
+      // Default to outflow
+      finalAmount = -Math.abs(parsedAmount)
     }
 
     // 5. Automatic Category Classification
@@ -253,27 +262,36 @@ export async function POST(request: Request) {
       const amountStr = `${finalAmount < 0 ? "-" : "+"}${currencySymbol}${Math.abs(finalAmount).toFixed(2)}`
       const bankTitle = bank_app ? bank_app.charAt(0).toUpperCase() + bank_app.slice(1) : "Bank Alert"
 
+      const isInflow = finalAmount > 0
+      const defaultBody = isInflow 
+        ? "Inflow detected · Tap to review & categorize." 
+        : isGenericMerchant 
+        ? "Tap to identify store & categorize." 
+        : "Transaction logged in LEGER_OS · Tap to view."
+
       if (isGenericMerchant) {
         await sendPushToUser(supabaseAdmin, userId, {
           title: `${bankTitle} · ${amountStr}`,
-          body: "Tap to categorize and update safe daily burn.",
+          body: isInflow ? "Inflow received · Tap to identify sender & categorize." : "Tap to identify store & categorize.",
           url: `/?resolveTxId=${insertedTx.id}`,
           data: {
             txId: insertedTx.id,
             amount: finalAmount,
             bankApp: bank_app,
-            needsName: true
+            needsName: true,
+            type: isInflow ? "inflow" : "outflow"
           }
         })
       } else {
         await sendPushToUser(supabaseAdmin, userId, {
           title: `${finalMerchant} · ${amountStr}`,
-          body: "Transaction logged in LEGER_OS · Tap to view.",
+          body: defaultBody,
           url: `/?resolveTxId=${insertedTx.id}`,
           data: {
             txId: insertedTx.id,
             amount: finalAmount,
-            merchant: finalMerchant
+            merchant: finalMerchant,
+            type: isInflow ? "inflow" : "outflow"
           }
         })
       }

@@ -15,6 +15,7 @@ import {
 } from "lucide-react"
 import { toast } from "sonner"
 import { useRouter } from "next/navigation"
+import { cn } from "@/lib/utils"
 
 interface DedicatedPushResolverProps {
   transaction: any
@@ -163,24 +164,30 @@ export function DedicatedPushResolver({
           className="flex-1 min-h-0 flex flex-col gap-2.5 sm:gap-3 py-1 font-mono text-xs overflow-y-auto"
         >
           {/* Amount Banner */}
-          <div className="p-3.5 bg-card/60 border border-border rounded-xl flex items-center justify-between shadow-sm shrink-0">
-            <div className="space-y-0.5">
-              <span className="text-[9px] uppercase tracking-wider text-muted-foreground font-bold">
-                Captured Amount
-              </span>
-              <div className="text-2xl sm:text-3xl font-bold tracking-tight text-foreground">
-                -{currencySymbol}{Math.abs(parseFloat(transaction.amount || 0)).toFixed(2)}
+          {(() => {
+            const rawAmt = parseFloat(transaction.amount || 0)
+            const isInflow = rawAmt > 0
+            return (
+              <div className="p-3.5 bg-card/60 border border-border rounded-xl flex items-center justify-between shadow-sm shrink-0">
+                <div className="space-y-0.5">
+                  <span className={cn("text-[9px] uppercase tracking-wider font-bold", isInflow ? "text-emerald-500" : "text-muted-foreground")}>
+                    {isInflow ? "Captured Inflow / Income" : "Captured Outflow / Expense"}
+                  </span>
+                  <div className={cn("text-2xl sm:text-3xl font-bold tracking-tight font-mono", isInflow ? "text-emerald-500" : "text-foreground")}>
+                    {isInflow ? "+" : "-"}{currencySymbol}{Math.abs(rawAmt).toFixed(2)}
+                  </div>
+                </div>
+                <div className="text-right space-y-0.5">
+                  <span className="text-[9px] uppercase tracking-wider text-muted-foreground font-bold">
+                    Date
+                  </span>
+                  <div className="text-foreground font-semibold">
+                    {new Date(transaction.date || Date.now()).toLocaleDateString("en-GB", { day: "2-digit", month: "short", year: "numeric" })}
+                  </div>
+                </div>
               </div>
-            </div>
-            <div className="text-right space-y-0.5">
-              <span className="text-[9px] uppercase tracking-wider text-muted-foreground font-bold">
-                Date
-              </span>
-              <div className="text-foreground font-semibold">
-                {new Date(transaction.date || Date.now()).toLocaleDateString("en-GB", { day: "2-digit", month: "short", year: "numeric" })}
-              </div>
-            </div>
-          </div>
+            )
+          })()}
 
           {/* Raw Push Notification Snippet */}
           {transaction.raw_text && (

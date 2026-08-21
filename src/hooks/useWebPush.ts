@@ -195,8 +195,8 @@ export function useWebPush() {
           notifications: [
             {
               id: Math.floor(Math.random() * 10000),
-              title: "Santander · €14.50 Outflow",
-              body: "Tap to review and update safe daily burn.",
+              title: "Santander · -€14.50",
+              body: "Tap to identify store & categorize.",
               extra: { txId: "demo" },
               schedule: { at: new Date(Date.now() + 500) }
             }
@@ -210,8 +210,8 @@ export function useWebPush() {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          title: "Santander · €14.50 Outflow",
-          body: "Tap to review and update safe daily burn.",
+          title: "Santander · -€14.50",
+          body: "Tap to identify store & categorize.",
           amount: -14.50,
           url: "/?resolveTxId=demo"
         })
