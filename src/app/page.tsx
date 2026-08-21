@@ -2,12 +2,13 @@ import { createClient } from "@/lib/supabase-server"
 import { getCycles } from "@/lib/cycles"
 import { DashboardView } from "@/components/DashboardView"
 import { OnboardingView } from "@/components/OnboardingView"
+import { DedicatedPushResolver } from "@/components/DedicatedPushResolver"
 import { redirect } from "next/navigation"
 
 export const dynamic = "force-dynamic"
 
 interface PageProps {
-  searchParams: Promise<{ cycleId?: string; onboarding?: string; force_onboarding?: string }>
+  searchParams: Promise<{ cycleId?: string; onboarding?: string; force_onboarding?: string; resolveTxId?: string }>
 }
 
 export default async function DashboardPage({ searchParams }: PageProps) {
@@ -18,7 +19,72 @@ export default async function DashboardPage({ searchParams }: PageProps) {
     redirect("/login")
   }
 
-  // 1. Fetch user profile and cycles using utility
+  // 1. Fast-Path: Isolated Push Notification Capture Resolution
+  // Only loads this focused popup when tapping push notifications, saving all dashboard computation
+  if (params?.resolveTxId) {
+    const resolveTxId = params.resolveTxId
+    let txToResolve: any = null
+
+    if (resolveTxId === "demo") {
+      txToResolve = {
+        id: "demo",
+        amount: -14.50,
+        merchant: "Santander Outflow",
+        date: new Date().toISOString().split("T")[0],
+        category_id: null,
+        raw_text: "Santander Push: Compra com cartao 14.50 EUR"
+      }
+    } else {
+      const { data: foundTx } = await supabase
+        .from("tracker_expense")
+        .select("*")
+        .eq("id", resolveTxId)
+        .eq("user_id", user.id)
+        .single()
+      txToResolve = foundTx
+    }
+
+    if (txToResolve) {
+      const [categoriesRes, recentTxRes, profileRes] = await Promise.all([
+        supabase.from("categories").select("*").eq("user_id", user.id).order("name"),
+        supabase.from("tracker_expense").select("merchant, category_id").eq("user_id", user.id).order("date", { ascending: false }).limit(60),
+        supabase.from("profiles").select("currency").eq("id", user.id).single()
+      ])
+
+      const categories = categoriesRes.data || []
+      const counts = new Map<string, { count: number; categoryId: number | null }>()
+      const genericNames = new Set([
+        "UNKNOWN MERCHANT", "COMPRA CARTAO", "COMPRA", "MOVIMENTO", 
+        "PAGAMENTO", "PAGAMENTO SERVICOS", "TRANSFERENCIA", "DEBITO DIRECTO"
+      ])
+      
+      ;(recentTxRes.data || []).forEach((tx: any) => {
+        const name = (tx.merchant || "").trim()
+        if (name && name.length > 2 && !genericNames.has(name.toUpperCase())) {
+          const current = counts.get(name) || { count: 0, categoryId: tx.category_id }
+          counts.set(name, { count: current.count + 1, categoryId: tx.category_id || current.categoryId })
+        }
+      })
+
+      const frequentMerchants = Array.from(counts.entries())
+        .sort((a, b) => b[1].count - a[1].count)
+        .slice(0, 8)
+        .map(([name, meta]) => ({ name, categoryId: meta.categoryId }))
+
+      const currencySymbol = profileRes.data?.currency === "USD" ? "$" : profileRes.data?.currency === "GBP" ? "£" : "€"
+
+      return (
+        <DedicatedPushResolver
+          transaction={txToResolve}
+          categories={categories}
+          frequentMerchants={frequentMerchants}
+          currencySymbol={currencySymbol}
+        />
+      )
+    }
+  }
+
+  // 2. Fetch user profile and cycles using utility
   const { data: profile } = await supabase
     .from("profiles")
     .select("onboarding_completed, target_monthly_income, target_monthly_spend, paycheck_keyword")
@@ -43,7 +109,7 @@ export default async function DashboardPage({ searchParams }: PageProps) {
     })
   }
 
-  // 2. Determine selected cycle
+  // 3. Determine selected cycle
   const selectedCycle = params.cycleId
     ? cycles.find(c => c.id === params.cycleId) || cycles[0]
     : cycles[0]
@@ -53,7 +119,7 @@ export default async function DashboardPage({ searchParams }: PageProps) {
     ? cycles[selectedIndex + 1]
     : null
 
-  // 3. Fetch selected cycle expenses, categories, budgets, and balance snapshots
+  // 4. Fetch selected cycle expenses, categories, budgets, and balance snapshots
   const startDateStr = selectedCycle.startDate
   const endDateStr = selectedCycle.endDate || '9999-12-31'
 
