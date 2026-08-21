@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { getAdminClient } from "@/lib/supabase-admin";
 import { convertCurrency } from "@/lib/forex";
+import { notifyAssetSurge, notifyPortfolioATH } from "@/lib/server-notifications";
 
 // CoinGecko symbol mapping
 const CRYPTO_COINGECKO_MAP: Record<string, string> = {
@@ -192,6 +193,11 @@ async function handleSync(req: Request) {
         })
         .eq("id", asset.id);
 
+      // Trigger Asset Surge/Drop alert for significant 24h market moves (>= 3.5%)
+      if (asset.user_id && Math.abs(quote.change24h) >= 3.5) {
+        notifyAssetSurge(adminDb, asset.user_id, sym, quote.change24h, finalPrice, targetCurrency).catch(console.error);
+      }
+
       updatedCount++;
     });
 
@@ -286,6 +292,21 @@ async function handleSync(req: Request) {
           },
           { onConflict: "user_id,snapshot_date" }
         );
+
+        // Check for Portfolio All-Time High Milestone
+        const { data: peakSnap } = await adminDb
+          .from("portfolio_snapshots")
+          .select("closing_valuation")
+          .eq("user_id", userId)
+          .order("closing_valuation", { ascending: false })
+          .limit(2);
+
+        if (peakSnap && peakSnap.length >= 2) {
+          const secondHighest = parseFloat(peakSnap[1]?.closing_valuation || 0);
+          if (currVal > secondHighest && (currVal - secondHighest) >= 100) {
+            notifyPortfolioATH(adminDb, userId, currVal, "€").catch(console.error);
+          }
+        }
       } catch (snapErr) {
         console.error(`[Cron Market Sync] Snapshot error for user ${userId}:`, snapErr);
       }

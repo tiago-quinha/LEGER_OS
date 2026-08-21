@@ -2,6 +2,10 @@ import { getAdminClient } from "@/lib/supabase-admin"
 import { NextResponse } from "next/server"
 import { generateAIContent } from "@/lib/ai-bridge"
 import { sendPushToUser } from "@/lib/web-push"
+import { 
+  notifyPaydayCaptured, 
+  notifyCategoryBudgetThreshold 
+} from "@/lib/server-notifications"
 
 const supabaseAdmin = getAdminClient()
 
@@ -294,6 +298,13 @@ export async function POST(request: Request) {
             type: isInflow ? "inflow" : "outflow"
           }
         })
+      }
+
+      // Secondary smart notification triggers (non-blocking)
+      if (isInflow && (Math.abs(finalAmount) >= 500 || finalMerchant.toLowerCase().includes("deloitte") || finalMerchant.toLowerCase().includes("ordenado") || finalMerchant.toLowerCase().includes("salary"))) {
+        notifyPaydayCaptured(supabaseAdmin, userId, finalAmount, currencySymbol).catch(console.error)
+      } else if (!isInflow && resolvedCategoryId) {
+        notifyCategoryBudgetThreshold(supabaseAdmin, userId, resolvedCategoryId, currencySymbol).catch(console.error)
       }
     } catch (pushErr) {
       console.error("[Device Push] Web push dispatch non-fatal error:", pushErr)

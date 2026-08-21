@@ -802,7 +802,7 @@ export function DeviceSyncManager({ user: propUser, isPro: propIsPro, isLoading:
                 )}
               </div>
               <p className="text-[10px] font-sans text-muted-foreground leading-relaxed">
-                Receive instant notifications when new card transactions occur, allowing 1-tap merchant renaming and live safe daily burn updates.
+                Receive instant notifications for card transactions, payday cycle resets, budget limits (85%/100%), subscription renewals, morning outlook briefs, and portfolio market moves.
               </p>
             </div>
           </div>
@@ -810,17 +810,15 @@ export function DeviceSyncManager({ user: propUser, isPro: propIsPro, isLoading:
           <div className="flex items-center gap-2 shrink-0 self-end sm:self-center">
             {isPushSubscribed ? (
               <>
-                {isSuperUser && (
-                  <Button
-                    type="button"
-                    variant="outline"
-                    size="sm"
-                    onClick={sendTestPush}
-                    className="h-8 rounded-none border-border font-mono text-[10px] uppercase cursor-pointer flex items-center gap-1.5"
-                  >
-                    <Send className="h-3 w-3" /> Test Alert
-                  </Button>
-                )}
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={sendTestPush}
+                  className="h-8 rounded-none border-border font-mono text-[10px] uppercase cursor-pointer flex items-center gap-1.5"
+                >
+                  <Send className="h-3 w-3" /> Test Alert
+                </Button>
                 <Button
                   type="button"
                   variant="outline"
