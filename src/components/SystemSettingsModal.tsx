@@ -21,6 +21,7 @@ import {
 import { cn } from "@/lib/utils"
 import { GlowingBadge } from "@/components/unlumen-ui/glowing-badge"
 import { ProLockOverlay } from "@/components/ProLockOverlay"
+import { Skeleton } from "@/components/ui/skeleton"
 import { CancelProModal } from "@/components/CancelProModal"
 import { DeviceSyncManager } from "@/components/DeviceSyncManager"
 import { SUPPORTED_CURRENCIES, SUPPORTED_LANGUAGES, getProPrice } from "@/lib/format"
@@ -87,6 +88,7 @@ export function SystemSettingsModal({ open, onOpenChange }: SystemSettingsModalP
   const { 
     currencySymbol, 
     isPro, 
+    isLoading,
     upgradeToPro, 
     cancelPro, 
     openStripePortal,
@@ -899,7 +901,12 @@ export function SystemSettingsModal({ open, onOpenChange }: SystemSettingsModalP
                     </div>
                   </div>
 
-                  {!isPro ? (
+                  {isLoading ? (
+                    <div className="p-4 bg-secondary/15 border border-border space-y-3">
+                      <Skeleton className="h-4 w-44 rounded-none" />
+                      <Skeleton className="h-8 w-full rounded-none" />
+                    </div>
+                  ) : !isPro ? (
                     <ProLockOverlay 
                       compact
                       title="ADVANCED AI CALIBRATION (PRO)"
@@ -1141,8 +1148,9 @@ export function SystemSettingsModal({ open, onOpenChange }: SystemSettingsModalP
               <DeviceSyncManager 
                 user={user} 
                 isPro={isPro} 
+                isLoading={isLoading}
                 onUpgradeClick={() => {
-                  // Switch to Pro tab
+                  setActiveTab("pro")
                 }} 
               />
             </TabsContent>

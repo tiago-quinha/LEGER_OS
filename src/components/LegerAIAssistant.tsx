@@ -684,7 +684,7 @@ function TransactionDraftCard({
 }
 
 export function LegerAIAssistant() {
-  const { profile, user, refreshProfile, refreshData, currencySymbol, language, aiProvider, customApiKey, isPro, isSettingsOpen, setSettingsOpen, setSettingsActiveTab, setSubscriptionOnly } = useSystem()
+  const { profile, user, refreshProfile, refreshData, currencySymbol, language, aiProvider, customApiKey, isPro, isLoading: isAuthLoading, isSettingsOpen, setSettingsOpen, setSettingsActiveTab, setSubscriptionOnly } = useSystem()
   const pathname = usePathname()
   const sheetDragControls = useDragControls()
   
@@ -2092,7 +2092,7 @@ export function LegerAIAssistant() {
                   onClick={handlePillClick}
                   className="w-8 h-8 rounded-full bg-foreground text-background flex items-center justify-center font-bold text-xs shrink-0 shadow-md cursor-pointer hover:scale-105 transition-transform"
                 >
-                  {!isPro ? (
+                  {!isPro && !isAuthLoading ? (
                     <Lock className="h-4 w-4" />
                   ) : (
                     <Brain className="h-4 w-4 animate-pulse" />
@@ -2170,7 +2170,7 @@ export function LegerAIAssistant() {
             }}
             className="w-12 h-12 rounded-full bg-foreground text-background flex items-center justify-center shadow-2xl relative border border-border border-white/20 select-none overflow-hidden transition-all duration-300 hover:scale-105 hover:shadow-[0_0_20px_rgba(255,255,255,0.2)] cursor-pointer"
           >
-            {!isPro ? (
+            {!isPro && !isAuthLoading ? (
               <div className="relative flex items-center justify-center">
                 <Brain className="h-5 w-5 text-background/80" />
                 <span className="absolute -top-1.5 -right-1.5 w-4 h-4 bg-card text-foreground rounded-full flex items-center justify-center border border-border shadow-md">

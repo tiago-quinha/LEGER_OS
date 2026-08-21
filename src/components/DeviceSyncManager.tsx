@@ -9,15 +9,17 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { toast } from "sonner"
-import { cn } from "@/lib/utils"
 import { ProLockOverlay } from "@/components/ProLockOverlay"
+import { Skeleton } from "@/components/ui/skeleton"
 import { useSystem } from "@/lib/SystemContext"
 import { useWebPush } from "@/hooks/useWebPush"
 import { Capacitor, registerPlugin } from "@capacitor/core"
+import { cn } from "@/lib/utils"
 
 interface DeviceSyncManagerProps {
   user?: any
   isPro?: boolean
+  isLoading?: boolean
   onUpgradeClick?: () => void
   compact?: boolean
 }
@@ -29,8 +31,16 @@ function AndroidIcon({ className = "h-4 w-4" }: { className?: string }) {
       viewBox="0 0 24 24" 
       fill="currentColor"
     >
-      <path d="M17.523 15.3414c-.5511 0-.9993-.4486-.9993-.9997s.4482-.9993.9993-.9993c.551 0 .9993.4482.9993.9993.0001.5511-.4483.9997-.9993.9997m-11.046 0c-.5511 0-.9993-.4486-.9993-.9997s.4482-.9993.9993-.9993c.5511 0 .9993.4482.9993.9993 0 .5511-.4482.9997-.9993.9997m11.4045-6.02l1.9973-3.4592a.416.416 0 00-.1521-.5676.416.416 0 00-.5676.1521l-2.0223 3.503C15.5902 8.414 13.8533 8.167 12 8.167s-3.5902.247-5.1368.7827L4.8409 5.4467a.4161.4161 0 00-.5677-.1521.4157.4157 0 00-.1521.5676l1.9973 3.4592C2.6889 11.1867.3432 14.6589 0 18.761h24c-.3432-4.1021-2.6889-7.5743-6.1185-9.4396" />
+      <path d="M17.523 15.3414c-.5511 0-.9993-.4486-.9993-.9997s.4482-.9993.9993-.9993c.551 0 .9993.4482.9993.9993.0001.5511-.4483.9997-.9993.9997m-11.046 0c-.5511 0-.9993-.4486-.9993-.9997s.4482-.9993.9993-.9993c.5511 0 .9993.4482.9993.9993 0 .5511-.4482.9997-.9993.9997m11.4045-6.02l1.9973-3.4592a.416.416 0 00-.1521-.5676.416.416 0 00-.5676.1521l-2.0223 3.503C15.5802 8.4111 13.8402 8 12 8s-3.5802.4111-5.1368 1.0504L4.841 5.5474a.416.416 0 00-.5676-.1521.416.416 0 00-.1521.5676l1.9973 3.4592C2.6889 11.1867 0 14.887 0 19.2h24c0-4.313-2.6889-8.0133-6.1185-9.8786" />
     </svg>
+  )
+}
+
+function BankLogo({ name, className = "h-5 w-5" }: { name: string; className?: string }) {
+  return (
+    <div className={cn("rounded-sm bg-secondary border border-border flex items-center justify-center font-mono text-[9px] font-bold text-muted-foreground", className)}>
+      {name.slice(0, 2).toUpperCase()}
+    </div>
   )
 }
 
@@ -60,10 +70,11 @@ function BankIconBadge({ domain, name }: { domain?: string; name: string }) {
   )
 }
 
-export function DeviceSyncManager({ user: propUser, isPro: propIsPro, onUpgradeClick, compact = false }: DeviceSyncManagerProps) {
-  const { user: sysUser, profile, isPro: sysIsPro } = useSystem()
+export function DeviceSyncManager({ user: propUser, isPro: propIsPro, isLoading: propIsLoading, onUpgradeClick, compact = false }: DeviceSyncManagerProps) {
+  const { user: sysUser, profile, isPro: sysIsPro, isLoading: sysIsLoading } = useSystem()
   const user = propUser || sysUser
   const isPro = propIsPro !== undefined ? propIsPro : sysIsPro
+  const isLoading = propIsLoading !== undefined ? propIsLoading : sysIsLoading
 
   // Super user check
   const isSuperUser = profile?.is_admin === true || 
@@ -350,7 +361,13 @@ export function DeviceSyncManager({ user: propUser, isPro: propIsPro, onUpgradeC
         </div>
       )}
 
-      {!isPro ? (
+      {isLoading ? (
+        <div className="p-6 bg-secondary/15 border border-border space-y-3">
+          <Skeleton className="h-5 w-48 rounded-none" />
+          <Skeleton className="h-4 w-full rounded-none" />
+          <Skeleton className="h-20 w-full rounded-none" />
+        </div>
+      ) : !isPro ? (
         <ProLockOverlay 
           title="AUTONOMOUS DEVICE PUSH SYNC (PRO)"
           description="Real-time bank notification listening, automatic expense logging, and background projection recalculation are exclusive to LEGER_OS PRO."

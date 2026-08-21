@@ -136,7 +136,7 @@ export function DashboardView({
   const router = useRouter()
   const [isPending, startTransition] = useTransition()
   const [navigationDirection, setNavigationDirection] = useState<'prev' | 'next' | null>(null)
-  const { setAuditPanelOpen, setActiveTransactionId, currencySymbol, language, decayWeight, isPro, setSettingsOpen, setSettingsActiveTab, setSubscriptionOnly, profile, user, refreshProfile } = useSystem()
+  const { setAuditPanelOpen, setActiveTransactionId, currencySymbol, language, decayWeight, isPro, isLoading, setSettingsOpen, setSettingsActiveTab, setSubscriptionOnly, profile, user, refreshProfile } = useSystem()
   
   const currentCycle = cycles.find(c => c.id === currentCycleId) || cycles[0]
 
@@ -849,7 +849,7 @@ export function DashboardView({
                     </div>
                   )}
 
-                  {!isPro && showGraphLock && expenses.length > 0 && (
+                  {!isLoading && !isPro && showGraphLock && expenses.length > 0 && (
                     <div className="absolute inset-0 z-30 bg-background/95 backdrop-blur-md flex flex-col items-center justify-center p-4 text-center">
                       <div className="max-w-md w-full space-y-3">
                         <ProLockOverlay 
@@ -1059,7 +1059,19 @@ export function DashboardView({
             </Tilt>
 
             {/* Smart Forecasts Card */}
-            {!isPro ? (
+            {isLoading ? (
+              <div className="p-6 md:p-8 space-y-4 bg-card/20 border border-border flex flex-col justify-between h-full min-h-[180px]">
+                <div className="flex justify-between items-center">
+                  <Skeleton className="h-4 w-28 rounded-none" />
+                  <Skeleton className="h-4 w-20 rounded-none" />
+                </div>
+                <div className="space-y-2">
+                  <Skeleton className="h-6 w-32 rounded-none" />
+                  <Skeleton className="h-4 w-full rounded-none" />
+                </div>
+                <Skeleton className="h-8 w-full rounded-none" />
+              </div>
+            ) : !isPro ? (
               <ProLockOverlay 
                 title="CYCLE FORECASTING (PRO)"
                 description="Unlock advanced end-of-cycle cash flow forecasting models and daily recency-decay velocity projections."

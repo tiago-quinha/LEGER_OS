@@ -71,7 +71,15 @@ export function SystemProvider({ children }: { children: React.ReactNode }) {
   const router = useRouter()
   const [user, setUser] = useState<User | null>(null)
   const [session, setSession] = useState<Session | null>(null)
-  const [profile, setProfile] = useState<any | null>(null)
+  const [profile, setProfile] = useState<any | null>(() => {
+    if (typeof window !== "undefined") {
+      try {
+        const cached = localStorage.getItem("leger_cached_profile")
+        if (cached) return JSON.parse(cached)
+      } catch {}
+    }
+    return null
+  })
   const [isLoading, setIsLoading] = useState(true)
 
   const [isPrivacyMode, setPrivacyMode] = useState(false)
@@ -126,7 +134,16 @@ export function SystemProvider({ children }: { children: React.ReactNode }) {
             .select('*')
             .eq('id', session.user.id)
             .single()
-          if (isMounted) setProfile(profile)
+          if (isMounted && profile) {
+            setProfile(profile)
+            try {
+              localStorage.setItem("leger_cached_profile", JSON.stringify(profile))
+            } catch {}
+          }
+        } else {
+          try {
+            localStorage.removeItem("leger_cached_profile")
+          } catch {}
         }
       } catch (err) {
         console.warn("[Auth Init Error]:", err)
@@ -148,9 +165,19 @@ export function SystemProvider({ children }: { children: React.ReactNode }) {
           .select('*')
           .eq('id', session.user.id)
           .single()
-        if (isMounted) setProfile(profile)
+        if (isMounted && profile) {
+          setProfile(profile)
+          try {
+            localStorage.setItem("leger_cached_profile", JSON.stringify(profile))
+          } catch {}
+        }
       } else {
-        if (isMounted) setProfile(null)
+        if (isMounted) {
+          setProfile(null)
+          try {
+            localStorage.removeItem("leger_cached_profile")
+          } catch {}
+        }
       }
       if (isMounted) setIsLoading(false)
     })
@@ -174,10 +201,18 @@ export function SystemProvider({ children }: { children: React.ReactNode }) {
       .select('*')
       .eq('id', user.id)
       .single()
-    if (updatedProfile) setProfile(updatedProfile)
+    if (updatedProfile) {
+      setProfile(updatedProfile)
+      try {
+        localStorage.setItem("leger_cached_profile", JSON.stringify(updatedProfile))
+      } catch {}
+    }
   }
 
   const signOut = async () => {
+    try {
+      localStorage.removeItem("leger_cached_profile")
+    } catch {}
     await supabase.auth.signOut()
     router.push('/login')
   }

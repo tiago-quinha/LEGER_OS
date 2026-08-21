@@ -89,6 +89,7 @@ export function SystemConfigView() {
     refreshProfile, 
     currencySymbol, 
     isPro, 
+    isLoading,
     upgradeToPro, 
     cancelPro, 
     signOut, 
@@ -1158,6 +1159,7 @@ export function SystemConfigView() {
               <DeviceSyncManager 
                 user={user} 
                 isPro={isPro} 
+                isLoading={isLoading}
                 onUpgradeClick={() => {
                   setActiveTab("pro")
                 }} 

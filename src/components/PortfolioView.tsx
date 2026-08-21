@@ -449,7 +449,7 @@ export function PortfolioView({
   injectedStartBalance = 0,
 }: PortfolioViewProps) {
   const router = useRouter();
-  const { formatCurrency, currencySymbol, isPro, isAdmin } = useSystem();
+  const { formatCurrency, currencySymbol, isPro, isAdmin, isLoading } = useSystem();
 
   const [isPending, startTransition] = useTransition();
   const [selectedCycleId, setSelectedCycleId] = useState<string>(currentCycleId || cycles[0]?.id || "");
@@ -1506,7 +1506,7 @@ export function PortfolioView({
 
       {/* 2. Portfolio Valuation Graph FIRST (Clean Dashboard Layout) */}
       <section ref={chartSectionRef} className="space-y-4 border border-border ledger-border p-4 md:p-6 bg-card/20 relative scroll-mt-6" data-no-swipe="true">
-        {!isPro && (
+        {!isLoading && !isPro && (
           <div className="absolute inset-0 z-30 bg-background/95 backdrop-blur-md flex flex-col items-center justify-center p-4 text-center">
             <ProLockOverlay
               title="PORTFOLIO TRAJECTORY & ANALYTICS"
