@@ -342,3 +342,51 @@ export async function notifyPortfolioATH(
     }
   })
 }
+
+/**
+ * 9. Daily Portfolio Market Wrap-Up (End-of-day summary of daily portfolio performance)
+ */
+export async function notifyDailyPortfolioWrap(
+  supabaseAdmin: SupabaseClient,
+  userId: string,
+  totalValuation: number,
+  dayChangeAmount: number,
+  dayChangePercent: number,
+  topMover?: { symbol: string; change24h: number } | null,
+  currencySymbol: string = "€"
+) {
+  // Only send wrap-up if user has invested capital (> €10)
+  if (totalValuation <= 10) return
+
+  const alertKey = `portfolio_wrap_${new Date().toISOString().slice(0, 10)}`
+  const allowed = await shouldSendAlert(supabaseAdmin, userId, alertKey)
+  if (!allowed) return
+
+  const isGain = dayChangeAmount >= 0
+  const sign = isGain ? "+" : "-"
+  const absChange = Math.abs(dayChangeAmount)
+  const absPct = Math.abs(dayChangePercent)
+
+  const title = `Portfolio Wrap · ${sign}${currencySymbol}${absChange.toFixed(2)} (${sign}${absPct.toFixed(1)}%)`
+  
+  let body = `Total valuation: ${currencySymbol}${totalValuation.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}.`
+  if (topMover && topMover.symbol) {
+    const moverSign = topMover.change24h >= 0 ? "+" : ""
+    body += ` Top mover: ${topMover.symbol.toUpperCase()} (${moverSign}${topMover.change24h.toFixed(1)}%).`
+  }
+  body += ` Tap to view portfolio.`
+
+  return await sendPushToUser(supabaseAdmin, userId, {
+    title,
+    body,
+    url: `/portfolio`,
+    data: {
+      type: "portfolio_daily_wrap",
+      totalValuation,
+      dayChangeAmount,
+      dayChangePercent,
+      topMover
+    }
+  })
+}
+

@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { getAdminClient } from "@/lib/supabase-admin";
 import { convertCurrency } from "@/lib/forex";
-import { notifyAssetSurge, notifyPortfolioATH } from "@/lib/server-notifications";
+import { notifyAssetSurge, notifyPortfolioATH, notifyDailyPortfolioWrap } from "@/lib/server-notifications";
 
 // CoinGecko symbol mapping
 const CRYPTO_COINGECKO_MAP: Record<string, string> = {
@@ -307,6 +307,40 @@ async function handleSync(req: Request) {
             notifyPortfolioATH(adminDb, userId, currVal, "€").catch(console.error);
           }
         }
+
+        // Fetch previous snapshot to compute daily day change for Daily Portfolio Wrap
+        const { data: previousSnaps } = await adminDb
+          .from("portfolio_snapshots")
+          .select("closing_valuation, snapshot_date")
+          .eq("user_id", userId)
+          .lt("snapshot_date", todayDate)
+          .order("snapshot_date", { ascending: false })
+          .limit(1);
+
+        const prevVal = previousSnaps && previousSnaps.length > 0 ? parseFloat(previousSnaps[0].closing_valuation || 0) : 0;
+        const dayChangeAmount = prevVal > 0 ? currVal - prevVal : 0;
+        const dayChangePercent = prevVal > 0 ? ((currVal - prevVal) / prevVal) * 100 : 0;
+
+        // Find top mover asset among user's holdings
+        let topMover: { symbol: string; change24h: number } | null = null;
+        (refreshedAssets || []).forEach((a: any) => {
+          const meta = a.metadata || {};
+          const ch = typeof meta.change24h === "number" ? meta.change24h : 0;
+          if (!topMover || Math.abs(ch) > Math.abs(topMover.change24h)) {
+            topMover = { symbol: a.symbol || a.asset_name || "", change24h: ch };
+          }
+        });
+
+        // Dispatch Daily Portfolio Wrap-Up notification (cooldown handled inside)
+        notifyDailyPortfolioWrap(
+          adminDb, 
+          userId, 
+          currVal, 
+          dayChangeAmount, 
+          dayChangePercent, 
+          topMover, 
+          "€"
+        ).catch(console.error);
       } catch (snapErr) {
         console.error(`[Cron Market Sync] Snapshot error for user ${userId}:`, snapErr);
       }
