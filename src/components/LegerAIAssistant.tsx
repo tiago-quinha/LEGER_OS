@@ -778,6 +778,7 @@ export function LegerAIAssistant() {
   const [telemetry, setTelemetry] = useState<any>(null)
 
   const chatEndRef = useRef<HTMLDivElement>(null)
+  const chatContainerRef = useRef<HTMLDivElement>(null)
   const dragRef = useRef<HTMLDivElement>(null)
   const recognitionRef = useRef<any>(null)
   const handleQueryRef = useRef<((queryText: string, targetSessionId?: string) => Promise<void>) | null>(null)
@@ -1180,10 +1181,32 @@ export function LegerAIAssistant() {
     })
   }
 
-  // Scroll to bottom on new messages
+  // Reliable Scroll to bottom helper
+  const scrollToBottom = (behavior: ScrollBehavior = "smooth") => {
+    if (chatContainerRef.current) {
+      chatContainerRef.current.scrollTop = chatContainerRef.current.scrollHeight
+    }
+    chatEndRef.current?.scrollIntoView({ behavior, block: "end" })
+  }
+
+  // Scroll to bottom on new messages, opening the drawer, or switching sessions
   useEffect(() => {
-    chatEndRef.current?.scrollIntoView({ behavior: "smooth" })
-  }, [messages, isOpen, isHistoryViewOpen])
+    if (!isOpen || isHistoryViewOpen) return
+
+    // Immediate scroll
+    scrollToBottom("instant")
+
+    // Staggered frames to handle drawer spring animation and layout shifts
+    const t1 = setTimeout(() => scrollToBottom("instant"), 60)
+    const t2 = setTimeout(() => scrollToBottom("instant"), 180)
+    const t3 = setTimeout(() => scrollToBottom("smooth"), 320)
+
+    return () => {
+      clearTimeout(t1)
+      clearTimeout(t2)
+      clearTimeout(t3)
+    }
+  }, [messages, isOpen, isHistoryViewOpen, activeSessionId])
 
   // Static Fallback Page Context recommendations
   const pageContext = useMemo(() => {
@@ -1786,7 +1809,7 @@ export function LegerAIAssistant() {
                   />
                 </div>
               ) : (
-                <div className="flex-1 overflow-y-auto p-4 space-y-4 z-10 scrollbar-thin">
+                <div ref={chatContainerRef} className="flex-1 overflow-y-auto p-4 space-y-4 z-10 scrollbar-thin">
                   {messages.length === 0 ? (
                     <motion.div 
                       initial={{ opacity: 0, y: 10, scale: 0.98 }}
