@@ -31,6 +31,7 @@ public class LegerBankNotificationListenerService extends NotificationListenerSe
         "com.santander.app",               // Santander Portugal / Spain
         "com.santander.app.es",            // Santander Spain
         "pt.santandertotta.mobileparticulares", // Santander Totta PT
+        "pt.santander.oneappparticulares", // Santander OneApp Particulares PT
         "pt.santander.empresas",           // Santander Empresas PT
         "com.santander.particulares",      // Santander Particulares
         "com.revolut.revolut",             // Revolut
