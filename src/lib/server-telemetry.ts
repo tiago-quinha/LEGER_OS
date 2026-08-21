@@ -235,7 +235,7 @@ export async function calculateServerTelemetry(supabase: SupabaseClient, userId:
     cycleEndDate: currentCycle.endDate
   }
 
-  // Cache lightweight telemetry for short TTL to reduce repeated DB work
+    // Cache lightweight telemetry for short TTL to reduce repeated DB work
   try {
     cache.set(cacheKey, result, 30 * 1000); // 30s
   } catch (e) {
@@ -244,4 +244,82 @@ export async function calculateServerTelemetry(supabase: SupabaseClient, userId:
 
   return result
 }
+
+/**
+ * Persists a condensed telemetry snapshot to profiles.cached_telemetry
+ * to enable sub-millisecond lookups during bulk notification sweeps.
+ */
+export async function updateAndCacheUserTelemetry(
+  supabase: SupabaseClient,
+  userId: string,
+  clientDateStr?: string
+) {
+  try {
+    const telemetry = await calculateServerTelemetry(supabase, userId, clientDateStr)
+    if (!telemetry) return null
+
+    const cachedSnapshot = {
+      velocity: telemetry.velocity || 1.0,
+      daysElapsed: telemetry.daysElapsed || 1,
+      totalDaysInCycle: telemetry.daysElapsed ? Math.max(telemetry.daysElapsed, 30) : 30,
+      dailyVariableBurn: telemetry.dailyVariableBurn || 35.0,
+      currentDailyVariableBurn: telemetry.currentDailyVariableBurn || telemetry.dailyVariableBurn || 35.0,
+      projectedSurplus: telemetry.projectedSurplus !== undefined ? telemetry.projectedSurplus : telemetry.netDelta,
+      netDelta: telemetry.netDelta || 0,
+      spendingLimit: telemetry.spendingLimit || 1500,
+      totalIn: telemetry.totalIn || 0,
+      totalOut: telemetry.totalOut || 0,
+      cycleStartDate: telemetry.cycleStartDate,
+      cycleEndDate: telemetry.cycleEndDate,
+      lastUpdated: new Date().toISOString()
+    }
+
+    await supabase
+      .from("profiles")
+      .update({
+        cached_telemetry: cachedSnapshot,
+        updated_at: new Date().toISOString()
+      })
+      .eq("id", userId)
+
+    return cachedSnapshot
+  } catch (err) {
+    console.error(`[Telemetry Cache] Error caching telemetry for ${userId}:`, err)
+    return null
+  }
+}
+
+/**
+ * Retrieves precomputed telemetry from profiles.cached_telemetry.
+ * Falls back to on-the-fly calculation if missing or stale (>24h).
+ */
+export async function getUserCachedTelemetry(
+  supabase: SupabaseClient,
+  userId: string
+) {
+  try {
+    const { data: profile } = await supabase
+      .from("profiles")
+      .select("cached_telemetry")
+      .eq("id", userId)
+      .single()
+
+    const cached = profile?.cached_telemetry as any
+
+    if (cached && cached.lastUpdated) {
+      const ageMs = Date.now() - new Date(cached.lastUpdated).getTime()
+      // If snapshot is less than 20 hours old, return instantly (0 heavy queries)
+      if (ageMs < 20 * 60 * 60 * 1000) {
+        return cached
+      }
+    }
+
+    // Refresh and persist if missing or stale
+    return await updateAndCacheUserTelemetry(supabase, userId)
+  } catch (err) {
+    console.error(`[Telemetry Lookup] Error reading cached telemetry for ${userId}:`, err)
+    return await calculateServerTelemetry(supabase, userId)
+  }
+}
+
 

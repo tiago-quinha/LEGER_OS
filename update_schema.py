@@ -67,15 +67,40 @@ ALTER TABLE profiles ADD COLUMN IF NOT EXISTS language TEXT DEFAULT 'en-US';
 ALTER TABLE profiles ADD COLUMN IF NOT EXISTS subscription_tier TEXT DEFAULT 'FREE';
 ALTER TABLE profiles ADD COLUMN IF NOT EXISTS ai_provider TEXT DEFAULT 'gemini';
 ALTER TABLE profiles ADD COLUMN IF NOT EXISTS custom_api_key TEXT DEFAULT '';
-ALTER TABLE profiles ADD COLUMN IF NOT EXISTS decay_weight NUMERIC(8, 6) DEFAULT 0.046200;
-ALTER TABLE profiles ADD COLUMN IF NOT EXISTS ai_quota_usage INTEGER DEFAULT 0;
-ALTER TABLE profiles ADD COLUMN IF NOT EXISTS ai_quota_limit INTEGER DEFAULT 50;
-ALTER TABLE profiles ADD COLUMN IF NOT EXISTS projection_overrides JSONB DEFAULT '[]'::jsonb;
-ALTER TABLE profiles ADD COLUMN IF NOT EXISTS ai_yap_level TEXT DEFAULT 'standard';
-ALTER TABLE profiles ADD COLUMN IF NOT EXISTS paycheck_frequency TEXT DEFAULT 'monthly';
-ALTER TABLE profiles ADD COLUMN IF NOT EXISTS ai_journal JSONB DEFAULT '[]'::jsonb;
-ALTER TABLE profiles ADD COLUMN IF NOT EXISTS stripe_customer_id TEXT;
-ALTER TABLE profiles ADD COLUMN IF NOT EXISTS stripe_subscription_id TEXT;
+ALTER TABLE profiles ADD COLUMN IF NOT EXISTS timezone TEXT DEFAULT 'UTC';
+ALTER TABLE profiles ADD COLUMN IF NOT EXISTS cached_telemetry JSONB DEFAULT '{}'::jsonb;
+ALTER TABLE profiles ADD COLUMN IF NOT EXISTS notification_preferences JSONB DEFAULT '{"morning_outlook": true, "subscription_radar": true, "budget_alerts": true, "velocity_spikes": true, "payday_alerts": true, "cycle_closing": true, "portfolio_alerts": true, "preferred_hour": 8, "preferred_minute": 30}'::jsonb;
+ALTER TABLE profiles ADD COLUMN IF NOT EXISTS push_subscriptions JSONB DEFAULT '[]'::jsonb;
+
+-- Create push_subscriptions table if not exists for scalable indexed lookups
+CREATE TABLE IF NOT EXISTS public.push_subscriptions (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    user_id UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
+    endpoint TEXT NOT NULL UNIQUE,
+    p256dh TEXT,
+    auth TEXT,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
+
+CREATE INDEX IF NOT EXISTS idx_push_subscriptions_user_id ON public.push_subscriptions(user_id);
+CREATE INDEX IF NOT EXISTS idx_profiles_timezone ON public.profiles(timezone);
+
+-- Enable RLS on push_subscriptions
+ALTER TABLE public.push_subscriptions ENABLE ROW LEVEL SECURITY;
+
+DO $$
+BEGIN
+    IF NOT EXISTS (SELECT 1 FROM pg_policies WHERE tablename = 'push_subscriptions' AND policyname = 'Users can view their own push subscriptions') THEN
+        CREATE POLICY "Users can view their own push subscriptions" ON public.push_subscriptions FOR SELECT USING (auth.uid() = user_id);
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM pg_policies WHERE tablename = 'push_subscriptions' AND policyname = 'Users can insert their own push subscriptions') THEN
+        CREATE POLICY "Users can insert their own push subscriptions" ON public.push_subscriptions FOR INSERT WITH CHECK (auth.uid() = user_id);
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM pg_policies WHERE tablename = 'push_subscriptions' AND policyname = 'Users can delete their own push subscriptions') THEN
+        CREATE POLICY "Users can delete their own push subscriptions" ON public.push_subscriptions FOR DELETE USING (auth.uid() = user_id);
+    END IF;
+END $$;
 
 -- Enable RLS on profiles
 ALTER TABLE profiles ENABLE ROW LEVEL SECURITY;

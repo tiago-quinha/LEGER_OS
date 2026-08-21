@@ -6,6 +6,7 @@ import {
   notifyPaydayCaptured, 
   notifyCategoryBudgetThreshold 
 } from "@/lib/server-notifications"
+import { updateAndCacheUserTelemetry } from "@/lib/server-telemetry"
 
 const supabaseAdmin = getAdminClient()
 
@@ -306,6 +307,9 @@ export async function POST(request: Request) {
       } else if (!isInflow && resolvedCategoryId) {
         notifyCategoryBudgetThreshold(supabaseAdmin, userId, resolvedCategoryId, currencySymbol).catch(console.error)
       }
+
+      // Background asynchronous telemetry refresh (non-blocking)
+      updateAndCacheUserTelemetry(supabaseAdmin, userId).catch(console.error)
     } catch (pushErr) {
       console.error("[Device Push] Web push dispatch non-fatal error:", pushErr)
     }

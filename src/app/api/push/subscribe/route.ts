@@ -12,7 +12,7 @@ export async function POST(request: Request) {
     }
 
     const body = await request.json()
-    const { subscription } = body
+    const { subscription, timezone } = body
 
     if (!subscription || !subscription.endpoint || !subscription.keys) {
       return NextResponse.json({ error: "Invalid subscription payload" }, { status: 400 })
@@ -37,7 +37,7 @@ export async function POST(request: Request) {
     // 2. Also keep a copy in profiles.push_subscriptions JSONB array as fallback
     const { data: profile } = await supabaseAdmin
       .from("profiles")
-      .select("push_subscriptions")
+      .select("push_subscriptions, timezone")
       .eq("id", user.id)
       .single()
 
@@ -49,9 +49,14 @@ export async function POST(request: Request) {
       updated_at: new Date().toISOString()
     })
 
+    const updatePayload: any = { push_subscriptions: updatedSubs }
+    if (timezone) {
+      updatePayload.timezone = timezone
+    }
+
     await supabaseAdmin
       .from("profiles")
-      .update({ push_subscriptions: updatedSubs })
+      .update(updatePayload)
       .eq("id", user.id)
 
     return NextResponse.json({ success: true, message: "Push notification subscription saved" })

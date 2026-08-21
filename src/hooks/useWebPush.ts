@@ -130,11 +130,15 @@ export function useWebPush() {
         applicationServerKey: convertedKey
       })
 
-      // Send subscription to server
+      // Send subscription to server with detected browser timezone
+      const userTimezone = typeof Intl !== "undefined" ? Intl.DateTimeFormat().resolvedOptions().timeZone : "UTC"
       const res = await fetch("/api/push/subscribe", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ subscription: newSub.toJSON() })
+        body: JSON.stringify({ 
+          subscription: newSub.toJSON(),
+          timezone: userTimezone
+        })
       })
 
       if (!res.ok) {

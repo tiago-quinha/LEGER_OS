@@ -1,6 +1,6 @@
 import { SupabaseClient } from "@supabase/supabase-js"
 import { sendPushToUser, PushNotificationPayload } from "@/lib/web-push"
-import { calculateServerTelemetry } from "@/lib/server-telemetry"
+import { calculateServerTelemetry, getUserCachedTelemetry } from "@/lib/server-telemetry"
 import { getCycles } from "@/lib/cycles"
 
 // Deduplication cache key helper to prevent duplicate push spam within 18 hours
@@ -41,6 +41,51 @@ async function shouldSendAlert(supabaseAdmin: SupabaseClient, userId: string, al
 }
 
 /**
+ * 0. Instant Transaction Capture Notification (Fast-Path Resolver)
+ */
+export async function notifyTransactionCaptured(
+  supabaseAdmin: SupabaseClient,
+  userId: string,
+  txId: string | number,
+  amount: number,
+  merchantName?: string,
+  bankApp?: string,
+  currencySymbol: string = "€"
+) {
+  const isGenericMerchant = 
+    !merchantName || 
+    merchantName.toLowerCase() === "unknown merchant" || 
+    merchantName.toLowerCase().startsWith("compra") || 
+    merchantName.toLowerCase().startsWith("movimento") ||
+    merchantName.toLowerCase().startsWith("pagamento")
+
+  const amountStr = `${amount < 0 ? "-" : "+"}${currencySymbol}${Math.abs(amount).toFixed(2)}`
+  const bankTitle = bankApp ? bankApp.charAt(0).toUpperCase() + bankApp.slice(1) : "Bank Alert"
+  const isInflow = amount > 0
+
+  const title = isGenericMerchant ? `${bankTitle} · ${amountStr}` : `${merchantName} · ${amountStr}`
+  const body = isInflow 
+    ? "Inflow received · Tap to identify sender & categorize."
+    : isGenericMerchant 
+    ? "Tap to identify store & categorize."
+    : "Transaction logged in LEGER_OS · Tap to view."
+
+  return await sendPushToUser(supabaseAdmin, userId, {
+    title,
+    body,
+    url: `/?resolveTxId=${txId}`,
+    data: {
+      txId,
+      amount,
+      merchant: merchantName,
+      bankApp,
+      needsName: isGenericMerchant,
+      type: isInflow ? "inflow" : "outflow"
+    }
+  })
+}
+
+/**
  * 1. Payday & Cycle Reset Notification
  */
 export async function notifyPaydayCaptured(
@@ -53,7 +98,7 @@ export async function notifyPaydayCaptured(
   const allowed = await shouldSendAlert(supabaseAdmin, userId, alertKey)
   if (!allowed) return
 
-  const telemetry = await calculateServerTelemetry(supabaseAdmin, userId)
+  const telemetry = await getUserCachedTelemetry(supabaseAdmin, userId)
   const safeDailyBurn = telemetry?.currentDailyVariableBurn || telemetry?.dailyVariableBurn || 45.0
 
   return await sendPushToUser(supabaseAdmin, userId, {
@@ -188,7 +233,7 @@ export async function notifyDailyMorningOutlook(
   const allowed = await shouldSendAlert(supabaseAdmin, userId, alertKey)
   if (!allowed) return
 
-  const telemetry = await calculateServerTelemetry(supabaseAdmin, userId)
+  const telemetry = await getUserCachedTelemetry(supabaseAdmin, userId)
   if (!telemetry) return
 
   const safeDailyBurn = parseFloat(telemetry.dailyVariableBurn || telemetry.currentDailyVariableBurn || 35.0)

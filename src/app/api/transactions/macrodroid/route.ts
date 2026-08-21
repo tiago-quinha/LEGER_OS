@@ -1,6 +1,8 @@
 import { getAdminClient } from "@/lib/supabase-admin";
 import { NextResponse } from "next/server"
 import { generateAIContent } from "@/lib/ai-bridge"
+import { notifyTransactionCaptured, notifyPaydayCaptured } from "@/lib/server-notifications"
+import { updateAndCacheUserTelemetry } from "@/lib/server-telemetry"
 
 const supabaseAdmin = getAdminClient();
 
@@ -13,14 +15,17 @@ export async function POST(request: Request) {
     const { amount, merchant, source, raw_text, userId: payloadUserId } = payload
     const userId = queryUserId || payloadUserId
 
+    let userProfile: any = null
     if (userId) {
-      const { data: userProfile } = await supabaseAdmin
+      const { data: prof } = await supabaseAdmin
         .from("profiles")
-        .select("subscription_tier")
+        .select("subscription_tier, currency")
         .eq("id", userId)
         .single()
 
-      if (userProfile?.subscription_tier !== "PRO") {
+      userProfile = prof
+
+      if (prof?.subscription_tier !== "PRO") {
         return NextResponse.json(
           { error: "Automated push notification ingestion is exclusive to LEGER_OS PRO nodes. Please upgrade to PRO to activate real-time phone posting." },
           { status: 403 }
@@ -109,8 +114,21 @@ export async function POST(request: Request) {
         user_id: userId || undefined
       })
       .select()
+      .single()
 
     if (error) throw error
+
+    // Secondary notification triggers & background telemetry caching
+    if (userId && data) {
+      const currencySymbol = userProfile?.currency === "USD" ? "$" : userProfile?.currency === "GBP" ? "£" : "€"
+      notifyTransactionCaptured(supabaseAdmin, userId, data.id, finalAmount, finalMerchant, source || "MacroDroid", currencySymbol).catch(console.error)
+
+      if (finalAmount > 0 && (Math.abs(finalAmount) >= 500 || finalMerchant.toLowerCase().includes("salary") || finalMerchant.toLowerCase().includes("ordenado"))) {
+        notifyPaydayCaptured(supabaseAdmin, userId, finalAmount, currencySymbol).catch(console.error)
+      }
+
+      updateAndCacheUserTelemetry(supabaseAdmin, userId).catch(console.error)
+    }
 
     return NextResponse.json({ success: true, data })
   } catch (error: any) {

@@ -139,6 +139,21 @@ export function SystemProvider({ children }: { children: React.ReactNode }) {
             try {
               localStorage.setItem("leger_cached_profile", JSON.stringify(profile))
             } catch {}
+
+            // Silent timezone auto-sync for precision morning notifications
+            try {
+              const userTimezone = Intl.DateTimeFormat().resolvedOptions().timeZone
+              if (userTimezone && profile.timezone !== userTimezone) {
+                (async () => {
+                  try {
+                    await supabase
+                      .from('profiles')
+                      .update({ timezone: userTimezone })
+                      .eq('id', session.user.id)
+                  } catch {}
+                })()
+              }
+            } catch {}
           }
         } else {
           try {
@@ -169,6 +184,21 @@ export function SystemProvider({ children }: { children: React.ReactNode }) {
           setProfile(profile)
           try {
             localStorage.setItem("leger_cached_profile", JSON.stringify(profile))
+          } catch {}
+
+          // Silent timezone auto-sync for precision morning notifications
+          try {
+            const userTimezone = Intl.DateTimeFormat().resolvedOptions().timeZone
+            if (userTimezone && profile.timezone !== userTimezone) {
+              (async () => {
+                try {
+                  await supabase
+                    .from('profiles')
+                    .update({ timezone: userTimezone })
+                    .eq('id', session.user.id)
+                } catch {}
+              })()
+            }
           } catch {}
         }
       } else {

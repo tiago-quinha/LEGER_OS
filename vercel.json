@@ -3,6 +3,10 @@
     {
       "path": "/api/cron/sync-market-data",
       "schedule": "0 6 * * *"
+    },
+    {
+      "path": "/api/notifications/daily-outlook",
+      "schedule": "30 * * * *"
     }
   ]
 }
