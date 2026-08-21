@@ -351,20 +351,61 @@ async function handleSync(req: Request) {
 
     await Promise.all(snapshotPromises);
 
+    let wrapTitle = "Portfolio Wrap";
     let wrapSummary = "Daily market session closed";
-    if (userId && userGroups.has(userId)) {
-      const assets = userGroups.get(userId) || [];
-      let userVal = 0;
-      assets.forEach((a: any) => {
-        userVal += (a.quantity || 0) * (a.current_price || a.buy_price || 0);
+
+    if (userId) {
+      const { data: userAssets } = await adminDb
+        .from("portfolio_assets")
+        .select("id, symbol, asset_name, quantity, current_price, buy_price, metadata")
+        .eq("user_id", userId);
+
+      let currVal = 0;
+      let topMover: { symbol: string; change24h: number } | null = null;
+
+      (userAssets || []).forEach((a: any) => {
+        const qty = a.quantity || 0;
+        const price = a.current_price || a.buy_price || 0;
+        currVal += qty * price;
+
+        const meta = a.metadata || {};
+        const ch = typeof meta.change24h === "number" ? meta.change24h : 0;
+        if (!topMover || Math.abs(ch) > Math.abs(topMover.change24h)) {
+          topMover = { symbol: a.symbol || a.asset_name || "", change24h: ch };
+        }
       });
-      wrapSummary = `Total valuation: €${userVal.toFixed(2)}. Daily market wrap ready.`;
+
+      const todayDate = new Date().toISOString().slice(0, 10);
+      const { data: previousSnaps } = await adminDb
+        .from("portfolio_snapshots")
+        .select("closing_valuation, snapshot_date")
+        .eq("user_id", userId)
+        .lt("snapshot_date", todayDate)
+        .order("snapshot_date", { ascending: false })
+        .limit(1);
+
+      const prevVal = previousSnaps && previousSnaps.length > 0 ? parseFloat(previousSnaps[0].closing_valuation || 0) : 0;
+      const dayChangeAmount = prevVal > 0 ? currVal - prevVal : 0;
+      const dayChangePercent = prevVal > 0 ? ((currVal - prevVal) / prevVal) * 100 : 0;
+      const isGain = dayChangeAmount >= 0;
+      const sign = isGain ? "+" : "-";
+      const absChange = Math.abs(dayChangeAmount);
+      const absPct = Math.abs(dayChangePercent);
+
+      wrapTitle = `Portfolio Wrap · ${sign}€${absChange.toFixed(2)} (${sign}${absPct.toFixed(1)}%)`;
+      wrapSummary = `Total valuation: €${currVal.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}.`;
+      if (topMover && topMover.symbol) {
+        const moverSign = topMover.change24h >= 0 ? "+" : "";
+        wrapSummary += ` Top mover: ${topMover.symbol.toUpperCase()} (${moverSign}${topMover.change24h.toFixed(1)}%).`;
+      }
+      wrapSummary += ` Tap to view portfolio.`;
     }
 
     const durationMs = Date.now() - startTime;
     return NextResponse.json({
       success: true,
       message: `Server-side sync completed in ${durationMs}ms`,
+      wrapTitle,
       wrapSummary,
       updatedAssets: updatedCount,
       distinctSymbols: distinctStocks.length + distinctCryptos.length,
