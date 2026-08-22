@@ -84,21 +84,6 @@ export async function POST(request: Request) {
       }
     }
 
-    // Graceful fallback for Native Android Listener / MacroDroid:
-    // If request comes from native_android_listener or MacroDroid, resolve the primary super_user/admin PRO profile
-    if (!userId) {
-      const { data: fallbackProfiles } = await supabaseAdmin
-        .from("profiles")
-        .select("id, subscription_tier, currency, custom_api_key, ai_provider")
-        .or("is_admin.eq.true,role.eq.super_user,subscription_tier.eq.PRO")
-        .order("updated_at", { ascending: false })
-        .limit(1)
-
-      if (fallbackProfiles && fallbackProfiles.length >= 1) {
-        userId = fallbackProfiles[0].id
-      }
-    }
-
     if (!userId) {
       return NextResponse.json(
         { error: "Unauthorized: Missing userId query parameter or authentication token" },

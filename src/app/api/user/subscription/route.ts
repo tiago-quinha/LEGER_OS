@@ -17,6 +17,14 @@ export async function POST(request: Request) {
     const supabaseAdmin = getAdminClient();
 
     if (action === "upgrade") {
+      // In production, direct upgrade without Stripe verification is forbidden
+      if (process.env.NODE_ENV === "production" && process.env.STRIPE_SECRET_KEY) {
+        return NextResponse.json(
+          { error: "Direct upgrades are disabled. Please subscribe via the secure Stripe payment checkout." },
+          { status: 403 }
+        )
+      }
+
       const { error } = await supabaseAdmin
         .from("profiles")
         .update({
@@ -30,6 +38,14 @@ export async function POST(request: Request) {
 
       return NextResponse.json({ success: true, message: "Welcome to LEGER_OS PRO!" })
     } else if (action === "claim_discount") {
+      // In production, discount claims must process through Stripe payment intent
+      if (process.env.NODE_ENV === "production" && process.env.STRIPE_SECRET_KEY) {
+        return NextResponse.json(
+          { error: "Promotional upgrades must be completed through the secure Stripe checkout session." },
+          { status: 403 }
+        )
+      }
+
       // One-time gate: check if user has already claimed a retention discount
       const { data: profile } = await supabaseAdmin
         .from("profiles")

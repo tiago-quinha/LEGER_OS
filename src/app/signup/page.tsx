@@ -179,6 +179,18 @@ export default function SignupPage() {
                 </Button>
               </form>
 
+              {/* Age Gate & Legal Agreement Notice */}
+              <p className="text-[10px] font-mono text-muted-foreground/80 text-center leading-relaxed">
+                By registering, you confirm you are at least 18 years old and agree to the{" "}
+                <Link href="/terms" className="text-foreground underline hover:text-foreground/80">
+                  Terms of Service
+                </Link>{" "}
+                and{" "}
+                <Link href="/privacy" className="text-foreground underline hover:text-foreground/80">
+                  Privacy Policy
+                </Link>.
+              </p>
+
               {/* Clean Line Divider */}
               <div className="h-px bg-border/50" />
 
@@ -206,12 +218,20 @@ export default function SignupPage() {
           </Card>
 
           {/* Real Privacy & Security Guarantees */}
-          <div className="flex flex-wrap items-center justify-center gap-2 text-[9px] sm:text-[10px] font-mono text-muted-foreground/70 uppercase tracking-wider select-none py-1 text-center">
-            <span className="flex items-center gap-1"><Lock className="h-3 w-3 text-muted-foreground/60 shrink-0" /> 256-Bit SSL</span>
-            <span className="text-border">·</span>
-            <span className="flex items-center gap-1"><ShieldCheck className="h-3 w-3 text-muted-foreground/60 shrink-0" /> Zero Bank Passwords</span>
-            <span className="text-border">·</span>
-            <span className="flex items-center gap-1"><EyeOff className="h-3 w-3 text-muted-foreground/60 shrink-0" /> Private Data</span>
+          <div className="space-y-2">
+            <div className="flex flex-wrap items-center justify-center gap-2 text-[9px] sm:text-[10px] font-mono text-muted-foreground/70 uppercase tracking-wider select-none py-1 text-center">
+              <span className="flex items-center gap-1"><Lock className="h-3 w-3 text-muted-foreground/60 shrink-0" /> 256-Bit SSL</span>
+              <span className="text-border">·</span>
+              <span className="flex items-center gap-1"><ShieldCheck className="h-3 w-3 text-muted-foreground/60 shrink-0" /> Zero Bank Passwords</span>
+              <span className="text-border">·</span>
+              <span className="flex items-center gap-1"><EyeOff className="h-3 w-3 text-muted-foreground/60 shrink-0" /> Private Data</span>
+            </div>
+
+            <div className="flex items-center justify-center gap-3 text-[9px] font-mono text-muted-foreground/60 uppercase">
+              <Link href="/terms" className="hover:text-foreground underline">Terms</Link>
+              <span>·</span>
+              <Link href="/privacy" className="hover:text-foreground underline">Privacy</Link>
+            </div>
           </div>
         </div>
       </div>

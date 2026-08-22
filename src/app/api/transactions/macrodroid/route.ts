@@ -16,34 +16,44 @@ export async function POST(request: Request) {
     let userId = queryUserId || payloadUserId
 
     if (!userId) {
-      const { data: fallbackProfiles } = await supabaseAdmin
-        .from("profiles")
-        .select("id, subscription_tier, currency")
-        .or("is_admin.eq.true,role.eq.super_user,subscription_tier.eq.PRO")
-        .order("updated_at", { ascending: false })
-        .limit(1)
-
-      if (fallbackProfiles && fallbackProfiles.length >= 1) {
-        userId = fallbackProfiles[0].id
+      const authHeader = request.headers.get("authorization")
+      if (authHeader && authHeader.startsWith("Bearer ")) {
+        const token = authHeader.replace("Bearer ", "").trim()
+        const { data: { user: authUser } } = await supabaseAdmin.auth.getUser(token)
+        if (authUser) {
+          userId = authUser.id
+        }
       }
     }
 
+    if (!userId) {
+      return NextResponse.json(
+        { error: "Unauthorized: Missing userId parameter or bearer authentication token" },
+        { status: 401 }
+      )
+    }
+
     let userProfile: any = null
-    if (userId) {
-      const { data: prof } = await supabaseAdmin
-        .from("profiles")
-        .select("subscription_tier, currency")
-        .eq("id", userId)
-        .single()
+    const { data: prof, error: profErr } = await supabaseAdmin
+      .from("profiles")
+      .select("id, subscription_tier, currency")
+      .eq("id", userId)
+      .single()
 
-      userProfile = prof
+    if (profErr || !prof) {
+      return NextResponse.json(
+        { error: "User profile not found or unauthorized" },
+        { status: 404 }
+      )
+    }
 
-      if (prof?.subscription_tier !== "PRO") {
-        return NextResponse.json(
-          { error: "Automated push notification ingestion is exclusive to LEGER_OS PRO nodes. Please upgrade to PRO to activate real-time phone posting." },
-          { status: 403 }
-        )
-      }
+    userProfile = prof
+
+    if (prof.subscription_tier !== "PRO" && prof.subscription_tier !== "pro") {
+      return NextResponse.json(
+        { error: "Automated push notification ingestion is exclusive to LEGER_OS PRO nodes. Please upgrade to PRO to activate real-time phone posting." },
+        { status: 403 }
+      )
     }
 
     let finalMerchant = (merchant || "").trim()

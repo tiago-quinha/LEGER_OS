@@ -131,7 +131,27 @@ export default function LoginPage() {
                 <div className="space-y-1.5">
                   <div className="flex justify-between items-center">
                      <Label htmlFor="password" title="password" className="text-[10px] font-mono uppercase text-muted-foreground font-bold">Password</Label>
-                     <Link href="#" className="text-[9px] font-mono uppercase text-muted-foreground hover:text-foreground underline decoration-dashed">Forgot Password?</Link>
+                     <button 
+                       type="button"
+                       onClick={async () => {
+                         if (!email) {
+                           toast.info("Please enter your email address first, then click Forgot Password.")
+                           return
+                         }
+                         try {
+                           const { error } = await supabase.auth.resetPasswordForEmail(email, {
+                             redirectTo: `${window.location.origin}/auth/confirm?type=recovery`
+                           })
+                           if (error) throw error
+                           toast.success("Password reset instructions sent to your email.")
+                         } catch (err: any) {
+                           toast.error(err.message || "Failed to dispatch password reset.")
+                         }
+                       }}
+                       className="text-[9px] font-mono uppercase text-muted-foreground hover:text-foreground underline decoration-dashed cursor-pointer"
+                     >
+                       Forgot Password?
+                     </button>
                   </div>
                   <div className="relative group">
                     <Lock className="absolute left-3 top-3.5 h-4 w-4 text-muted-foreground group-focus-within:text-foreground transition-colors" />
@@ -187,12 +207,20 @@ export default function LoginPage() {
           </Card>
 
           {/* Real Privacy & Security Guarantees */}
-          <div className="flex flex-wrap items-center justify-center gap-2 text-[9px] sm:text-[10px] font-mono text-muted-foreground/70 uppercase tracking-wider select-none py-1 text-center">
-            <span className="flex items-center gap-1"><Lock className="h-3 w-3 text-muted-foreground/60 shrink-0" /> 256-Bit SSL</span>
-            <span className="text-border">·</span>
-            <span className="flex items-center gap-1"><ShieldCheck className="h-3 w-3 text-muted-foreground/60 shrink-0" /> Zero Bank Passwords</span>
-            <span className="text-border">·</span>
-            <span className="flex items-center gap-1"><EyeOff className="h-3 w-3 text-muted-foreground/60 shrink-0" /> Private Data</span>
+          <div className="space-y-2">
+            <div className="flex flex-wrap items-center justify-center gap-2 text-[9px] sm:text-[10px] font-mono text-muted-foreground/70 uppercase tracking-wider select-none py-1 text-center">
+              <span className="flex items-center gap-1"><Lock className="h-3 w-3 text-muted-foreground/60 shrink-0" /> 256-Bit SSL</span>
+              <span className="text-border">·</span>
+              <span className="flex items-center gap-1"><ShieldCheck className="h-3 w-3 text-muted-foreground/60 shrink-0" /> Zero Bank Passwords</span>
+              <span className="text-border">·</span>
+              <span className="flex items-center gap-1"><EyeOff className="h-3 w-3 text-muted-foreground/60 shrink-0" /> Private Data</span>
+            </div>
+
+            <div className="flex items-center justify-center gap-3 text-[9px] font-mono text-muted-foreground/60 uppercase">
+              <Link href="/terms" className="hover:text-foreground underline">Terms</Link>
+              <span>·</span>
+              <Link href="/privacy" className="hover:text-foreground underline">Privacy</Link>
+            </div>
           </div>
         </div>
       </div>

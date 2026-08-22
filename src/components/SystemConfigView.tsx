@@ -128,7 +128,7 @@ export function SystemConfigView() {
   const [categories, setCategories] = useState<any[]>([])
 
   const router = useRouter()
-  const isSuperUser = profile?.is_admin === true || profile?.role === "admin" || profile?.role === "super_user" || profile?.username?.toLowerCase()?.includes("quinha") || profile?.username?.toLowerCase()?.includes("admin") || user?.email?.toLowerCase()?.includes("quinha") || user?.email?.toLowerCase()?.includes("admin") || process.env.NODE_ENV === "development"
+  const isSuperUser = profile?.is_admin === true || profile?.role === "admin" || profile?.role === "super_admin" || profile?.role === "super_user"
   const [isPingingAI, setIsPingingAI] = useState(false)
 
   useEffect(() => {

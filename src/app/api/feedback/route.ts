@@ -3,21 +3,14 @@ import { getAdminClient } from "@/lib/supabase-admin"
 import { createClient as createServerClient } from "@/lib/supabase-server"
 
 function isUserAdmin(user: any, profile: any): boolean {
-  if (!user) return false
+  if (!user || !profile) return false
   const role = (profile?.role || "").toLowerCase()
-  const username = (profile?.username || "").toLowerCase()
-  const email = (user?.email || "").toLowerCase()
 
   return (
     profile?.is_admin === true ||
     role === "super_admin" ||
     role === "admin" ||
-    role === "super_user" ||
-    username.includes("quinha") ||
-    username.includes("admin") ||
-    email.includes("quinha") ||
-    email.includes("admin") ||
-    process.env.NODE_ENV === "development"
+    role === "super_user"
   )
 }
 

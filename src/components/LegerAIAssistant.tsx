@@ -1483,14 +1483,14 @@ export function LegerAIAssistant() {
           }
         }
       } else {
-        const isSuperUser = profile?.is_admin === true || profile?.role === "admin" || profile?.role === "super_user" || profile?.username?.toLowerCase()?.includes("quinha") || profile?.username?.toLowerCase()?.includes("admin") || user?.email?.toLowerCase()?.includes("quinha") || user?.email?.toLowerCase()?.includes("admin") || process.env.NODE_ENV === "development"
+        const isSuperUser = profile?.is_admin === true || profile?.role === "admin" || profile?.role === "super_admin" || profile?.role === "super_user"
         const isQuotaErr = data.isQuota || data.error?.includes("429") || data.error?.toLowerCase()?.includes("limit") || data.error?.toLowerCase()?.includes("quota")
         
         let displayError = ""
         if (isSuperUser) {
           displayError = isQuotaErr 
-            ? `⚠️ Rate Limit Exceeded (429)\nTo bypass shared limits, configure an API key in System Settings.\n\n[Super User Debug: ${data.error}]`
-            : `⚠️ Engine Error\n\n[Super User Debug: ${data.error || "Neural query failed to execute."}]`
+            ? `⚠️ Rate Limit Exceeded (429)\nTo bypass shared limits, configure an API key in System Settings.\n\n[Admin Debug: ${data.error}]`
+            : `⚠️ Engine Error\n\n[Admin Debug: ${data.error || "Neural query failed to execute."}]`
         } else {
           displayError = data.userFriendlyMessage || (isQuotaErr 
             ? "The AI assistant is temporarily experiencing high request traffic. Please try asking again in a moment."
@@ -1505,7 +1505,7 @@ export function LegerAIAssistant() {
         saveSessionMessages(currentSessionId, [...currentMsgs, errVal])
       }
     } catch (err: any) {
-      const isSuperUser = profile?.is_admin === true || profile?.role === "admin" || profile?.role === "super_user" || profile?.username?.toLowerCase()?.includes("quinha") || profile?.username?.toLowerCase()?.includes("admin") || user?.email?.toLowerCase()?.includes("quinha") || user?.email?.toLowerCase()?.includes("admin") || process.env.NODE_ENV === "development"
+      const isSuperUser = profile?.is_admin === true || profile?.role === "admin" || profile?.role === "super_admin" || profile?.role === "super_user"
       
       let displayError = ""
       if (isSuperUser) {

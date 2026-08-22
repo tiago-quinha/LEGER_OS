@@ -7,6 +7,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/com
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog"
 import { ResponsiveContainer, XAxis, YAxis, Tooltip as RechartsTooltip, Area as RechartsArea, AreaChart as RechartsAreaChart, CartesianGrid, ReferenceLine } from "recharts"
 import dynamic from "next/dynamic"
+import Link from "next/link"
 import { Skeleton } from "@/components/ui/skeleton"
 
 const DashboardChart = dynamic(() => import("@/components/DashboardChart").then(mod => mod.DashboardChart), {
@@ -1257,7 +1258,7 @@ export function DashboardView({
           )}
 
       {/* Clean Minimal App Footer */}
-      <footer className="w-full border-t border-border/40 py-6 mt-16 relative z-10 font-mono text-[10px] text-muted-foreground">
+      <footer className="w-full border-t border-border/40 py-6 mt-16 relative z-10 font-mono text-[10px] text-muted-foreground space-y-3">
         <div className="mx-auto max-w-[1500px] px-4 md:px-8 flex flex-col sm:flex-row items-center justify-between gap-3">
           <div className="flex items-center gap-2 text-foreground/80">
             <span className="font-bold uppercase tracking-wider text-foreground">LEGER_OS</span>
@@ -1266,14 +1267,17 @@ export function DashboardView({
           </div>
 
           <div className="flex items-center gap-4 uppercase tracking-wider text-[9px]">
-            <a href="/terms.txt" target="_blank" rel="noopener noreferrer" className="hover:text-foreground transition-colors">
+            <Link href="/terms" className="hover:text-foreground transition-colors">
               Terms of Service
-            </a>
+            </Link>
             <span className="opacity-40">•</span>
-            <a href="/privacy.txt" target="_blank" rel="noopener noreferrer" className="hover:text-foreground transition-colors">
+            <Link href="/privacy" className="hover:text-foreground transition-colors">
               Privacy Policy
-            </a>
+            </Link>
           </div>
+        </div>
+        <div className="mx-auto max-w-[1500px] px-4 md:px-8 text-center sm:text-left text-[9px] text-muted-foreground/60 leading-relaxed font-sans">
+          LEGER_OS is personal financial simulation software and not a registered investment advisor, broker, or banking institution. Projections are mathematical estimates.
         </div>
       </footer>
 

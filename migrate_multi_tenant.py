@@ -61,14 +61,12 @@ BEGIN
     END LOOP;
 END $$;
 
--- 6. Create flexible RLS policies and triggers for private user tables
+-- 6. Create secure RLS policies and triggers for private user tables
 CREATE OR REPLACE FUNCTION public.set_user_id()
 RETURNS TRIGGER AS $$
-DECLARE
-  default_owner UUID := '82ece226-abe5-4099-996d-cbafb2896ac5';
 BEGIN
   IF NEW.user_id IS NULL THEN
-    NEW.user_id := COALESCE(auth.uid(), default_owner);
+    NEW.user_id := auth.uid();
   END IF;
   RETURN NEW;
 END;
@@ -84,8 +82,8 @@ BEGIN
         EXECUTE format('CREATE TRIGGER trg_set_user_id BEFORE INSERT OR UPDATE ON %I FOR EACH ROW EXECUTE FUNCTION public.set_user_id();', tbl);
         
         EXECUTE format('CREATE POLICY "Users can view own %s" ON %I FOR SELECT USING (auth.uid() = user_id OR auth.role() = ''service_role'');', tbl, tbl);
-        EXECUTE format('CREATE POLICY "Users can insert own %s" ON %I FOR INSERT WITH CHECK (auth.uid() = user_id OR auth.role() = ''anon'' OR auth.role() = ''service_role'');', tbl, tbl);
-        EXECUTE format('CREATE POLICY "Users can update own %s" ON %I FOR UPDATE USING (auth.uid() = user_id OR auth.role() = ''anon'' OR auth.role() = ''service_role'') WITH CHECK (auth.uid() = user_id OR auth.role() = ''anon'' OR auth.role() = ''service_role'');', tbl, tbl);
+        EXECUTE format('CREATE POLICY "Users can insert own %s" ON %I FOR INSERT WITH CHECK (auth.uid() = user_id OR auth.role() = ''service_role'');', tbl, tbl);
+        EXECUTE format('CREATE POLICY "Users can update own %s" ON %I FOR UPDATE USING (auth.uid() = user_id OR auth.role() = ''service_role'') WITH CHECK (auth.uid() = user_id OR auth.role() = ''service_role'');', tbl, tbl);
         EXECUTE format('CREATE POLICY "Users can delete own %s" ON %I FOR DELETE USING (auth.uid() = user_id OR auth.role() = ''service_role'');', tbl, tbl);
     END LOOP;
 END $$;

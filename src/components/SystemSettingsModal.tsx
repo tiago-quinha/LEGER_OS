@@ -145,7 +145,7 @@ export function SystemSettingsModal({ open, onOpenChange }: SystemSettingsModalP
   const [adminReplyStatus, setAdminReplyStatus] = useState<"open" | "in_progress" | "resolved">("resolved")
   const [isSubmittingReply, setIsSubmittingReply] = useState(false)
 
-  const isSuperUser = profile?.is_admin === true || profile?.role === "admin" || profile?.role === "super_admin" || profile?.role === "super_user" || profile?.username?.toLowerCase()?.includes("quinha") || profile?.username?.toLowerCase()?.includes("admin") || user?.email?.toLowerCase()?.includes("quinha") || user?.email?.toLowerCase()?.includes("admin") || process.env.NODE_ENV === "development"
+  const isSuperUser = profile?.is_admin === true || profile?.role === "admin" || profile?.role === "super_admin" || profile?.role === "super_user"
 
   const loadUserTickets = async () => {
     setIsLoadingUserTickets(true)
