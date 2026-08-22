@@ -434,7 +434,7 @@ function getPagePillVariations(pathname: string, telemetry: any, profile: any, a
   const remainingBudget = spendingLimit - totalOut
   const budgetPct = spendingLimit > 0 ? Math.round((totalOut / spendingLimit) * 100) : 0
   const safeDaily = remainingBudget > 0 ? (remainingBudget / daysLeft) : 0
-  const actualDailyBurn = Number(telemetry?.dailyVariableBurn ?? telemetry?.currentDailyVariableBurn ?? telemetry?.blendedDailyBurn ?? (daysElapsed > 0 ? totalOut / daysElapsed : 0))
+  const actualDailyBurn = Number(telemetry?.actualDailyBurn ?? telemetry?.dailyVariableBurn ?? (daysElapsed > 0 ? (telemetry?.cleanTotalOut ?? totalOut) / daysElapsed : 0))
   const hasCustomKey = !!(profile?.custom_api_key)
 
   switch (pathname) {

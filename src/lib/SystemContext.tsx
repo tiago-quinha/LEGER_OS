@@ -43,9 +43,11 @@ interface SystemContextType {
   openStripePortal: () => Promise<void>
   openStripeManageDrawer: () => Promise<void>
   
-  // UI State
   isPrivacyMode: boolean
   setPrivacyMode: (val: boolean) => void
+  isSidebarCollapsed: boolean
+  setSidebarCollapsed: (val: boolean | ((prev: boolean) => boolean)) => void
+  toggleSidebar: () => void
   isAuditPanelOpen: boolean
   setAuditPanelOpen: (val: boolean) => void
   activeTransactionId: string | null
@@ -76,18 +78,21 @@ export function SystemProvider({ children }: { children: React.ReactNode }) {
   const router = useRouter()
   const [user, setUser] = useState<User | null>(null)
   const [session, setSession] = useState<Session | null>(null)
-  const [profile, setProfile] = useState<any | null>(() => {
-    if (typeof window !== "undefined") {
-      try {
-        const cached = localStorage.getItem("leger_cached_profile")
-        if (cached) return JSON.parse(cached)
-      } catch {}
-    }
-    return null
-  })
+  const [profile, setProfile] = useState<any | null>(null)
   const [isLoading, setIsLoading] = useState(true)
 
   const [isPrivacyMode, setPrivacyMode] = useState(false)
+  const [isSidebarCollapsed, setSidebarCollapsed] = useState(false)
+
+  const toggleSidebar = () => {
+    setSidebarCollapsed(prev => {
+      const next = !prev
+      try {
+        localStorage.setItem("leger_sidebar_collapsed", next ? "true" : "false")
+      } catch {}
+      return next
+    })
+  }
   const [isAuditPanelOpen, setAuditPanelOpen] = useState(false)
   const [activeTransactionId, setActiveTransactionId] = useState<string | null>(null)
   const [systemLatency, setSystemLatency] = useState(12)
@@ -127,6 +132,11 @@ export function SystemProvider({ children }: { children: React.ReactNode }) {
 
     const initAuth = async () => {
       try {
+        try {
+          const cached = localStorage.getItem("leger_cached_profile")
+          if (cached && isMounted) setProfile(JSON.parse(cached))
+        } catch {}
+
         const { data: { session } } = await supabase.auth.getSession()
         if (!isMounted) return
 
@@ -229,6 +239,36 @@ export function SystemProvider({ children }: { children: React.ReactNode }) {
       isMounted = false
       subscription.unsubscribe()
     }
+  }, [])
+
+  // Tablet auto-collapse & localStorage preference sync
+  useEffect(() => {
+    if (typeof window === "undefined") return
+
+    try {
+      const saved = localStorage.getItem("leger_sidebar_collapsed")
+      if (saved !== null) {
+        setSidebarCollapsed(saved === "true")
+      } else if (window.innerWidth >= 768 && window.innerWidth < 1024) {
+        setSidebarCollapsed(true)
+      }
+    } catch {}
+
+    const handleResize = () => {
+      try {
+        const saved = localStorage.getItem("leger_sidebar_collapsed")
+        if (saved === null) {
+          if (window.innerWidth >= 768 && window.innerWidth < 1024) {
+            setSidebarCollapsed(true)
+          } else if (window.innerWidth >= 1024) {
+            setSidebarCollapsed(false)
+          }
+        }
+      } catch {}
+    }
+
+    window.addEventListener("resize", handleResize)
+    return () => window.removeEventListener("resize", handleResize)
   }, [])
 
   const refreshData = () => {
@@ -509,6 +549,9 @@ export function SystemProvider({ children }: { children: React.ReactNode }) {
       openStripeManageDrawer,
       isPrivacyMode, 
       setPrivacyMode, 
+      isSidebarCollapsed,
+      setSidebarCollapsed,
+      toggleSidebar,
       isAuditPanelOpen, 
       setAuditPanelOpen, 
       activeTransactionId, 

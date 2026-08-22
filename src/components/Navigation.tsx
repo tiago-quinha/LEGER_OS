@@ -3,7 +3,7 @@
 import React, { useState, useEffect, useRef } from "react"
 import Link from "next/link"
 import { usePathname, useRouter, useSearchParams } from "next/navigation"
-import { Home, List, PieChart, Briefcase, Landmark, Shield, ShieldOff, Cpu, Activity, Database, LogOut, User, Sun, Moon, Sliders, Menu, X, ChevronRight, Tag, Brain, Radio } from "lucide-react"
+import { Home, List, PieChart, Briefcase, Landmark, Shield, ShieldOff, Cpu, Activity, Database, LogOut, User, Sun, Moon, Sliders, Menu, X, ChevronRight, Tag, Brain, Radio, PanelLeftClose, PanelLeftOpen } from "lucide-react"
 import { useTheme } from "next-themes"
 import { cn } from "@/lib/utils"
 import { useSystem } from "@/lib/SystemContext"
@@ -40,7 +40,22 @@ export function Navigation() {
   const router = useRouter()
   const searchParams = useSearchParams()
   const cycleId = searchParams ? searchParams.get("cycleId") : null
-  const { isPrivacyMode, setPrivacyMode, systemLatency, nodeStatus, profile, signOut, user, isPro, isSettingsOpen, setSettingsOpen, setSettingsActiveTab, setSubscriptionOnly } = useSystem()
+  const { 
+    isPrivacyMode, 
+    setPrivacyMode, 
+    systemLatency, 
+    nodeStatus, 
+    profile, 
+    signOut, 
+    user, 
+    isPro, 
+    isSettingsOpen, 
+    setSettingsOpen, 
+    setSettingsActiveTab, 
+    setSubscriptionOnly,
+    isSidebarCollapsed,
+    toggleSidebar
+  } = useSystem()
   const [mounted, setMounted] = useState(false)
   const { theme, setTheme } = useTheme()
   const [pendingHref, setPendingHref] = useState<string | null>(null)
@@ -101,53 +116,77 @@ export function Navigation() {
 
   return (
     <>
-      {/* Desktop Terminal Sidebar */}
-      <aside className="hidden md:flex md:w-64 md:flex-col md:fixed md:inset-y-0 left-0 bg-background border-r border-border z-40">
-        <div className="flex flex-col h-full pt-6 pb-4">
-          {/* Mainframe ID */}
-          <div className="px-6 mb-6 space-y-4">
-            <div className="flex items-center gap-4 group cursor-default">
-              <div className="w-8 h-8 bg-foreground flex items-center justify-center ledger-border rotate-45 shrink-0 my-1 transition-transform group-hover:scale-105">
-                <Landmark className="h-4 w-4 text-background -rotate-45" />
+      {/* Desktop / Tablet Terminal Sidebar */}
+      <aside className={cn(
+        "hidden md:flex md:flex-col md:fixed md:inset-y-0 left-0 bg-background border-r border-border z-40 transition-all duration-300",
+        isSidebarCollapsed ? "md:w-16" : "md:w-64"
+      )}>
+        <div className="flex flex-col h-full pt-5 pb-4">
+          {/* Mainframe ID & Collapse Toggle */}
+          <div className={cn("mb-5 space-y-3", isSidebarCollapsed ? "px-2.5" : "px-5")}>
+            <div className={cn("flex items-center", isSidebarCollapsed ? "flex-col gap-2 justify-center" : "justify-between")}>
+              <div className="flex items-center gap-3 group cursor-default min-w-0">
+                <div className="w-8 h-8 bg-foreground flex items-center justify-center ledger-border rotate-45 shrink-0 my-1 transition-transform group-hover:scale-105">
+                  <Landmark className="h-4 w-4 text-background -rotate-45" />
+                </div>
+                {!isSidebarCollapsed && (
+                  <div className="min-w-0">
+                    <h1 className="text-base font-bold tracking-tighter uppercase leading-none text-foreground truncate">LEGER_OS</h1>
+                    <p className="text-[8.5px] font-mono text-muted-foreground tracking-widest uppercase mt-0.5 truncate">Finance Mainframe</p>
+                  </div>
+                )}
               </div>
-              <div>
-                <h1 className="text-base font-bold tracking-tighter uppercase leading-none text-foreground">LEGER_OS</h1>
-                <p className="text-[9px] font-mono text-muted-foreground tracking-widest uppercase mt-0.5">Personal Finance Mainframe</p>
-              </div>
+
+              {/* Collapse / Expand Toggle Button */}
+              <button
+                type="button"
+                onClick={toggleSidebar}
+                className="h-7 w-7 flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-secondary/60 transition-colors border border-border/40 cursor-pointer shrink-0"
+                title={isSidebarCollapsed ? "Expand Sidebar" : "Collapse Sidebar"}
+              >
+                {isSidebarCollapsed ? <PanelLeftOpen className="h-3.5 w-3.5" /> : <PanelLeftClose className="h-3.5 w-3.5" />}
+              </button>
             </div>
 
             {/* User Identity Node */}
             {profile && (
-              <div className="p-2.5 bg-secondary/30 border border-border ledger-border space-y-1.5">
+              !isSidebarCollapsed ? (
+                <div className="p-2.5 bg-secondary/30 border border-border ledger-border space-y-1.5">
                   <div className="flex items-center justify-between text-[9px] font-mono text-muted-foreground">
                     <span className="flex items-center gap-1.5 uppercase"><User className="h-2.5 w-2.5" /> User</span>
                     <button onClick={signOut} className="hover:text-destructive transition-colors text-[9px] uppercase font-bold flex items-center gap-1" title="Disconnect Session">
-                       <span>Sign Out</span> <LogOut className="h-2.5 w-2.5" />
+                      <span>Sign Out</span> <LogOut className="h-2.5 w-2.5" />
                     </button>
                   </div>
                   <div className="flex items-center justify-between gap-2">
                     <p className="text-[11px] font-bold font-mono uppercase truncate text-foreground">{profile.username || "USER"}</p>
                     {isPro ? (
-                       <span className="px-2 py-0.5 text-[8px] uppercase font-mono font-bold text-emerald-500 bg-emerald-500/10 border border-emerald-500/30">PRO</span>
+                      <span className="px-2 py-0.5 text-[8px] uppercase font-mono font-bold text-emerald-500 bg-emerald-500/10 border border-emerald-500/30">PRO</span>
                     ) : (
-                       <button 
-                         onClick={() => {
-                           setSettingsActiveTab("pro");
-                           setSubscriptionOnly(true);
-                           setSettingsOpen(true);
-                         }} 
-                         className="px-1.5 py-0.5 bg-foreground text-background text-[8px] uppercase font-mono font-bold tracking-tighter hover:bg-emerald-500 hover:text-white transition-colors shrink-0"
-                       >
-                         Upgrade
-                       </button>
+                      <button 
+                        onClick={() => {
+                          setSettingsActiveTab("pro");
+                          setSubscriptionOnly(true);
+                          setSettingsOpen(true);
+                        }} 
+                        className="px-1.5 py-0.5 bg-foreground text-background text-[8px] uppercase font-mono font-bold tracking-tighter hover:bg-emerald-500 hover:text-white transition-colors shrink-0"
+                      >
+                        Upgrade
+                      </button>
                     )}
                   </div>
-              </div>
+                </div>
+              ) : (
+                <div className="flex flex-col items-center justify-center py-1.5 bg-secondary/30 border border-border/60 ledger-border" title={`${profile.username || "USER"} (${isPro ? "PRO" : "CORE"})`}>
+                  <User className="h-3.5 w-3.5 text-muted-foreground" />
+                  {isPro && <span className="text-[7px] font-mono font-bold text-emerald-500 mt-0.5">PRO</span>}
+                </div>
+              )
             )}
           </div>
 
           {/* Core Navigation Links */}
-          <nav className="flex-1 px-2 space-y-1 overflow-y-auto">
+          <nav className={cn("flex-1 space-y-1 overflow-y-auto", isSidebarCollapsed ? "px-1.5" : "px-2")}>
             {navigation.map((item) => {
               const targetHref = cycleId ? `${item.href}?cycleId=${cycleId}` : item.href
               const isActive = (pendingHref ?? pathname) === item.href
@@ -156,8 +195,12 @@ export function Navigation() {
                   <button
                     onClick={() => navigateTo(targetHref)}
                     data-tour={item.name === "Ledger" ? "nav-ledger" : undefined}
+                    title={isSidebarCollapsed ? item.name : undefined}
                     className={cn(
-                      "group relative flex items-center justify-between w-full px-4 py-3 transition-all duration-300 border border-transparent",
+                      "group relative flex items-center w-full transition-all duration-300 border border-transparent cursor-pointer select-none",
+                      isSidebarCollapsed 
+                        ? "justify-center py-3 px-1" 
+                        : "justify-between px-4 py-3",
                       isActive ? "bg-secondary/70 border-border/50 text-foreground" : "text-muted-foreground hover:bg-muted/30 hover:text-foreground"
                     )}
                   >
@@ -167,11 +210,13 @@ export function Navigation() {
                         className="absolute left-0 top-0 bottom-0 w-1 bg-foreground" 
                       />
                     )}
-                    <div className="flex items-center gap-3">
+                    <div className={cn("flex items-center", isSidebarCollapsed ? "justify-center" : "gap-3")}>
                       <item.icon data-tour={item.name === "Ledger" ? "nav-ledger-icon" : undefined} className={cn("h-4 w-4 transition-colors shrink-0", isActive ? "text-foreground" : "text-muted-foreground group-hover:text-foreground")} />
-                      <span className="text-[11px] font-bold uppercase tracking-[0.15em]">
-                        {item.name}
-                      </span>
+                      {!isSidebarCollapsed && (
+                        <span className="text-[11px] font-bold uppercase tracking-[0.15em] truncate">
+                          {item.name}
+                        </span>
+                      )}
                     </div>
                   </button>
                 </div>
@@ -180,52 +225,85 @@ export function Navigation() {
           </nav>
           
           {/* Quick Controls & Hardware Status Footer */}
-          <div className="px-6 pt-4 border-t border-border mt-auto space-y-4">
-            {/* Minimal Unified 3-Button Control Grid */}
-            <div className="grid grid-cols-3 border border-border/80 bg-card/60 divide-x divide-border/60 shadow-xs">
-              <button
-                type="button"
-                onClick={() => setPrivacyMode(!isPrivacyMode)}
-                className={cn(
-                  "flex items-center justify-center py-2.5 px-1 transition-all text-[8px] font-mono uppercase font-bold gap-1 select-none cursor-pointer",
-                  isPrivacyMode
-                    ? "bg-foreground text-background"
-                    : "text-muted-foreground hover:text-foreground hover:bg-secondary/40"
-                )}
-                title="Toggle Safe-Deposit Privacy Mode"
-              >
-                {isPrivacyMode ? <Shield className="h-3 w-3 shrink-0" /> : <ShieldOff className="h-3 w-3 shrink-0 opacity-60" />}
-                <span>{isPrivacyMode ? "Secure" : "Privacy"}</span>
-              </button>
+          <div className={cn("border-t border-border mt-auto pt-3", isSidebarCollapsed ? "px-2" : "px-5")}>
+            {!isSidebarCollapsed ? (
+              <div className="grid grid-cols-3 border border-border/80 bg-card/60 divide-x divide-border/60 shadow-xs">
+                <button
+                  type="button"
+                  onClick={() => setPrivacyMode(!isPrivacyMode)}
+                  className={cn(
+                    "flex items-center justify-center py-2 px-1 transition-all text-[8px] font-mono uppercase font-bold gap-1 select-none cursor-pointer",
+                    isPrivacyMode
+                      ? "bg-foreground text-background"
+                      : "text-muted-foreground hover:text-foreground hover:bg-secondary/40"
+                  )}
+                  title="Toggle Safe-Deposit Privacy Mode"
+                >
+                  {isPrivacyMode ? <Shield className="h-3 w-3 shrink-0" /> : <ShieldOff className="h-3 w-3 shrink-0 opacity-60" />}
+                  <span>{isPrivacyMode ? "Secure" : "Privacy"}</span>
+                </button>
 
-              <button
-                type="button"
-                onClick={() => setTheme(theme === "dark" ? "light" : "dark")}
-                className="flex items-center justify-center py-2.5 px-1 text-muted-foreground hover:text-foreground hover:bg-secondary/40 transition-all text-[8px] font-mono uppercase font-bold gap-1 select-none cursor-pointer"
-                title="Switch Theme"
-              >
-                {!mounted ? (
-                  <div className="h-3 w-3 animate-pulse bg-muted rounded-full" />
-                ) : theme === "dark" ? (
-                  <Moon className="h-3 w-3 shrink-0" />
-                ) : (
-                  <Sun className="h-3 w-3 shrink-0" />
-                )}
-                <span>{!mounted ? "Theme" : theme === "dark" ? "Dark" : "Light"}</span>
-              </button>
+                <button
+                  type="button"
+                  onClick={() => setTheme(theme === "dark" ? "light" : "dark")}
+                  className="flex items-center justify-center py-2 px-1 text-muted-foreground hover:text-foreground hover:bg-secondary/40 transition-all text-[8px] font-mono uppercase font-bold gap-1 select-none cursor-pointer"
+                  title="Switch Theme"
+                >
+                  {!mounted ? (
+                    <div className="h-3 w-3 animate-pulse bg-muted rounded-full" />
+                  ) : theme === "dark" ? (
+                    <Moon className="h-3 w-3 shrink-0" />
+                  ) : (
+                    <Sun className="h-3 w-3 shrink-0" />
+                  )}
+                  <span>{!mounted ? "Theme" : theme === "dark" ? "Dark" : "Light"}</span>
+                </button>
 
-              <button
-                type="button"
-                onClick={() => setSettingsOpen(true)}
-                className="flex items-center justify-center py-2.5 px-1 text-muted-foreground hover:text-foreground hover:bg-secondary/40 transition-all text-[8px] font-mono uppercase font-bold gap-1 select-none cursor-pointer"
-                title="System Configuration Matrix"
-              >
-                <Sliders className="h-3 w-3 shrink-0" />
-                <span>Config</span>
-              </button>
-            </div>
+                <button
+                  type="button"
+                  onClick={() => setSettingsOpen(true)}
+                  className="flex items-center justify-center py-2 px-1 text-muted-foreground hover:text-foreground hover:bg-secondary/40 transition-all text-[8px] font-mono uppercase font-bold gap-1 select-none cursor-pointer"
+                  title="System Configuration Matrix"
+                >
+                  <Sliders className="h-3 w-3 shrink-0" />
+                  <span>Config</span>
+                </button>
+              </div>
+            ) : (
+              <div className="flex flex-col gap-1.5 items-center">
+                <button
+                  type="button"
+                  onClick={() => setPrivacyMode(!isPrivacyMode)}
+                  className={cn(
+                    "h-8 w-8 flex items-center justify-center border transition-all text-[8px] font-mono cursor-pointer select-none",
+                    isPrivacyMode
+                      ? "bg-foreground text-background border-foreground"
+                      : "border-border/60 bg-card/60 text-muted-foreground hover:text-foreground"
+                  )}
+                  title={isPrivacyMode ? "Privacy Mode Active (Click to disable)" : "Enable Safe-Deposit Privacy"}
+                >
+                  {isPrivacyMode ? <Shield className="h-3.5 w-3.5" /> : <ShieldOff className="h-3.5 w-3.5 opacity-60" />}
+                </button>
 
-            {/* Telemetry Removed */}
+                <button
+                  type="button"
+                  onClick={() => setTheme(theme === "dark" ? "light" : "dark")}
+                  className="h-8 w-8 flex items-center justify-center border border-border/60 bg-card/60 text-muted-foreground hover:text-foreground transition-all cursor-pointer select-none"
+                  title="Toggle Theme"
+                >
+                  {theme === "dark" ? <Moon className="h-3.5 w-3.5" /> : <Sun className="h-3.5 w-3.5" />}
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => setSettingsOpen(true)}
+                  className="h-8 w-8 flex items-center justify-center border border-border/60 bg-card/60 text-muted-foreground hover:text-foreground transition-all cursor-pointer select-none"
+                  title="System Settings"
+                >
+                  <Sliders className="h-3.5 w-3.5" />
+                </button>
+              </div>
+            )}
           </div>
         </div>
       </aside>

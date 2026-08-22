@@ -221,7 +221,19 @@ export function DashboardView({
     return expertProjection.projectedTotalIn
   }, [expertProjection, totalIn, isCurrentCycle])
 
-  const onTrack = totalIn > 0 ? projectedTotalOut <= totalIn : true
+  const halfLifeDays = useMemo(() => {
+    const lambda = decayWeight || 0.0462
+    return Math.round(Math.LN2 / Math.max(0.0001, lambda))
+  }, [decayWeight])
+
+  const onTrack = useMemo(() => {
+    if (totalIn > 0) {
+      return projectedTotalOut <= totalIn
+    }
+    const safeDaily = (targetMonthlySpend || 1500) / Math.max(1, totalDaysInCycle)
+    const currentBurn = expertProjection.currentDailyVariableBurn || expertProjection.blendedDailyBurn || 0
+    return currentBurn <= safeDaily * 1.15
+  }, [totalIn, projectedTotalOut, targetMonthlySpend, totalDaysInCycle, expertProjection])
 
   // Velocity Calculation
   const timeProgress = Math.min(1, daysElapsed / totalDaysInCycle)
@@ -589,13 +601,14 @@ export function DashboardView({
         recentExpenses,
         projectedSurplus: projectedTotalIn - projectedTotalOut,
         projectedEndBalance: estimatedFinalBalance,
-        dailyVariableBurn: expertProjection.blendedDailyBurn || expertProjection.currentDailyVariableBurn || 0,
-        currentDailyVariableBurn: expertProjection.currentDailyVariableBurn || 0,
-        blendedDailyBurn: expertProjection.blendedDailyBurn || 0
+        dailyVariableBurn: daysElapsed > 0 ? parseFloat((cleanTotalOut / daysElapsed).toFixed(2)) : 0,
+        actualDailyBurn: daysElapsed > 0 ? parseFloat((cleanTotalOut / daysElapsed).toFixed(2)) : 0,
+        currentDailyVariableBurn: daysElapsed > 0 ? parseFloat((cleanTotalOut / daysElapsed).toFixed(2)) : 0,
+        blendedDailyBurn: expertProjection.blendedDailyBurn || (daysElapsed > 0 ? parseFloat((cleanTotalOut / daysElapsed).toFixed(2)) : 0)
       };
       window.dispatchEvent(new Event("leger_telemetry_updated"));
     }
-  }, [totalIn, totalOut, cycleEndBalance, velocity, daysElapsed, totalDaysInCycle, targetMonthlySpend, spendingByCategory, expenses, projectedTotalIn, projectedTotalOut, estimatedFinalBalance, expertProjection])
+  }, [totalIn, totalOut, cleanTotalOut, cycleEndBalance, velocity, daysElapsed, totalDaysInCycle, targetMonthlySpend, spendingByCategory, expenses, projectedTotalIn, projectedTotalOut, estimatedFinalBalance, expertProjection])
 
   const systemLogs = useMemo(() => {
     const logs = []
@@ -680,32 +693,34 @@ export function DashboardView({
           initial={{ opacity: 0, y: 4 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.45, ease: [0.16, 1, 0.3, 1] }}
-          className="mx-auto max-w-[1500px] p-4 md:p-8 space-y-10 md:space-y-16 pb-36 md:pb-8 w-full"
+          className="mx-auto max-w-[1500px] p-4 md:p-8 space-y-6 md:space-y-8 pb-36 md:pb-8 w-full"
         >
         {/* 1. Header */}
-      <header className="flex items-center justify-between gap-6 pb-4 md:pb-6 relative border-b border-border">
-        <div className="space-y-1.5">
-          <div className="flex items-center gap-3 text-[9px] md:text-[10px] font-mono font-bold tracking-[0.2em] uppercase text-muted-foreground">
-            <CalendarRange className="h-3.5 w-3.5" />
-            <span>Active Paycheck Cycle</span>
+        <header className="flex items-center justify-between gap-4 pb-3 md:pb-4 relative border-b border-border">
+          <div className="space-y-1.5">
+            <div className="flex items-center gap-3 text-[9px] md:text-[10px] font-mono font-bold tracking-[0.2em] uppercase text-muted-foreground">
+              <CalendarRange className="h-3.5 w-3.5" />
+              <span>Active Paycheck Cycle</span>
+            </div>
+            <h1 className="text-4xl md:text-5xl font-bold tracking-tighter uppercase leading-none break-words">
+              {isPending ? (
+                <Skeleton className="h-10 w-64 rounded-none" />
+              ) : (
+                currentCycle.label.replace('Cycle: ', '')
+              )}
+            </h1>
           </div>
-          <h1 className="text-4xl md:text-5xl font-bold tracking-tighter uppercase leading-none break-words">
-            {isPending ? (
-              <Skeleton className="h-10 w-64 rounded-none" />
-            ) : (
-              currentCycle.label.replace('Cycle: ', '')
-            )}
-          </h1>
+        </header>
+
+        {/* Unnamed Bank Transaction Resolver & Push Alert Banner */}
+        <div className="empty:hidden">
+          <UnnamedTransactionResolver expenses={expenses} categories={categories} />
         </div>
-      </header>
 
-      {/* Unnamed Bank Transaction Resolver & Push Alert Banner */}
-      <UnnamedTransactionResolver expenses={expenses} categories={categories} />
-
-      {/* Core Financial Path */}
-          
-          {/* 2. Trajectories */}
-          <section className="space-y-6 pt-2 sm:pt-0">
+        {/* Core Financial Path */}
+            
+        {/* 2. Trajectories */}
+        <section className="space-y-4 md:space-y-6">
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-6">
               <div className="flex items-center gap-3 md:gap-4 overflow-x-auto pb-2 sm:pb-0 scrollbar-hide w-full">
                 <div className="flex items-center border border-border ledger-border bg-card overflow-hidden shrink-0">
@@ -780,10 +795,7 @@ export function DashboardView({
             {/* Full-width statistics bar matching graph width */}
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 sm:gap-4 py-2 px-4 border border-border ledger-border bg-card text-[10px] font-mono w-full">
                <div className="flex items-center justify-between sm:justify-start gap-1.5 w-full sm:w-auto">
-                 <div className="flex items-center gap-1.5">
-                   <span className={cn("h-2 w-2 rounded-full shrink-0", delta >= 0 ? "bg-emerald-500" : "bg-destructive")} />
-                   <span className="text-muted-foreground uppercase tracking-wider whitespace-nowrap">Net Cash Flow:</span>
-                 </div>
+                 <span className="text-muted-foreground uppercase tracking-wider whitespace-nowrap">Net Cash Flow:</span>
                  <span className={cn("font-bold whitespace-nowrap", delta >= 0 ? "text-emerald-500" : "text-destructive")}>
                    <PrivacyValue>{delta >= 0 ? "+" : ""}{currencySymbol}{delta.toFixed(2)}</PrivacyValue>
                  </span>
@@ -793,6 +805,13 @@ export function DashboardView({
                   <span className="text-muted-foreground uppercase tracking-wider whitespace-nowrap">Daily Burn:</span>
                   <span className="font-bold text-foreground whitespace-nowrap">
                     <PrivacyValue>{currencySymbol}{(cleanTotalOut / Math.max(1, daysElapsed)).toFixed(2)}/d</PrivacyValue>
+                  </span>
+               </div>
+               <span className="hidden sm:inline text-muted-foreground/30 font-light select-none">|</span>
+               <div className="flex items-center justify-between sm:justify-start gap-1.5 w-full sm:w-auto border-t border-border/30 pt-2 sm:pt-0 sm:border-0">
+                  <span className="text-muted-foreground uppercase tracking-wider whitespace-nowrap">Projected Close:</span>
+                  <span className={cn("font-bold whitespace-nowrap", estimatedFinalBalance >= 0 ? "text-emerald-500" : "text-destructive")}>
+                    <PrivacyValue>{estimatedFinalBalance >= 0 ? "+" : ""}{currencySymbol}{estimatedFinalBalance.toFixed(2)}</PrivacyValue>
                   </span>
                </div>
             </div>
@@ -989,7 +1008,7 @@ export function DashboardView({
                 <Tilt 
                   rotationFactor={8}
                   className={cn(
-                    "p-6 md:p-8 space-y-4 bg-card/20 border border-border relative group overflow-hidden flex flex-col justify-between grow w-full h-full min-w-0 glow-card"
+                    "p-5 md:p-6 space-y-3 bg-card/20 border border-border relative group overflow-hidden flex flex-col justify-between grow w-full h-full min-w-0 glow-card"
                   )}
                 >
                   <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-1 z-10 w-full min-w-0">
@@ -1022,99 +1041,6 @@ export function DashboardView({
                 </Tilt>
               </div>
             ))}
-          </div>
-
-          {/* Active Paycheck Cycle HUD & Smart Forecasts */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            {/* Paycheck Cycle Card */}
-            <Tilt rotationFactor={4} className="p-6 md:p-8 space-y-4 bg-card/20 border border-border relative group overflow-hidden flex flex-col justify-between w-full glow-card">
-              <div className="flex justify-between items-center text-xs font-mono z-10">
-                <span className="text-muted-foreground font-semibold flex items-center gap-1.5 uppercase tracking-wider text-[10px]">
-                  <span className="h-1.5 w-1.5 rounded-full bg-emerald-500" />
-                  Active Cycle
-                </span>
-                <span className={cn("font-bold px-2.5 py-0.5 text-[10px] uppercase font-mono border", (totalIn - totalOut) >= 0 ? "text-emerald-500 bg-emerald-500/10 border-emerald-500/20" : "text-destructive bg-destructive/10 border-destructive/20")}>
-                  <PrivacyValue>
-                    {(totalIn - totalOut) >= 0 ? "+" : ""}{currencySymbol}{(totalIn - totalOut).toFixed(2)} Surplus
-                  </PrivacyValue>
-                </span>
-              </div>
-
-              <div className="space-y-2 z-10">
-                <div className="flex justify-between text-[11px] font-mono">
-                  <span className="text-muted-foreground"><PrivacyValue>Inflow: {currencySymbol}{totalIn.toFixed(0)}</PrivacyValue></span>
-                  <span className="text-foreground font-semibold">Available Budget: {Math.max(0, 100 - Math.round((totalOut / (totalIn || 1)) * 100))}%</span>
-                  <span className="text-muted-foreground"><PrivacyValue>Outflow: {currencySymbol}{totalOut.toFixed(0)}</PrivacyValue></span>
-                </div>
-                <div className="h-1.5 w-full bg-secondary rounded-none overflow-hidden border border-border/80 relative">
-                  <div
-                    className={cn("h-full transition-all duration-500", (totalOut / (totalIn || 1)) > 0.9 ? "bg-destructive" : "bg-emerald-500")}
-                    style={{ width: `${Math.min(100, (totalOut / (totalIn || 1)) * 100)}%` }}
-                  />
-                </div>
-              </div>
-              <p className="text-[11px] text-muted-foreground font-sans z-10 leading-relaxed">
-                Tracks spending capacity from payday to payday, eliminating calendar-reset distortion.
-              </p>
-            </Tilt>
-
-            {/* Smart Forecasts Card */}
-            {isLoading ? (
-              <div className="p-6 md:p-8 space-y-4 bg-card/20 border border-border flex flex-col justify-between h-full min-h-[180px]">
-                <div className="flex justify-between items-center">
-                  <Skeleton className="h-4 w-28 rounded-none" />
-                  <Skeleton className="h-4 w-20 rounded-none" />
-                </div>
-                <div className="space-y-2">
-                  <Skeleton className="h-6 w-32 rounded-none" />
-                  <Skeleton className="h-4 w-full rounded-none" />
-                </div>
-                <Skeleton className="h-8 w-full rounded-none" />
-              </div>
-            ) : !isPro ? (
-              <ProLockOverlay 
-                title="CYCLE FORECASTING (PRO)"
-                description="Unlock advanced end-of-cycle cash flow forecasting models and daily recency-decay velocity projections."
-                className="h-full min-h-[180px] flex flex-col justify-center rounded-none border border-border bg-card/20"
-              />
-            ) : (
-              <div className="relative flex flex-col justify-stretch w-full">
-                <Tilt 
-                  rotationFactor={4} 
-                  className="p-6 md:p-8 space-y-4 bg-card/20 border border-border relative group overflow-hidden flex flex-col justify-between grow w-full glow-card"
-                >
-                  <div className="flex justify-between items-center text-xs font-mono z-10">
-                    <span className="text-muted-foreground uppercase tracking-wider flex items-center gap-1.5 font-semibold text-[10px]">
-                      <span className="h-1.5 w-1.5 rounded-full bg-emerald-500" /> Cycle Forecast
-                    </span>
-                    <span className="font-bold text-foreground bg-secondary px-2.5 py-0.5 text-[10px] uppercase font-mono border border-border">
-                      <PrivacyValue>{currencySymbol}{estimatedFinalBalance.toFixed(2)} Est.</PrivacyValue>
-                    </span>
-                  </div>
-
-                  <div className="space-y-2 z-10">
-                    <div className="flex justify-between items-baseline">
-                      <span className="text-xs text-muted-foreground font-mono">Projected Surplus</span>
-                      <span className={cn(
-                        "text-xl md:text-2xl font-mono font-bold tracking-tight",
-                        estimatedFinalBalance >= 0 ? "text-emerald-500" : "text-destructive"
-                      )}>
-                        <PrivacyValue>{currencySymbol}{estimatedFinalBalance.toFixed(2)}</PrivacyValue>
-                      </span>
-                    </div>
-                    <div className="flex items-center justify-between text-[11px] text-muted-foreground pt-2 border-t border-border/40 font-mono">
-                      <span>Based on 7-day velocity decay</span>
-                      <span className={cn("font-semibold flex items-center gap-1", onTrack ? "text-emerald-500" : "text-amber-500")}>
-                        {onTrack ? "Optimal" : "High Burn"}
-                      </span>
-                    </div>
-                  </div>
-                  <p className="text-[11px] text-muted-foreground font-sans z-10 leading-relaxed">
-                    Forecasts your exact cash position before cycle close based on spending pattern decay.
-                  </p>
-                </Tilt>
-              </div>
-            )}
           </div>
 
           {/* 4. Budgets Performance */}
@@ -1294,57 +1220,38 @@ export function DashboardView({
               </div>
             </div>
           ) : (
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-12 pb-10 [content-visibility:auto] [contain-intrinsic-size:1px_400px]">
-              <div className="space-y-6">
-                <h3 className="text-[10px] font-mono uppercase tracking-wider text-foreground font-bold border-b border-border pb-4">Category Breakdown</h3>
-                <div className="space-y-6">
-                  {spendingByCategory.map((cat) => (
-                    <div key={cat.name} className="group cursor-default">
-                      <div className="flex justify-between items-end mb-2">
-                        <span className="text-xs font-bold uppercase tracking-tight group-hover:pl-2 transition-all duration-300 block">{cat.name}</span>
-                        <span className="text-xs font-mono font-bold uppercase">{currencySymbol}{cat.value.toFixed(2)}</span>
+            <div className="space-y-6 pb-10 [content-visibility:auto] [contain-intrinsic-size:1px_400px]">
+              <div className="flex items-center justify-between border-b border-border pb-4">
+                <h3 className="text-[10px] font-mono uppercase tracking-wider text-foreground font-bold">Recent Transactions</h3>
+                <span className="text-[10px] font-mono text-muted-foreground uppercase">{expenses.length} Entries</span>
+              </div>
+              <div className="space-y-0">
+                <AnimatedList
+                  items={expenses.slice(0, 10)}
+                  gap={0}
+                  animation="scale"
+                  renderItem={(exp) => (
+                    <div 
+                      onClick={() => openAudit(exp.id)}
+                      className="py-4 flex items-center justify-between group hover:bg-muted/30 transition-colors px-2 cursor-pointer border-b border-border/50"
+                    >
+                      <div className="space-y-1">
+                        <p className="text-xs font-bold uppercase truncate max-w-[180px] sm:max-w-xs md:max-w-md tracking-tight group-hover:pl-1 transition-all">{exp.merchant || "UNSPECIFIED"}</p>
+                        <p className="text-[9px] font-mono text-muted-foreground uppercase">{new Date(exp.date).toLocaleDateString(language, { day: '2-digit', month: 'short' })}</p>
                       </div>
-                      <div className="h-px w-full bg-border relative">
-                        <div className="absolute top-0 left-0 h-px bg-foreground transition-all duration-700" style={{ width: `${(cat.value / totalOut) * 100}%` }} />
+                      <div className={cn("text-xs font-mono font-bold", parseFloat(exp.amount) > 0 ? "text-emerald-600 dark:text-emerald-400" : "")}>
+                        <PrivacyValue><NumberTicker value={Math.abs(parseFloat(exp.amount))} prefix={parseFloat(exp.amount) > 0 ? "+" : currencySymbol} /></PrivacyValue>
                       </div>
                     </div>
-                  ))}
-                </div>
-              </div>
-
-              <div className="space-y-6">
-                <div className="flex items-center justify-between border-b border-border pb-4">
-                  <h3 className="text-[10px] font-mono uppercase tracking-wider text-foreground font-bold">Recent Transactions</h3>
-                  <span className="text-[10px] font-mono text-muted-foreground uppercase">{expenses.length} Entries</span>
-                </div>
-                <div className="space-y-0">
-                  <AnimatedList
-                    items={expenses.slice(0, 10)}
-                    gap={0}
-                    animation="scale"
-                    renderItem={(exp) => (
-                      <div 
-                        onClick={() => openAudit(exp.id)}
-                        className="py-4 flex items-center justify-between group hover:bg-muted/30 transition-colors px-2 cursor-pointer border-b border-border/50"
-                      >
-                        <div className="space-y-1">
-                          <p className="text-xs font-bold uppercase truncate max-w-[180px] sm:max-w-xs tracking-tight group-hover:pl-1 transition-all">{exp.merchant || "UNSPECIFIED"}</p>
-                          <p className="text-[9px] font-mono text-muted-foreground uppercase">{new Date(exp.date).toLocaleDateString(language, { day: '2-digit', month: 'short' })}</p>
-                        </div>
-                        <div className={cn("text-xs font-mono font-bold", parseFloat(exp.amount) > 0 ? "text-emerald-600 dark:text-emerald-400" : "")}>
-                          <PrivacyValue><NumberTicker value={Math.abs(parseFloat(exp.amount))} prefix={parseFloat(exp.amount) > 0 ? "+" : currencySymbol} /></PrivacyValue>
-                        </div>
-                      </div>
-                    )}
-                  />
-                  <MagneticButton 
-                    variant="outline" 
-                    className="w-full text-[10px] font-mono uppercase tracking-[0.2em] py-6 opacity-60 hover:opacity-100 border border-border mt-4 bg-background justify-center" 
-                    onClick={() => router.push('/expenses')}
-                  >
-                    Access Full Archive <ArrowUpRight className="ml-2 h-3.5 w-3.5" />
-                  </MagneticButton>
-                </div>
+                  )}
+                />
+                <MagneticButton 
+                  variant="outline" 
+                  className="w-full text-[10px] font-mono uppercase tracking-[0.2em] py-6 opacity-60 hover:opacity-100 border border-border mt-4 bg-background justify-center" 
+                  onClick={() => router.push('/expenses')}
+                >
+                  Access Full Archive <ArrowUpRight className="ml-2 h-3.5 w-3.5" />
+                </MagneticButton>
               </div>
             </div>
           )}

@@ -1461,13 +1461,13 @@ export function PortfolioView({
               >
                 <span className={cn("h-1.5 w-1.5 rounded-full bg-emerald-500", isSyncing ? "animate-ping" : "animate-pulse")} />
                 <RefreshCw className={cn("h-3 w-3 text-muted-foreground group-hover:text-foreground transition-all", isSyncing && "animate-spin text-emerald-500")} />
-                <span>SYNC: {isSyncing ? "UPDATING..." : timeToNextSync}</span>
+                <span suppressHydrationWarning>SYNC: {isSyncing ? "UPDATING..." : timeToNextSync}</span>
               </button>
             ) : (
               <div className="flex items-center gap-1.5 text-foreground/80 font-bold select-none">
                 <span className="h-1.5 w-1.5 rounded-full bg-emerald-500 animate-pulse" />
                 <Clock className="h-3 w-3 text-muted-foreground" />
-                <span>SYNC: {timeToNextSync}</span>
+                <span suppressHydrationWarning>SYNC: {timeToNextSync}</span>
               </div>
             )}
           </div>
@@ -1505,7 +1505,7 @@ export function PortfolioView({
       </header>
 
       {/* 2. Portfolio Valuation Graph FIRST (Clean Dashboard Layout) */}
-      <section ref={chartSectionRef} className="space-y-4 border border-border ledger-border p-4 md:p-6 bg-card/20 relative scroll-mt-6" data-no-swipe="true">
+      <section ref={chartSectionRef} className="space-y-4 border border-border ledger-border p-4 md:p-6 bg-card/20 relative scroll-mt-6 overflow-hidden min-w-0 w-full" data-no-swipe="true">
         {!isLoading && !isPro && (
           <div className="absolute inset-0 z-30 bg-background/95 backdrop-blur-md flex flex-col items-center justify-center p-4 text-center">
             <ProLockOverlay
@@ -1516,8 +1516,8 @@ export function PortfolioView({
         )}
 
         {/* Clean Header Bar with Title on Left and Filter Tabs on Right */}
-        <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4 border-b border-border/40 pb-4">
-          <h2 className="text-xl md:text-2xl font-bold uppercase tracking-tighter font-sans shrink-0">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 sm:gap-4 border-b border-border/40 pb-4 min-w-0 w-full">
+          <h2 className="text-lg sm:text-xl md:text-2xl font-bold uppercase tracking-tighter font-sans min-w-0 break-words">
             {selectedChartMode === "all"
               ? "Total Portfolio Trajectory"
               : selectedChartMode === "compare"
@@ -1532,12 +1532,12 @@ export function PortfolioView({
           </h2>
 
           {/* Quick Category Filters + Individual Asset Dropdown */}
-          <div className="flex flex-wrap items-center gap-2 z-10">
-            <div className="flex items-center border border-border ledger-border bg-card overflow-x-auto scrollbar-hide shrink-0 font-mono text-[9px] p-0.5">
+          <div className="flex flex-col sm:flex-row sm:items-center gap-2 z-10 w-full sm:w-auto min-w-0 max-w-full">
+            <div className="grid grid-cols-5 w-full sm:w-auto border border-border ledger-border bg-card font-mono text-[8px] xs:text-[8.5px] sm:text-[9px] p-0.5 divide-x divide-border/60">
               <button
                 onClick={() => setSelectedChartMode("all")}
                 className={cn(
-                  "px-3 py-1 uppercase font-bold transition-all cursor-pointer select-none shrink-0",
+                  "flex items-center justify-center text-center px-1 sm:px-3 py-1.5 sm:py-1 uppercase font-bold transition-all cursor-pointer select-none truncate",
                   selectedChartMode === "all" ? "bg-foreground text-background" : "text-muted-foreground hover:text-foreground"
                 )}
               >
@@ -1546,7 +1546,7 @@ export function PortfolioView({
               <button
                 onClick={() => setSelectedChartMode("compare")}
                 className={cn(
-                  "px-3 py-1 uppercase font-bold transition-all border-l border-border/60 cursor-pointer select-none shrink-0",
+                  "flex items-center justify-center text-center px-1 sm:px-3 py-1.5 sm:py-1 uppercase font-bold transition-all cursor-pointer select-none truncate",
                   selectedChartMode === "compare" ? "bg-foreground text-background" : "text-muted-foreground hover:text-foreground"
                 )}
               >
@@ -1555,7 +1555,7 @@ export function PortfolioView({
               <button
                 onClick={() => setSelectedChartMode("stock_etf")}
                 className={cn(
-                  "px-3 py-1 uppercase font-bold transition-all border-l border-border/60 cursor-pointer select-none shrink-0",
+                  "flex items-center justify-center text-center px-1 sm:px-3 py-1.5 sm:py-1 uppercase font-bold transition-all cursor-pointer select-none truncate",
                   selectedChartMode === "stock_etf" ? "bg-foreground text-background" : "text-muted-foreground hover:text-foreground"
                 )}
               >
@@ -1564,7 +1564,7 @@ export function PortfolioView({
               <button
                 onClick={() => setSelectedChartMode("crypto")}
                 className={cn(
-                  "px-3 py-1 uppercase font-bold transition-all border-l border-border/60 cursor-pointer select-none shrink-0",
+                  "flex items-center justify-center text-center px-1 sm:px-3 py-1.5 sm:py-1 uppercase font-bold transition-all cursor-pointer select-none truncate",
                   selectedChartMode === "crypto" ? "bg-foreground text-background" : "text-muted-foreground hover:text-foreground"
                 )}
               >
@@ -1573,11 +1573,12 @@ export function PortfolioView({
               <button
                 onClick={() => setSelectedChartMode("commodity")}
                 className={cn(
-                  "px-3 py-1 uppercase font-bold transition-all border-l border-border/60 cursor-pointer select-none shrink-0",
+                  "flex items-center justify-center text-center px-1 sm:px-3 py-1.5 sm:py-1 uppercase font-bold transition-all cursor-pointer select-none truncate",
                   selectedChartMode === "commodity" ? "bg-foreground text-background" : "text-muted-foreground hover:text-foreground"
                 )}
               >
-                Commodities
+                <span className="hidden md:inline">Commodities</span>
+                <span className="md:hidden">Cmdt</span>
               </button>
             </div>
 
@@ -1586,9 +1587,9 @@ export function PortfolioView({
               <select
                 value={selectedChartMode}
                 onChange={(e) => setSelectedChartMode(e.target.value)}
-                className="h-7 px-2 border border-border bg-card text-foreground font-mono text-[9px] uppercase outline-none cursor-pointer rounded-none min-w-[130px]"
+                className="w-full sm:w-auto h-8 sm:h-7 px-2 border border-border bg-card text-foreground font-mono text-[9px] uppercase outline-none cursor-pointer rounded-none min-w-0 max-w-full"
               >
-                <option value="all">Total Portfolio (Net Worth)</option>
+                <option value="all">Total Portfolio Valuation</option>
                 <option value="compare">Multi-Asset Comparison (All)</option>
                 <option value="stock_etf">Stocks & ETFs</option>
                 <option value="crypto">Crypto</option>
@@ -1822,59 +1823,45 @@ export function PortfolioView({
         </div>
       </section>
 
-      {/* 3. Executive Ledger Summary Cards SECOND (1 Big, 2 Side by Side - Exact Dashboard Layout) */}
+      {/* 3. Executive Investment Summary Cards (1 Big, 2 Side by Side - Exact Dashboard Layout) */}
       <div className="grid grid-cols-2 md:grid-cols-3 gap-3 sm:gap-4">
-        {/* Card 1: Total Net Worth (Big - col-span-2 on mobile, col-span-1 on desktop) */}
+        {/* Card 1: Portfolio Valuation (Big - col-span-2 on mobile, col-span-1 on desktop) */}
         <div className="col-span-2 md:col-span-1 min-w-0">
-          <Tilt rotationFactor={6} className="p-4 sm:p-6 md:p-8 space-y-3 bg-card/20 border border-border relative group overflow-hidden flex flex-col justify-between glow-card h-full min-w-0">
-            <span className="technical-label text-[8px] sm:text-[9px] border-b border-dotted border-muted-foreground/30 w-fit z-10 whitespace-nowrap truncate">TOTAL NET WORTH</span>
-            <div className="space-y-1 z-10 min-w-0">
-              <div className="text-2xl sm:text-3xl md:text-5xl font-mono font-bold tracking-tighter truncate tabular-nums">
-                <PrivacyValue>{formatCurrency(metrics.displayNetWorth)}</PrivacyValue>
-              </div>
-              <div className="flex flex-wrap items-center gap-1.5 pt-0.5 min-w-0">
-                <span className={cn(
-                  "px-1.5 py-0.5 border text-[8px] sm:text-[9px] font-mono font-bold uppercase truncate max-w-full inline-block",
-                  metrics.displayChange >= 0
-                    ? "text-emerald-500 border-emerald-500/20 bg-emerald-500/5"
-                    : "text-rose-500 border-rose-500/20 bg-rose-500/5"
-                )}>
-                  <PrivacyValue>
-                    {metrics.displayChange >= 0 ? "+" : ""}{formatCurrency(metrics.displayChange)} ({metrics.displayChangePct >= 0 ? "+" : ""}{format2Decimals(metrics.displayChangePct)}%)
-                  </PrivacyValue>
-                </span>
-                <span className="text-[8px] sm:text-[9px] text-muted-foreground/70 uppercase font-mono tracking-widest font-semibold shrink-0">
-                  {metrics.isCurrentCycle ? "24H" : "CYCLE"}
-                </span>
-              </div>
+          <Tilt rotationFactor={6} className="p-4 sm:p-6 md:p-8 bg-card/20 border border-border relative group overflow-hidden flex flex-col justify-start gap-2 sm:gap-3 glow-card h-full min-w-0">
+            <span className="technical-label text-[8px] sm:text-[9px] border-b border-dotted border-muted-foreground/30 w-fit z-10 whitespace-nowrap truncate">PORTFOLIO VALUATION</span>
+            <div className="text-2xl sm:text-3xl md:text-5xl font-mono font-bold tracking-tighter truncate tabular-nums z-10">
+              <PrivacyValue>{formatCurrency(metrics.displayValuation)}</PrivacyValue>
+            </div>
+            <div className="flex flex-wrap items-center gap-1.5 pt-0.5 min-w-0 z-10 mt-auto">
+              <span className={cn(
+                "px-1.5 py-0.5 border text-[8px] sm:text-[9px] font-mono font-bold uppercase truncate max-w-full inline-block",
+                metrics.displayChange >= 0
+                  ? "text-emerald-500 border-emerald-500/20 bg-emerald-500/5"
+                  : "text-rose-500 border-rose-500/20 bg-rose-500/5"
+              )}>
+                <PrivacyValue>
+                  {metrics.displayChange >= 0 ? "+" : ""}{formatCurrency(metrics.displayChange)} ({metrics.displayChangePct >= 0 ? "+" : ""}{format2Decimals(metrics.displayChangePct)}%)
+                </PrivacyValue>
+              </span>
+              <span className="text-[8px] sm:text-[9px] text-muted-foreground/70 uppercase font-mono tracking-widest font-semibold shrink-0">
+                {metrics.isCurrentCycle ? "24H" : "CYCLE"}
+              </span>
             </div>
             <ClippedCircle circleClassName="bg-foreground/5" circleSize={400} />
           </Tilt>
         </div>
 
-        {/* Card 2: Portfolio Valuation (col-span-1) */}
+        {/* Card 2: Invested Capital (col-span-1) */}
         <div className="col-span-1 min-w-0">
-          <Tilt rotationFactor={6} className="p-3.5 sm:p-6 md:p-8 space-y-2 sm:space-y-3 bg-card/20 border border-border relative group overflow-hidden flex flex-col justify-between glow-card h-full min-w-0">
-            <span className="technical-label text-[8px] sm:text-[9px] border-b border-dotted border-muted-foreground/30 w-fit z-10 whitespace-nowrap truncate">PORTFOLIO VALUE</span>
-            <div className="space-y-1 z-10 min-w-0">
-              <div className="text-lg xs:text-xl sm:text-2xl md:text-3xl lg:text-4xl xl:text-5xl font-mono font-bold tracking-tighter truncate tabular-nums">
-                <PrivacyValue>{formatCurrency(metrics.displayValuation)}</PrivacyValue>
-              </div>
-              <div className="flex flex-wrap items-center gap-1 sm:gap-1.5 pt-0.5 min-w-0">
-                <span className={cn(
-                  "px-1 sm:px-1.5 py-0.5 border text-[7.5px] sm:text-[9px] font-mono font-bold uppercase truncate max-w-full inline-block",
-                  metrics.displayChange >= 0
-                    ? "text-emerald-500 border-emerald-500/20 bg-emerald-500/5"
-                    : "text-rose-500 border-rose-500/20 bg-rose-500/5"
-                )}>
-                  <PrivacyValue>
-                    {metrics.displayChange >= 0 ? "+" : ""}{formatCurrency(metrics.displayChange)} ({metrics.displayChangePct >= 0 ? "+" : ""}{format2Decimals(metrics.displayChangePct)}%)
-                  </PrivacyValue>
-                </span>
-                <span className="text-[7.5px] sm:text-[9px] text-muted-foreground/70 uppercase font-mono tracking-widest font-semibold shrink-0">
-                  {metrics.isCurrentCycle ? "24H" : "CYCLE"}
-                </span>
-              </div>
+          <Tilt rotationFactor={6} className="p-3.5 sm:p-6 md:p-8 bg-card/20 border border-border relative group overflow-hidden flex flex-col justify-between glow-card h-full min-w-0">
+            <span className="technical-label text-[8px] sm:text-[9px] border-b border-dotted border-muted-foreground/30 w-fit z-10 whitespace-nowrap truncate">INVESTED CAPITAL</span>
+            <div className="text-xl xs:text-2xl sm:text-3xl md:text-4xl lg:text-5xl font-mono font-bold tracking-tighter truncate tabular-nums z-10 my-1 sm:my-2">
+              <PrivacyValue>{formatCurrency(metrics.totalInvested)}</PrivacyValue>
+            </div>
+            <div className="flex items-center pt-0.5 min-w-0 z-10 mt-auto">
+              <span className="px-1 sm:px-1.5 py-0.5 border border-border text-[7.5px] sm:text-[9px] font-mono font-bold uppercase bg-secondary/50 text-muted-foreground truncate max-w-full inline-block">
+                {assets.length} ACTIVE {assets.length === 1 ? "HOLDING" : "HOLDINGS"}
+              </span>
             </div>
             <ClippedCircle circleClassName="bg-foreground/5" circleSize={400} />
           </Tilt>
@@ -1882,44 +1869,31 @@ export function PortfolioView({
 
         {/* Card 3: All-Time Return (col-span-1) */}
         <div className="col-span-1 min-w-0">
-          <Tilt rotationFactor={6} className="p-3.5 sm:p-6 md:p-8 space-y-2 sm:space-y-3 bg-card/20 border border-border relative group overflow-hidden flex flex-col justify-between glow-card h-full min-w-0">
+          <Tilt rotationFactor={6} className="p-3.5 sm:p-6 md:p-8 bg-card/20 border border-border relative group overflow-hidden flex flex-col justify-between glow-card h-full min-w-0">
             <span className="technical-label text-[8px] sm:text-[9px] border-b border-dotted border-muted-foreground/30 w-fit z-10 whitespace-nowrap truncate">
               {metrics.isCurrentCycle ? "ALL-TIME RETURN" : "CYCLE RETURN"}
             </span>
-            <div className="space-y-1 z-10 min-w-0">
-              <div className={cn(
-                "text-lg xs:text-xl sm:text-2xl md:text-3xl lg:text-4xl xl:text-5xl font-mono font-bold tracking-tighter truncate tabular-nums",
-                (metrics.isCurrentCycle ? metrics.totalPnL : metrics.displayChange) >= 0 ? "text-emerald-500" : "text-rose-500"
+            <div className={cn(
+              "text-xl xs:text-2xl sm:text-3xl md:text-4xl lg:text-5xl font-mono font-bold tracking-tighter truncate tabular-nums z-10 my-1 sm:my-2",
+              (metrics.isCurrentCycle ? metrics.totalPnL : metrics.displayChange) >= 0 ? "text-emerald-500" : "text-rose-500"
+            )}>
+              <PrivacyValue>
+                {(metrics.isCurrentCycle ? metrics.totalPnL : metrics.displayChange) >= 0 ? "+" : ""}
+                {formatCurrency(metrics.isCurrentCycle ? metrics.totalPnL : metrics.displayChange)}
+              </PrivacyValue>
+            </div>
+            <div className="flex items-center pt-0.5 min-w-0 z-10 mt-auto">
+              <span className={cn(
+                "px-1 sm:px-1.5 py-0.5 border text-[7.5px] sm:text-[9px] font-mono font-bold uppercase truncate max-w-full inline-block",
+                (metrics.isCurrentCycle ? metrics.totalPnLPercent : metrics.displayChangePct) >= 0
+                  ? "text-emerald-500 border-emerald-500/20 bg-emerald-500/5"
+                  : "text-rose-500 border-rose-500/20 bg-rose-500/5"
               )}>
                 <PrivacyValue>
-                  {(metrics.isCurrentCycle ? metrics.totalPnL : metrics.displayChange) >= 0 ? "+" : ""}
-                  {formatCurrency(metrics.isCurrentCycle ? metrics.totalPnL : metrics.displayChange)}
+                  {(metrics.isCurrentCycle ? metrics.totalPnLPercent : metrics.displayChangePct) >= 0 ? "+" : ""}
+                  {format2Decimals(metrics.isCurrentCycle ? metrics.totalPnLPercent : metrics.displayChangePct)}%
                 </PrivacyValue>
-              </div>
-              <div className="flex flex-wrap items-center gap-1 sm:gap-1.5 pt-0.5 min-w-0">
-                <span className={cn(
-                  "px-1 sm:px-1.5 py-0.5 border text-[7.5px] sm:text-[9px] font-mono font-bold uppercase truncate max-w-full inline-block",
-                  (metrics.isCurrentCycle ? metrics.totalPnLPercent : metrics.displayChangePct) >= 0
-                    ? "text-emerald-500 border-emerald-500/20 bg-emerald-500/5"
-                    : "text-rose-500 border-rose-500/20 bg-rose-500/5"
-                )}>
-                  <PrivacyValue>
-                    {(metrics.isCurrentCycle ? metrics.totalPnLPercent : metrics.displayChangePct) >= 0 ? "+" : ""}
-                    {format2Decimals(metrics.isCurrentCycle ? metrics.totalPnLPercent : metrics.displayChangePct)}%
-                  </PrivacyValue>
-                </span>
-                <span className="text-[7.5px] sm:text-[9px] text-muted-foreground/70 uppercase font-mono tracking-widest font-semibold shrink-0">
-                  {metrics.isCurrentCycle ? "ALL" : "CYCLE"}
-                </span>
-                {metrics.isCurrentCycle && (
-                  <span className={cn(
-                    "text-[7px] sm:text-[8px] font-mono font-bold uppercase shrink-0 pl-1",
-                    metrics.displayChange >= 0 ? "text-emerald-500/90" : "text-rose-500/90"
-                  )}>
-                    ({metrics.displayChange >= 0 ? "+" : ""}{format2Decimals(metrics.displayChangePct)}% 24H)
-                  </span>
-                )}
-              </div>
+              </span>
             </div>
             <ClippedCircle circleClassName="bg-foreground/5" circleSize={400} />
           </Tilt>
@@ -1995,13 +1969,13 @@ export function PortfolioView({
               <span className={cn("h-1.5 w-1.5 rounded-full bg-emerald-500", isSyncing ? "animate-ping" : "animate-pulse")} />
               <RefreshCw className={cn("h-2.5 w-2.5 text-muted-foreground group-hover:text-foreground transition-all", isSyncing && "animate-spin text-emerald-500")} />
               <span className="uppercase text-[9px] font-bold tracking-wider hidden xs:inline">{isSyncing ? "UPDATING" : "NEXT SYNC:"}</span>
-              <span className="text-foreground font-mono font-bold">{isSyncing ? "LIVE..." : timeToNextSync}</span>
+              <span suppressHydrationWarning className="text-foreground font-mono font-bold">{isSyncing ? "LIVE..." : timeToNextSync}</span>
             </button>
           ) : (
             <div className="flex items-center gap-1.5 px-2.5 py-1 border border-border/60 bg-card/60 text-muted-foreground font-mono text-[9px] select-none">
               <span className="h-1.5 w-1.5 rounded-full bg-emerald-500 animate-pulse" />
               <span className="uppercase text-[9px] font-bold tracking-wider hidden xs:inline">NEXT SYNC:</span>
-              <span className="text-foreground font-mono font-bold">{timeToNextSync}</span>
+              <span suppressHydrationWarning className="text-foreground font-mono font-bold">{timeToNextSync}</span>
             </div>
           )}
         </div>

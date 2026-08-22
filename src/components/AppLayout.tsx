@@ -7,11 +7,12 @@ import { Toaster } from "@/components/ui/sonner"
 import { FloatingTooltipProvider } from "@/components/unlumen-ui/floating-tooltip"
 import { LegerAIAssistant } from "@/components/LegerAIAssistant"
 import { useSystem } from "@/lib/SystemContext"
+import { cn } from "@/lib/utils"
 
 function LayoutInner({ children }: { children: React.ReactNode }) {
   const pathname = usePathname()
   const searchParams = useSearchParams()
-  const { profile } = useSystem()
+  const { profile, isSidebarCollapsed } = useSystem()
 
   const isPublicPage = 
     pathname === '/login' || 
@@ -38,7 +39,13 @@ function LayoutInner({ children }: { children: React.ReactNode }) {
         <Suspense fallback={<div className="hidden md:flex md:w-64 bg-background border-r border-border shrink-0" />}>
           <Navigation />
         </Suspense>
-        <main id="main-content" className="flex-1 min-w-0 max-w-full md:pl-64 p-3 sm:p-6 md:p-12 h-[calc(100dvh-64px)] md:h-full pb-36 md:pb-12 overflow-y-auto overflow-x-hidden">
+        <main 
+          id="main-content" 
+          className={cn(
+            "flex-1 min-w-0 max-w-full p-3 sm:p-6 md:p-12 h-[calc(100dvh-64px)] md:h-full pb-36 md:pb-12 overflow-y-auto overflow-x-hidden transition-[padding] duration-300",
+            isSidebarCollapsed ? "md:pl-16" : "md:pl-64"
+          )}
+        >
           {children}
         </main>
         <Toaster />
