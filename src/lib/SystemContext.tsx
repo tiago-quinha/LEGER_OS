@@ -159,7 +159,7 @@ export function SystemProvider({ children }: { children: React.ReactNode }) {
             if (BankSyncPlugin && session.user.id) {
               BankSyncPlugin.setSyncContext({
                 userId: session.user.id,
-                baseUrl: "https://legeros.vercel.app"
+                baseUrl: "https://leger-os.vercel.app"
               }).catch(() => {})
             }
 

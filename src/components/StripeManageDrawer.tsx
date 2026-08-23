@@ -29,7 +29,7 @@ function SetupForm({ onClose }: { onClose: () => void }) {
     setIsProcessing(true)
     setErrorMessage(null)
 
-    const origin = typeof window !== "undefined" ? window.location.origin : "https://legeros.vercel.app"
+    const origin = typeof window !== "undefined" ? window.location.origin : "https://leger-os.vercel.app"
 
     const { error, setupIntent } = await stripe.confirmSetup({
       elements,

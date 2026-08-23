@@ -163,7 +163,7 @@ export function DeviceSyncManager({ user: propUser, isPro: propIsPro, isLoading:
 
           BankSync.setSyncContext({
             userId: user.id,
-            baseUrl: typeof window !== "undefined" ? window.location.origin : "https://legeros.vercel.app"
+            baseUrl: typeof window !== "undefined" ? window.location.origin : "https://leger-os.vercel.app"
           }).catch(() => {})
         }
       }
@@ -181,7 +181,7 @@ export function DeviceSyncManager({ user: propUser, isPro: propIsPro, isLoading:
       BankSync?.setSelectedBankPackages({ 
         packages: newBanks,
         userId: user?.id,
-        baseUrl: typeof window !== "undefined" ? window.location.origin : "https://legeros.vercel.app"
+        baseUrl: typeof window !== "undefined" ? window.location.origin : "https://leger-os.vercel.app"
       }).catch(() => {})
     }
   }

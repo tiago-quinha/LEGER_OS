@@ -32,7 +32,7 @@ function CheckoutForm({ onClose, amountFormatted }: { onClose: () => void; amoun
     setIsProcessing(true)
     setErrorMessage(null)
 
-    const origin = typeof window !== "undefined" ? window.location.origin : "https://legeros.vercel.app"
+    const origin = typeof window !== "undefined" ? window.location.origin : "https://leger-os.vercel.app"
 
     const { error, paymentIntent } = await stripe.confirmPayment({
       elements,

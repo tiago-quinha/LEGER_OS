@@ -38,7 +38,7 @@ public class LegerAlarmReceiver extends BroadcastReceiver {
             try {
                 SharedPreferences prefs = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE);
                 String savedUserId = prefs.getString(KEY_USER_ID, "");
-                String savedBaseUrl = prefs.getString(KEY_BASE_URL, "https://legeros.vercel.app");
+                String savedBaseUrl = prefs.getString(KEY_BASE_URL, "https://leger-os.vercel.app");
 
                 if ("morning_outlook".equals(finalAction)) {
                     // Reschedule for tomorrow

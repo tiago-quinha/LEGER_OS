@@ -133,7 +133,7 @@ public class LegerBankNotificationListenerService extends NotificationListenerSe
         new Thread(() -> {
             try {
                 String savedUserId = getSharedPreferences(PREFS_NAME, MODE_PRIVATE).getString(KEY_USER_ID, "");
-                String savedBaseUrl = getSharedPreferences(PREFS_NAME, MODE_PRIVATE).getString(KEY_BASE_URL, "https://legeros.vercel.app");
+                String savedBaseUrl = getSharedPreferences(PREFS_NAME, MODE_PRIVATE).getString(KEY_BASE_URL, "https://leger-os.vercel.app");
 
                 String endpoint = savedBaseUrl + "/api/transactions/device-push";
                 if (savedUserId != null && !savedUserId.isEmpty()) {

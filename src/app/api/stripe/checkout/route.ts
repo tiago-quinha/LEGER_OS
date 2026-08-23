@@ -55,7 +55,7 @@ export async function POST(request: Request) {
         .eq("id", user.id)
     }
 
-    const origin = request.headers.get("origin") || "https://legeros.vercel.app"
+    const origin = request.headers.get("origin") || "https://leger-os.vercel.app"
 
     // 2. Build Stripe Checkout Session (Managed Payments automatically handles Card, PayPal, Apple Pay, Google Pay)
     const session = await stripe.checkout.sessions.create({

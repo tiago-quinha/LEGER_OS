@@ -33,7 +33,7 @@ export async function POST(request: Request) {
       )
     }
 
-    const origin = request.headers.get("origin") || "https://legeros.vercel.app"
+    const origin = request.headers.get("origin") || "https://leger-os.vercel.app"
 
     const portalSession = await stripe.billingPortal.sessions.create({
       customer: profile.stripe_customer_id,
