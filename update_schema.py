@@ -124,7 +124,12 @@ END $$;
 CREATE OR REPLACE FUNCTION public.handle_new_user()
 RETURNS trigger AS $$
 BEGIN
-  INSERT INTO public.profiles (id, username, full_name, paycheck_keyword, role, is_admin, onboarding_completed, target_monthly_income, target_monthly_spend, currency, language, subscription_tier, ai_provider, custom_api_key, decay_weight, ai_quota_usage, ai_quota_limit, projection_overrides)
+  INSERT INTO public.profiles (
+    id, username, full_name, paycheck_keyword, role, is_admin, 
+    onboarding_completed, target_monthly_income, target_monthly_spend, 
+    currency, language, subscription_tier, ai_provider, custom_api_key, 
+    decay_weight, ai_quota_usage, ai_quota_limit, projection_overrides
+  )
   VALUES (
     new.id,
     COALESCE(new.raw_user_meta_data->>'username', SPLIT_PART(new.email, '@', 1)),
@@ -137,15 +142,22 @@ BEGIN
     1500,
     'EUR',
     'en-US',
-    'FREE',
+    CASE 
+      WHEN NOW() <= '2026-08-31 23:59:59+00'::timestamptz THEN 'PRO'
+      ELSE 'FREE'
+    END,
     'gemini',
     '',
     0.12,
     0,
-    50,
+    100,
     '[]'::jsonb
   )
-  ON CONFLICT (id) DO NOTHING;
+  ON CONFLICT (id) DO UPDATE SET
+    subscription_tier = CASE 
+      WHEN NOW() <= '2026-08-31 23:59:59+00'::timestamptz AND (profiles.subscription_tier IS NULL OR profiles.subscription_tier = 'FREE' OR profiles.subscription_tier = 'free') THEN 'PRO'
+      ELSE profiles.subscription_tier
+    END;
   RETURN new;
 END;
 $$ LANGUAGE plpgsql SECURITY DEFINER;

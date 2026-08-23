@@ -314,8 +314,10 @@ export function SystemProvider({ children }: { children: React.ReactNode }) {
   const currency = profile?.currency || "EUR"
   const language = profile?.language || "en-US"
   const currencySymbol = getCurrencySymbol(currency)
-  const subscriptionTier = profile?.subscription_tier || "FREE"
-  const isPro = subscriptionTier === "PRO"
+  const isAugust2026Launch = true
+  const rawTier = (profile?.subscription_tier || (isAugust2026Launch ? "PRO" : "FREE")).toUpperCase()
+  const subscriptionTier = rawTier === "PRO" ? "PRO" : "FREE"
+  const isPro = subscriptionTier === "PRO" || isAugust2026Launch
   const isAdmin = profile?.is_admin === true || profile?.role === "admin" || profile?.role === "super_admin"
   const aiProvider = profile?.ai_provider || "gemini"
   const customApiKey = profile?.custom_api_key || ""

@@ -8,8 +8,8 @@ export interface BankingAppPreset {
 
 export const BANKING_APPS_REGISTRY: BankingAppPreset[] = [
   // --- PORTUGAL ---
-  { id: "santander_pt", name: "Santander Portugal", package: "com.santander.app", region: "Portugal", domain: "santander.pt" },
-  { id: "santander_totta", name: "Santander Totta", package: "pt.santandertotta.mobileparticulares", region: "Portugal", domain: "santander.pt" },
+  { id: "santander_pt", name: "Santander Portugal", package: "pt.santandertotta.mobileparticulares", region: "Portugal", domain: "santander.pt" },
+  { id: "santander_empresas_pt", name: "Santander Empresas PT", package: "pt.santander.empresas", region: "Portugal", domain: "santander.pt" },
   { id: "mbway", name: "MB WAY", package: "com.sibs.mbway", region: "Portugal", domain: "mbway.pt" },
   { id: "cgd", name: "Caixa Geral de Depósitos", package: "pt.cgd.caixadirecta", region: "Portugal", domain: "cgd.pt" },
   { id: "millennium_bcp", name: "Millennium bcp", package: "pt.bcp.app", region: "Portugal", domain: "millenniumbcp.pt" },

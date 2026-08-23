@@ -81,7 +81,7 @@ export function OnboardingView() {
   const [step4SubStage, setStep4SubStage] = useState<"apps" | "device">("apps")
   const [iosStage, setIosStage] = useState<0 | 1>(0)
   const [showProOffer, setShowProOffer] = useState(false)
-  const [selectedBankApps, setSelectedBankApps] = useState<string[]>(["revolut", "santander", "chase", "mbway", "n26", "wise", "apple_pay"])
+  const [selectedBankApps, setSelectedBankApps] = useState<string[]>([])
   const [installedApps, setInstalledApps] = useState<{ name: string; packageName: string; isFinance: boolean }[]>([])
   const [isLoadingNativeApps, setIsLoadingNativeApps] = useState<boolean>(() => {
     if (typeof window !== "undefined") {
@@ -98,9 +98,17 @@ export function OnboardingView() {
       const BankSync = registerPlugin<any>("LegerBankSync")
       if (BankSync) {
         setIsLoadingNativeApps(true)
+
+        // Immediately check & prompt for Android notification listener permission
+        BankSync.isNotificationAccessGranted().then((res: any) => {
+          if (!res?.granted) {
+            BankSync.openNotificationAccessSettings().catch(() => {})
+          }
+        }).catch(() => {})
+
         BankSync.getInstalledApps().then((res: any) => {
           if (res?.apps && Array.isArray(res.apps)) {
-            const sorted = [...res.apps].sort((a, b) => {
+            const sorted = [...res.apps].sort((a: any, b: any) => {
               if (a.isFinance && !b.isFinance) return -1
               if (!a.isFinance && b.isFinance) return 1
               return a.name.localeCompare(b.name)
@@ -162,10 +170,10 @@ export function OnboardingView() {
   }, [installedApps, appScopeTab, searchQuery])
 
   const toggleBankSelection = (id: string, pkg?: string) => {
-    const targetKey = pkg || id
-    const newSel = selectedBankApps.includes(targetKey)
-      ? selectedBankApps.filter(item => item !== targetKey)
-      : [...selectedBankApps, targetKey]
+    const isCurrentlySelected = selectedBankApps.includes(id) || (pkg ? selectedBankApps.includes(pkg) : false)
+    const newSel = isCurrentlySelected
+      ? selectedBankApps.filter(item => item !== id && (!pkg || item !== pkg))
+      : [...selectedBankApps, pkg || id]
     setSelectedBankApps(newSel)
     if (typeof window !== "undefined") {
       localStorage.setItem(`leger_monitored_banks_${user?.id || "default"}`, JSON.stringify(newSel))
@@ -185,12 +193,22 @@ export function OnboardingView() {
   const halfPriceFormatted = formatCurrency(halfAmount, currency, decimals)
 
   const handleProceedFromStep4 = async () => {
-    if (isPro) {
-      toast.success("Device Push Ingestion Initialized")
-      await handleCompleteOnboarding('/')
-    } else {
-      setShowProOffer(true)
+    // Save selections and initialize sync context
+    if (Capacitor.isNativePlatform()) {
+      const BankSync = registerPlugin<any>("LegerBankSync")
+      const targetId = await getUserId()
+      BankSync?.setSelectedBankPackages({ packages: selectedBankApps, userId: targetId }).catch(() => {})
+      BankSync?.setSyncContext({ userId: targetId, baseUrl: "https://leger-os.vercel.app" }).catch(() => {})
+      
+      // Ensure notification access permission is verified/prompted
+      try {
+        const perm = await BankSync?.isNotificationAccessGranted()
+        if (!perm?.granted) {
+          await BankSync?.openNotificationAccessSettings()
+        }
+      } catch {}
     }
+    setShowProOffer(true)
   }
 
   useEffect(() => {
@@ -312,6 +330,32 @@ export function OnboardingView() {
         })
       }
     })
+
+    // Pre-trigger app scanning and permission check on Android immediately
+    if (typeof window !== "undefined" && Capacitor.isNativePlatform()) {
+      const BankSync = registerPlugin<any>("LegerBankSync")
+      if (BankSync) {
+        setIsLoadingNativeApps(true)
+        BankSync.getInstalledApps().then((res: any) => {
+          if (res?.apps && Array.isArray(res.apps)) {
+            const sorted = [...res.apps].sort((a: any, b: any) => {
+              if (a.isFinance && !b.isFinance) return -1
+              if (!a.isFinance && b.isFinance) return 1
+              return a.name.localeCompare(b.name)
+            })
+            setInstalledApps(sorted)
+          }
+        }).catch(() => {}).finally(() => {
+          setIsLoadingNativeApps(false)
+        })
+
+        BankSync.isNotificationAccessGranted().then((res: any) => {
+          if (!res?.granted) {
+            BankSync.openNotificationAccessSettings().catch(() => {})
+          }
+        }).catch(() => {})
+      }
+    }
   }
 
   return (
@@ -432,7 +476,7 @@ export function OnboardingView() {
                       id="paycheck"
                       value={keyword}
                       onChange={(e) => setKeyword(e.target.value)}
-                      placeholder="e.g. DELOITTE, SALARY, EMPLOYER..."
+                      placeholder="e.g. SALARY, PAYCHECK, EMPLOYER..."
                       className="rounded-none font-mono text-xs uppercase h-10 bg-background"
                     />
                     <span className="text-[8px] sm:text-[9px] text-muted-foreground block font-sans">
@@ -529,8 +573,8 @@ export function OnboardingView() {
                 <Button onClick={() => setStep(1)} variant="outline" className="rounded-none uppercase font-mono text-xs tracking-widest h-11 sm:h-12 px-6 cursor-pointer">
                   Back
                 </Button>
-                <Button onClick={handleSeedAndProceed} className="flex-1 rounded-none uppercase font-mono text-xs tracking-widest h-11 sm:h-12 bg-foreground text-background hover:bg-foreground/90 cursor-pointer">
-                  Initialize {selectedHabits.length} Habit Rules <ArrowRight className="ml-2 h-4 w-4" />
+                <Button onClick={handleSeedAndProceed} className="flex-1 rounded-none uppercase font-mono text-xs tracking-widest h-11 sm:h-12 bg-foreground text-background hover:bg-foreground/90 cursor-pointer flex items-center justify-center gap-2">
+                  <span>Initialize</span> <ArrowRight className="h-4 w-4" />
                 </Button>
               </div>
             </motion.div>
@@ -609,8 +653,8 @@ export function OnboardingView() {
                 <Button onClick={() => setStep(2)} variant="outline" className="rounded-none uppercase font-mono text-xs tracking-widest h-11 sm:h-12 px-6 cursor-pointer">
                   Back
                 </Button>
-                <Button onClick={handleCompleteStep3} className="flex-1 rounded-none uppercase font-mono text-xs tracking-widest h-11 sm:h-12 bg-foreground text-background hover:bg-foreground/90 cursor-pointer">
-                  Continue to Device Sync <ArrowRight className="ml-2 h-4 w-4" />
+                <Button onClick={handleCompleteStep3} className="flex-1 rounded-none uppercase font-mono text-xs tracking-widest h-11 sm:h-12 bg-foreground text-background hover:bg-foreground/90 cursor-pointer flex items-center justify-center gap-2">
+                  <span>Sync</span> <ArrowRight className="h-4 w-4" />
                 </Button>
               </div>
             </motion.div>
@@ -766,12 +810,11 @@ export function OnboardingView() {
                             )}
                           </div>
                         ) : (
-                          displayBanks.map((app) => {
-                            const targetKey = app.package || app.id
-                            const isSelected = selectedBankApps.includes(targetKey) || selectedBankApps.includes(app.id)
+                          displayBanks.map((app, index) => {
+                            const isSelected = selectedBankApps.includes(app.id) || (app.package ? selectedBankApps.includes(app.package) : false)
                             return (
                               <div
-                                key={targetKey}
+                                key={`${app.id || app.package || 'bank'}-${index}`}
                                 onClick={() => toggleBankSelection(app.id, app.package)}
                                 className={cn(
                                   "p-3 border text-left cursor-pointer transition-all flex items-center justify-between select-none relative",
@@ -816,7 +859,7 @@ export function OnboardingView() {
                           onClick={() => setStep4SubStage("device")} 
                           className="flex-1 rounded-none uppercase font-mono text-xs tracking-widest h-11 sm:h-12 bg-foreground text-background hover:bg-foreground/90 cursor-pointer flex items-center justify-center gap-2"
                         >
-                          Connect Device & Automate <ArrowRight className="h-4 w-4" />
+                          <span>Connect</span> <ArrowRight className="h-4 w-4" />
                         </Button>
                       </div>
                     </motion.div>
@@ -960,9 +1003,9 @@ export function OnboardingView() {
 
                                     <Button 
                                       onClick={handleProceedFromStep4} 
-                                      className="w-full rounded-none uppercase font-mono text-[10px] font-bold tracking-wider h-10 bg-foreground text-background hover:bg-foreground/90 cursor-pointer flex items-center justify-center gap-1.5 shadow-xs"
+                                      className="w-full rounded-none uppercase font-mono text-xs tracking-widest h-10 bg-foreground text-background hover:bg-foreground/90 cursor-pointer flex items-center justify-center gap-2 shadow-xs"
                                     >
-                                      <span>Finish & Activate</span> <ArrowRight className="h-3.5 w-3.5" />
+                                      <span>Connect</span> <ArrowRight className="h-3.5 w-3.5" />
                                     </Button>
                                   </div>
                                 </motion.div>
@@ -1022,9 +1065,9 @@ export function OnboardingView() {
 
                                     <Button 
                                       onClick={handleProceedFromStep4} 
-                                      className="w-full rounded-none uppercase font-mono text-[10px] font-bold tracking-wider h-10 bg-foreground text-background hover:bg-foreground/90 cursor-pointer flex items-center justify-center gap-1.5 shadow-xs"
+                                      className="w-full rounded-none uppercase font-mono text-xs tracking-widest h-10 bg-foreground text-background hover:bg-foreground/90 cursor-pointer flex items-center justify-center gap-2 shadow-xs"
                                     >
-                                      <span>Finish & Activate</span> <ArrowRight className="h-3.5 w-3.5" />
+                                      <span>Connect</span> <ArrowRight className="h-3.5 w-3.5" />
                                     </Button>
                                   </div>
                                 </motion.div>
@@ -1041,14 +1084,9 @@ export function OnboardingView() {
                             className="p-3.5 sm:p-4 bg-background border border-border space-y-3"
                           >
                             <div className="space-y-1">
-                              <div className="flex items-center justify-between">
-                                <span className="text-xs font-bold uppercase font-mono tracking-wide text-foreground">
-                                  Background Notification Listener
-                                </span>
-                                <span className="text-[9px] font-mono uppercase px-2 py-0.5 border border-border text-foreground bg-secondary font-bold">
-                                  Zero Touch
-                                </span>
-                              </div>
+                              <span className="text-xs font-bold uppercase font-mono tracking-wide text-foreground block">
+                                Background Notification Listener
+                              </span>
                               <p className="text-[10px] text-muted-foreground font-sans leading-relaxed">
                                 Directly ingests payment notifications from banking apps on this device in memory.
                               </p>
@@ -1067,10 +1105,9 @@ export function OnboardingView() {
 
                             <Button 
                               onClick={handleProceedFromStep4} 
-                              className="w-full rounded-none uppercase font-mono text-[11px] sm:text-xs tracking-wider h-11 sm:h-12 bg-foreground text-background hover:bg-foreground/90 cursor-pointer flex items-center justify-center gap-2 px-3 text-center"
+                              className="w-full rounded-none uppercase font-mono text-xs tracking-widest h-11 sm:h-12 bg-foreground text-background hover:bg-foreground/90 cursor-pointer flex items-center justify-center gap-2 px-3 text-center"
                             >
-                              <Smartphone className="h-3.5 w-3.5 shrink-0" />
-                              <span className="truncate">Activate Android Sync</span>
+                              <span>Sync</span> <ArrowRight className="h-4 w-4" />
                             </Button>
                           </motion.div>
                         )}
@@ -1102,8 +1139,96 @@ export function OnboardingView() {
                       </div>
                     </motion.div>
                   )
+                ) : isPro ? (
+                  /* BETA TESTER / PRO ACTIVE SCREEN (COMPLIMENTARY ACCESS) */
+                  <motion.div
+                    key="step4-pro-active"
+                    initial={{ opacity: 0, scale: 0.98 }}
+                    animate={{ opacity: 1, scale: 1 }}
+                    exit={{ opacity: 0, scale: 0.98 }}
+                    transition={{ duration: 0.25 }}
+                    className="space-y-4"
+                  >
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-2 text-emerald-500 font-mono text-[10px] font-bold uppercase tracking-wider">
+                        <Sparkles className="h-3.5 w-3.5" />
+                        <span>BETA TESTER PRIVILEGE — PRO ACTIVE</span>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => setShowProOffer(false)}
+                        className="text-[9px] font-mono uppercase text-muted-foreground hover:text-foreground underline cursor-pointer"
+                      >
+                        ← Back to Setup
+                      </button>
+                    </div>
+
+                    <div className="space-y-1">
+                      <h3 className="text-sm font-bold uppercase tracking-tight text-foreground">
+                        Beta Access Unlocked!
+                      </h3>
+                      <p className="text-[11px] text-muted-foreground font-sans leading-relaxed">
+                        As an early community tester, full PRO capabilities have been unlocked on your account with zero subscription fees.
+                      </p>
+                    </div>
+
+                    {/* Standardized Emerald Offer Card */}
+                    <div className="border border-emerald-500/40 bg-emerald-500/10 divide-y divide-emerald-500/20">
+                      <div className="px-4 py-3 flex items-center justify-between gap-3">
+                        <div className="space-y-1">
+                          <span className="text-[9px] uppercase bg-emerald-500 text-emerald-950 font-bold px-2 py-0.5 tracking-wider inline-flex items-center justify-center text-center">
+                            EARLY BETA PASS
+                          </span>
+                          <p className="text-xs font-bold text-foreground">
+                            Complimentary PRO Mainframe
+                          </p>
+                        </div>
+                        <div className="text-right shrink-0">
+                          <p className="text-[10px] text-muted-foreground line-through font-mono">{fullPriceFormatted}/mo</p>
+                          <p className="text-xl sm:text-2xl font-black text-emerald-400 font-mono tracking-tight leading-tight">
+                            €0.00
+                            <span className="text-[11px] text-emerald-500/80 font-normal"> / FREE</span>
+                          </p>
+                        </div>
+                      </div>
+
+                      <div className="px-4 py-3 text-xs font-sans text-muted-foreground space-y-2">
+                        <div className="flex items-center gap-2">
+                          <Check className="h-3.5 w-3.5 text-emerald-500 shrink-0" />
+                          <span className="text-foreground text-[11px] font-mono">
+                            {deviceOs === "ios" ? "Real-Time Apple Pay & Wallet Ingestion" : "Real-Time Android Push & Banking Listener"}
+                          </span>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <Check className="h-3.5 w-3.5 text-emerald-500 shrink-0" />
+                          <span className="text-foreground text-[11px] font-mono">AI Neural Ingestion & Categorization</span>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <Check className="h-3.5 w-3.5 text-emerald-500 shrink-0" />
+                          <span className="text-foreground text-[11px] font-mono">Recency Decay Cash Forecasts (λ = 0.12) & Overrides</span>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <Check className="h-3.5 w-3.5 text-emerald-500 shrink-0" />
+                          <span className="text-foreground text-[11px] font-mono">Subscription & Silent Price Hike Radar</span>
+                        </div>
+                      </div>
+                    </div>
+
+                    <p className="text-[10px] text-muted-foreground font-sans text-center leading-relaxed">
+                      100% free community beta tester access. No credit card required.
+                    </p>
+
+                    <div className="space-y-2 pt-1">
+                      <Button
+                        onClick={() => handleCompleteOnboarding('/')}
+                        className="w-full h-11 sm:h-12 rounded-none bg-emerald-600 text-white hover:bg-emerald-500 font-mono text-xs uppercase font-bold tracking-wider cursor-pointer shadow-sm flex items-center justify-center gap-2"
+                      >
+                        <Sparkles className="h-3.5 w-3.5" /> Launch LEGER_OS PRO →
+                      </Button>
+                    </div>
+                  </motion.div>
                 ) : (
-                  /* PRO INTRODUCTORY OFFER SCREEN (NEW USERS) */
+                  /* PRO INTRODUCTORY OFFER SCREEN (REGULAR NEW USERS) */
                   <motion.div
                     key="step4-pro-offer"
                     initial={{ opacity: 0, scale: 0.98 }}

@@ -648,7 +648,7 @@ export function SystemConfigView() {
                     </Label>
                     <Input
                       id="paycheckKwInput"
-                      placeholder="e.g. SALARY, DELOITTE, DIRECT DEPOSIT..."
+                      placeholder="e.g. SALARY, PAYCHECK, DIRECT DEPOSIT..."
                       value={keywordInput}
                       onChange={(e) => setKeywordInput(e.target.value)}
                       className="rounded-none text-xs uppercase bg-background border-border h-10 font-bold"

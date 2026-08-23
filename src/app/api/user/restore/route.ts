@@ -129,7 +129,7 @@ export async function POST(request: Request) {
           user_id: user.id,
           date: inc.date,
           amount: parseFloat(inc.amount),
-          source: inc.source || "Deloitte"
+          source: inc.source || "Salary"
         })
         if (!incErr) restoredStats.incomes++
       }

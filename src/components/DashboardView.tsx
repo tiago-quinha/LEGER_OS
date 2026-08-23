@@ -817,8 +817,42 @@ export function DashboardView({
                </div>
             </div>
             
-            <div className="min-h-[300px] md:min-h-[400px] h-fit w-full border border-border ledger-border p-4 md:p-10 bg-card/40 relative overflow-hidden flex flex-col justify-center">
-              {viewMode === 'graph' ? (
+            <div className="min-h-[290px] md:min-h-[350px] h-fit w-full border border-border ledger-border p-4 sm:p-6 bg-card/30 relative overflow-hidden flex flex-col items-center justify-center">
+              {expenses.length === 0 ? (
+                <div className="max-w-[320px] sm:max-w-sm w-full mx-auto space-y-3.5 sm:space-y-4 flex flex-col items-center justify-center text-center my-auto py-2">
+                  <div className="w-9 h-9 rounded-none bg-secondary/40 border border-border flex items-center justify-center text-foreground shadow-xs shrink-0">
+                    <TrendingUp className="h-4 w-4 text-foreground/80" />
+                  </div>
+                  <div className="space-y-1.5 max-w-[290px] sm:max-w-[320px] mx-auto">
+                    <h3 className="text-xs sm:text-[13px] font-bold font-mono uppercase tracking-wider text-foreground">
+                      Projection Engine Calibrated
+                    </h3>
+                    <p className="text-[10.5px] sm:text-[11.5px] text-muted-foreground font-sans leading-relaxed">
+                      You have no transactions in your ledger yet. Ingest your first bank statement or record an entry to generate your daily burn forecast.
+                    </p>
+                  </div>
+                  <div className="flex flex-col sm:flex-row items-center justify-center gap-2 pt-1 w-full max-w-[290px] sm:max-w-[320px]">
+                    <Button
+                      type="button"
+                      onClick={() => router.push('/expenses?tab=ingest')}
+                      className="w-full sm:flex-1 h-9 rounded-none bg-foreground text-background hover:bg-foreground/90 font-mono text-[10px] sm:text-[10.5px] uppercase font-bold tracking-wider cursor-pointer flex items-center justify-center gap-1.5 shadow-xs"
+                    >
+                      <Upload className="h-3.5 w-3.5" /> Upload Statement
+                    </Button>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      onClick={() => {
+                        setSelectedDate(new Date())
+                        setModalOpen(true)
+                      }}
+                      className="w-full sm:flex-1 h-9 rounded-none border-border bg-secondary/30 hover:bg-secondary text-foreground font-mono text-[10px] sm:text-[10.5px] uppercase font-bold tracking-wider cursor-pointer flex items-center justify-center gap-1.5"
+                    >
+                      <Plus className="h-3.5 w-3.5" /> Add Expense
+                    </Button>
+                  </div>
+                </div>
+              ) : viewMode === 'graph' ? (
                 <div className="relative w-full h-full">
                   <DashboardChart 
                     hybridData={hybridData} 
@@ -830,46 +864,7 @@ export function DashboardView({
                     isPro={isPro}
                   />
 
-                  {/* Empty State Overlay when no transactions are recorded yet */}
-                  {expenses.length === 0 && (
-                    <div className="absolute inset-0 z-30 bg-background/95 backdrop-blur-md flex flex-col items-center justify-center p-6 text-center">
-                      <div className="max-w-md w-full space-y-4">
-                        <div className="w-11 h-11 rounded-none bg-secondary/40 border border-border flex items-center justify-center mx-auto text-foreground shadow-sm">
-                          <TrendingUp className="h-5 w-5" />
-                        </div>
-                        <div className="space-y-1.5">
-                          <h3 className="text-sm sm:text-base font-bold font-mono uppercase tracking-wider text-foreground">
-                            Projection Engine Calibrated
-                          </h3>
-                          <p className="text-xs text-muted-foreground font-sans leading-relaxed">
-                            You have no transactions in your ledger yet. Ingest your first bank statement or record an entry to generate your daily burn forecast.
-                          </p>
-                        </div>
-                        <div className="flex flex-col sm:flex-row items-center justify-center gap-2.5 pt-2">
-                          <Button
-                            type="button"
-                            onClick={() => router.push('/expenses?tab=ingest')}
-                            className="w-full sm:w-auto h-11 rounded-none bg-foreground text-background hover:bg-foreground/90 font-mono text-xs uppercase font-bold tracking-wider cursor-pointer flex items-center justify-center gap-2 px-5 shadow-sm"
-                          >
-                            <Upload className="h-4 w-4" /> Upload Statement
-                          </Button>
-                          <Button
-                            type="button"
-                            variant="outline"
-                            onClick={() => {
-                              setSelectedDate(new Date())
-                              setModalOpen(true)
-                            }}
-                            className="w-full sm:w-auto h-11 rounded-none border-border bg-secondary/30 hover:bg-secondary text-foreground font-mono text-xs uppercase font-bold tracking-wider cursor-pointer flex items-center justify-center gap-2 px-4"
-                          >
-                            <Plus className="h-4 w-4" /> Add Expense
-                          </Button>
-                        </div>
-                      </div>
-                    </div>
-                  )}
-
-                  {!isLoading && !isPro && showGraphLock && expenses.length > 0 && (
+                  {!isLoading && !isPro && showGraphLock && (
                     <div className="absolute inset-0 z-30 bg-background/95 backdrop-blur-md flex flex-col items-center justify-center p-4 text-center">
                       <div className="max-w-md w-full space-y-3">
                         <ProLockOverlay 

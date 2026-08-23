@@ -317,7 +317,7 @@ export async function POST(request: Request) {
       }
 
       // Secondary smart notification triggers (non-blocking)
-      if (isInflow && (Math.abs(finalAmount) >= 500 || finalMerchant.toLowerCase().includes("deloitte") || finalMerchant.toLowerCase().includes("ordenado") || finalMerchant.toLowerCase().includes("salary"))) {
+      if (isInflow && (Math.abs(finalAmount) >= 500 || finalMerchant.toLowerCase().includes("ordenado") || finalMerchant.toLowerCase().includes("salary") || finalMerchant.toLowerCase().includes("vencimento") || finalMerchant.toLowerCase().includes("payroll"))) {
         notifyPaydayCaptured(supabaseAdmin, userId, finalAmount, currencySymbol).catch(console.error)
       } else if (!isInflow && resolvedCategoryId) {
         notifyCategoryBudgetThreshold(supabaseAdmin, userId, resolvedCategoryId, currencySymbol).catch(console.error)
