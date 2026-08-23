@@ -1,0 +1,53 @@
+# Dependencies
+/node_modules
+/.pnp
+.pnp.*
+.yarn/*
+!.yarn/patches
+!.yarn/plugins
+!.yarn/releases
+!.yarn/versions
+
+# Testing & build
+/coverage
+/.next/
+/out/
+/build
+.vercel
+*.tsbuildinfo
+next-env.d.ts
+
+# Misc & certs
+.DS_Store
+*.pem
+*.key
+*.cert
+*.log
+*.jsonl
+
+# Strict Env & Credentials
+.env*
+
+# AI agents, skills, toolings, Obsidian vaults and internal notes
+.agents/
+.gemini/
+scratch/
+graphify-out/
+LEGER_OS/
+archive/
+skills-lock.json
+obsidian_mcp_config.json
+lighthouse-report.json
+
+# Internal markdown docs (keep only official README)
+*.md
+!README.md
+
+# All Python scripts
+*.py
+
+# All personal bank extracts & raw text
+*.pdf
+*.txt
+!public/privacy.txt
+!public/terms.txt

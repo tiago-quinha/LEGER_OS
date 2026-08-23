@@ -1,0 +1,21 @@
+LEGER_OS // TERMS OF SERVICE
+Last Updated: July 2026
+
+Welcome to LEGER_OS (the "Application" or "Mainframe"), a personal finance tracking terminal. By initializing or using this Application, you agree to these Terms of Service.
+
+1. DATA SECURITY & OWNERSHIP
+All data ingested, including bank statements, transactions, budgets, and balance checkpoints, remains your own personal information. LEGER_OS utilizes local storage, cookies, and Supabase database isolation to partition your data securely.
+
+2. THIRD-PARTY NEURAL SYSTEMS
+LEGER_OS implements a neural bridge strategy assistant that queries third-party large language models (such as Google Gemini, OpenAI, or Groq) depending on your configuration. When invoking AI features, relevant transaction summaries and telemetry metrics are processed by these third-party systems. No PII other than raw transaction descriptions is sent.
+
+3. AGE LIMITATIONS
+You must be at least 18 years of age to initialize or use this Application. By registering a global node, you certify that you meet the age requirements.
+
+4. LIABILITY LIMITATIONS
+LEGER_OS provides financial simulations, velocity projections, and automated categorization rules for educational and informational purposes only. LEGER_OS is not a registered financial advisor. ALL FORECASTS ARE ESTIMATES. You assume full responsibility for any financial decisions or actions taken based on LEGER_OS simulations.
+
+5. MODIFICATIONS & UPDATES
+We reserve the right to deploy updates, patches, and schema changes to the Mainframe terminal at any time.
+
+Initialize node responsibly.

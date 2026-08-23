@@ -1,0 +1,194 @@
+@import "tailwindcss";
+
+@custom-variant dark (&:where(.dark, .dark *));
+
+@theme {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-destructive: var(--destructive);
+  --color-destructive-foreground: var(--destructive-foreground);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+
+  --font-sans: var(--font-geist-sans);
+  --font-mono: var(--font-geist-mono);
+  
+  --animate-spin-slow: spin 20s linear infinite;
+}
+
+@layer base {
+  :root {
+    --background: #fafafa;
+    --foreground: #18181b;
+    --card: #ffffff;
+    --card-foreground: #18181b;
+    --popover: #ffffff;
+    --popover-foreground: #18181b;
+    --primary: #18181b;
+    --primary-foreground: #fafafa;
+    --secondary: #f4f4f5;
+    --secondary-foreground: #18181b;
+    --muted: #f4f4f5;
+    --muted-foreground: #71717a;
+    --accent: #f4f4f5;
+    --accent-foreground: #18181b;
+    --destructive: #dc2626;
+    --destructive-foreground: #fafafa;
+    --border: #e4e4e7;
+    --input: #e4e4e7;
+    --ring: #18181b;
+    --radius: 8px;
+  }
+
+  .dark {
+    --background: #09090b;
+    --foreground: #fafafa;
+    --card: #121215;
+    --card-foreground: #fafafa;
+    --popover: #09090b;
+    --popover-foreground: #fafafa;
+    --primary: #fafafa;
+    --primary-foreground: #09090b;
+    --secondary: #18181b;
+    --secondary-foreground: #fafafa;
+    --muted: #18181b;
+    --muted-foreground: #a1a1aa;
+    --accent: #18181b;
+    --accent-foreground: #fafafa;
+    --destructive: #e11d48;
+    --destructive-foreground: #fafafa;
+    --border: #222226;
+    --input: #222226;
+    --ring: #a1a1aa;
+    --radius: 8px;
+  }
+}
+
+body {
+  background-color: var(--background);
+  color: var(--foreground);
+  font-family: var(--font-sans), system-ui, sans-serif;
+  overflow-x: hidden;
+}
+
+/* Custom styling for native HTML select dropdown popups */
+select {
+  color-scheme: dark;
+}
+
+select option {
+  background-color: var(--card, #121215) !important;
+  color: var(--foreground, #fafafa) !important;
+  padding: 8px 12px;
+}
+
+select option:hover,
+select option:focus,
+select option:active,
+select option:checked {
+  background-color: #18181b !important;
+  color: #10b981 !important;
+}
+
+/* Custom Cybermatic/Terminal utilities */
+.ledger-border {
+  border-radius: 8px;
+  border: 1px solid var(--border);
+}
+
+.technical-label {
+  font-family: var(--font-mono), monospace;
+  font-size: 9px;
+  text-transform: uppercase;
+  letter-spacing: 0.15em;
+  color: var(--muted-foreground);
+  line-height: 1;
+}
+
+/* Scanline keyframe animation */
+@keyframes scan {
+  0% {
+    transform: translateY(-100%);
+  }
+  100% {
+    transform: translateY(100vh);
+  }
+}
+
+.animate-scan {
+  animation: scan 8s linear infinite;
+}
+
+.scrollbar-hide::-webkit-scrollbar {
+  display: none;
+}
+.scrollbar-hide {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
+.cn-toast {
+  background-color: var(--card) !important;
+  color: var(--foreground) !important;
+  border: 1px solid var(--border) !important;
+  border-radius: 8px !important;
+  font-family: var(--font-mono), monospace !important;
+  font-size: 10px !important;
+  text-transform: uppercase !important;
+  letter-spacing: 0.05em !important;
+}
+
+@keyframes shimmer {
+  0% {
+    transform: translateX(-100%);
+  }
+  100% {
+    transform: translateX(100%);
+  }
+}
+
+.glow-card {
+  transition: all 0.35s cubic-bezier(0.16, 1, 0.3, 1) !important;
+}
+
+.glow-card:hover {
+  border-color: rgba(250, 250, 250, 0.25) !important;
+  box-shadow: 0 0 20px rgba(255, 255, 255, 0.02), inset 0 0 10px rgba(255, 255, 255, 0.01) !important;
+  background-color: rgba(24, 24, 27, 0.35) !important;
+  transform: translateY(-1.5px);
+}
+
+.dark .glow-card:hover {
+  border-color: rgba(250, 250, 250, 0.15) !important;
+  box-shadow: 0 0 25px rgba(255, 255, 255, 0.01), inset 0 0 12px rgba(255, 255, 255, 0.01) !important;
+  background-color: rgba(255, 255, 255, 0.015) !important;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(4px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.animate-fade-in {
+  animation: fadeIn 0.4s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+

@@ -1,0 +1,12 @@
+{
+  "crons": [
+    {
+      "path": "/api/cron/sync-market-data",
+      "schedule": "30 20 * * *"
+    },
+    {
+      "path": "/api/notifications/daily-outlook",
+      "schedule": "30 7 * * *"
+    }
+  ]
+}

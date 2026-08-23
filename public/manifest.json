@@ -1,0 +1,43 @@
+{
+  "name": "LEGER_OS // Personal Finance Mainframe",
+  "short_name": "LEGER_OS",
+  "description": "High-Precision Paycheck Cycle Budget & Expense Mainframe",
+  "id": "leger-os-pwa",
+  "start_url": "/",
+  "display": "standalone",
+  "orientation": "portrait-primary",
+  "background_color": "#09090b",
+  "theme_color": "#09090b",
+  "categories": ["finance", "productivity", "utilities"],
+  "icons": [
+    {
+      "src": "/icon-512.svg",
+      "sizes": "192x192 512x512",
+      "type": "image/svg+xml",
+      "purpose": "any"
+    },
+    {
+      "src": "/icon-512.svg",
+      "sizes": "192x192 512x512",
+      "type": "image/svg+xml",
+      "purpose": "maskable"
+    }
+  ],
+  "shortcuts": [
+    {
+      "name": "Ledger Expenses",
+      "url": "/expenses",
+      "description": "View and record transactions"
+    },
+    {
+      "name": "Leger AI",
+      "url": "/leger-ai",
+      "description": "Query your financial intelligence assistant"
+    },
+    {
+      "name": "Cycle Budgets",
+      "url": "/budgets",
+      "description": "Check monthly budget targets"
+    }
+  ]
+}
