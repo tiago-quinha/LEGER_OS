@@ -1,1 +1,0 @@
-{"nodes": [{"id": "supabase", "label": "supabase.ts", "file_type": "code", "source_file": "src\\lib\\supabase.ts", "source_location": "L1"}], "edges": [{"source": "supabase", "target": "ssr", "relation": "imports_from", "confidence": "EXTRACTED", "source_file": "src\\lib\\supabase.ts", "source_location": "L1", "weight": 1.0}]}
