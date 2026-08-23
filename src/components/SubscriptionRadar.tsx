@@ -86,23 +86,28 @@ export function SubscriptionRadar({ expenses, cycleStartDate, cycleEndDate }: Su
     } catch (e) {}
   }, [profile?.subscription_radar_preferences])
 
-  const handleToggleCadence = (merchantName: string, currentCadence: "monthly" | "annual", e?: React.MouseEvent) => {
+  const handleSetCadence = (merchantName: string, targetCadence: "monthly" | "annual", e?: React.MouseEvent) => {
     if (e) e.stopPropagation()
-    const nextCadence: "monthly" | "annual" = currentCadence === "monthly" ? "annual" : "monthly"
     const updated = {
       ...cadenceOverrides,
-      [merchantName.toUpperCase()]: nextCadence
+      [merchantName.toUpperCase()]: targetCadence
     }
     setCadenceOverrides(updated)
     try {
       localStorage.setItem("leger_subscription_cadence_overrides", JSON.stringify(updated))
-      toast.success(`${merchantName.toUpperCase()} SET TO ${nextCadence.toUpperCase()}`)
+      toast.success(`${merchantName.toUpperCase()} SET TO ${targetCadence.toUpperCase()}`)
     } catch (e) {}
 
     if (selectedSubForDetails && selectedSubForDetails.merchant.toUpperCase() === merchantName.toUpperCase()) {
-      setSelectedSubForDetails(prev => prev ? { ...prev, cadence: nextCadence } : null)
+      setSelectedSubForDetails(prev => prev ? { ...prev, cadence: targetCadence } : null)
     }
     syncRadarPreferencesToBackend(dismissedMerchants, updated)
+  }
+
+  const handleToggleCadence = (merchantName: string, currentCadence: "monthly" | "annual", e?: React.MouseEvent) => {
+    if (e) e.stopPropagation()
+    const nextCadence: "monthly" | "annual" = currentCadence === "monthly" ? "annual" : "monthly"
+    handleSetCadence(merchantName, nextCadence, e)
   }
 
   const handleDismiss = (merchantName: string) => {
@@ -394,7 +399,7 @@ export function SubscriptionRadar({ expenses, cycleStartDate, cycleEndDate }: Su
                 <div className="grid grid-cols-2 gap-1.5 bg-secondary/30 p-1 border border-border">
                   <button
                     type="button"
-                    onClick={() => handleToggleCadence(selectedSubForDetails.merchant, "annual")}
+                    onClick={() => handleSetCadence(selectedSubForDetails.merchant, "monthly")}
                     className={cn(
                       "h-8 text-[10px] font-bold uppercase transition-colors cursor-pointer flex items-center justify-center gap-1",
                       selectedSubForDetails.cadence === "monthly" 
@@ -406,7 +411,7 @@ export function SubscriptionRadar({ expenses, cycleStartDate, cycleEndDate }: Su
                   </button>
                   <button
                     type="button"
-                    onClick={() => handleToggleCadence(selectedSubForDetails.merchant, "monthly")}
+                    onClick={() => handleSetCadence(selectedSubForDetails.merchant, "annual")}
                     className={cn(
                       "h-8 text-[10px] font-bold uppercase transition-colors cursor-pointer flex items-center justify-center gap-1",
                       selectedSubForDetails.cadence === "annual" 

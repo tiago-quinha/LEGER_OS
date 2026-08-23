@@ -149,24 +149,30 @@ export function RadarPageView({ expenses, categories, cycles, currentCycleId }: 
     } catch (e) {}
   }, [profile?.subscription_radar_preferences])
 
-  // Cadence toggle handler
-  const handleToggleCadence = (merchantName: string, currentCadence: "monthly" | "annual", e?: React.MouseEvent) => {
+  // Set specific cadence handler
+  const handleSetCadence = (merchantName: string, targetCadence: "monthly" | "annual", e?: React.MouseEvent) => {
     if (e) e.stopPropagation()
-    const nextCadence: "monthly" | "annual" = currentCadence === "monthly" ? "annual" : "monthly"
     const updated = {
       ...cadenceOverrides,
-      [merchantName.toUpperCase()]: nextCadence
+      [merchantName.toUpperCase()]: targetCadence
     }
     setCadenceOverrides(updated)
     try {
       localStorage.setItem("leger_subscription_cadence_overrides", JSON.stringify(updated))
-      toast.success(`${merchantName.toUpperCase()} SET TO ${nextCadence.toUpperCase()}`)
+      toast.success(`${merchantName.toUpperCase()} SET TO ${targetCadence.toUpperCase()}`)
     } catch (e) {}
 
     if (selectedSubForDetails && selectedSubForDetails.merchant.toUpperCase() === merchantName.toUpperCase()) {
-      setSelectedSubForDetails(prev => prev ? { ...prev, cadence: nextCadence } : null)
+      setSelectedSubForDetails(prev => prev ? { ...prev, cadence: targetCadence } : null)
     }
     syncRadarPreferencesToBackend(dismissedMerchants, updated, pinnedSubscriptions)
+  }
+
+  // Cadence toggle handler
+  const handleToggleCadence = (merchantName: string, currentCadence: "monthly" | "annual", e?: React.MouseEvent) => {
+    if (e) e.stopPropagation()
+    const nextCadence: "monthly" | "annual" = currentCadence === "monthly" ? "annual" : "monthly"
+    handleSetCadence(merchantName, nextCadence, e)
   }
 
   // Dismiss / Exclude handler
@@ -545,7 +551,7 @@ export function RadarPageView({ expenses, categories, cycles, currentCycleId }: 
                     <div className="grid grid-cols-2 gap-1.5 bg-secondary/30 p-1 border border-border">
                       <button
                         type="button"
-                        onClick={() => handleToggleCadence(selectedSubForDetails.merchant, "annual")}
+                        onClick={() => handleSetCadence(selectedSubForDetails.merchant, "monthly")}
                         className={cn(
                           "h-8 text-[10px] font-bold uppercase transition-colors cursor-pointer flex items-center justify-center gap-1",
                           selectedSubForDetails.cadence === "monthly" 
@@ -557,7 +563,7 @@ export function RadarPageView({ expenses, categories, cycles, currentCycleId }: 
                       </button>
                       <button
                         type="button"
-                        onClick={() => handleToggleCadence(selectedSubForDetails.merchant, "monthly")}
+                        onClick={() => handleSetCadence(selectedSubForDetails.merchant, "annual")}
                         className={cn(
                           "h-8 text-[10px] font-bold uppercase transition-colors cursor-pointer flex items-center justify-center gap-1",
                           selectedSubForDetails.cadence === "annual" 
@@ -580,10 +586,6 @@ export function RadarPageView({ expenses, categories, cycles, currentCycleId }: 
                     <div className="flex justify-between">
                       <span className="text-muted-foreground uppercase">TOTAL FREQUENCY</span>
                       <span className="font-bold text-foreground">{selectedSubForDetails.occurrences || 1}x detected</span>
-                    </div>
-                    <div className="flex justify-between">
-                      <span className="text-muted-foreground uppercase">DETECTION SOURCE</span>
-                      <span className="font-bold text-foreground uppercase">{String(selectedSubForDetails.source || "statement").replace(/_/g, " ")}</span>
                     </div>
                     {selectedSubForDetails.nextExpectedDate && (
                       <div className="flex justify-between">
