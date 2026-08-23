@@ -34,7 +34,7 @@ const DashboardChart = dynamic(() => import("@/components/DashboardChart").then(
 })
 import { Button } from "@/components/ui/button"
 import { ProLockOverlay } from "@/components/ProLockOverlay"
-import { Download, TrendingUp, TrendingDown, Wallet, ArrowUpRight, Banknote, ChevronLeft, CalendarDays, ChevronRight, Landmark, Target, AlertTriangle, CheckCircle2, Zap, Brain, Sparkles, ChevronDown, Loader2, CalendarRange, CreditCard, Tag, Sliders, Smartphone, Shield, Cpu, LayoutDashboard, PiggyBank, Upload, Plus } from "lucide-react"
+import { Download, TrendingUp, TrendingDown, Wallet, ArrowUpRight, Banknote, ChevronLeft, CalendarDays, ChevronRight, Landmark, Target, AlertTriangle, CheckCircle2, Zap, Brain, Sparkles, ChevronDown, Loader2, CalendarRange, CreditCard, Tag, Sliders, Smartphone, Shield, Cpu, LayoutDashboard, PiggyBank, Upload, Plus, Home } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { useRouter } from "next/navigation"
 import { NumberTicker } from "@/components/ui/number-ticker"
@@ -700,7 +700,7 @@ export function DashboardView({
         <header className="flex items-center justify-between gap-4 pb-3 md:pb-4 relative border-b border-border">
           <div className="space-y-1.5">
             <div className="flex items-center gap-3 text-[9px] md:text-[10px] font-mono font-bold tracking-[0.2em] uppercase text-muted-foreground">
-              <CalendarRange className="h-3.5 w-3.5" />
+              <Home className="h-3.5 w-3.5" />
               <span>Active Paycheck Cycle</span>
             </div>
             <h1 className="text-4xl md:text-5xl font-bold tracking-tighter uppercase leading-none break-words">

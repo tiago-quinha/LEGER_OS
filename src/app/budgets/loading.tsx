@@ -1,6 +1,6 @@
 import React from "react"
 import { Skeleton } from "@/components/ui/skeleton"
-import { PiggyBank, Plus, ChevronLeft, ChevronRight } from "lucide-react"
+import { PieChart, Plus, ChevronLeft, ChevronRight } from "lucide-react"
 
 export default function BudgetsLoading() {
   return (
@@ -9,7 +9,7 @@ export default function BudgetsLoading() {
       <header className="flex items-center justify-between gap-6 border-b border-foreground/10 pb-6 md:pb-8 relative flex-wrap sm:flex-nowrap">
         <div className="space-y-3">
           <div className="flex items-center gap-3 text-[9px] md:text-[10px] font-mono tracking-[0.2em] uppercase text-muted-foreground">
-            <PiggyBank className="h-3.5 w-3.5" />
+            <PieChart className="h-3.5 w-3.5" />
             <span>Budget Management</span>
           </div>
           <h1 className="text-4xl md:text-5xl font-bold tracking-tighter uppercase leading-none break-words">

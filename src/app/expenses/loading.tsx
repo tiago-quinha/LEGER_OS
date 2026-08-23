@@ -1,6 +1,6 @@
 import React from "react"
 import { Skeleton } from "@/components/ui/skeleton"
-import { Landmark } from "lucide-react"
+import { List } from "lucide-react"
 
 export default function ExpensesLoading() {
   return (
@@ -9,7 +9,7 @@ export default function ExpensesLoading() {
       <header className="flex flex-col md:flex-row md:items-center justify-between gap-6 md:gap-8 border-b border-foreground/10 pb-6 md:pb-8 relative">
         <div className="space-y-3">
           <div className="flex items-center gap-3 text-[9px] md:text-[10px] font-mono tracking-[0.2em] uppercase text-muted-foreground">
-            <Landmark className="h-3.5 w-3.5" />
+            <List className="h-3.5 w-3.5" />
             <span>Transaction ledger</span>
           </div>
           <h1 className="text-4xl md:text-5xl font-bold tracking-tighter uppercase leading-none break-words">

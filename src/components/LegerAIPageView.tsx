@@ -4,7 +4,7 @@ import React, { useState, useEffect, useMemo } from "react"
 import { motion, AnimatePresence } from "framer-motion"
 import { 
   RefreshCcw, History, Calendar, 
-  Clock, Plus, Trash2, Search, Sparkles
+  Clock, Plus, Trash2, Search, Sparkles, Brain
 } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
@@ -484,7 +484,7 @@ export function LegerAIPageView({ cycleData, expenses, categories }: LegerAIPage
       <header className="flex flex-col md:flex-row md:items-center justify-between gap-6 md:gap-8 border-b border-foreground/10 pb-6 md:pb-8 relative">
         <div className="space-y-3">
           <div className="flex items-center gap-3 text-[9px] md:text-[10px] font-mono tracking-[0.2em] uppercase text-muted-foreground">
-            <Sparkles className="h-3.5 w-3.5" />
+            <Brain className="h-3.5 w-3.5" />
             <span>Neural Context Memory</span>
           </div>
           <h1 className="text-4xl md:text-5xl font-bold tracking-tighter uppercase leading-none break-words">

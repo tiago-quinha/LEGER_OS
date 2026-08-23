@@ -199,7 +199,7 @@ export function Navigation() {
                     className={cn(
                       "group relative flex items-center w-full transition-all duration-300 border border-transparent cursor-pointer select-none",
                       isSidebarCollapsed 
-                        ? "justify-center py-3 px-1" 
+                        ? "justify-center py-3 px-0" 
                         : "justify-between px-4 py-3",
                       isActive ? "bg-secondary/70 border-border/50 text-foreground" : "text-muted-foreground hover:bg-muted/30 hover:text-foreground"
                     )}
@@ -210,8 +210,8 @@ export function Navigation() {
                         className="absolute left-0 top-0 bottom-0 w-1 bg-foreground" 
                       />
                     )}
-                    <div className={cn("flex items-center", isSidebarCollapsed ? "justify-center" : "gap-3")}>
-                      <item.icon data-tour={item.name === "Ledger" ? "nav-ledger-icon" : undefined} className={cn("h-4 w-4 transition-colors shrink-0", isActive ? "text-foreground" : "text-muted-foreground group-hover:text-foreground")} />
+                    <div className={cn("flex items-center", isSidebarCollapsed ? "justify-center w-full" : "gap-3")}>
+                      <item.icon data-tour={item.name === "Ledger" ? "nav-ledger-icon" : undefined} className={cn("h-4 w-4 transition-colors shrink-0", isSidebarCollapsed && "mx-auto", isActive ? "text-foreground" : "text-muted-foreground group-hover:text-foreground")} />
                       {!isSidebarCollapsed && (
                         <span className="text-[11px] font-bold uppercase tracking-[0.15em] truncate">
                           {item.name}
@@ -310,17 +310,19 @@ export function Navigation() {
 
       {/* Mobile Terminal Bottom Bar — rendered inline, fixed positioning handles placement */}
       {mounted && (
-        <nav className="md:hidden fixed bottom-0 left-0 right-0 bg-background/95 backdrop-blur-md border-t border-border z-[99999] px-1 shadow-2xl">
+        <nav className="md:hidden fixed bottom-0 left-0 right-0 bg-background/95 backdrop-blur-md border-t border-border z-[99999] p-0 shadow-2xl">
           {/* Persistent sliding indicator */}
           <motion.div
-            className="absolute top-0 left-0 h-0.5 bg-foreground z-50 pointer-events-none"
+            className="absolute top-0 left-0 h-0.5 flex items-center justify-center z-50 pointer-events-none"
             style={{ width: `${100 / (mobileNavigation.length + 1)}%` }}
             initial={false}
             animate={{ x: mobileActiveIndex >= 0 ? `${mobileActiveIndex * 100}%` : "0%" }}
             transition={{ type: "spring", stiffness: 380, damping: 30 }}
-          />
+          >
+            <div className="w-8 h-full bg-foreground mx-auto" />
+          </motion.div>
 
-          <div className="flex justify-around items-center h-14 w-full">
+          <div className="grid grid-cols-8 h-14 w-full">
             {mobileNavigation.map((item, idx) => {
               const targetHref = cycleId ? `${item.href}?cycleId=${cycleId}` : item.href;
               const isActive = activeHref === item.href;
@@ -330,16 +332,17 @@ export function Navigation() {
                   onClick={() => navigateTo(targetHref)}
                   data-tour={item.name === "Ledger" ? "nav-ledger-mobile" : undefined}
                   className={cn(
-                    "flex flex-col items-center justify-center flex-1 w-0 h-full transition-colors relative min-w-0 px-2 py-1 select-none",
+                    "flex flex-col items-center justify-center w-full h-full transition-colors relative select-none p-0 cursor-pointer",
                     isActive ? "text-foreground font-bold" : "text-muted-foreground hover:text-foreground"
                   )}
+                  title={item.name}
                 >
                   <motion.div
-                    className="flex items-center justify-center"
+                    className="flex items-center justify-center w-full h-full"
                     animate={{ scale: getMobileScale(idx) }}
                     transition={getMobileTransition(idx)}
                   >
-                    <item.icon className={cn("h-5 w-5 shrink-0", isActive && "text-foreground")} />
+                    <item.icon className={cn("h-5 w-5 shrink-0 mx-auto", isActive && "text-foreground")} />
                   </motion.div>
                 </button>
               );
@@ -349,17 +352,17 @@ export function Navigation() {
             <button
               onClick={() => setSettingsOpen(true)}
               className={cn(
-                "flex flex-col items-center justify-center flex-1 w-0 h-full text-muted-foreground hover:text-foreground transition-colors min-w-0 px-2 py-1 select-none",
+                "flex flex-col items-center justify-center w-full h-full text-muted-foreground hover:text-foreground transition-colors select-none p-0 cursor-pointer",
                 isSettingsOpen && "text-foreground font-bold"
               )}
               title="System Settings"
             >
               <motion.div
-                className="flex items-center justify-center"
+                className="flex items-center justify-center w-full h-full"
                 animate={{ scale: getMobileScale(mobileNavigation.length) }}
                 transition={getMobileTransition(mobileNavigation.length)}
               >
-                <Sliders className="h-5 w-5 shrink-0" />
+                <Sliders className="h-5 w-5 shrink-0 mx-auto" />
               </motion.div>
             </button>
           </div>

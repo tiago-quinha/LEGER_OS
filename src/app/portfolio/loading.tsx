@@ -1,5 +1,6 @@
 import React from "react";
 import { Skeleton } from "@/components/ui/skeleton";
+import { Briefcase } from "lucide-react";
 
 export default function PortfolioLoading() {
   return (
@@ -7,7 +8,10 @@ export default function PortfolioLoading() {
       {/* 1. Header Skeleton */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 border-b border-foreground/10 pb-6 md:pb-8">
         <div className="space-y-3">
-          <Skeleton className="h-3 w-40 bg-secondary/60" />
+          <div className="flex items-center gap-3 text-[9px] md:text-[10px] font-mono tracking-[0.2em] uppercase text-muted-foreground">
+            <Briefcase className="h-3.5 w-3.5" />
+            <span>Portfolio Valuation</span>
+          </div>
           <Skeleton className="h-12 w-64 bg-secondary/80" />
         </div>
       </div>

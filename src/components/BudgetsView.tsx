@@ -14,7 +14,7 @@ import { Input } from "@/components/ui/input"
 import { Button } from "@/components/ui/button"
 import { Label } from "@/components/ui/label"
 import { toast } from "sonner"
-import { Save, ChevronLeft, ChevronRight, Landmark, Plus, Edit2, Check, X, PiggyBank } from "lucide-react"
+import { Save, ChevronLeft, ChevronRight, Landmark, Plus, Edit2, Check, X, PiggyBank, PieChart } from "lucide-react"
 import { cn } from "@/lib/utils"
 
 import { Tilt } from "@/components/unlumen-ui/tilt"
@@ -238,7 +238,7 @@ export function BudgetsView({ categories, budgets: initialBudgets, expenses, cyc
       <header className="flex items-center justify-between gap-6 border-b border-foreground/10 pb-6 md:pb-8 relative flex-wrap sm:flex-nowrap">
         <div className="space-y-3">
           <div className="flex items-center gap-3 text-[9px] md:text-[10px] font-mono tracking-[0.2em] uppercase text-muted-foreground">
-            <PiggyBank className="h-3.5 w-3.5" />
+            <PieChart className="h-3.5 w-3.5" />
             <span>Budget Management {currentCycle ? `[${currentCycle.label.replace('Cycle: ', '')}]` : ''}</span>
           </div>
           <h1 className="text-4xl md:text-5xl font-bold tracking-tighter uppercase leading-none break-words">

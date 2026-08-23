@@ -34,6 +34,7 @@ import {
   ChevronLeft,
   ChevronRight,
   Loader2,
+  Briefcase,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Tilt } from "@/components/unlumen-ui/tilt";
@@ -1448,8 +1449,8 @@ export function PortfolioView({
         <div className="space-y-3">
           <div className="flex items-center gap-3 text-[9px] md:text-[10px] font-mono tracking-[0.2em] uppercase text-muted-foreground flex-wrap">
             <div className="flex items-center gap-1.5">
-              <TrendingUp className="h-3.5 w-3.5" />
-              <span>Active Paycheck Cycle</span>
+              <Briefcase className="h-3.5 w-3.5" />
+              <span>Portfolio Valuation</span>
             </div>
             <span className="text-muted-foreground/30">•</span>
             {isAdmin ? (

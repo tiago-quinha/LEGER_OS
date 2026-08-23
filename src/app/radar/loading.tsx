@@ -1,4 +1,5 @@
 import { Skeleton } from "@/components/ui/skeleton"
+import { Radio } from "lucide-react"
 
 export default function RadarLoading() {
   return (
@@ -6,7 +7,10 @@ export default function RadarLoading() {
       {/* Header Skeleton */}
       <header className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 md:pb-6 relative border-b border-border">
         <div className="space-y-2">
-          <Skeleton className="h-3 w-36 rounded-none" />
+          <div className="flex items-center gap-3 text-[9px] md:text-[10px] font-mono tracking-[0.2em] uppercase text-muted-foreground">
+            <Radio className="h-3.5 w-3.5" />
+            <span>Subscription radar</span>
+          </div>
           <Skeleton className="h-10 w-48 rounded-none" />
         </div>
         <Skeleton className="h-9 w-32 rounded-none" />

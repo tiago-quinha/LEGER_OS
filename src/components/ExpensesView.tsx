@@ -28,7 +28,7 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { Sparkles, Plus, Trash2, Search, Upload, FileText, Check, Loader2, Landmark, Edit2, X, ChevronDown, SlidersHorizontal, Filter, AlertTriangle, RotateCcw } from "lucide-react"
+import { Sparkles, Plus, Trash2, Search, Upload, FileText, Check, Loader2, Landmark, Edit2, X, ChevronDown, SlidersHorizontal, Filter, AlertTriangle, RotateCcw, List } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { AuditTracePanel } from "@/components/AuditTracePanel"
 import { useSystem } from "@/lib/SystemContext"
@@ -1547,7 +1547,7 @@ export function ExpensesView({ initialExpenses, categories: initialCategories, i
         <header className="flex flex-col md:flex-row md:items-center justify-between gap-6 md:gap-8 border-b border-foreground/10 pb-6 md:pb-8 relative">
           <div className="space-y-3">
             <div className="flex items-center gap-3 text-[9px] md:text-[10px] font-mono tracking-[0.2em] uppercase text-muted-foreground">
-              <Landmark className="h-3.5 w-3.5" />
+              <List className="h-3.5 w-3.5" />
               <span>Transaction ledger</span>
             </div>
             <h1 className="text-4xl md:text-5xl font-bold tracking-tighter uppercase leading-none break-words">
