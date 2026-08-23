@@ -11,14 +11,14 @@
 
 ---
 
-## Mobile-First Architecture & Deployment Notice
+## Mobile-First Architecture & Platform Access
 
 > **IMPORTANT**: **LEGER_OS is architected primarily as a mobile-first operating system** (Android Native `.apk` / Mobile Progressive Web App). 
 > 
 > The core automation capabilities—such as **Zero-Credential Android Push Ingestion** and **iOS Apple Wallet Automations**—require a mobile device to capture real-time payment events. Desktop browsers are fully functional for deep ledger audits, but mobile is the primary intended form factor.
 
 * **Web Application / PWA:** [https://leger-os.vercel.app](https://leger-os.vercel.app) (Install via Safari / Chrome *"Add to Home Screen"*)
-* **Android Native APK:** Build directly from `/android` using Android Studio / Gradle or download from the [Releases](https://github.com/tiago-quinha/LEGER_OS/releases) section.
+* **Android Native APK:** [Download Direct APK](https://leger-os.vercel.app/downloads/leger-os.apk)
 
 ---
 
@@ -67,39 +67,6 @@ Integrated neural interface supporting custom API keys and local offline inferen
 * **Mobile Runtime:** Capacitor 6 with native Android Java bridge.
 * **AI Bridge:** Multi-provider client wrapper with fallback heuristics.
 * **Hosting:** Vercel Edge Runtime & Serverless Functions.
-
----
-
-## Getting Started (Local Development)
-
-### 1. Clone & Install Dependencies
-```bash
-git clone https://github.com/tiago-quinha/LEGER_OS.git
-cd LEGER_OS
-npm install
-```
-
-### 2. Configure Environment Variables
-Create a `.env.local` file in the root directory:
-```env
-NEXT_PUBLIC_SUPABASE_URL=https://your-project.supabase.co
-NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY=your-supabase-publishable-key
-DATABASE_URL=postgresql://postgres:your-password@db.your-project.supabase.co:5432/postgres
-GOOGLE_GEMINI_API_KEY=your-gemini-api-key # Optional for default AI bridge
-```
-
-### 3. Run Development Server
-```bash
-npm run dev
-```
-Open [http://localhost:3000](http://localhost:3000) in your browser.
-
-### 4. Build Android Native APK
-```bash
-npx cap sync android
-npx cap open android
-# Build APK or Run directly on connected Android device via Android Studio
-```
 
 ---
 
