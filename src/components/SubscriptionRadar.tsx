@@ -20,6 +20,7 @@ import {
   RefreshCw
 } from "lucide-react"
 import { cn } from "@/lib/utils"
+import { supabase } from "@/lib/supabase"
 import { useSystem } from "@/lib/SystemContext"
 import { detectRecurringCadence, DetectedSubscription } from "@/lib/cadence-detector"
 import { Tilt } from "@/components/unlumen-ui/tilt"
@@ -34,25 +35,56 @@ interface SubscriptionRadarProps {
 }
 
 export function SubscriptionRadar({ expenses, cycleStartDate, cycleEndDate }: SubscriptionRadarProps) {
-  const { currencySymbol, isPro } = useSystem()
+  const { currencySymbol, isPro, profile, user } = useSystem()
   const [filterCadence, setFilterCadence] = useState<"all" | "monthly" | "annual">("all")
   const [dismissedMerchants, setDismissedMerchants] = useState<string[]>([])
   const [cadenceOverrides, setCadenceOverrides] = useState<Record<string, "monthly" | "annual">>({})
   const [selectedSubForDetails, setSelectedSubForDetails] = useState<DetectedSubscription | null>(null)
 
-  // Load dismissed merchants & cadence overrides from localStorage
+  // Helper to persist radar preferences to Supabase profile in the background
+  const syncRadarPreferencesToBackend = async (
+    dismissed: string[],
+    overrides: Record<string, "monthly" | "annual">
+  ) => {
+    if (!user?.id) return
+    try {
+      const existingPinned = profile?.subscription_radar_preferences?.pinned || []
+      await supabase
+        .from("profiles")
+        .update({
+          subscription_radar_preferences: {
+            dismissed,
+            overrides,
+            pinned: existingPinned
+          }
+        })
+        .eq("id", user.id)
+    } catch (err) {
+      console.error("Background sync of radar preferences failed:", err)
+    }
+  }
+
+  // Load dismissed merchants & cadence overrides from profile or localStorage
   useEffect(() => {
     try {
+      const profileRadar = profile?.subscription_radar_preferences
       const storedDismissed = localStorage.getItem("leger_dismissed_subscriptions")
-      if (storedDismissed) {
-        setDismissedMerchants(JSON.parse(storedDismissed))
-      }
       const storedOverrides = localStorage.getItem("leger_subscription_cadence_overrides")
-      if (storedOverrides) {
-        setCadenceOverrides(JSON.parse(storedOverrides))
+
+      const parsedDismissed: string[] = profileRadar?.dismissed || (storedDismissed ? JSON.parse(storedDismissed) : [])
+      const parsedOverrides: Record<string, "monthly" | "annual"> = profileRadar?.overrides || (storedOverrides ? JSON.parse(storedOverrides) : {})
+
+      setDismissedMerchants(parsedDismissed)
+      setCadenceOverrides(parsedOverrides)
+
+      if (profileRadar?.dismissed) {
+        localStorage.setItem("leger_dismissed_subscriptions", JSON.stringify(parsedDismissed))
+      }
+      if (profileRadar?.overrides) {
+        localStorage.setItem("leger_subscription_cadence_overrides", JSON.stringify(parsedOverrides))
       }
     } catch (e) {}
-  }, [])
+  }, [profile?.subscription_radar_preferences])
 
   const handleToggleCadence = (merchantName: string, currentCadence: "monthly" | "annual", e?: React.MouseEvent) => {
     if (e) e.stopPropagation()
@@ -70,16 +102,18 @@ export function SubscriptionRadar({ expenses, cycleStartDate, cycleEndDate }: Su
     if (selectedSubForDetails && selectedSubForDetails.merchant.toUpperCase() === merchantName.toUpperCase()) {
       setSelectedSubForDetails(prev => prev ? { ...prev, cadence: nextCadence } : null)
     }
+    syncRadarPreferencesToBackend(dismissedMerchants, updated)
   }
 
   const handleDismiss = (merchantName: string) => {
-    const updated = [...dismissedMerchants, merchantName.toUpperCase()]
+    const updated = Array.from(new Set([...dismissedMerchants, merchantName.toUpperCase()]))
     setDismissedMerchants(updated)
     try {
       localStorage.setItem("leger_dismissed_subscriptions", JSON.stringify(updated))
       toast.success(`${merchantName.toUpperCase()} EXCLUDED FROM RADAR`)
     } catch (e) {}
     setSelectedSubForDetails(null)
+    syncRadarPreferencesToBackend(updated, cadenceOverrides)
   }
 
   const handleResetDismissed = () => {
@@ -88,6 +122,7 @@ export function SubscriptionRadar({ expenses, cycleStartDate, cycleEndDate }: Su
       localStorage.removeItem("leger_dismissed_subscriptions")
       toast.success("RESTORED ALL EXCLUDED SUBSCRIPTIONS")
     } catch (e) {}
+    syncRadarPreferencesToBackend([], cadenceOverrides)
   }
 
   const radarData = useMemo(() => {

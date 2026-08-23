@@ -71,6 +71,7 @@ ALTER TABLE profiles ADD COLUMN IF NOT EXISTS timezone TEXT DEFAULT 'UTC';
 ALTER TABLE profiles ADD COLUMN IF NOT EXISTS cached_telemetry JSONB DEFAULT '{}'::jsonb;
 ALTER TABLE profiles ADD COLUMN IF NOT EXISTS notification_preferences JSONB DEFAULT '{"morning_outlook": true, "subscription_radar": true, "budget_alerts": true, "velocity_spikes": true, "payday_alerts": true, "cycle_closing": true, "portfolio_alerts": true, "preferred_hour": 8, "preferred_minute": 30}'::jsonb;
 ALTER TABLE profiles ADD COLUMN IF NOT EXISTS push_subscriptions JSONB DEFAULT '[]'::jsonb;
+ALTER TABLE profiles ADD COLUMN IF NOT EXISTS subscription_radar_preferences JSONB DEFAULT '{"dismissed": [], "overrides": {}, "pinned": []}'::jsonb;
 
 -- Create push_subscriptions table if not exists for scalable indexed lookups
 CREATE TABLE IF NOT EXISTS public.push_subscriptions (

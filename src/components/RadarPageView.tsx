@@ -25,6 +25,7 @@ import {
   Filter
 } from "lucide-react"
 import { cn } from "@/lib/utils"
+import { supabase } from "@/lib/supabase"
 import { useSystem } from "@/lib/SystemContext"
 import { useCycleSwipe } from "@/hooks/useCycleSwipe"
 import { CycleMobileBar } from "@/components/ui/cycle-mobile-bar"
@@ -55,7 +56,7 @@ export function RadarPageView({ expenses, categories, cycles, currentCycleId }: 
   const router = useRouter()
   const [isPending, startTransition] = useTransition()
   const [navigationDirection, setNavigationDirection] = useState<'prev' | 'next' | null>(null)
-  const { currencySymbol, isPro, profile } = useSystem()
+  const { currencySymbol, isPro, profile, user } = useSystem()
 
   const [filterCadence, setFilterCadence] = useState<"all" | "monthly" | "annual">("all")
   const [searchQuery, setSearchQuery] = useState("")
@@ -87,6 +88,29 @@ export function RadarPageView({ expenses, categories, cycles, currentCycleId }: 
   const currentCycle = cycles.find(c => c.id === selectedCycleId) || cycles[0]
   const currentCycleIndex = cycles.findIndex(c => c.id === (currentCycle?.id || ""))
 
+  // Helper to persist radar preferences to Supabase profile in the background
+  const syncRadarPreferencesToBackend = async (
+    dismissed: string[],
+    overrides: Record<string, "monthly" | "annual">,
+    pinned: any[]
+  ) => {
+    if (!user?.id) return
+    try {
+      await supabase
+        .from("profiles")
+        .update({
+          subscription_radar_preferences: {
+            dismissed,
+            overrides,
+            pinned
+          }
+        })
+        .eq("id", user.id)
+    } catch (err) {
+      console.error("Background sync of radar preferences failed:", err)
+    }
+  }
+
   // Cycle navigation
   const handleCycleSelect = (id: string, dir?: 'prev' | 'next') => {
     setSelectedCycleId(id)
@@ -96,19 +120,34 @@ export function RadarPageView({ expenses, categories, cycles, currentCycleId }: 
     })
   }
 
-  // Load preferences from localStorage
+  // Load preferences from profile and localStorage
   useEffect(() => {
     try {
+      const profileRadar = profile?.subscription_radar_preferences
       const storedDismissed = localStorage.getItem("leger_dismissed_subscriptions")
-      if (storedDismissed) setDismissedMerchants(JSON.parse(storedDismissed))
-
       const storedOverrides = localStorage.getItem("leger_subscription_cadence_overrides")
-      if (storedOverrides) setCadenceOverrides(JSON.parse(storedOverrides))
-
       const storedPinned = localStorage.getItem("leger_pinned_subscriptions")
-      if (storedPinned) setPinnedSubscriptions(JSON.parse(storedPinned))
+
+      const parsedDismissed: string[] = profileRadar?.dismissed || (storedDismissed ? JSON.parse(storedDismissed) : [])
+      const parsedOverrides: Record<string, "monthly" | "annual"> = profileRadar?.overrides || (storedOverrides ? JSON.parse(storedOverrides) : {})
+      const parsedPinned: any[] = profileRadar?.pinned || (storedPinned ? JSON.parse(storedPinned) : [])
+
+      setDismissedMerchants(parsedDismissed)
+      setCadenceOverrides(parsedOverrides)
+      setPinnedSubscriptions(parsedPinned)
+
+      // Sync local storage cache
+      if (profileRadar?.dismissed) {
+        localStorage.setItem("leger_dismissed_subscriptions", JSON.stringify(parsedDismissed))
+      }
+      if (profileRadar?.overrides) {
+        localStorage.setItem("leger_subscription_cadence_overrides", JSON.stringify(parsedOverrides))
+      }
+      if (profileRadar?.pinned) {
+        localStorage.setItem("leger_pinned_subscriptions", JSON.stringify(parsedPinned))
+      }
     } catch (e) {}
-  }, [])
+  }, [profile?.subscription_radar_preferences])
 
   // Cadence toggle handler
   const handleToggleCadence = (merchantName: string, currentCadence: "monthly" | "annual", e?: React.MouseEvent) => {
@@ -127,17 +166,19 @@ export function RadarPageView({ expenses, categories, cycles, currentCycleId }: 
     if (selectedSubForDetails && selectedSubForDetails.merchant.toUpperCase() === merchantName.toUpperCase()) {
       setSelectedSubForDetails(prev => prev ? { ...prev, cadence: nextCadence } : null)
     }
+    syncRadarPreferencesToBackend(dismissedMerchants, updated, pinnedSubscriptions)
   }
 
   // Dismiss / Exclude handler
   const handleDismiss = (merchantName: string) => {
-    const updated = [...dismissedMerchants, merchantName.toUpperCase()]
+    const updated = Array.from(new Set([...dismissedMerchants, merchantName.toUpperCase()]))
     setDismissedMerchants(updated)
     try {
       localStorage.setItem("leger_dismissed_subscriptions", JSON.stringify(updated))
       toast.success(`${merchantName.toUpperCase()} EXCLUDED FROM RADAR`)
     } catch (e) {}
     setSelectedSubForDetails(null)
+    syncRadarPreferencesToBackend(updated, cadenceOverrides, pinnedSubscriptions)
   }
 
   // Restore dismissed items
@@ -147,6 +188,7 @@ export function RadarPageView({ expenses, categories, cycles, currentCycleId }: 
       localStorage.removeItem("leger_dismissed_subscriptions")
       toast.success("RESTORED ALL EXCLUDED SUBSCRIPTIONS")
     } catch (e) {}
+    syncRadarPreferencesToBackend([], cadenceOverrides, pinnedSubscriptions)
   }
 
   // Pin custom recurring bill handler
@@ -178,6 +220,7 @@ export function RadarPageView({ expenses, categories, cycles, currentCycleId }: 
     setIsPinDrawerOpen(false)
     setCustomMerchant("")
     setCustomAmount("")
+    syncRadarPreferencesToBackend(dismissedMerchants, updatedOverrides, updatedPinned)
   }
 
   // Combine real expenses with user pinned items
