@@ -14,7 +14,7 @@ import { Input } from "@/components/ui/input"
 import { Button } from "@/components/ui/button"
 import { Label } from "@/components/ui/label"
 import { toast } from "sonner"
-import { Save, ChevronLeft, ChevronRight, Landmark, Plus, Edit2, Check, X, PiggyBank, PieChart } from "lucide-react"
+import { Save, ChevronLeft, ChevronRight, Landmark, Plus, Edit2, Check, X, PiggyBank, PieChart, Trash2 } from "lucide-react"
 import { cn } from "@/lib/utils"
 
 import { Tilt } from "@/components/unlumen-ui/tilt"
@@ -30,32 +30,35 @@ interface BudgetsViewProps {
   expenses: any[]
   cycles: any[]
   currentCycleId: string
+  currencySymbol?: string
 }
 
-export function BudgetsView({ categories, budgets: initialBudgets, expenses, cycles, currentCycleId }: BudgetsViewProps) {
+export function BudgetsView({
+  categories: initialCategories,
+  budgets: initialBudgets,
+  expenses,
+  cycles,
+  currentCycleId,
+  currencySymbol = "€"
+}: BudgetsViewProps) {
   const router = useRouter()
-  const { currencySymbol } = useSystem()
-
+  const { user } = useSystem()
+  const [categories, setCategories] = useState(initialCategories)
   const [budgets, setBudgets] = useState(initialBudgets)
-  const [editingBudgets, setEditingBudgets] = useState<{ [key: string]: string }>(
-    categories.reduce((acc, cat) => {
-      const budget = initialBudgets.find(b => b.category_id === cat.id)
-      acc[cat.id] = budget ? budget.amount.toString() : "0"
-      return acc
-    }, {} as { [key: string]: string })
-  )
+  const [editingBudgets, setEditingBudgets] = useState<{ [key: string]: string }>({})
 
-  // Sync state when page props refresh
+  // Sync state if props change
   useEffect(() => {
+    setCategories(initialCategories)
     setBudgets(initialBudgets)
     setEditingBudgets(
-      categories.reduce((acc, cat) => {
+      initialCategories.reduce((acc, cat) => {
         const budget = initialBudgets.find(b => b.category_id === cat.id)
         acc[cat.id] = budget ? budget.amount.toString() : "0"
         return acc
       }, {} as { [key: string]: string })
     )
-  }, [initialBudgets, categories])
+  }, [initialBudgets, initialCategories])
 
   // New Budget Targets state
   const [isAdding, setIsAdding] = useState(false)
@@ -82,19 +85,22 @@ export function BudgetsView({ categories, budgets: initialBudgets, expenses, cyc
     }
 
     try {
-      // 1. Insert category
+      const targetUserId = user?.id || (await supabase.auth.getUser()).data.user?.id
+
+      // 1. Insert category with explicit user_id
       const { data: catData, error: catError } = await supabase
         .from("categories")
         .insert({
           name: newCatName.trim(),
           color: newCatColor,
-          icon: "Plus"
+          icon: "Plus",
+          user_id: targetUserId
         })
         .select()
 
       if (catError) {
         if (catError.code === "23505") { // Unique violation check
-          toast.error("A category with this name already exists.")
+          toast.error("You already have a category with this name.")
         } else {
           throw catError
         }
@@ -103,28 +109,65 @@ export function BudgetsView({ categories, budgets: initialBudgets, expenses, cyc
 
       const newCategory = catData[0]
 
-      // 2. Insert budget
+      // 2. Insert budget with explicit user_id
       const { error: budError } = await supabase
         .from("budgets")
         .insert({
           category_id: newCategory.id,
           amount: limit,
           month: cycleMonth + 1,
-          year: cycleYear
+          year: cycleYear,
+          user_id: targetUserId
         })
 
       if (budError) throw budError
 
-      toast.success(`Target budget initialized for category "${newCategory.name}"`)
+      toast.success(`Category "${newCategory.name}" created with budget target`)
       setNewCatName("")
       setNewCatLimit("")
       setIsAdding(false)
       
+      // Optimistically update categories and budgets
+      setCategories(prev => [...prev, newCategory])
+      setBudgets(prev => [...prev, {
+        id: `bud-${Date.now()}`,
+        category_id: newCategory.id,
+        amount: limit,
+        month: cycleMonth + 1,
+        year: cycleYear
+      }])
+
       // Refresh props from server
       router.refresh()
     } catch (err: any) {
       console.error(err)
       toast.error(`Failed to store budget target: ${err.message}`)
+    }
+  }
+
+  const handleDeleteCategory = async (catId: string | number, catName: string) => {
+    if (!confirm(`Delete category "${catName}" and its budget targets?`)) return
+
+    // Optimistic UI update
+    const previousCategories = [...categories]
+    const previousBudgets = [...budgets]
+    setCategories(prev => prev.filter(c => c.id !== catId))
+    setBudgets(prev => prev.filter(b => b.category_id !== catId))
+    toast.success(`Category "${catName}" deleted`)
+
+    try {
+      const { error } = await supabase
+        .from("categories")
+        .delete()
+        .eq("id", catId)
+
+      if (error) throw error
+      router.refresh()
+    } catch (err: any) {
+      // Revert state on failure
+      setCategories(previousCategories)
+      setBudgets(previousBudgets)
+      toast.error(`Failed to delete category: ${err.message}`)
     }
   }
 
@@ -381,15 +424,29 @@ export function BudgetsView({ categories, budgets: initialBudgets, expenses, cyc
                       {cat.name}
                     </CardTitle>
                   </div>
-                  {isProfitable ? (
-                    <span className="text-[10px] font-mono font-bold uppercase text-emerald-500 bg-emerald-500/10 border border-emerald-500/30 px-2 py-0.5">
-                      +{netProfit.toFixed(2)} Surplus
-                    </span>
-                  ) : isOverBudget ? (
-                    <span className="text-[10px] font-mono font-bold uppercase text-destructive bg-destructive/10 border border-destructive/30 px-2 py-0.5">
-                      Over Target
-                    </span>
-                  ) : null}
+                  <div className="flex items-center gap-2">
+                    {isProfitable ? (
+                      <span className="text-[10px] font-mono font-bold uppercase text-emerald-500 bg-emerald-500/10 border border-emerald-500/30 px-2 py-0.5">
+                        +{netProfit.toFixed(2)} Surplus
+                      </span>
+                    ) : isOverBudget ? (
+                      <span className="text-[10px] font-mono font-bold uppercase text-destructive bg-destructive/10 border border-destructive/30 px-2 py-0.5">
+                        Over Target
+                      </span>
+                    ) : null}
+
+                    <button
+                      type="button"
+                      onClick={(e) => {
+                        e.stopPropagation()
+                        handleDeleteCategory(cat.id, cat.name)
+                      }}
+                      className="opacity-70 md:opacity-0 group-hover:opacity-100 p-1 hover:bg-destructive/15 text-muted-foreground hover:text-destructive transition-all cursor-pointer rounded-none border border-transparent hover:border-destructive/30"
+                      title={`Delete ${cat.name}`}
+                    >
+                      <Trash2 className="h-3.5 w-3.5" />
+                    </button>
+                  </div>
                 </div>
               </CardHeader>
               <CardContent className="p-6 sm:p-8 pt-0 flex-1 space-y-4 z-10 flex flex-col justify-between">
