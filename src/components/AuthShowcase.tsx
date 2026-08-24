@@ -2,7 +2,7 @@
 
 import React, { useState } from "react"
 import { motion, AnimatePresence } from "framer-motion"
-import { Wallet, Sparkles, LineChart, ShieldCheck, Lock, Zap, CheckCircle2, ArrowUpRight } from "lucide-react"
+import { Wallet, Sparkles, LineChart, ShieldCheck, Lock, Zap, CheckCircle2, ArrowUpRight, Bell } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { PrivacyValue } from "@/components/ui/privacy-value"
 import { Tilt } from "@/components/unlumen-ui/tilt"
@@ -14,10 +14,18 @@ interface FeatureSlide {
   badge: string
   title: string
   description: string
-  visualType: "cycle" | "ai" | "forecast"
+  visualType: "notification" | "cycle" | "ai" | "forecast"
 }
 
 const SLIDES: FeatureSlide[] = [
+  {
+    id: "notification",
+    tabLabel: "Live Capture",
+    badge: "Zero-Credential Ingestion",
+    title: "ZERO BANK PASSWORDS REQUIRED. CAPTURE EXPENSES LIVE ON DEVICE.",
+    description: "Never share sensitive banking logins. Our native Android listener detects MB WAY, bank, and card purchases in real-time, extracting amounts and merchants with 100% device-level privacy.",
+    visualType: "notification"
+  },
   {
     id: "cycle",
     tabLabel: "Paycheck Cycles",
@@ -45,7 +53,7 @@ const SLIDES: FeatureSlide[] = [
 ]
 
 export function AuthShowcase() {
-  const [activeTab, setActiveTab] = useState<string>("cycle")
+  const [activeTab, setActiveTab] = useState<string>("notification")
   const currentSlide = SLIDES.find(s => s.id === activeTab) || SLIDES[0]
 
   return (
@@ -74,8 +82,8 @@ export function AuthShowcase() {
         <div className="absolute -bottom-1 -right-1 text-muted-foreground/40 text-xs font-mono">+</div>
       </div>
 
-      {/* Rigid Tab Navigation (No border radius) */}
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-0 border border-border/80 bg-background divide-y sm:divide-y-0 sm:divide-x divide-border/80">
+      {/* Rigid Tab Navigation (4 columns) */}
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-0 border border-border/80 bg-background divide-y sm:divide-y-0 sm:divide-x divide-border/80">
         {SLIDES.map((slide) => {
           const isActive = slide.id === activeTab
           return (
@@ -84,7 +92,7 @@ export function AuthShowcase() {
               type="button"
               onClick={() => setActiveTab(slide.id)}
               className={cn(
-                "px-3 py-2.5 text-xs font-bold tracking-wider uppercase transition-colors rounded-none text-left sm:text-center cursor-pointer relative",
+                "px-2.5 py-2.5 text-[11px] sm:text-xs font-bold tracking-wider uppercase transition-colors rounded-none text-center cursor-pointer relative",
                 isActive
                   ? "bg-foreground text-background"
                   : "text-muted-foreground hover:text-foreground hover:bg-secondary/40"
@@ -129,6 +137,32 @@ export function AuthShowcase() {
 
             {/* DYNAMIC INDUSTRIAL VISUAL MOCKUPS */}
             <div className="pt-4 border-t border-border/60">
+              {currentSlide.visualType === "notification" && (
+                <div className="space-y-2.5 bg-background border border-border/80 p-3.5 rounded-none text-xs font-mono">
+                  <div className="bg-secondary/40 border border-border/70 p-2.5 space-y-1">
+                    <div className="flex items-center justify-between text-[10px] text-muted-foreground uppercase">
+                      <span className="flex items-center gap-1.5 font-bold text-foreground">
+                        <Bell className="h-3 w-3 text-emerald-500" />
+                        MB WAY · Pagamento Enviado
+                      </span>
+                      <span className="text-[9px] text-muted-foreground">Agora</span>
+                    </div>
+                    <p className="text-[11px] text-foreground font-bold truncate">
+                      Transferência de 14,80 € enviada para Pingo Doce
+                    </p>
+                  </div>
+
+                  <div className="flex items-center justify-between text-[11px] bg-emerald-500/10 border border-emerald-500/30 p-2 text-emerald-500 font-bold">
+                    <span className="flex items-center gap-1.5">
+                      <CheckCircle2 className="h-3.5 w-3.5" />
+                      Captured in 0.1s · Zero Passwords Shared
+                    </span>
+                    <span className="text-[10px] uppercase bg-emerald-500/20 px-2 py-0.5 border border-emerald-500/40">
+                      -€14.80 Auto-Logged
+                    </span>
+                  </div>
+                </div>
+              )}
               {currentSlide.visualType === "cycle" && (
                 <div className="space-y-3 bg-background border border-border/80 p-4 rounded-none">
                   <div className="flex justify-between items-center text-xs font-mono border-b border-border/60 pb-2">
