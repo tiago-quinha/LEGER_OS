@@ -30,9 +30,14 @@ import {
   Grid, 
   ChevronLeft,
   ChevronRight,
-  ChevronDown
+  ChevronDown,
+  Plus,
+  X,
+  Trash2
 } from "lucide-react"
 import { cn } from "@/lib/utils"
+import { supabase } from "@/lib/supabase"
+import { toast } from "sonner"
 import { PrivacyValue } from "@/components/ui/privacy-value"
 import { NumberTicker } from "@/components/ui/number-ticker"
 import { useSystem } from "@/lib/SystemContext"
@@ -59,23 +64,21 @@ interface Category {
   icon?: string
 }
 
+interface Expense {
+  id: number | string
+  amount: number
+  merchant: string
+  date: string
+  category_id?: number | null
+  source?: string
+  raw_text?: string
+}
+
 interface Cycle {
   id: string
   label: string
   startDate: string
   endDate: string | null
-  paycheckAmount: number
-}
-
-interface Expense {
-  id: string
-  amount: string | number
-  merchant: string
-  date: string
-  source: string
-  category_id?: number | null
-  raw_text?: string
-  is_anomaly?: boolean
 }
 
 interface CategoriesViewProps {
@@ -88,15 +91,88 @@ interface CategoriesViewProps {
 type DatePreset = "cycle" | "30days" | "90days" | "ytd" | "all" | "custom"
 type GraphMode = "cumulative" | "daily"
 
-export function CategoriesView({ expenses, categories, cycles, currentCycleId }: CategoriesViewProps) {
+export function CategoriesView({ expenses, categories: initialCategories, cycles, currentCycleId }: CategoriesViewProps) {
   const router = useRouter()
   const { currencySymbol, setAuditPanelOpen, setActiveTransactionId } = useSystem()
 
   // --- States ---
+  const [categories, setCategories] = useState<Category[]>(initialCategories)
+  const [isAddingCategory, setIsAddingCategory] = useState(false)
+  const [newCatName, setNewCatName] = useState("")
+  const [newCatColor, setNewCatColor] = useState("#3357FF")
+
+  useEffect(() => {
+    setCategories(initialCategories)
+  }, [initialCategories])
+
   const [isPending, startTransition] = useTransition()
   const [selectedCategoryId, setSelectedCategoryId] = useState<string>("ALL")
   const [datePreset, setDatePreset] = useState<DatePreset>("cycle")
   const [selectedCycleId, setSelectedCycleId] = useState<string>(currentCycleId || cycles[0]?.id || "ALL")
+
+  const handleAddCategory = async (e: React.FormEvent) => {
+    e.preventDefault()
+    if (!newCatName.trim()) {
+      toast.error("Please enter a category name.")
+      return
+    }
+    try {
+      const { data: { user } } = await supabase.auth.getUser()
+      const { data: catData, error } = await supabase
+        .from("categories")
+        .insert({
+          name: newCatName.trim(),
+          color: newCatColor,
+          icon: "Plus",
+          user_id: user?.id
+        })
+        .select()
+        .single()
+
+      if (error) {
+        if (error.code === "23505") {
+          toast.error("You already have a category with this name.")
+        } else {
+          throw error
+        }
+        return
+      }
+
+      toast.success(`Category "${catData.name}" created`)
+      setCategories(prev => [...prev, catData])
+      setSelectedCategoryId(catData.id.toString())
+      setNewCatName("")
+      setIsAddingCategory(false)
+      router.refresh()
+    } catch (err: any) {
+      toast.error(`Failed to create category: ${err.message}`)
+    }
+  }
+
+  const handleDeleteCategory = async (catId: number | string, catName: string, e?: React.MouseEvent) => {
+    if (e) e.stopPropagation()
+    if (!confirm(`Delete category "${catName}"?`)) return
+
+    const previousCats = [...categories]
+    setCategories(prev => prev.filter(c => c.id.toString() !== catId.toString()))
+    if (selectedCategoryId === catId.toString()) {
+      setSelectedCategoryId("ALL")
+    }
+    toast.success(`Category "${catName}" deleted`)
+
+    try {
+      const { error } = await supabase
+        .from("categories")
+        .delete()
+        .eq("id", catId)
+
+      if (error) throw error
+      router.refresh()
+    } catch (err: any) {
+      setCategories(previousCats)
+      toast.error(`Failed to delete category: ${err.message}`)
+    }
+  }
 
   useEffect(() => {
     if (currentCycleId) {
@@ -469,8 +545,8 @@ export function CategoriesView({ expenses, categories, cycles, currentCycleId }:
     return filteredExpenses.slice(startIdx, startIdx + pageSize)
   }, [filteredExpenses, currentPage])
 
-  const openAudit = (id: string) => {
-    setActiveTransactionId(id)
+  const openAudit = (id: string | number) => {
+    setActiveTransactionId(String(id))
     setAuditPanelOpen(true)
   }
 
@@ -539,6 +615,64 @@ export function CategoriesView({ expenses, categories, cycles, currentCycleId }:
         
         {/* Horizontal scroll on mobile, responsive grid on desktop */}
         <div className="flex md:grid md:grid-cols-4 lg:grid-cols-5 gap-3 overflow-x-auto pb-3 md:pb-0 scrollbar-thin scrollbar-thumb-border">
+          {/* Create Category Card AT THE VERY START */}
+          {!isAddingCategory ? (
+            <button
+              type="button"
+              onClick={() => setIsAddingCategory(true)}
+              className="flex-shrink-0 w-[160px] md:w-auto border-2 border-dashed border-border hover:border-foreground/40 hover:bg-secondary/15 transition-all p-3.5 flex flex-col items-center justify-center text-center cursor-pointer min-h-[95px] rounded-none group select-none"
+            >
+              <Plus className="h-4 w-4 text-muted-foreground group-hover:text-foreground group-hover:scale-110 transition-all mb-1" />
+              <span className="text-[10px] font-bold uppercase tracking-widest font-mono text-muted-foreground group-hover:text-foreground">New Category</span>
+              <span className="text-[8px] text-muted-foreground/60 uppercase mt-0.5">Add Entity</span>
+            </button>
+          ) : (
+            <div className="flex-shrink-0 w-[200px] md:w-auto border border-foreground/60 p-2.5 bg-card relative z-20 flex flex-col justify-between min-h-[95px] shadow-lg rounded-none">
+              <form onSubmit={handleAddCategory} className="space-y-1.5 h-full flex flex-col justify-between">
+                <div className="flex items-center justify-between">
+                  <span className="text-[9px] font-mono font-bold uppercase text-foreground">New Category</span>
+                  <button
+                    type="button"
+                    onClick={() => setIsAddingCategory(false)}
+                    className="text-muted-foreground hover:text-foreground p-0.5 cursor-pointer"
+                  >
+                    <X className="h-3 w-3" />
+                  </button>
+                </div>
+                <input
+                  value={newCatName}
+                  onChange={(e) => setNewCatName(e.target.value)}
+                  placeholder="Category Name"
+                  className="w-full h-6 px-1.5 text-[10px] font-sans bg-secondary/40 border border-border focus:border-foreground text-foreground outline-none rounded-none"
+                  autoFocus
+                  required
+                />
+                <div className="flex items-center justify-between pt-0.5">
+                  <div className="flex gap-1">
+                    {["#3357FF", "#8B5CF6", "#10B981", "#F59E0B", "#F43F5E", "#64748B"].map((c) => (
+                      <button
+                        key={c}
+                        type="button"
+                        onClick={() => setNewCatColor(c)}
+                        className={cn(
+                          "w-3 h-3 rounded-full border transition-transform cursor-pointer",
+                          newCatColor === c ? "scale-125 border-foreground" : "border-transparent opacity-70"
+                        )}
+                        style={{ backgroundColor: c }}
+                      />
+                    ))}
+                  </div>
+                  <button
+                    type="submit"
+                    className="h-5 px-2 text-[9px] font-mono font-bold uppercase bg-foreground text-background hover:bg-foreground/90 transition-colors cursor-pointer rounded-none"
+                  >
+                    Save
+                  </button>
+                </div>
+              </form>
+            </div>
+          )}
+
           {/* ALL Categories Card */}
           <div
             onClick={() => setSelectedCategoryId("ALL")}
@@ -583,13 +717,23 @@ export function CategoriesView({ expenses, categories, cycles, currentCycleId }:
                 <div className="flex items-center justify-between z-10 w-full min-w-0">
                   <div className="flex items-center gap-1.5 min-w-0">
                     <div className="h-2 w-2 rounded-full shrink-0" style={{ backgroundColor: cat.color }} />
-                    <span className="font-bold text-[11px] uppercase tracking-tight truncate max-w-[100px] text-foreground">
+                    <span className="font-bold text-[11px] uppercase tracking-tight truncate max-w-[90px] text-foreground">
                       {cat.name}
                     </span>
                   </div>
-                  {isSelected && (
-                    <div className="h-1.5 w-1.5 rounded-full shrink-0" style={{ backgroundColor: cat.color }} />
-                  )}
+                  <div className="flex items-center gap-1">
+                    <button
+                      type="button"
+                      onClick={(e) => handleDeleteCategory(cat.id, cat.name, e)}
+                      className="opacity-0 group-hover:opacity-100 p-0.5 text-muted-foreground hover:text-destructive hover:bg-destructive/15 transition-all rounded-none cursor-pointer"
+                      title={`Delete ${cat.name}`}
+                    >
+                      <Trash2 className="h-3 w-3" />
+                    </button>
+                    {isSelected && (
+                      <div className="h-1.5 w-1.5 rounded-full shrink-0" style={{ backgroundColor: cat.color }} />
+                    )}
+                  </div>
                 </div>
 
                 <div className="mt-4 z-10">
