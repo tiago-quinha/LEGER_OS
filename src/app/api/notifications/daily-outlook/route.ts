@@ -249,11 +249,15 @@ async function handleDispatch(request: NextRequest) {
       }
     }
 
-    let titleText = "Morning Outlook"
-    let summaryText = ""
+    let titleText = "🌅 Morning Financial Outlook"
+    let summaryText = "Safe variable burn active. Tap to view today's financial forecast."
 
     if (targetUId) {
-      const telemetry = await getUserCachedTelemetry(supabaseAdmin, targetUId)
+      const [{ data: userProfile }, telemetry] = await Promise.all([
+        supabaseAdmin.from("profiles").select("currency").eq("id", targetUId).single(),
+        getUserCachedTelemetry(supabaseAdmin, targetUId)
+      ])
+      
       if (telemetry) {
         const safeDailyBurn = parseFloat(telemetry.dailyVariableBurn || telemetry.currentDailyVariableBurn || 35.0)
         const projectedSurplus = parseFloat(telemetry.projectedSurplus !== undefined ? telemetry.projectedSurplus : (telemetry.netDelta || 0))
@@ -262,17 +266,17 @@ async function handleDispatch(request: NextRequest) {
         const totalDays = telemetry.totalDaysInCycle || 30
         const isSurplus = projectedSurplus >= 0
         const sign = isSurplus ? "+" : ""
-        const currency = targetProfiles[0]?.currency || "EUR"
+        const currency = userProfile?.currency || targetProfiles[0]?.currency || "EUR"
         const currencySymbol = currency === "USD" ? "$" : currency === "GBP" ? "£" : "€"
-        titleText = `Morning Outlook · ${currencySymbol}${safeDailyBurn.toFixed(2)}/day · ${sign}${currencySymbol}${projectedSurplus.toFixed(2)}`
-        summaryText = `Day ${daysElapsed} of ${totalDays} · Spending velocity ${velocity.toFixed(2)}x · Projected cycle surplus`
+        titleText = `🌅 Morning Outlook · ${currencySymbol}${safeDailyBurn.toFixed(2)}/day · ${sign}${currencySymbol}${projectedSurplus.toFixed(2)}`
+        summaryText = `Day ${daysElapsed} of ${totalDays} · Spending velocity ${velocity.toFixed(2)}x · Safe daily burn ${currencySymbol}${safeDailyBurn.toFixed(2)}`
       }
     }
 
     return NextResponse.json({
       success: true,
       title: titleText,
-      summary: summaryText || "Daily morning brief processed",
+      summary: summaryText,
       processedUsers: targetProfiles.length,
       dispatchedCount: totalDispatches,
       durationMs,

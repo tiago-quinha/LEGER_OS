@@ -64,12 +64,16 @@ public class LegerAlarmReceiver extends BroadcastReceiver {
             String endpoint = baseUrl + "/api/notifications/daily-outlook";
             if (userId != null && !userId.isEmpty()) {
                 endpoint += "?userId=" + userId + "&source=native_android";
+            } else {
+                endpoint += "?source=native_android";
             }
             URL url = new URL(endpoint);
             HttpURLConnection conn = (HttpURLConnection) url.openConnection();
             conn.setRequestMethod("GET");
-            conn.setConnectTimeout(8000);
-            conn.setReadTimeout(8000);
+            conn.setRequestProperty("Accept", "application/json");
+            conn.setRequestProperty("User-Agent", "LEGER_OS_Android/1.0");
+            conn.setConnectTimeout(15000);
+            conn.setReadTimeout(15000);
 
             if (conn.getResponseCode() == 200) {
                 BufferedReader br = new BufferedReader(new InputStreamReader(conn.getInputStream(), StandardCharsets.UTF_8));
@@ -77,10 +81,10 @@ public class LegerAlarmReceiver extends BroadcastReceiver {
                 String line;
                 while ((line = br.readLine()) != null) sb.append(line);
                 JSONObject res = new JSONObject(sb.toString());
-                if (res.has("title")) {
+                if (res.has("title") && !res.getString("title").trim().isEmpty()) {
                     title = res.getString("title");
                 }
-                if (res.has("summary")) {
+                if (res.has("summary") && !res.getString("summary").trim().isEmpty()) {
                     body = res.getString("summary");
                 }
             }
@@ -93,18 +97,22 @@ public class LegerAlarmReceiver extends BroadcastReceiver {
     }
 
     private void fetchAndShowEveningWrap(Context context, String baseUrl, String userId) {
-        String title = "Portfolio Wrap";
+        String title = "📈 Portfolio Wrap";
         String body = "Daily market session closed. Tap to view today's portfolio performance.";
         try {
             String endpoint = baseUrl + "/api/cron/sync-market-data";
             if (userId != null && !userId.isEmpty()) {
                 endpoint += "?userId=" + userId + "&source=native_android";
+            } else {
+                endpoint += "?source=native_android";
             }
             URL url = new URL(endpoint);
             HttpURLConnection conn = (HttpURLConnection) url.openConnection();
             conn.setRequestMethod("GET");
-            conn.setConnectTimeout(8000);
-            conn.setReadTimeout(8000);
+            conn.setRequestProperty("Accept", "application/json");
+            conn.setRequestProperty("User-Agent", "LEGER_OS_Android/1.0");
+            conn.setConnectTimeout(15000);
+            conn.setReadTimeout(15000);
 
             if (conn.getResponseCode() == 200) {
                 BufferedReader br = new BufferedReader(new InputStreamReader(conn.getInputStream(), StandardCharsets.UTF_8));
@@ -112,10 +120,10 @@ public class LegerAlarmReceiver extends BroadcastReceiver {
                 String line;
                 while ((line = br.readLine()) != null) sb.append(line);
                 JSONObject res = new JSONObject(sb.toString());
-                if (res.has("wrapTitle")) {
+                if (res.has("wrapTitle") && !res.getString("wrapTitle").trim().isEmpty()) {
                     title = res.getString("wrapTitle");
                 }
-                if (res.has("wrapSummary")) {
+                if (res.has("wrapSummary") && !res.getString("wrapSummary").trim().isEmpty()) {
                     body = res.getString("wrapSummary");
                 }
             }

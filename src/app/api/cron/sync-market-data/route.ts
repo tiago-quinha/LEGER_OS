@@ -403,8 +403,8 @@ async function handleSync(req: Request) {
       const sign = isGain ? "+" : "-";
       const absChange = Math.abs(dayChangeAmount);
       const absPct = Math.abs(dayChangePercent);
-
-      wrapTitle = `Portfolio Wrap · ${sign}€${absChange.toFixed(2)} (${sign}${absPct.toFixed(1)}%)`;
+      const emoji = isGain ? "📈" : "📉";
+      wrapTitle = `${emoji} Portfolio Wrap · ${sign}€${absChange.toFixed(2)} (${sign}${absPct.toFixed(1)}%)`;
       wrapSummary = `Total valuation: €${currVal.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}.`;
       if (topMover && (topMover as any).symbol) {
         const mover = topMover as { symbol: string; change24h: number };

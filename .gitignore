@@ -51,3 +51,5 @@ lighthouse-report.json
 *.txt
 !public/privacy.txt
 !public/terms.txt
+.mcp.json
+*.png

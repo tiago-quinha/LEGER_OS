@@ -209,6 +209,14 @@ export function SystemProvider({ children }: { children: React.ReactNode }) {
             localStorage.setItem("leger_cached_profile", JSON.stringify(profile))
           } catch {}
 
+          // Silent native Android device sync
+          if (BankSyncPlugin && session.user.id) {
+            BankSyncPlugin.setSyncContext({
+              userId: session.user.id,
+              baseUrl: "https://leger-os.vercel.app"
+            }).catch(() => {})
+          }
+
           // Silent timezone auto-sync for precision morning notifications
           try {
             const userTimezone = Intl.DateTimeFormat().resolvedOptions().timeZone

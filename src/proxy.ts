@@ -44,13 +44,14 @@ function checkRateLimit(key: string, limit: number, windowMs: number): { allowed
 export async function proxy(request: NextRequest) {
   const pathname = request.nextUrl.pathname
 
-  // 1. Skip static assets, images, and internal Next.js requests
+  // 1. Skip static assets, images, downloads, and internal Next.js requests
   if (
     pathname.startsWith("/_next") ||
     pathname.startsWith("/static") ||
-    pathname.includes(".") ||
+    pathname.startsWith("/downloads") ||
     pathname === "/favicon.ico" ||
-    pathname === "/icon.svg"
+    pathname === "/icon.svg" ||
+    /\.(?:svg|png|jpg|jpeg|gif|webp|ico|apk|txt|json)$/i.test(pathname)
   ) {
     return NextResponse.next()
   }
@@ -148,26 +149,24 @@ export async function proxy(request: NextRequest) {
       process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY!,
       {
         cookies: {
-          get(name: string) {
-            return request.cookies.get(name)?.value
+          getAll() {
+            return request.cookies.getAll()
           },
-          set(name: string, value: string, options: CookieOptions) {
-            request.cookies.set({ name, value, ...options })
+          setAll(cookiesToSet) {
+            cookiesToSet.forEach(({ name, value }) =>
+              request.cookies.set(name, value)
+            )
             response = NextResponse.next({
-              request: {
-                headers: request.headers,
-              },
+              request,
             })
-            response.cookies.set({ name, value, ...options })
-          },
-          remove(name: string, options: CookieOptions) {
-            request.cookies.set({ name, value: "", ...options })
-            response = NextResponse.next({
-              request: {
-                headers: request.headers,
-              },
-            })
-            response.cookies.set({ name, value: "", ...options })
+            cookiesToSet.forEach(({ name, value, options }) =>
+              response.cookies.set(name, value, {
+                ...options,
+                sameSite: "lax",
+                secure: process.env.NODE_ENV === "production",
+                maxAge: options?.maxAge ?? 60 * 60 * 24 * 365,
+              })
+            )
           },
         },
       }

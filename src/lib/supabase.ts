@@ -10,5 +10,12 @@ export const supabase = createBrowserClient(
       detectSessionInUrl: true,
       flowType: 'pkce',
     },
+    cookieOptions: {
+      name: 'sb-auth-token',
+      maxAge: 60 * 60 * 24 * 365,
+      domain: '',
+      sameSite: 'lax',
+      path: '/',
+    }
   }
 )

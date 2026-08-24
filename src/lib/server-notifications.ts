@@ -245,7 +245,7 @@ export async function notifyDailyMorningOutlook(
   const isSurplus = projectedSurplus >= 0
 
   return await sendPushToUser(supabaseAdmin, userId, {
-    title: `Morning Outlook · Day ${daysElapsed} of ${totalDays}`,
+    title: `🌅 Morning Outlook · Day ${daysElapsed} of ${totalDays}`,
     body: `Safe daily burn: ${currencySymbol}${safeDailyBurn.toFixed(2)} · Projected: ${isSurplus ? '+' : ''}${currencySymbol}${projectedSurplus.toFixed(2)} · Velocity: ${velocity.toFixed(2)}x`,
     url: `/dashboard`,
     data: {
@@ -304,10 +304,11 @@ export async function notifyAssetSurge(
   if (!allowed) return
 
   const isGain = change24h > 0
+  const emoji = isGain ? "📈" : "📉"
   const currencySymbol = currency === "USD" ? "$" : currency === "GBP" ? "£" : "€"
 
   return await sendPushToUser(supabaseAdmin, userId, {
-    title: `${cleanSymbol} ${isGain ? '+' : ''}${change24h.toFixed(1)}% · ${currencySymbol}${currentPrice.toFixed(2)}`,
+    title: `${emoji} ${cleanSymbol} ${isGain ? '+' : ''}${change24h.toFixed(1)}% · ${currencySymbol}${currentPrice.toFixed(2)}`,
     body: `${cleanSymbol} moved ${isGain ? '+' : ''}${change24h.toFixed(1)}% in the last 24h. Holdings value updated in Portfolio.`,
     url: `/portfolio`,
     data: {
@@ -333,7 +334,7 @@ export async function notifyPortfolioATH(
   if (!allowed) return
 
   return await sendPushToUser(supabaseAdmin, userId, {
-    title: `Portfolio Milestone · ${currencySymbol}${Math.round(newTotalValuation).toLocaleString()} ATH`,
+    title: `📈 Portfolio Milestone · ${currencySymbol}${Math.round(newTotalValuation).toLocaleString()} ATH`,
     body: `Your total investment portfolio reached a new all-time high of ${currencySymbol}${Math.round(newTotalValuation).toLocaleString()}.`,
     url: `/portfolio`,
     data: {
@@ -363,11 +364,12 @@ export async function notifyDailyPortfolioWrap(
   if (!allowed) return
 
   const isGain = dayChangeAmount >= 0
+  const emoji = isGain ? "📈" : "📉"
   const sign = isGain ? "+" : "-"
   const absChange = Math.abs(dayChangeAmount)
   const absPct = Math.abs(dayChangePercent)
 
-  const title = `Portfolio Wrap · ${sign}${currencySymbol}${absChange.toFixed(2)} (${sign}${absPct.toFixed(1)}%)`
+  const title = `${emoji} Portfolio Wrap · ${sign}${currencySymbol}${absChange.toFixed(2)} (${sign}${absPct.toFixed(1)}%)`
   
   let body = `Total valuation: ${currencySymbol}${totalValuation.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}.`
   if (topMover && topMover.symbol) {
