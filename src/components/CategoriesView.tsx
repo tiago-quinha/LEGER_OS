@@ -187,9 +187,9 @@ export function CategoriesView({ expenses, categories: initialCategories, cycles
 
   const handleCycleSelect = (newCycleId: string) => {
     setSelectedCycleId(newCycleId)
-    startTransition(() => {
-      router.replace(`/categories?cycleId=${newCycleId}`, { scroll: false })
-    })
+    if (typeof window !== "undefined") {
+      window.history.replaceState(null, '', `/categories?cycleId=${newCycleId}`)
+    }
   }
 
   const navigateCycle = (dir: 'prev' | 'next') => {

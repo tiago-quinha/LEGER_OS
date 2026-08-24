@@ -103,16 +103,39 @@ function simulateExpertDailyProjection(
   }
 }
 
+const calculateStartBalance = (cycleStartDateStr: string, allBalances: any[], txs: any[]) => {
+  const cycleStartDate = new Date(cycleStartDateStr)
+  const snapshot = allBalances
+    .filter(b => new Date(b.date) <= cycleStartDate)
+    .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())[0]
+
+  if (!snapshot) return 0
+
+  const snapDate = new Date(snapshot.date)
+  const snapAmount = parseFloat(snapshot.amount) || 0
+
+  const transitionTxSum = txs
+    .filter(tx => {
+      const txDate = new Date(tx.date)
+      return txDate >= snapDate && txDate < cycleStartDate
+    })
+    .reduce((sum, tx) => sum + (parseFloat(tx.amount) || 0), 0)
+
+  return snapAmount + transitionTxSum
+}
+
 interface DashboardViewProps {
-  expenses: any[]
-  categories: any[]
-  budgets: any[]
-  balances: any[]
-  cycles: any[]
+  expenses?: any[]
+  allExpenses?: any[]
+  categories?: any[]
+  budgets?: any[]
+  allBudgets?: any[]
+  balances?: any[]
+  cycles?: any[]
   currentCycleId: string
-  injectedStartBalance: number
-  previousExpenses: any[]
-  previousStartBalance: number
+  injectedStartBalance?: number
+  previousExpenses?: any[]
+  previousStartBalance?: number
   allPastExpenses?: any[]
   paycheckKeyword?: string
   targetMonthlyIncome?: number
@@ -120,26 +143,88 @@ interface DashboardViewProps {
 }
 
 export function DashboardView({ 
-  expenses = [], 
+  expenses: initialExpenses = [],
+  allExpenses = [],
   categories = [], 
   budgets = [], 
+  allBudgets = [],
   balances = [], 
   cycles = [], 
   currentCycleId, 
-  injectedStartBalance = 0, 
-  previousExpenses = [], 
-  previousStartBalance = 0,
-  allPastExpenses = [],
+  injectedStartBalance: initialStartBalance = 0, 
+  previousExpenses: initialPreviousExpenses = [], 
+  previousStartBalance: initialPreviousStartBalance = 0,
+  allPastExpenses: initialAllPastExpenses = [],
   paycheckKeyword,
   targetMonthlyIncome = 2500,
   targetMonthlySpend = 1500
 }: DashboardViewProps) {
   const router = useRouter()
+  const [selectedCycleId, setSelectedCycleId] = useState<string>(currentCycleId || cycles[0]?.id || "")
   const [isPending, startTransition] = useTransition()
   const [navigationDirection, setNavigationDirection] = useState<'prev' | 'next' | null>(null)
   const { setAuditPanelOpen, setActiveTransactionId, currencySymbol, language, decayWeight, isPro, isLoading, setSettingsOpen, setSettingsActiveTab, setSubscriptionOnly, profile, user, refreshProfile } = useSystem()
-  
-  const currentCycle = cycles.find(c => c.id === currentCycleId) || cycles[0]
+
+  useEffect(() => {
+    if (currentCycleId) {
+      setSelectedCycleId(currentCycleId)
+    }
+  }, [currentCycleId])
+
+  const currentCycle = useMemo(() => {
+    return cycles.find(c => c.id === selectedCycleId) || cycles[0] || null
+  }, [cycles, selectedCycleId])
+
+  const currentIndex = useMemo(() => {
+    return cycles.findIndex(c => c.id === (currentCycle?.id || ""))
+  }, [cycles, currentCycle])
+
+  const dataset = useMemo(() => {
+    return (allExpenses && allExpenses.length > 0) ? allExpenses : initialExpenses
+  }, [allExpenses, initialExpenses])
+
+  // In-memory instant cycle expenses
+  const expenses = useMemo(() => {
+    if (!currentCycle) return dataset
+    const start = new Date(currentCycle.startDate).getTime()
+    const end = currentCycle.endDate ? new Date(currentCycle.endDate).getTime() : Infinity
+    return dataset.filter(tx => {
+      const t = new Date(tx.date).getTime()
+      return t >= start && t < end
+    })
+  }, [dataset, currentCycle])
+
+  // In-memory past expenses before current cycle start
+  const allPastExpenses = useMemo(() => {
+    if (!currentCycle) return []
+    const start = new Date(currentCycle.startDate).getTime()
+    return dataset.filter(tx => new Date(tx.date).getTime() < start)
+  }, [dataset, currentCycle])
+
+  const previousCycle = useMemo(() => {
+    return (currentIndex !== -1 && currentIndex < cycles.length - 1) ? cycles[currentIndex + 1] : null
+  }, [cycles, currentIndex])
+
+  const previousExpenses = useMemo(() => {
+    if (!previousCycle) return []
+    const pStart = new Date(previousCycle.startDate).getTime()
+    const pEnd = previousCycle.endDate ? new Date(previousCycle.endDate).getTime() : Infinity
+    return dataset.filter(tx => {
+      const t = new Date(tx.date).getTime()
+      return t >= pStart && t < pEnd
+    })
+  }, [dataset, previousCycle])
+
+  const injectedStartBalance = useMemo(() => {
+    if (!currentCycle) return initialStartBalance || 0
+    return calculateStartBalance(currentCycle.startDate, balances, allPastExpenses)
+  }, [currentCycle, balances, allPastExpenses, initialStartBalance])
+
+  const previousStartBalance = useMemo(() => {
+    if (!previousCycle) return initialPreviousStartBalance || 0
+    const pastBeforePrev = dataset.filter(tx => new Date(tx.date).getTime() < new Date(previousCycle.startDate).getTime())
+    return calculateStartBalance(previousCycle.startDate, balances, pastBeforePrev)
+  }, [previousCycle, balances, dataset, initialPreviousStartBalance])
 
   // DATA CALCULATIONS (memoized to avoid re-iterating expenses on every render)
   const { totalOut, totalAnomalies, cleanTotalOut, totalIn, netChange, cycleEndBalance, netFlow } = useMemo(() => {
@@ -182,11 +267,10 @@ export function DashboardView({
     const diffTime = Math.abs(end.getTime() - start.getTime())
     return Math.max(1, Math.round(diffTime / (1000 * 60 * 60 * 24)) - 1)
   }, [currentCycle, daysElapsed])
-  const startDate = new Date(currentCycle.startDate)
+  const startDate = currentCycle ? new Date(currentCycle.startDate) : new Date()
   const today = new Date()
 
-  const currentIndex = cycles.findIndex(c => c.id === currentCycleId)
-  const isCurrentCycle = currentIndex === 0 || !currentCycle.endDate
+  const isCurrentCycle = currentIndex === 0 || !currentCycle?.endDate
 
   const [overrides, setOverrides] = useState<any[]>([])
   useEffect(() => {
@@ -204,7 +288,7 @@ export function DashboardView({
     loadOverrides()
     window.addEventListener("leger_overrides_updated", loadOverrides)
     return () => window.removeEventListener("leger_overrides_updated", loadOverrides)
-  }, [currentCycleId, profile])
+  }, [selectedCycleId, profile])
 
   // Predictive Expert Data Analyst Daily Simulation
   const expertProjection = useMemo(() => {
@@ -238,7 +322,7 @@ export function DashboardView({
 
   // Velocity Calculation
   const timeProgress = Math.min(1, daysElapsed / totalDaysInCycle)
-  const baseIncome = currentCycle.paycheckAmount > 0 ? currentCycle.paycheckAmount : 500
+  const baseIncome = (currentCycle?.paycheckAmount && currentCycle.paycheckAmount > 0) ? currentCycle.paycheckAmount : 500
   const spendProgress = baseIncome > 0 ? totalOut / baseIncome : 0
   const velocity = timeProgress > 0 ? spendProgress / timeProgress : 0
   const estimatedFinalBalance = isCurrentCycle 
@@ -262,9 +346,10 @@ export function DashboardView({
     if (targetIdx !== -1 && targetIdx !== currentIndex) {
       setNavigationDirection(targetIdx > currentIndex ? 'prev' : 'next')
     }
-    startTransition(() => {
-      router.replace(`/?cycleId=${newCycleId}`, { scroll: false })
-    })
+    setSelectedCycleId(newCycleId)
+    if (typeof window !== "undefined") {
+      window.history.replaceState(null, '', `/?cycleId=${newCycleId}`)
+    }
   }
 
   const navigateCycle = (direction: 'prev' | 'next') => {
@@ -683,7 +768,7 @@ export function DashboardView({
   return (
     <SwipeCycleWrapper
       cycles={cycles}
-      currentCycleId={currentCycleId}
+      currentCycleId={selectedCycleId}
       route="/"
       onCycleChange={handleCycleSelect}
     >
@@ -1469,7 +1554,7 @@ export function DashboardView({
       {/* Mobile sticky cycle nav bar (above bottom nav) */}
       <CycleMobileBar
         cycles={cycles}
-        currentCycleId={currentCycleId}
+        currentCycleId={selectedCycleId}
         route="/"
         onCycleChange={handleCycleSelect}
       />

@@ -115,9 +115,9 @@ export function RadarPageView({ expenses, categories, cycles, currentCycleId }: 
   const handleCycleSelect = (id: string, dir?: 'prev' | 'next') => {
     setSelectedCycleId(id)
     if (dir) setNavigationDirection(dir)
-    startTransition(() => {
-      router.replace(`/radar?cycleId=${id}`, { scroll: false })
-    })
+    if (typeof window !== "undefined") {
+      window.history.replaceState(null, '', `/radar?cycleId=${id}`)
+    }
   }
 
   // Load preferences from profile and localStorage

@@ -127,15 +127,13 @@ export default async function DashboardPage({ searchParams }: PageProps) {
   const cycleMonth = dateObj.getUTCMonth() + 1
   const cycleYear = dateObj.getUTCFullYear()
 
-  // Run database queries in parallel
-  const [expensesRes, categoriesRes, budgetsRes, balancesRes, previousTxRes] = await Promise.all([
-    // Selected cycle expenses
+  // Run database queries in parallel - complete dataset for instant 0ms client-side in-memory cycle transitions
+  const [allTxRes, categoriesRes, budgetsRes, balancesRes] = await Promise.all([
+    // All user expenses
     supabase
       .from("tracker_expense")
       .select("*")
       .eq("user_id", user.id)
-      .gte("date", startDateStr)
-      .lt("date", endDateStr)
       .order("date", { ascending: false }),
     // Categories
     supabase
@@ -143,111 +141,34 @@ export default async function DashboardPage({ searchParams }: PageProps) {
       .select("*")
       .eq("user_id", user.id)
       .order("name"),
-    // Budgets for the selected cycle's month/year
+    // All budgets
     supabase
       .from("budgets")
       .select("*")
-      .eq("user_id", user.id)
-      .eq("month", cycleMonth)
-      .eq("year", cycleYear),
+      .eq("user_id", user.id),
     // All balance snapshots
     supabase
       .from("account_balance")
       .select("*")
       .eq("user_id", user.id)
-      .order("date", { ascending: false }),
-    // All transactions before the selected cycle
-    supabase
-      .from("tracker_expense")
-      .select("*")
-      .eq("user_id", user.id)
-      .lt("date", startDateStr)
-      .order("date", { ascending: true })
+      .order("date", { ascending: false })
   ])
 
-  const expenses = expensesRes.data || []
+  const allExpenses = allTxRes.data || []
   const categories = categoriesRes.data || []
   const balances = balancesRes.data || []
-  const previousTx = previousTxRes.data || []
+  const budgets = budgetsRes.data || []
   const paycheckKeyword = profile?.paycheck_keyword || "SALARY"
-
-  let budgets = budgetsRes.data || []
-  if (budgets.length === 0 && cycles.length > 0) {
-    const { data: latestBudgets } = await supabase
-      .from("budgets")
-      .select("*")
-      .eq("user_id", user.id)
-      .order("year", { ascending: false })
-      .order("month", { ascending: false })
-    
-    if (latestBudgets && latestBudgets.length > 0) {
-      const latestMonth = latestBudgets[0].month
-      const latestYear = latestBudgets[0].year
-      const fallbackBudgets = latestBudgets.filter(b => b.month === latestMonth && b.year === latestYear)
-      
-      const clonePayload = fallbackBudgets.map(b => ({
-        category_id: b.category_id,
-        amount: b.amount,
-        month: cycleMonth,
-        year: cycleYear,
-        user_id: user.id
-      }))
-      
-      const { data: insertedBudgets, error: cloneError } = await supabase
-        .from("budgets")
-        .insert(clonePayload)
-        .select()
-        
-      if (!cloneError && insertedBudgets) {
-        budgets = insertedBudgets
-      }
-    }
-  }
-
-  // Helper to calculate starting balance for a cycle
-  const calculateStartBalance = (cycleStartDateStr: string, allBalances: any[], txs: any[]) => {
-    const cycleStartDate = new Date(cycleStartDateStr)
-    const snapshot = allBalances
-      .filter(b => new Date(b.date) <= cycleStartDate)
-      .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())[0]
-
-    if (!snapshot) return 0
-
-    const snapDate = new Date(snapshot.date)
-    const snapAmount = parseFloat(snapshot.amount)
-
-    const transitionTxSum = txs
-      .filter(tx => {
-        const txDate = new Date(tx.date)
-        return txDate >= snapDate && txDate < cycleStartDate
-      })
-      .reduce((sum, tx) => sum + (parseFloat(tx.amount) || 0), 0)
-
-    return snapAmount + transitionTxSum
-  }
-
-  const injectedStartBalance = calculateStartBalance(selectedCycle.startDate, balances, previousTx)
-
-  let previousExpenses: any[] = []
-  let previousStartBalance = 0
-
-  if (previousCycle) {
-    previousExpenses = previousTx.filter(tx => tx.date >= previousCycle.startDate)
-    previousStartBalance = calculateStartBalance(previousCycle.startDate, balances, previousTx)
-  }
 
   return (
     <DashboardView
-      expenses={expenses}
+      allExpenses={allExpenses}
+      expenses={allExpenses}
       categories={categories}
       budgets={budgets}
       balances={balances}
       cycles={cycles}
       currentCycleId={selectedCycle.id}
-      injectedStartBalance={injectedStartBalance}
-      previousExpenses={previousExpenses}
-      previousStartBalance={previousStartBalance}
-      allPastExpenses={previousTx}
       paycheckKeyword={paycheckKeyword}
       targetMonthlyIncome={parseFloat(profile?.target_monthly_income) || 2500}
       targetMonthlySpend={parseFloat(profile?.target_monthly_spend) || 1500}

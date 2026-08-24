@@ -466,9 +466,9 @@ export function PortfolioView({
 
   const handleCycleSelect = (newCycleId: string) => {
     setSelectedCycleId(newCycleId);
-    startTransition(() => {
-      router.replace(`/portfolio?cycleId=${newCycleId}`, { scroll: false });
-    });
+    if (typeof window !== "undefined") {
+      window.history.replaceState(null, '', `/portfolio?cycleId=${newCycleId}`);
+    }
   };
 
   const navigateCycle = (direction: "prev" | "next") => {

@@ -190,9 +190,9 @@ export function BudgetsView({
 
   const handleCycleSelect = (newCycleId: string) => {
     setSelectedCycleId(newCycleId)
-    startTransition(() => {
-      router.replace(`/budgets?cycleId=${newCycleId}`, { scroll: false })
-    })
+    if (typeof window !== "undefined") {
+      window.history.replaceState(null, '', `/budgets?cycleId=${newCycleId}`)
+    }
   }
 
   const navigateCycle = (direction: 'prev' | 'next') => {
