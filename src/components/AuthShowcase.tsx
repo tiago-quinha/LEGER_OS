@@ -23,7 +23,7 @@ const SLIDES: FeatureSlide[] = [
     tabLabel: "Live Capture",
     badge: "Zero-Credential Ingestion",
     title: "ZERO BANK PASSWORDS REQUIRED. CAPTURE EXPENSES LIVE ON DEVICE.",
-    description: "Never share sensitive banking logins. Our native Android listener detects MB WAY, bank, and card purchases in real-time, extracting amounts and merchants with 100% device-level privacy.",
+    description: "Never share sensitive banking logins. Our native Android listener detects bank, card, and payment notifications in real time, extracting amounts and merchants with 100% device-level privacy.",
     visualType: "notification"
   },
   {
@@ -143,12 +143,12 @@ export function AuthShowcase() {
                     <div className="flex items-center justify-between text-[10px] text-muted-foreground uppercase">
                       <span className="flex items-center gap-1.5 font-bold text-foreground">
                         <Bell className="h-3 w-3 text-emerald-500" />
-                        MB WAY · Pagamento Enviado
+                        Bank App · Payment Approved
                       </span>
-                      <span className="text-[9px] text-muted-foreground">Agora</span>
+                      <span className="text-[9px] text-muted-foreground">Just now</span>
                     </div>
                     <p className="text-[11px] text-foreground font-bold truncate">
-                      Transferência de 14,80 € enviada para Pingo Doce
+                      Card transaction of €14.80 at Grocery Market
                     </p>
                   </div>
 
@@ -157,7 +157,7 @@ export function AuthShowcase() {
                       <CheckCircle2 className="h-3.5 w-3.5" />
                       Captured in 0.1s · Zero Passwords Shared
                     </span>
-                    <span className="text-[10px] uppercase bg-emerald-500/20 px-2 py-0.5 border border-emerald-500/40">
+                    <span className="text-[10px] uppercase bg-emerald-500/20 px-1.5 py-0.5 border border-emerald-500/40">
                       -€14.80 Auto-Logged
                     </span>
                   </div>
