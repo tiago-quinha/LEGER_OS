@@ -189,8 +189,7 @@ export default function LoginPage() {
       })
       if (error) throw error
       toast.success("Welcome back to LEGER_OS")
-      router.push('/')
-      router.refresh()
+      window.location.href = '/'
     } catch (error: any) {
       toast.error(error.message || "Invalid credentials")
     } finally {
@@ -214,8 +213,7 @@ export default function LoginPage() {
       })
       if (error) throw error
       toast.success("Account created! Welcome to LEGER_OS")
-      router.push('/')
-      router.refresh()
+      window.location.href = '/'
     } catch (error: any) {
       toast.error(error.message || "Failed to create account")
     } finally {

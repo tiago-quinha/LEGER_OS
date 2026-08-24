@@ -160,12 +160,7 @@ export async function proxy(request: NextRequest) {
               request,
             })
             cookiesToSet.forEach(({ name, value, options }) =>
-              response.cookies.set(name, value, {
-                ...options,
-                sameSite: "lax",
-                secure: process.env.NODE_ENV === "production",
-                maxAge: options?.maxAge ?? 60 * 60 * 24 * 365,
-              })
+              response.cookies.set(name, value, options)
             )
           },
         },
