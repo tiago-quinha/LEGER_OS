@@ -224,21 +224,41 @@ export function AuthShowcase() {
               )}
 
               {currentSlide.visualType === "forecast" && (
-                <div className="bg-background border border-border/80 p-4 rounded-none space-y-3 font-mono">
-                  <div className="flex justify-between items-center text-xs border-b border-border/60 pb-2">
-                    <span className="text-muted-foreground font-bold">
-                      Projected Cycle Surplus
+                <div className="bg-background border border-border/80 p-3.5 rounded-none space-y-2.5 font-mono text-xs">
+                  {/* Header with Decay Telemetry */}
+                  <div className="flex justify-between items-center text-[11px] border-b border-border/60 pb-2">
+                    <span className="text-muted-foreground font-bold flex items-center gap-1.5 uppercase">
+                      <span className="h-1.5 w-1.5 bg-emerald-500 rounded-none inline-block" />
+                      λ = 0.12 Exponential Decay
                     </span>
-                    <span className="font-bold text-foreground bg-secondary px-2.5 py-0.5 border border-border/80 text-xs">
-                      €3,840.00 Est.
+                    <span className="text-[10px] font-mono text-muted-foreground uppercase bg-secondary/60 px-2 py-0.5 border border-border/60">
+                      Safe Burn: €48.20/day
                     </span>
                   </div>
 
-                  <div className="flex items-center justify-between text-[11px] text-muted-foreground pt-1">
-                    <span>7-Day Velocity Decay</span>
-                    <span className="text-emerald-500 font-bold flex items-center gap-1">
-                      <CheckCircle2 className="h-3 w-3" /> Highly Accurate • On Track
-                    </span>
+                  {/* Scenario Bands Grid (P10 / P50 / P90) */}
+                  <div className="grid grid-cols-3 gap-2 text-center py-1">
+                    <div className="bg-secondary/30 border border-border/60 p-2 space-y-0.5">
+                      <span className="text-[9px] uppercase text-emerald-500 font-bold block">P10 Best</span>
+                      <span className="text-xs font-bold text-emerald-500">+€4,120</span>
+                    </div>
+                    <div className="bg-secondary/60 border border-border p-2 space-y-0.5 relative">
+                      <div className="absolute -top-1.5 left-1/2 -translate-x-1/2 bg-foreground text-background text-[8px] font-bold uppercase px-1">
+                        Expected
+                      </div>
+                      <span className="text-[9px] uppercase text-muted-foreground font-bold block">P50 Median</span>
+                      <span className="text-xs font-bold text-foreground">+€3,840</span>
+                    </div>
+                    <div className="bg-secondary/30 border border-border/60 p-2 space-y-0.5">
+                      <span className="text-[9px] uppercase text-muted-foreground font-bold block">P90 Floor</span>
+                      <span className="text-xs font-bold text-muted-foreground">+€3,410</span>
+                    </div>
+                  </div>
+
+                  {/* Deducted Recurring Commitments Footer */}
+                  <div className="flex items-center justify-between text-[10px] bg-secondary/20 border border-border/40 p-1.5 text-muted-foreground">
+                    <span>Auto-Deducted Fixed Bills:</span>
+                    <span className="text-foreground font-bold font-mono">-€420.00 (Rent &amp; Utilities)</span>
                   </div>
                 </div>
               )}
