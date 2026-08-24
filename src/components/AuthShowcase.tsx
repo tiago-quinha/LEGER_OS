@@ -97,7 +97,7 @@ export function AuthShowcase() {
       </div>
 
       {/* Main Industrial Blueprint Showcase Container */}
-      <Tilt rotationFactor={4} className="border border-border/80 bg-card/60 hover:bg-secondary/35 transition-all duration-300 p-6 sm:p-8 relative h-[360px] flex flex-col justify-between rounded-none shadow-none group overflow-hidden">
+      <Tilt rotationFactor={4} className="border border-border/80 bg-card/60 hover:bg-secondary/35 transition-all duration-300 p-5 sm:p-7 relative min-h-[400px] sm:min-h-[420px] h-auto flex flex-col justify-between rounded-none shadow-none group overflow-hidden">
         
         {/* Corner Crosshairs */}
         <div className="absolute top-1 left-1 text-muted-foreground/30 text-[10px] leading-none z-10">+</div>
@@ -112,7 +112,7 @@ export function AuthShowcase() {
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
             transition={{ duration: 0.15 }}
-            className="space-y-6 flex-1 flex flex-col justify-between z-10"
+            className="space-y-4 flex-1 flex flex-col justify-between z-10"
           >
             {/* Header Badge & Title */}
             <div className="space-y-2 border-l-2 border-emerald-500 pl-3">
