@@ -2,6 +2,7 @@
 
 import React, { useRef, useState, useEffect } from "react"
 import { motion, useMotionValue, animate, AnimatePresence } from "framer-motion"
+import { ChevronLeft, ChevronRight } from "lucide-react"
 import { shouldPreventSwipe } from "@/hooks/useCycleSwipe"
 import { cn } from "@/lib/utils"
 
@@ -16,8 +17,8 @@ interface SwipeCycleWrapperProps {
 }
 
 /**
- * High-performance edge-activated peeking carousel wrapper with real-time adjacent cycle previews.
- * Employs hardware-accelerated GPU transforms, spring physics, and peeking indicators.
+ * High-performance edge-activated swipe wrapper with clean centered directional arrows.
+ * Employs hardware-accelerated GPU transforms and calibrated spring physics.
  */
 export function SwipeCycleWrapper({
   children,
@@ -186,17 +187,6 @@ export function SwipeCycleWrapper({
     }
   })
 
-  // Format short month label for peek badge
-  const getCycleShortLabel = (c: any) => {
-    if (!c) return ""
-    if (c.label) return c.label.replace(/^Cycle:\s*/i, "")
-    if (c.startDate) {
-      const d = new Date(c.startDate)
-      return d.toLocaleDateString("en-GB", { month: "short", year: "numeric", timeZone: "UTC" }).toUpperCase()
-    }
-    return "CYCLE"
-  }
-
   return (
     <div
       onTouchStart={handleTouchStart}
@@ -204,31 +194,29 @@ export function SwipeCycleWrapper({
       onTouchEnd={handleTouchEnd}
       className={`relative w-full touch-pan-y overflow-x-clip ${className}`}
     >
-      {/* 1. Real-Time Peeking Indicators on Left/Right Margins */}
+      {/* Clean Centered Directional Arrows on Left/Right Margins */}
       <AnimatePresence>
         {isSwipingState && dragOffset > 10 && prevCycle && (
           <motion.div
-            initial={{ opacity: 0, x: -20, scale: 0.9 }}
-            animate={{ opacity: Math.min(1, dragOffset / 35), x: 0, scale: 1 }}
-            exit={{ opacity: 0, x: -20, scale: 0.9 }}
+            initial={{ opacity: 0, x: -16, scale: 0.8 }}
+            animate={{ opacity: Math.min(1, dragOffset / 30), x: 0, scale: 1 }}
+            exit={{ opacity: 0, x: -16, scale: 0.8 }}
             transition={{ duration: 0.15 }}
-            className="fixed top-24 left-3 z-50 pointer-events-none flex items-center gap-1.5 px-3 py-1.5 bg-background/90 border border-border text-[10px] font-mono font-bold uppercase tracking-widest text-foreground shadow-2xl backdrop-blur-md rounded-none"
+            className="fixed top-1/2 -translate-y-1/2 left-3 z-50 pointer-events-none flex items-center justify-center h-11 w-11 bg-background/90 border border-border text-foreground shadow-2xl backdrop-blur-md rounded-full"
           >
-            <span>←</span>
-            <span className="truncate max-w-[150px]">{getCycleShortLabel(prevCycle)}</span>
+            <ChevronLeft className="h-6 w-6 text-foreground" />
           </motion.div>
         )}
 
         {isSwipingState && dragOffset < -10 && nextCycle && (
           <motion.div
-            initial={{ opacity: 0, x: 20, scale: 0.9 }}
-            animate={{ opacity: Math.min(1, Math.abs(dragOffset) / 35), x: 0, scale: 1 }}
-            exit={{ opacity: 0, x: 20, scale: 0.9 }}
+            initial={{ opacity: 0, x: 16, scale: 0.8 }}
+            animate={{ opacity: Math.min(1, Math.abs(dragOffset) / 30), x: 0, scale: 1 }}
+            exit={{ opacity: 0, x: 16, scale: 0.8 }}
             transition={{ duration: 0.15 }}
-            className="fixed top-24 right-3 z-50 pointer-events-none flex items-center gap-1.5 px-3 py-1.5 bg-background/90 border border-border text-[10px] font-mono font-bold uppercase tracking-widest text-foreground shadow-2xl backdrop-blur-md rounded-none"
+            className="fixed top-1/2 -translate-y-1/2 right-3 z-50 pointer-events-none flex items-center justify-center h-11 w-11 bg-background/90 border border-border text-foreground shadow-2xl backdrop-blur-md rounded-full"
           >
-            <span className="truncate max-w-[150px]">{getCycleShortLabel(nextCycle)}</span>
-            <span>→</span>
+            <ChevronRight className="h-6 w-6 text-foreground" />
           </motion.div>
         )}
       </AnimatePresence>
