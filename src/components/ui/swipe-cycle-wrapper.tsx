@@ -32,19 +32,18 @@ export function SwipeCycleWrapper({
   const router = useRouter()
   const [_, startTransition] = useTransition()
   const x = useMotionValue(0)
+  const [isSwipingState, setIsSwipingState] = React.useState(false)
 
   const touchStartX = useRef<number | null>(null)
   const touchStartY = useRef<number | null>(null)
   const isHorizontal = useRef<boolean>(false)
   const isTracking = useRef<boolean>(false)
 
-  if (disabled || !cycles || cycles.length < 2) {
-    return <div className={className}>{children}</div>
-  }
+  const isSwipeEnabled = !disabled && Boolean(cycles && cycles.length >= 2)
 
-  const currentIndex = cycles.findIndex((c) => c.id === currentCycleId)
-  const canPrev = currentIndex < cycles.length - 1 // Older cycle (swipe right)
-  const canNext = currentIndex > 0 // Newer cycle (swipe left)
+  const currentIndex = cycles ? cycles.findIndex((c) => c.id === currentCycleId) : -1
+  const canPrev = cycles ? currentIndex < cycles.length - 1 : false // Older cycle (swipe right)
+  const canNext = cycles ? currentIndex > 0 : false // Newer cycle (swipe left)
 
   const triggerHaptic = () => {
     if (typeof navigator !== "undefined" && navigator.vibrate) {
@@ -56,10 +55,8 @@ export function SwipeCycleWrapper({
     }
   }
 
-  const [isSwipingState, setIsSwipingState] = React.useState(false)
-
   const handleTouchStart = (e: React.TouchEvent) => {
-    if (e.touches.length > 1) return
+    if (!isSwipeEnabled || e.touches.length > 1) return
 
     const target = e.target as HTMLElement | Element | null
     if (shouldPreventSwipe(target)) {
@@ -76,7 +73,7 @@ export function SwipeCycleWrapper({
   }
 
   const handleTouchMove = (e: React.TouchEvent) => {
-    if (!isTracking.current || touchStartX.current === null || touchStartY.current === null) return
+    if (!isSwipeEnabled || !isTracking.current || touchStartX.current === null || touchStartY.current === null) return
 
     const dx = e.touches[0].clientX - touchStartX.current
     const dy = e.touches[0].clientY - touchStartY.current
