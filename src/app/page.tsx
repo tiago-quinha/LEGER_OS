@@ -84,14 +84,36 @@ export default async function DashboardPage({ searchParams }: PageProps) {
     }
   }
 
-  // 2. Fetch user profile and cycles using utility
-  const { data: profile } = await supabase
-    .from("profiles")
-    .select("onboarding_completed, target_monthly_income, target_monthly_spend, paycheck_keyword")
-    .eq("id", user.id)
-    .single()
+  // 2. Fetch user profile, cycles, and complete dataset in a single parallel batch
+  const [profileRes, cycles, allTxRes, categoriesRes, budgetsRes, balancesRes] = await Promise.all([
+    supabase
+      .from("profiles")
+      .select("onboarding_completed, target_monthly_income, target_monthly_spend, paycheck_keyword")
+      .eq("id", user.id)
+      .single(),
+    getCycles(supabase, user.id),
+    supabase
+      .from("tracker_expense")
+      .select("*")
+      .eq("user_id", user.id)
+      .order("date", { ascending: false }),
+    supabase
+      .from("categories")
+      .select("*")
+      .eq("user_id", user.id)
+      .order("name"),
+    supabase
+      .from("budgets")
+      .select("*")
+      .eq("user_id", user.id),
+    supabase
+      .from("account_balance")
+      .select("*")
+      .eq("user_id", user.id)
+      .order("date", { ascending: false })
+  ])
 
-  const cycles = await getCycles(supabase, user.id)
+  const profile = profileRes.data
 
   if (!profile?.onboarding_completed || params?.onboarding === "true" || params?.force_onboarding === "true") {
     return <OnboardingView />
@@ -113,46 +135,6 @@ export default async function DashboardPage({ searchParams }: PageProps) {
   const selectedCycle = params.cycleId
     ? cycles.find(c => c.id === params.cycleId) || cycles[0]
     : cycles[0]
-
-  const selectedIndex = cycles.findIndex(c => c.id === selectedCycle.id)
-  const previousCycle = selectedIndex !== -1 && selectedIndex < cycles.length - 1
-    ? cycles[selectedIndex + 1]
-    : null
-
-  // 4. Fetch selected cycle expenses, categories, budgets, and balance snapshots
-  const startDateStr = selectedCycle.startDate
-  const endDateStr = selectedCycle.endDate || '9999-12-31'
-
-  const dateObj = new Date(selectedCycle.startDate)
-  const cycleMonth = dateObj.getUTCMonth() + 1
-  const cycleYear = dateObj.getUTCFullYear()
-
-  // Run database queries in parallel - complete dataset for instant 0ms client-side in-memory cycle transitions
-  const [allTxRes, categoriesRes, budgetsRes, balancesRes] = await Promise.all([
-    // All user expenses
-    supabase
-      .from("tracker_expense")
-      .select("*")
-      .eq("user_id", user.id)
-      .order("date", { ascending: false }),
-    // Categories
-    supabase
-      .from("categories")
-      .select("*")
-      .eq("user_id", user.id)
-      .order("name"),
-    // All budgets
-    supabase
-      .from("budgets")
-      .select("*")
-      .eq("user_id", user.id),
-    // All balance snapshots
-    supabase
-      .from("account_balance")
-      .select("*")
-      .eq("user_id", user.id)
-      .order("date", { ascending: false })
-  ])
 
   const allExpenses = allTxRes.data || []
   const categories = categoriesRes.data || []

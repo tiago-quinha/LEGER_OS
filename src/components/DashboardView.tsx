@@ -162,6 +162,7 @@ export function DashboardView({
   const router = useRouter()
   const [selectedCycleId, setSelectedCycleId] = useState<string>(currentCycleId || cycles[0]?.id || "")
   const [isPending, startTransition] = useTransition()
+  const [viewMode, setViewMode] = useState<'graph' | 'calendar' | 'all-time'>('graph')
   const [navigationDirection, setNavigationDirection] = useState<'prev' | 'next' | null>(null)
   const { setAuditPanelOpen, setActiveTransactionId, currencySymbol, language, decayWeight, isPro, isLoading, setSettingsOpen, setSettingsActiveTab, setSubscriptionOnly, profile, user, refreshProfile } = useSystem()
 
@@ -251,8 +252,20 @@ export function DashboardView({
     }
   }, [expenses, injectedStartBalance])
 
-  // Memoized all-time aggregate totals (cached in memory)
+  // Memoized all-time aggregate totals (only evaluated when viewMode === 'all-time')
   const allTimeTotals = useMemo(() => {
+    if (viewMode !== 'all-time') {
+      return {
+        allOut: 0,
+        allIn: 0,
+        allNet: 0,
+        allAnomalies: 0,
+        cleanAllOut: 0,
+        latestBalance: 0,
+        monthsElapsed: 1
+      }
+    }
+
     let _allOut = 0, _allIn = 0, _allAnomalies = 0, _allNet = 0
     for (const exp of dataset) {
       const amt = parseFloat(exp.amount) || 0
@@ -293,7 +306,7 @@ export function DashboardView({
       latestBalance: liveCurrentPosition,
       monthsElapsed
     }
-  }, [dataset, balances])
+  }, [viewMode, dataset, balances])
 
   const daysElapsed = useMemo(() => {
     if (!currentCycle) return 30
@@ -409,7 +422,6 @@ export function DashboardView({
   }
 
   const [activeTab, setActiveTab] = useState<'burn' | 'liquidity'>('liquidity')
-  const [viewMode, setViewMode] = useState<'graph' | 'calendar' | 'all-time'>('graph')
   const [showGraphLock, setShowGraphLock] = useState(false)
   const [selectedDate, setSelectedDate] = useState<Date | null>(null)
   const [modalOpen, setModalOpen] = useState(false)
@@ -668,9 +680,9 @@ export function DashboardView({
     }
   }), [totalDaysInCycle, startDate, today, expenses, injectedStartBalance, totalIn, isCurrentCycle, expertProjection])
 
-  // GENERATE ALL-TIME CONTINUOUS HYBRID DATA
+  // GENERATE ALL-TIME CONTINUOUS HYBRID DATA (only evaluated when viewMode === 'all-time')
   const allTimeHybridData = useMemo(() => {
-    if (dataset.length === 0) return []
+    if (viewMode !== 'all-time' || dataset.length === 0) return []
     
     // Sort all transactions chronologically ascending
     const sortedTx = [...dataset].sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime())
@@ -756,7 +768,7 @@ export function DashboardView({
     }
     
     return points
-  }, [dataset, balances, today])
+  }, [viewMode, dataset, balances, today])
 
   const spendingByCategory = useMemo(() => categories.map(cat => {
     const spent = expenses
