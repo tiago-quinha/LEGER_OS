@@ -251,6 +251,38 @@ export function DashboardView({
     }
   }, [expenses, injectedStartBalance])
 
+  // Memoized all-time aggregate totals (cached in memory)
+  const allTimeTotals = useMemo(() => {
+    let _allOut = 0, _allIn = 0, _allAnomalies = 0, _allNet = 0
+    for (const exp of dataset) {
+      const amt = parseFloat(exp.amount) || 0
+      _allNet += amt
+      if (amt < 0) {
+        const absAmt = Math.abs(amt)
+        _allOut += absAmt
+        if (exp.is_anomaly) _allAnomalies += absAmt
+      } else if (amt > 0) {
+        _allIn += amt
+      }
+    }
+    
+    const sortedTx = [...dataset].sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime())
+    const firstTxDate = sortedTx.length > 0 ? new Date(sortedTx[0].date) : new Date()
+    const monthsElapsed = Math.max(1, ((new Date().getFullYear() - firstTxDate.getFullYear()) * 12) + (new Date().getMonth() - firstTxDate.getMonth()) + 1)
+    
+    const latestBalance = balances.length > 0 ? parseFloat(balances[0].amount) : _allNet
+    
+    return {
+      allOut: _allOut,
+      allIn: _allIn,
+      allNet: _allNet,
+      allAnomalies: _allAnomalies,
+      cleanAllOut: _allOut - _allAnomalies,
+      latestBalance,
+      monthsElapsed
+    }
+  }, [dataset, balances])
+
   const daysElapsed = useMemo(() => {
     if (!currentCycle) return 30
     const start = new Date(currentCycle.startDate)
@@ -965,47 +997,67 @@ export function DashboardView({
                 </div>
 
                 {/* Cycle Navigation Chevrons (Desktop only; on mobile, sticky bottom bar is used) */}
-                <div className="hidden md:flex items-center border border-border ledger-border bg-card overflow-hidden shrink-0">
-                  <button 
-                    onClick={() => navigateCycle('prev')} 
-                    disabled={isPending || currentIndex >= cycles.length - 1} 
-                    className="px-3.5 py-2 hover:bg-muted transition-colors disabled:opacity-40 border-r border-border cursor-pointer disabled:cursor-not-allowed"
-                    aria-label="Previous paycheck cycle"
-                  >
-                    <ChevronLeft className="h-3.5 w-3.5 text-foreground" />
-                  </button>
-                  <button 
-                    onClick={() => navigateCycle('next')} 
-                    disabled={isPending || currentIndex <= 0} 
-                    className="px-3.5 py-2 hover:bg-muted transition-colors disabled:opacity-40 cursor-pointer disabled:cursor-not-allowed"
-                    aria-label="Next paycheck cycle"
-                  >
-                    <ChevronRight className="h-3.5 w-3.5 text-foreground" />
-                  </button>
-                </div>
+                {viewMode !== 'all-time' && (
+                  <div className="hidden md:flex items-center border border-border ledger-border bg-card overflow-hidden shrink-0">
+                    <button 
+                      onClick={() => navigateCycle('prev')} 
+                      disabled={isPending || currentIndex >= cycles.length - 1} 
+                      className="px-3.5 py-2 hover:bg-muted transition-colors disabled:opacity-40 border-r border-border cursor-pointer disabled:cursor-not-allowed"
+                      aria-label="Previous paycheck cycle"
+                    >
+                      <ChevronLeft className="h-3.5 w-3.5 text-foreground" />
+                    </button>
+                    <button 
+                      onClick={() => navigateCycle('next')} 
+                      disabled={isPending || currentIndex <= 0} 
+                      className="px-3.5 py-2 hover:bg-muted transition-colors disabled:opacity-40 cursor-pointer disabled:cursor-not-allowed"
+                      aria-label="Next paycheck cycle"
+                    >
+                      <ChevronRight className="h-3.5 w-3.5 text-foreground" />
+                    </button>
+                  </div>
+                )}
               </div>
             </div>
 
             {/* Full-width statistics bar matching graph width */}
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 sm:gap-4 py-2 px-4 border border-border ledger-border bg-card text-[10px] font-mono w-full">
                <div className="flex items-center justify-between sm:justify-start gap-1.5 w-full sm:w-auto">
-                 <span className="text-muted-foreground uppercase tracking-wider whitespace-nowrap">Net Cash Flow:</span>
-                 <span className={cn("font-bold whitespace-nowrap", delta >= 0 ? "text-emerald-500" : "text-destructive")}>
-                   <PrivacyValue>{delta >= 0 ? "+" : ""}{currencySymbol}{delta.toFixed(2)}</PrivacyValue>
+                 <span className="text-muted-foreground uppercase tracking-wider whitespace-nowrap">
+                   {viewMode === 'all-time' ? "All-Time Net Flow:" : "Net Cash Flow:"}
+                 </span>
+                 <span className={cn("font-bold whitespace-nowrap", (viewMode === 'all-time' ? allTimeTotals.allNet >= 0 : delta >= 0) ? "text-emerald-500" : "text-destructive")}>
+                   <PrivacyValue>
+                     {viewMode === 'all-time' 
+                       ? `${allTimeTotals.allNet >= 0 ? "+" : ""}${currencySymbol}${allTimeTotals.allNet.toFixed(2)}`
+                       : `${delta >= 0 ? "+" : ""}${currencySymbol}${delta.toFixed(2)}`}
+                   </PrivacyValue>
                  </span>
                </div>
                <span className="hidden sm:inline text-muted-foreground/30 font-light select-none">|</span>
                <div className="flex items-center justify-between sm:justify-start gap-1.5 w-full sm:w-auto border-t border-border/30 pt-2 sm:pt-0 sm:border-0">
-                  <span className="text-muted-foreground uppercase tracking-wider whitespace-nowrap">Daily Burn:</span>
+                  <span className="text-muted-foreground uppercase tracking-wider whitespace-nowrap">
+                    {viewMode === 'all-time' ? "Average Outflow/Mo:" : "Daily Burn:"}
+                  </span>
                   <span className="font-bold text-foreground whitespace-nowrap">
-                    <PrivacyValue>{currencySymbol}{(cleanTotalOut / Math.max(1, daysElapsed)).toFixed(2)}/d</PrivacyValue>
+                    <PrivacyValue>
+                      {viewMode === 'all-time'
+                        ? `${currencySymbol}${(allTimeTotals.allOut / Math.max(1, allTimeTotals.monthsElapsed)).toFixed(2)}/mo`
+                        : `${currencySymbol}${(cleanTotalOut / Math.max(1, daysElapsed)).toFixed(2)}/d`}
+                    </PrivacyValue>
                   </span>
                </div>
                <span className="hidden sm:inline text-muted-foreground/30 font-light select-none">|</span>
                <div className="flex items-center justify-between sm:justify-start gap-1.5 w-full sm:w-auto border-t border-border/30 pt-2 sm:pt-0 sm:border-0">
-                  <span className="text-muted-foreground uppercase tracking-wider whitespace-nowrap">Projected Close:</span>
-                  <span className={cn("font-bold whitespace-nowrap", estimatedFinalBalance >= 0 ? "text-emerald-500" : "text-destructive")}>
-                    <PrivacyValue>{estimatedFinalBalance >= 0 ? "+" : ""}{currencySymbol}{estimatedFinalBalance.toFixed(2)}</PrivacyValue>
+                  <span className="text-muted-foreground uppercase tracking-wider whitespace-nowrap">
+                    {viewMode === 'all-time' ? "Current Liquidity:" : "Projected Close:"}
+                  </span>
+                  <span className={cn("font-bold whitespace-nowrap", (viewMode === 'all-time' ? allTimeTotals.latestBalance >= 0 : estimatedFinalBalance >= 0) ? "text-emerald-500" : "text-destructive")}>
+                    <PrivacyValue>
+                      {viewMode === 'all-time'
+                        ? `${allTimeTotals.latestBalance >= 0 ? "+" : ""}${currencySymbol}${allTimeTotals.latestBalance.toFixed(2)}`
+                        : `${estimatedFinalBalance >= 0 ? "+" : ""}${currencySymbol}${estimatedFinalBalance.toFixed(2)}`}
+                    </PrivacyValue>
                   </span>
                </div>
             </div>
@@ -1150,40 +1202,60 @@ export function DashboardView({
           <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
             {[
               { 
-                label: "Liquidity Position", 
-                value: cycleEndBalance, 
-                sub: "EST. CYCLE END",
-                tooltip: "Est. End Balance",
-                tooltipDesc: "Aggregated balance of all active accounts sync'ed up to the end of the current cycle, reflecting all inputs.",
-                footerLeft: `vs PREV CYCLE: ${delta >= 0 ? '+' : ''}${currencySymbol}${Math.abs(delta).toFixed(2)}`,
-                footerRight: `BURN: ${currencySymbol}${(cleanTotalOut / Math.max(1, daysElapsed)).toFixed(2)}/d`,
-                progressWidth: Math.min(100, Math.max(0, (cycleEndBalance / Math.max(1, previousCycleEndBalance)) * 100)),
-                progressColor: delta >= 0 ? "bg-emerald-500" : "bg-destructive",
+                label: viewMode === 'all-time' ? "Current Position" : "Liquidity Position", 
+                value: viewMode === 'all-time' ? allTimeTotals.latestBalance : cycleEndBalance, 
+                sub: viewMode === 'all-time' ? "LATEST POSITION" : "EST. CYCLE END",
+                tooltip: viewMode === 'all-time' ? "Current Position" : "Est. End Balance",
+                tooltipDesc: viewMode === 'all-time' 
+                  ? "Aggregated balance across all active accounts reflecting all recorded transactions." 
+                  : "Aggregated balance of all active accounts sync'ed up to the end of the current cycle, reflecting all inputs.",
+                footerLeft: viewMode === 'all-time'
+                  ? `ALL-TIME NET: ${allTimeTotals.allNet >= 0 ? '+' : ''}${currencySymbol}${Math.abs(allTimeTotals.allNet).toFixed(2)}`
+                  : `vs PREV CYCLE: ${delta >= 0 ? '+' : ''}${currencySymbol}${Math.abs(delta).toFixed(2)}`,
+                footerRight: viewMode === 'all-time'
+                  ? `TXS: ${dataset.length}`
+                  : `BURN: ${currencySymbol}${(cleanTotalOut / Math.max(1, daysElapsed)).toFixed(2)}/d`,
+                progressWidth: viewMode === 'all-time' ? 100 : Math.min(100, Math.max(0, (cycleEndBalance / Math.max(1, previousCycleEndBalance)) * 100)),
+                progressColor: viewMode === 'all-time' 
+                  ? (allTimeTotals.allNet >= 0 ? "bg-emerald-500" : "bg-destructive") 
+                  : (delta >= 0 ? "bg-emerald-500" : "bg-destructive"),
                 isDelta: true,
-                deltaSign: delta >= 0
+                deltaSign: viewMode === 'all-time' ? (allTimeTotals.allNet >= 0) : (delta >= 0)
               },
               { 
-                label: "Total Inflow", 
-                value: totalIn, 
-                sub: "REVENUE TARGET", 
+                label: viewMode === 'all-time' ? "All-Time Inflow" : "Total Inflow", 
+                value: viewMode === 'all-time' ? allTimeTotals.allIn : totalIn, 
+                sub: viewMode === 'all-time' ? "HISTORICAL REVENUE" : "REVENUE TARGET", 
                 tooltip: "Total Inflow Volume",
-                tooltipDesc: "All positive transactions parsed in the current paycheck cycle, including payroll and incoming transfers.",
-                footerLeft: `TARGET: ${currencySymbol}${targetMonthlyIncome.toFixed(0)}`,
-                footerRight: `ACHIEVED: ${inflowPercent.toFixed(1)}%`,
-                progressWidth: Math.min(100, inflowPercent),
+                tooltipDesc: viewMode === 'all-time' 
+                  ? "Total incoming cash flow across all recorded accounts over all time."
+                  : "All positive transactions parsed in the current paycheck cycle, including payroll and incoming transfers.",
+                footerLeft: viewMode === 'all-time'
+                  ? `ALL-TIME INFLOWS`
+                  : `TARGET: ${currencySymbol}${targetMonthlyIncome.toFixed(0)}`,
+                footerRight: viewMode === 'all-time'
+                  ? `AVG/MO: ${currencySymbol}${(allTimeTotals.allIn / Math.max(1, allTimeTotals.monthsElapsed)).toFixed(0)}`
+                  : `ACHIEVED: ${inflowPercent.toFixed(1)}%`,
+                progressWidth: viewMode === 'all-time' ? 100 : Math.min(100, inflowPercent),
                 progressColor: "bg-foreground",
                 isDelta: false
               },
               { 
-                label: "Total Outflow", 
-                value: totalOut, 
-                sub: "SPENDING LIMIT",
+                label: viewMode === 'all-time' ? "All-Time Outflow" : "Total Outflow", 
+                value: viewMode === 'all-time' ? allTimeTotals.allOut : totalOut, 
+                sub: viewMode === 'all-time' ? "HISTORICAL SPEND" : "SPENDING LIMIT",
                 tooltip: "Total Burn Amount",
-                tooltipDesc: "Total value of all parsed debit transactions, expenses, and system cash outflows in this cycle.",
-                footerLeft: `LIMIT: ${currencySymbol}${targetMonthlySpend.toFixed(0)}`,
-                footerRight: `CONSUMED: ${outflowPercent.toFixed(1)}%`,
-                progressWidth: Math.min(100, outflowPercent),
-                progressColor: outflowPercent > 100 ? "bg-destructive" : "bg-foreground",
+                tooltipDesc: viewMode === 'all-time' 
+                  ? "Total debits, expenses, and cash outflows across all recorded accounts over all time."
+                  : "Total value of all parsed debit transactions, expenses, and system cash outflows in this cycle.",
+                footerLeft: viewMode === 'all-time'
+                  ? `ALL-TIME OUTFLOWS`
+                  : `LIMIT: ${currencySymbol}${targetMonthlySpend.toFixed(0)}`,
+                footerRight: viewMode === 'all-time'
+                  ? `AVG/MO: ${currencySymbol}${(allTimeTotals.allOut / Math.max(1, allTimeTotals.monthsElapsed)).toFixed(0)}`
+                  : `CONSUMED: ${outflowPercent.toFixed(1)}%`,
+                progressWidth: viewMode === 'all-time' ? 100 : Math.min(100, outflowPercent),
+                progressColor: viewMode === 'all-time' ? "bg-foreground" : (outflowPercent > 100 ? "bg-destructive" : "bg-foreground"),
                 isDelta: false
               }
             ].map((metric, idx) => (
@@ -1659,13 +1731,15 @@ export function DashboardView({
         </motion.div>
       )}
 
-      {/* Mobile sticky cycle nav bar (above bottom nav) */}
-      <CycleMobileBar
-        cycles={cycles}
-        currentCycleId={selectedCycleId}
-        route="/"
-        onCycleChange={handleCycleSelect}
-      />
+      {/* Mobile sticky cycle nav bar (above bottom nav; hidden in all-time view) */}
+      {viewMode !== 'all-time' && (
+        <CycleMobileBar
+          cycles={cycles}
+          currentCycleId={selectedCycleId}
+          route="/"
+          onCycleChange={handleCycleSelect}
+        />
+      )}
     </SwipeCycleWrapper>
   )
 }
