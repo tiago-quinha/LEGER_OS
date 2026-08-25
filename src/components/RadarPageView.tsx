@@ -425,7 +425,7 @@ export function RadarPageView({ expenses, categories, cycles, currentCycleId }: 
                     : "bg-card border-border/60 text-muted-foreground hover:border-border hover:text-foreground"
                 )}
               >
-                {cad === "all" ? "All" : cad === "monthly" ? "Monthly" : "Annual"} ({count})
+                {cad === "all" ? "ALL" : cad === "monthly" ? "MONTHLY" : "ANNUAL"} ({count})
               </button>
             )
           })}
@@ -446,6 +446,8 @@ export function RadarPageView({ expenses, categories, cycles, currentCycleId }: 
             {filteredSubscriptions.map((sub) => {
               const isHiked = sub.status === "price_jump" || (sub.priceChangePercent && sub.priceChangePercent > 5)
               const isManualOverride = sub.source === "user_pinned" || cadenceOverrides[sub.merchant.toUpperCase()] !== undefined
+              const upcomingItem = radarData.upcomingInCurrentCycle.find(u => u.merchant.toUpperCase() === sub.merchant.toUpperCase())
+              const isPaidInCycle = upcomingItem?.alreadyPaid
               
               return (
                 <div
@@ -492,8 +494,16 @@ export function RadarPageView({ expenses, categories, cycles, currentCycleId }: 
 
                   <div className="pt-3 border-t border-border/30 text-[10px] text-muted-foreground flex items-center justify-between font-mono">
                     <div className="flex items-center gap-1.5">
-                      <Clock className="h-3.5 w-3.5 text-muted-foreground/70" />
-                      <span>NEXT: {sub.nextExpectedDate.split("T")[0]}</span>
+                      {isPaidInCycle ? (
+                        <span className="text-[9px] font-mono font-bold text-emerald-500 bg-emerald-500/10 px-2 py-0.5 border border-emerald-500/20">
+                          PAID THIS CYCLE
+                        </span>
+                      ) : (
+                        <div className="flex items-center gap-1.5">
+                          <Clock className="h-3.5 w-3.5 text-muted-foreground/70" />
+                          <span>NEXT: {sub.nextExpectedDate.split("T")[0]}</span>
+                        </div>
+                      )}
                     </div>
                     <span className="text-[9px] uppercase opacity-70">
                       {sub.occurrences}X LOGGED
