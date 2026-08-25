@@ -126,10 +126,7 @@ export function DashboardChart({ hybridData, activeTab, onDayClick, isPro }: Das
             fillOpacity={1} 
             name="Active" 
             connectNulls={true}
-            isAnimationActive={true}
-            animationBegin={0}
-            animationDuration={1000}
-            animationEasing="ease-out"
+            isAnimationActive={false}
           />
           <Area 
             type="monotone" 
@@ -142,10 +139,7 @@ export function DashboardChart({ hybridData, activeTab, onDayClick, isPro }: Das
             fillOpacity={1}
             name="Projection" 
             connectNulls={true}
-            isAnimationActive={true}
-            animationBegin={0}
-            animationDuration={1000}
-            animationEasing="ease-out"
+            isAnimationActive={false}
           />
           {isPro && (
             <>
@@ -159,9 +153,7 @@ export function DashboardChart({ hybridData, activeTab, onDayClick, isPro }: Das
                 fill="none" 
                 name="Optimistic Scenario" 
                 connectNulls={true}
-                isAnimationActive={true}
-                animationBegin={0}
-                animationDuration={1000}
+                isAnimationActive={false}
               />
               <Area 
                 type="monotone" 
@@ -173,9 +165,7 @@ export function DashboardChart({ hybridData, activeTab, onDayClick, isPro }: Das
                 fill="none" 
                 name="Pessimistic Scenario" 
                 connectNulls={true}
-                isAnimationActive={true}
-                animationBegin={0}
-                animationDuration={1000}
+                isAnimationActive={false}
               />
             </>
           )}

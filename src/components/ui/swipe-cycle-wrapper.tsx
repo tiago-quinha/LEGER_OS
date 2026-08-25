@@ -114,47 +114,23 @@ export function SwipeCycleWrapper({
       if (currentX < 0 && canNext) {
         triggerHaptic()
         const targetCycle = cycles[currentIndex - 1]
-        
-        // Fluid kinetic exit -> switch cycle -> enter from opposite edge
-        const exitOffset = Math.min(-65, currentX * 1.2)
-        animate(x, exitOffset, { duration: 0.09, ease: "easeOut" }).then(() => {
-          if (onCycleChange) onCycleChange(targetCycle.id)
-          if (typeof window !== "undefined") {
-            window.history.replaceState(null, '', `${route}?cycleId=${targetCycle.id}`)
-          }
-          x.set(55)
-          animate(x, 0, { type: "spring", stiffness: 420, damping: 30 }).then(() => {
-            setIsSwipingState(false)
-          })
-        })
+        if (onCycleChange) onCycleChange(targetCycle.id)
+        if (typeof window !== "undefined") {
+          window.history.replaceState(null, '', `${route}?cycleId=${targetCycle.id}`)
+        }
       } else if (currentX > 0 && canPrev) {
         triggerHaptic()
         const targetCycle = cycles[currentIndex + 1]
-        
-        // Fluid kinetic exit -> switch cycle -> enter from opposite edge
-        const exitOffset = Math.max(65, currentX * 1.2)
-        animate(x, exitOffset, { duration: 0.09, ease: "easeOut" }).then(() => {
-          if (onCycleChange) onCycleChange(targetCycle.id)
-          if (typeof window !== "undefined") {
-            window.history.replaceState(null, '', `${route}?cycleId=${targetCycle.id}`)
-          }
-          x.set(-55)
-          animate(x, 0, { type: "spring", stiffness: 420, damping: 30 }).then(() => {
-            setIsSwipingState(false)
-          })
-        })
-      } else {
-        // Boundary bounce back
-        animate(x, 0, { type: "spring", stiffness: 480, damping: 32 }).then(() => {
-          setIsSwipingState(false)
-        })
+        if (onCycleChange) onCycleChange(targetCycle.id)
+        if (typeof window !== "undefined") {
+          window.history.replaceState(null, '', `${route}?cycleId=${targetCycle.id}`)
+        }
       }
-    } else {
-      // Sub-threshold spring return
-      animate(x, 0, { type: "spring", stiffness: 480, damping: 32 }).then(() => {
-        setIsSwipingState(false)
-      })
     }
+
+    animate(x, 0, { type: "spring", stiffness: 480, damping: 36 }).then(() => {
+      setIsSwipingState(false)
+    })
 
     touchStartX.current = null
     touchStartY.current = null
