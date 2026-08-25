@@ -269,8 +269,20 @@ export function DashboardView({
     const sortedTx = [...dataset].sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime())
     const firstTxDate = sortedTx.length > 0 ? new Date(sortedTx[0].date) : new Date()
     const monthsElapsed = Math.max(1, ((new Date().getFullYear() - firstTxDate.getFullYear()) * 12) + (new Date().getMonth() - firstTxDate.getMonth()) + 1)
-    
-    const latestBalance = balances.length > 0 ? parseFloat(balances[0].amount) : _allNet
+    // Calculate live current position (latest snapshot + all transactions since snapshot)
+    const sortedBalances = [...balances].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
+    let liveCurrentPosition = 0
+    if (sortedBalances.length > 0) {
+      const latestSnap = sortedBalances[0]
+      const snapDate = new Date(latestSnap.date)
+      const snapAmount = parseFloat(latestSnap.amount) || 0
+      const txSinceSnap = dataset
+        .filter(tx => new Date(tx.date) >= snapDate)
+        .reduce((sum, tx) => sum + (parseFloat(tx.amount) || 0), 0)
+      liveCurrentPosition = snapAmount + txSinceSnap
+    } else {
+      liveCurrentPosition = _allNet
+    }
     
     return {
       allOut: _allOut,
@@ -278,7 +290,7 @@ export function DashboardView({
       allNet: _allNet,
       allAnomalies: _allAnomalies,
       cleanAllOut: _allOut - _allAnomalies,
-      latestBalance,
+      latestBalance: liveCurrentPosition,
       monthsElapsed
     }
   }, [dataset, balances])
