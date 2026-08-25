@@ -183,22 +183,6 @@ export function DashboardView({
     return (allExpenses && allExpenses.length > 0) ? allExpenses : initialExpenses
   }, [allExpenses, initialExpenses])
 
-  // Save to browser cache when dashboard dataset updates for instant client-side transitions
-  useEffect(() => {
-    if (typeof window !== "undefined" && dataset.length > 0) {
-      try {
-        sessionStorage.setItem("leger_os_cache_expenses", JSON.stringify(dataset))
-        sessionStorage.setItem("leger_os_cache_dashboard", JSON.stringify({
-          expenses: dataset,
-          categories,
-          budgets,
-          balances,
-          cycles
-        }))
-      } catch {}
-    }
-  }, [dataset, categories, budgets, balances, cycles])
-
   // In-memory instant cycle expenses
   const expenses = useMemo(() => {
     if (!currentCycle) return dataset
@@ -923,12 +907,15 @@ export function DashboardView({
       onCycleChange={handleCycleSelect}
       disabled={viewMode === 'all-time'}
     >
-      <motion.div
-        initial={{ opacity: 0, y: 4 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.45, ease: [0.16, 1, 0.3, 1] }}
-        className="mx-auto max-w-[1500px] p-4 md:p-8 space-y-6 md:space-y-8 pb-36 md:pb-8 w-full"
-      >
+      {isPending ? (
+        <DashboardLoading />
+      ) : (
+        <motion.div
+          initial={{ opacity: 0, y: 4 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.45, ease: [0.16, 1, 0.3, 1] }}
+          className="mx-auto max-w-[1500px] p-4 md:p-8 space-y-6 md:space-y-8 pb-36 md:pb-8 w-full"
+        >
         {/* 1. Header */}
         <header className="flex items-center justify-between gap-4 pb-3 md:pb-4 relative border-b border-border">
           <div className="space-y-1.5">
@@ -937,7 +924,9 @@ export function DashboardView({
               <span>{viewMode === 'all-time' ? 'Global Financial History' : 'Active Paycheck Cycle'}</span>
             </div>
             <h1 className="text-4xl md:text-5xl font-bold tracking-tighter uppercase leading-none break-words">
-              {viewMode === 'all-time' ? (
+              {isPending ? (
+                <Skeleton className="h-10 w-64 rounded-none" />
+              ) : viewMode === 'all-time' ? (
                 'All-Time'
               ) : (
                 currentCycle?.label?.replace('Cycle: ', '') || 'Current Cycle'
@@ -1074,7 +1063,7 @@ export function DashboardView({
                <span className="hidden sm:inline text-muted-foreground/30 font-light select-none">|</span>
                <div className="flex items-center justify-between sm:justify-start gap-1.5 w-full sm:w-auto border-t border-border/30 pt-2 sm:pt-0 sm:border-0">
                   <span className="text-muted-foreground uppercase tracking-wider whitespace-nowrap">
-                    {viewMode === 'all-time' ? "Current Position:" : "Projected Close:"}
+                    {viewMode === 'all-time' ? "Current Liquidity:" : "Projected Close:"}
                   </span>
                   <span className={cn("font-bold whitespace-nowrap", (viewMode === 'all-time' ? allTimeTotals.latestBalance >= 0 : estimatedFinalBalance >= 0) ? "text-emerald-500" : "text-destructive")}>
                     <PrivacyValue>
@@ -1753,6 +1742,7 @@ export function DashboardView({
       </Dialog>
 
         </motion.div>
+      )}
 
       {/* Mobile sticky cycle nav bar (above bottom nav; hidden in all-time view) */}
       {viewMode !== 'all-time' && (

@@ -128,7 +128,7 @@ export function DashboardChart({ hybridData, activeTab, onDayClick, isPro }: Das
             connectNulls={true}
             isAnimationActive={true}
             animationBegin={0}
-            animationDuration={350}
+            animationDuration={1000}
             animationEasing="ease-out"
           />
           <Area 
@@ -144,7 +144,7 @@ export function DashboardChart({ hybridData, activeTab, onDayClick, isPro }: Das
             connectNulls={true}
             isAnimationActive={true}
             animationBegin={0}
-            animationDuration={350}
+            animationDuration={1000}
             animationEasing="ease-out"
           />
           {isPro && (
@@ -161,8 +161,7 @@ export function DashboardChart({ hybridData, activeTab, onDayClick, isPro }: Das
                 connectNulls={true}
                 isAnimationActive={true}
                 animationBegin={0}
-                animationDuration={350}
-                animationEasing="ease-out"
+                animationDuration={1000}
               />
               <Area 
                 type="monotone" 
@@ -176,8 +175,7 @@ export function DashboardChart({ hybridData, activeTab, onDayClick, isPro }: Das
                 connectNulls={true}
                 isAnimationActive={true}
                 animationBegin={0}
-                animationDuration={350}
-                animationEasing="ease-out"
+                animationDuration={1000}
               />
             </>
           )}

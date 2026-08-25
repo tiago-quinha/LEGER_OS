@@ -1,6 +1,6 @@
 import { createClient } from "@/lib/supabase-server"
 import { CategoriesView } from "@/components/CategoriesView"
-import { getWorkspaceData } from "@/lib/workspace-data"
+import { getCycles } from "@/lib/cycles"
 
 export const dynamic = "force-dynamic"
 
@@ -14,16 +14,29 @@ export default async function CategoriesPage({ searchParams }: PageProps) {
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) return null
 
-  const { allExpenses, categories, cycles } = await getWorkspaceData(supabase, user.id)
+  const cycles = await getCycles(supabase, user.id)
   const selectedCycle = params.cycleId 
     ? (cycles.find(c => c.id === params.cycleId) || cycles[0]) 
     : cycles[0]
 
+  const [expensesRes, categoriesRes] = await Promise.all([
+    supabase
+      .from("tracker_expense")
+      .select("*")
+      .eq("user_id", user.id)
+      .order("date", { ascending: false }),
+    supabase
+      .from("categories")
+      .select("*")
+      .eq("user_id", user.id)
+      .order("name")
+  ])
+
   return (
     <CategoriesView 
-      expenses={allExpenses} 
-      categories={categories}
-      cycles={cycles}
+      expenses={expensesRes.data || []} 
+      categories={categoriesRes.data || []}
+      cycles={cycles || []}
       currentCycleId={selectedCycle?.id || ""}
     />
   )

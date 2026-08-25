@@ -307,7 +307,11 @@ export function RadarPageView({ expenses, categories, cycles, currentCycleId }: 
             <span>Subscription radar</span>
           </div>
           <h1 className="text-4xl md:text-5xl font-bold tracking-tighter uppercase leading-none break-words font-sans">
-            Radar
+            {isPending ? (
+              <Skeleton className="h-10 w-48 rounded-none" />
+            ) : (
+              "Radar"
+            )}
           </h1>
         </div>
 
