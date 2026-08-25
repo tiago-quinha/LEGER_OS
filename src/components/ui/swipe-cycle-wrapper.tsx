@@ -13,6 +13,7 @@ interface SwipeCycleWrapperProps {
   route: string // e.g. "/categories" or "/budgets"
   onCycleChange?: (newCycleId: string) => void
   className?: string
+  disabled?: boolean
 }
 
 /**
@@ -26,6 +27,7 @@ export function SwipeCycleWrapper({
   route,
   onCycleChange,
   className = "",
+  disabled = false,
 }: SwipeCycleWrapperProps) {
   const router = useRouter()
   const [_, startTransition] = useTransition()
@@ -36,7 +38,7 @@ export function SwipeCycleWrapper({
   const isHorizontal = useRef<boolean>(false)
   const isTracking = useRef<boolean>(false)
 
-  if (!cycles || cycles.length < 2) {
+  if (disabled || !cycles || cycles.length < 2) {
     return <div className={className}>{children}</div>
   }
 

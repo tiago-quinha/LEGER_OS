@@ -893,6 +893,7 @@ export function DashboardView({
       currentCycleId={selectedCycleId}
       route="/"
       onCycleChange={handleCycleSelect}
+      disabled={viewMode === 'all-time'}
     >
       {isPending ? (
         <DashboardLoading />
