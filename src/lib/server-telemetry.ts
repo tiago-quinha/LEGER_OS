@@ -1,6 +1,6 @@
 import { SupabaseClient } from "@supabase/supabase-js"
 import { getCycles } from "./cycles"
-import { cache } from "./cache"
+import { cache, invalidateDashboardCache } from "./cache"
 import { runEmpiricalProjection } from "./projection-engine"
 
 export async function calculateServerTelemetry(supabase: SupabaseClient, userId: string, clientDateStr?: string) {
@@ -273,6 +273,8 @@ export async function updateAndCacheUserTelemetry(
       cycleEndDate: telemetry.cycleEndDate,
       lastUpdated: new Date().toISOString()
     }
+
+    invalidateDashboardCache(userId)
 
     await supabase
       .from("profiles")

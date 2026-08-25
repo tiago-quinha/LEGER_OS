@@ -183,6 +183,22 @@ export function DashboardView({
     return (allExpenses && allExpenses.length > 0) ? allExpenses : initialExpenses
   }, [allExpenses, initialExpenses])
 
+  // Save to browser cache when dashboard dataset updates for instant client-side transitions
+  useEffect(() => {
+    if (typeof window !== "undefined" && dataset.length > 0) {
+      try {
+        sessionStorage.setItem("leger_os_cache_expenses", JSON.stringify(dataset))
+        sessionStorage.setItem("leger_os_cache_dashboard", JSON.stringify({
+          expenses: dataset,
+          categories,
+          budgets,
+          balances,
+          cycles
+        }))
+      } catch {}
+    }
+  }, [dataset, categories, budgets, balances, cycles])
+
   // In-memory instant cycle expenses
   const expenses = useMemo(() => {
     if (!currentCycle) return dataset
@@ -1063,7 +1079,7 @@ export function DashboardView({
                <span className="hidden sm:inline text-muted-foreground/30 font-light select-none">|</span>
                <div className="flex items-center justify-between sm:justify-start gap-1.5 w-full sm:w-auto border-t border-border/30 pt-2 sm:pt-0 sm:border-0">
                   <span className="text-muted-foreground uppercase tracking-wider whitespace-nowrap">
-                    {viewMode === 'all-time' ? "Current Liquidity:" : "Projected Close:"}
+                    {viewMode === 'all-time' ? "Current Position:" : "Projected Close:"}
                   </span>
                   <span className={cn("font-bold whitespace-nowrap", (viewMode === 'all-time' ? allTimeTotals.latestBalance >= 0 : estimatedFinalBalance >= 0) ? "text-emerald-500" : "text-destructive")}>
                     <PrivacyValue>
