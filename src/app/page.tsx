@@ -1,6 +1,5 @@
 import { createClient } from "@/lib/supabase-server"
-import { calculateCyclesFromData, Cycle } from "@/lib/cycles"
-import { cache } from "@/lib/cache"
+import { getWorkspaceData } from "@/lib/workspace-data"
 import { DashboardView } from "@/components/DashboardView"
 import { OnboardingView } from "@/components/OnboardingView"
 import { DedicatedPushResolver } from "@/components/DedicatedPushResolver"
@@ -85,68 +84,15 @@ export default async function DashboardPage({ searchParams }: PageProps) {
     }
   }
 
-  // 2. Fetch user profile and dashboard dataset with server-side caching
-  const cacheKey = `dashboard_data:${user.id}`
-  const cachedBundle = cache.get(cacheKey)
-
-  let profile: any
-  let allExpenses: any[]
-  let categories: any[]
-  let budgets: any[]
-  let balances: any[]
-  let cycles: Cycle[]
-
-  if (cachedBundle) {
-    profile = cachedBundle.profile
-    allExpenses = cachedBundle.allExpenses
-    categories = cachedBundle.categories
-    budgets = cachedBundle.budgets
-    balances = cachedBundle.balances
-    cycles = cachedBundle.cycles
-  } else {
-    const [profileRes, allTxRes, categoriesRes, budgetsRes, balancesRes] = await Promise.all([
-      supabase
-        .from("profiles")
-        .select("onboarding_completed, target_monthly_income, target_monthly_spend, paycheck_keyword, paycheck_frequency")
-        .eq("id", user.id)
-        .single(),
-      supabase
-        .from("tracker_expense")
-        .select("*")
-        .eq("user_id", user.id)
-        .order("date", { ascending: false }),
-      supabase
-        .from("categories")
-        .select("*")
-        .eq("user_id", user.id)
-        .order("name"),
-      supabase
-        .from("budgets")
-        .select("*")
-        .eq("user_id", user.id),
-      supabase
-        .from("account_balance")
-        .select("*")
-        .eq("user_id", user.id)
-        .order("date", { ascending: false })
-    ])
-
-    profile = profileRes.data
-    allExpenses = allTxRes.data || []
-    categories = categoriesRes.data || []
-    budgets = budgetsRes.data || []
-    balances = balancesRes.data || []
-    cycles = calculateCyclesFromData(allExpenses, profile)
-
-    cache.set(cacheKey, {
-      profile,
-      allExpenses,
-      categories,
-      budgets,
-      balances,
-      cycles
-    }, 60 * 1000)
-  }
+  // 2. Fetch user workspace dataset with unified server-side caching
+  const {
+    profile,
+    allExpenses,
+    categories,
+    budgets,
+    balances,
+    cycles
+  } = await getWorkspaceData(supabase, user.id)
 
   if (!profile?.onboarding_completed || params?.onboarding === "true" || params?.force_onboarding === "true") {
     return <OnboardingView />

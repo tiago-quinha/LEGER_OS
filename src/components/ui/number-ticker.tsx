@@ -56,12 +56,17 @@ function Digit({ digit }: { digit: string }) {
           exit={{ y: "-100%", translateZ: 0 }}
           transition={{ 
             type: "spring", 
-            stiffness: 300, 
-            damping: 30,
-            mass: 0.8
+            stiffness: 380, 
+            damping: 28,
+            mass: 0.6
           }}
           className="absolute inset-0 flex items-center justify-center"
-          style={{ willChange: "transform", backfaceVisibility: "hidden" }}
+          style={{ 
+            willChange: "transform", 
+            backfaceVisibility: "hidden",
+            WebkitBackfaceVisibility: "hidden",
+            transform: "translate3d(0,0,0)"
+          }}
         >
           {digit}
         </motion.span>

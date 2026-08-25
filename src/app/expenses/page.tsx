@@ -1,6 +1,6 @@
 import { createClient } from "@/lib/supabase-server"
 import { ExpensesView } from "@/components/ExpensesView"
-import { getCycles } from "@/lib/cycles"
+import { getWorkspaceData } from "@/lib/workspace-data"
 
 export const dynamic = "force-dynamic"
 
@@ -14,31 +14,14 @@ export default async function ExpensesPage({ searchParams }: PageProps) {
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) return null
 
-  const [expensesRes, categoriesRes, rulesRes, cycles] = await Promise.all([
-    supabase
-      .from("tracker_expense")
-      .select("id, amount, merchant, date, source, category_id, raw_text, is_anomaly")
-      .eq("user_id", user.id)
-      .order("date", { ascending: false }),
-    supabase
-      .from("categories")
-      .select("*")
-      .eq("user_id", user.id)
-      .order("name"),
-    supabase
-      .from("merchant_rules")
-      .select("*")
-      .eq("user_id", user.id)
-      .order("keyword"),
-    getCycles(supabase, user.id)
-  ])
+  const { allExpenses, categories, rules, cycles } = await getWorkspaceData(supabase, user.id)
 
   return (
     <ExpensesView 
-      initialExpenses={expensesRes.data || []} 
-      categories={categoriesRes.data || []} 
-      initialRules={rulesRes.data || []}
-      cycles={cycles || []}
+      initialExpenses={allExpenses} 
+      categories={categories} 
+      initialRules={rules}
+      cycles={cycles}
       currentCycleId={params.cycleId}
     />
   )

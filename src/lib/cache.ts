@@ -51,6 +51,7 @@ export class SimpleLRU<T> {
 export const cache = new SimpleLRU<any>(200, 5 * 60 * 1000);
 
 export function invalidateDashboardCache(userId: string) {
+  cache.delete(`workspace_data:${userId}`);
   cache.delete(`dashboard_data:${userId}`);
   cache.delete(`cycles:${userId}`);
   cache.delete(`telemetry:${userId}:now`);
