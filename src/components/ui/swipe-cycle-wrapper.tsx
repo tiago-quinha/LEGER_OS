@@ -79,10 +79,10 @@ export function SwipeCycleWrapper({
     const dy = e.touches[0].clientY - touchStartY.current
 
     if (!isHorizontal.current) {
-      if (Math.abs(dx) > Math.abs(dy) && Math.abs(dx) > 6) {
+      if (Math.abs(dx) > 8 && Math.abs(dx) > Math.abs(dy) * 1.1) {
         isHorizontal.current = true
         setIsSwipingState(true)
-      } else if (Math.abs(dy) > Math.abs(dx) && Math.abs(dy) > 6) {
+      } else if (Math.abs(dy) > 8 && Math.abs(dy) > Math.abs(dx)) {
         isTracking.current = false
         touchStartX.current = null
         touchStartY.current = null
@@ -95,7 +95,7 @@ export function SwipeCycleWrapper({
     if (isHorizontal.current) {
       let offset = dx
       if ((dx > 0 && !canPrev) || (dx < 0 && !canNext)) {
-        offset = dx * 0.25 // Resistance at boundaries
+        offset = dx * 0.2 // Soft resistance at cycle boundary edges
       }
       x.set(offset)
     }
@@ -108,30 +108,54 @@ export function SwipeCycleWrapper({
     }
 
     const currentX = x.get()
-    const threshold = 45
+    const threshold = 35
 
     if (Math.abs(currentX) >= threshold) {
       if (currentX < 0 && canNext) {
         triggerHaptic()
         const targetCycle = cycles[currentIndex - 1]
-        if (onCycleChange) onCycleChange(targetCycle.id)
-        startTransition(() => {
-          router.replace(`${route}?cycleId=${targetCycle.id}`, { scroll: false })
+        
+        // Fluid kinetic exit -> switch cycle -> enter from opposite edge
+        const exitOffset = Math.min(-65, currentX * 1.2)
+        animate(x, exitOffset, { duration: 0.09, ease: "easeOut" }).then(() => {
+          if (onCycleChange) onCycleChange(targetCycle.id)
+          if (typeof window !== "undefined") {
+            window.history.replaceState(null, '', `${route}?cycleId=${targetCycle.id}`)
+          }
+          x.set(55)
+          animate(x, 0, { type: "spring", stiffness: 420, damping: 30 }).then(() => {
+            setIsSwipingState(false)
+          })
         })
       } else if (currentX > 0 && canPrev) {
         triggerHaptic()
         const targetCycle = cycles[currentIndex + 1]
-        if (onCycleChange) onCycleChange(targetCycle.id)
-        startTransition(() => {
-          router.replace(`${route}?cycleId=${targetCycle.id}`, { scroll: false })
+        
+        // Fluid kinetic exit -> switch cycle -> enter from opposite edge
+        const exitOffset = Math.max(65, currentX * 1.2)
+        animate(x, exitOffset, { duration: 0.09, ease: "easeOut" }).then(() => {
+          if (onCycleChange) onCycleChange(targetCycle.id)
+          if (typeof window !== "undefined") {
+            window.history.replaceState(null, '', `${route}?cycleId=${targetCycle.id}`)
+          }
+          x.set(-55)
+          animate(x, 0, { type: "spring", stiffness: 420, damping: 30 }).then(() => {
+            setIsSwipingState(false)
+          })
+        })
+      } else {
+        // Boundary bounce back
+        animate(x, 0, { type: "spring", stiffness: 480, damping: 32 }).then(() => {
+          setIsSwipingState(false)
         })
       }
+    } else {
+      // Sub-threshold spring return
+      animate(x, 0, { type: "spring", stiffness: 480, damping: 32 }).then(() => {
+        setIsSwipingState(false)
+      })
     }
 
-    // Smooth spring reset animation
-    animate(x, 0, { type: "spring", stiffness: 450, damping: 35 }).then(() => {
-      setIsSwipingState(false)
-    })
     touchStartX.current = null
     touchStartY.current = null
     isHorizontal.current = false

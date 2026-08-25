@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect, useTransition } from "react"
+import { useState, useEffect, useTransition, useMemo } from "react"
 import { motion, AnimatePresence } from "framer-motion"
 import { useRouter } from "next/navigation"
 import { supabase } from "@/lib/supabase"
@@ -188,6 +188,17 @@ export function BudgetsView({
   const cycleMonth = startDate.getMonth() // 0-indexed
   const cycleYear = startDate.getFullYear()
 
+  // In-memory instant cycle filtered expenses (0ms switching)
+  const cycleExpenses = useMemo(() => {
+    if (!currentCycle) return expenses
+    const start = new Date(currentCycle.startDate).getTime()
+    const end = currentCycle.endDate ? new Date(currentCycle.endDate).getTime() : Infinity
+    return expenses.filter(tx => {
+      const t = new Date(tx.date).getTime()
+      return t >= start && t < end
+    })
+  }, [expenses, currentCycle])
+
   const handleCycleSelect = (newCycleId: string) => {
     setSelectedCycleId(newCycleId)
     if (typeof window !== "undefined") {
@@ -268,15 +279,12 @@ export function BudgetsView({
       route="/budgets"
       onCycleChange={handleCycleSelect}
     >
-      {isPending ? (
-        <BudgetsLoading />
-      ) : (
-        <motion.div
-          initial={{ opacity: 0, y: 4 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.45, ease: [0.16, 1, 0.3, 1] }}
-          className="mx-auto max-w-[1500px] p-4 md:p-8 space-y-6 w-full pb-36 md:pb-8"
-        >
+      <motion.div
+        initial={{ opacity: 0, y: 4 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.45, ease: [0.16, 1, 0.3, 1] }}
+        className="mx-auto max-w-[1500px] p-4 md:p-8 space-y-6 w-full pb-36 md:pb-8"
+      >
         {/* 1. Header */}
       <header className="flex items-center justify-between gap-6 border-b border-foreground/10 pb-6 md:pb-8 relative flex-wrap sm:flex-nowrap">
         <div className="space-y-3">
@@ -395,7 +403,7 @@ export function BudgetsView({
           const budgetAmount = budget ? parseFloat(budget.amount) : 0
           
           // Calculate net pocket balance (inflows > 0, outflows < 0)
-          const netBalance = expenses
+          const netBalance = cycleExpenses
             .filter(exp => exp.category_id === cat.id)
             .reduce((sum, exp) => sum + (parseFloat(exp.amount) || 0), 0)
           
@@ -574,7 +582,6 @@ export function BudgetsView({
       </div>
 
         </motion.div>
-      )}
 
       {/* Mobile sticky cycle nav bar (above bottom nav) */}
       <CycleMobileBar

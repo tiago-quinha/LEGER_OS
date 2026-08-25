@@ -1,7 +1,7 @@
 import React from "react"
 import { Skeleton } from "@/components/ui/skeleton"
 import { cn } from "@/lib/utils"
-import { Home, TrendingUp, CalendarDays, ChevronLeft, ChevronRight } from "lucide-react"
+import { Home, TrendingUp, CalendarDays, ChevronLeft, ChevronRight, Globe } from "lucide-react"
 
 export default function DashboardLoading() {
   return (
@@ -32,13 +32,16 @@ export default function DashboardLoading() {
               </div>
             </div>
 
-            {/* View Mode (Graph / Calendar) */}
+            {/* View Mode (Graph / Calendar / All-Time) */}
             <div className="flex items-center border border-border ledger-border bg-card overflow-hidden shrink-0">
-              <div className="px-4 py-2 border-r border-border bg-foreground text-background">
+              <div className="px-3.5 md:px-4 py-2 border-r border-border bg-foreground text-background">
                 <TrendingUp className="h-3.5 w-3.5" />
               </div>
-              <div className="px-4 py-2 text-muted-foreground">
+              <div className="px-3.5 md:px-4 py-2 border-r border-border text-muted-foreground">
                 <CalendarDays className="h-3.5 w-3.5" />
+              </div>
+              <div className="px-3.5 md:px-4 py-2 text-muted-foreground">
+                <Globe className="h-3.5 w-3.5" />
               </div>
             </div>
 

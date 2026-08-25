@@ -923,15 +923,12 @@ export function DashboardView({
       onCycleChange={handleCycleSelect}
       disabled={viewMode === 'all-time'}
     >
-      {isPending ? (
-        <DashboardLoading />
-      ) : (
-        <motion.div
-          initial={{ opacity: 0, y: 4 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.45, ease: [0.16, 1, 0.3, 1] }}
-          className="mx-auto max-w-[1500px] p-4 md:p-8 space-y-6 md:space-y-8 pb-36 md:pb-8 w-full"
-        >
+      <motion.div
+        initial={{ opacity: 0, y: 4 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.45, ease: [0.16, 1, 0.3, 1] }}
+        className="mx-auto max-w-[1500px] p-4 md:p-8 space-y-6 md:space-y-8 pb-36 md:pb-8 w-full"
+      >
         {/* 1. Header */}
         <header className="flex items-center justify-between gap-4 pb-3 md:pb-4 relative border-b border-border">
           <div className="space-y-1.5">
@@ -940,9 +937,7 @@ export function DashboardView({
               <span>{viewMode === 'all-time' ? 'Global Financial History' : 'Active Paycheck Cycle'}</span>
             </div>
             <h1 className="text-4xl md:text-5xl font-bold tracking-tighter uppercase leading-none break-words">
-              {isPending ? (
-                <Skeleton className="h-10 w-64 rounded-none" />
-              ) : viewMode === 'all-time' ? (
+              {viewMode === 'all-time' ? (
                 'All-Time'
               ) : (
                 currentCycle?.label?.replace('Cycle: ', '') || 'Current Cycle'
@@ -1758,7 +1753,6 @@ export function DashboardView({
       </Dialog>
 
         </motion.div>
-      )}
 
       {/* Mobile sticky cycle nav bar (above bottom nav; hidden in all-time view) */}
       {viewMode !== 'all-time' && (

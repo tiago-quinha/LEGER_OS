@@ -60,18 +60,6 @@ export default async function BudgetsPage({ searchParams }: PageProps) {
   const cycleMonth = startDate.getMonth() + 1
   const cycleYear = startDate.getFullYear()
 
-  // Query expenses for the cycle
-  const query = supabase
-    .from("tracker_expense")
-    .select("*")
-    .eq("user_id", user.id)
-    .gte("date", selectedCycle.startDate)
-    .order("date", { ascending: false })
-
-  if (selectedCycle.endDate) {
-    query.lt("date", selectedCycle.endDate)
-  }
-
   const [categoriesRes, budgetsRes, expensesRes] = await Promise.all([
     supabase
       .from("categories")
@@ -81,46 +69,15 @@ export default async function BudgetsPage({ searchParams }: PageProps) {
     supabase
       .from("budgets")
       .select("*")
+      .eq("user_id", user.id),
+    supabase
+      .from("tracker_expense")
+      .select("*")
       .eq("user_id", user.id)
-      .eq("month", cycleMonth)
-      .eq("year", cycleYear),
-    query
+      .order("date", { ascending: false })
   ])
 
   let budgets = budgetsRes.data || []
-  if (budgets.length === 0 && cycles.length > 0) {
-    // Fetch the latest configured budgets from the database for this user
-    const { data: latestBudgets } = await supabase
-      .from("budgets")
-      .select("*")
-      .eq("user_id", user.id)
-      .order("year", { ascending: false })
-      .order("month", { ascending: false })
-    
-    if (latestBudgets && latestBudgets.length > 0) {
-      const latestMonth = latestBudgets[0].month
-      const latestYear = latestBudgets[0].year
-      const fallbackBudgets = latestBudgets.filter(b => b.month === latestMonth && b.year === latestYear)
-      
-      // Auto-clone them in the database for the current cycleMonth/cycleYear
-      const clonePayload = fallbackBudgets.map(b => ({
-        category_id: b.category_id,
-        amount: b.amount,
-        month: cycleMonth,
-        year: cycleYear,
-        user_id: user.id
-      }))
-      
-      const { data: insertedBudgets, error: cloneError } = await supabase
-        .from("budgets")
-        .insert(clonePayload)
-        .select()
-        
-      if (!cloneError && insertedBudgets) {
-        budgets = insertedBudgets
-      }
-    }
-  }
 
   return (
     <BudgetsView 
@@ -128,7 +85,7 @@ export default async function BudgetsPage({ searchParams }: PageProps) {
       budgets={budgets}
       expenses={expensesRes.data || []}
       cycles={cycles}
-      currentCycleId={selectedCycle.id}
+      currentCycleId={selectedCycle?.id || ""}
     />
   )
 }

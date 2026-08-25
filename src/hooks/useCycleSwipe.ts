@@ -54,10 +54,10 @@ export function useCycleSwipe({
           onCycleChange(targetCycle.id)
         }
 
-        // 2. Background URL sync without loading screen flash
-        startTransition(() => {
-          router.replace(`${route}?cycleId=${targetCycle.id}`, { scroll: false })
-        })
+        // 2. Instant URL bar sync without triggering slow Next.js server roundtrips
+        if (typeof window !== "undefined") {
+          window.history.replaceState(null, '', `${route}?cycleId=${targetCycle.id}`)
+        }
       }
     }
 
@@ -112,7 +112,7 @@ export function useCycleSwipe({
 export function shouldPreventSwipe(target: HTMLElement | Element | null): boolean {
   if (!target) return false
 
-  // 1. Toast notifications (Sonner, Radix, Shadcn toast) - Swipe gestures on toasts must NEVER trigger cycle switching
+  // 1. Toast notifications & overlays - NEVER trigger cycle switching
   if (typeof (target as HTMLElement).closest === "function") {
     const htmlEl = target as HTMLElement
     if (
@@ -125,91 +125,51 @@ export function shouldPreventSwipe(target: HTMLElement | Element | null): boolea
       htmlEl.closest(".toaster") ||
       htmlEl.closest("[data-radix-portal]") ||
       htmlEl.closest("[data-no-swipe='true']") ||
-      htmlEl.closest(".no-swipe")
+      htmlEl.closest(".no-swipe") ||
+      htmlEl.closest("[role='dialog']") ||
+      htmlEl.closest("[role='menu']") ||
+      htmlEl.closest("[role='listbox']")
     ) {
-      return true
-    }
-  }
-
-  // 2. If any modal, dialog, drawer, sheet, popover or dropdown menu is open in the document,
-  // we prevent the global swipe cycle switching to avoid conflicts.
-  if (typeof document !== "undefined") {
-    const activeOverlays = document.querySelectorAll(
-      '[role="dialog"], [role="menu"], [role="listbox"], [role="combobox"], [data-radix-portal], .radix-overlay, .radix-themes'
-    )
-    if (activeOverlays.length > 0) {
       return true
     }
   }
 
   let el: HTMLElement | null = target as HTMLElement
   while (el && el !== document.body && el !== document.documentElement) {
-    // Toast element attributes check in upward traversal
-    if (
-      el.getAttribute("data-sonner-toast") !== null ||
-      el.getAttribute("data-sonner-toaster") !== null ||
-      el.getAttribute("data-toast") !== null ||
-      el.getAttribute("role") === "status" ||
-      el.getAttribute("role") === "alert" ||
-      el.classList.contains("sonner-toast") ||
-      el.classList.contains("toaster")
-    ) {
-      return true
-    }
-
-    // Skip main container layout wrappers so swiping works on general page layout
-    if (
-      el.id === "main-content" ||
-      el.tagName.toLowerCase() === "main" ||
-      el.classList.contains("main-content")
-    ) {
-      el = el.parentElement
-      continue
-    }
-
     // Explicit swipe prevention indicators
     if (
       el.getAttribute("data-no-swipe") === "true" ||
-      el.classList.contains("no-swipe") ||
-      el.classList.contains("recharts-wrapper") ||
-      el.classList.contains("recharts-responsive-container")
+      el.classList.contains("no-swipe")
     ) {
       return true
     }
 
-    // Input form controls and slider elements
+    // Input form controls and slider elements (where user drags to slide)
     const tagName = el.tagName.toLowerCase()
     if (
       tagName === "input" ||
       tagName === "textarea" ||
       tagName === "select" ||
-      tagName === "button" ||
       tagName === "option" ||
       el.getAttribute("role") === "slider" ||
-      el.getAttribute("role") === "button"
+      el.getAttribute("role") === "switch"
     ) {
       return true
     }
 
-    // Detect scrollability: horizontal scrolling containers
+    // Detect horizontal scrollability (e.g., horizontal tag lists or tables)
     const style = window.getComputedStyle(el)
     const overflowX = style.overflowX
-    const overflowY = style.overflowY
 
-    // If styling explicitly enables auto/scroll on overflow and content overflows
-    const isScrollableX = (overflowX === "auto" || overflowX === "scroll") && el.scrollWidth > el.clientWidth
-    const isScrollableY = (overflowY === "auto" || overflowY === "scroll") && el.scrollHeight > el.clientHeight
+    const isScrollableX = (overflowX === "auto" || overflowX === "scroll") && el.scrollWidth > el.clientWidth + 4
 
-    // Check for common Tailwind overflow scroll classes as a fallback
-    const hasOverflowClass = 
+    const hasHorizontalOverflowClass = 
       el.className && 
       typeof el.className === "string" && 
-      (el.className.includes("overflow-x-auto") || 
-       el.className.includes("overflow-x-scroll") ||
-       el.className.includes("overflow-y-auto") || 
-       el.className.includes("overflow-y-scroll"))
+      (el.className.includes("overflow-x-auto") || el.className.includes("overflow-x-scroll")) &&
+      el.scrollWidth > el.clientWidth + 4
 
-    if (isScrollableX || isScrollableY || hasOverflowClass) {
+    if (isScrollableX || hasHorizontalOverflowClass) {
       return true
     }
 

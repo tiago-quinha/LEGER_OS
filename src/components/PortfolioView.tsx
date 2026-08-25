@@ -1473,9 +1473,7 @@ export function PortfolioView({
             )}
           </div>
           <h1 className="text-4xl md:text-5xl font-bold tracking-tighter uppercase leading-none break-words">
-            {isPending ? (
-              <Skeleton className="h-10 w-64 rounded-none" />
-            ) : currentCycle ? (
+            {currentCycle ? (
               currentCycle.label.replace("Cycle: ", "")
             ) : (
               "PORTFOLIO"
@@ -1487,7 +1485,7 @@ export function PortfolioView({
           <div className="hidden md:flex items-center border border-border ledger-border bg-card overflow-hidden shrink-0 font-mono">
             <button 
               onClick={() => navigateCycle('prev')} 
-              disabled={isPending || currentIndex >= cycles.length - 1} 
+              disabled={currentIndex >= cycles.length - 1} 
               className="px-3.5 py-2 hover:bg-muted transition-colors disabled:opacity-40 border-r border-border cursor-pointer disabled:cursor-not-allowed"
               aria-label="Previous paycheck cycle"
             >
@@ -1495,7 +1493,7 @@ export function PortfolioView({
             </button>
             <button 
               onClick={() => navigateCycle('next')} 
-              disabled={isPending || currentIndex <= 0} 
+              disabled={currentIndex <= 0} 
               className="px-3.5 py-2 hover:bg-muted transition-colors disabled:opacity-40 cursor-pointer disabled:cursor-not-allowed"
               aria-label="Next paycheck cycle"
             >
