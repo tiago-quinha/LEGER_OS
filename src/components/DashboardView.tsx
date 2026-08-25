@@ -34,7 +34,7 @@ const DashboardChart = dynamic(() => import("@/components/DashboardChart").then(
 })
 import { Button } from "@/components/ui/button"
 import { ProLockOverlay } from "@/components/ProLockOverlay"
-import { Download, TrendingUp, TrendingDown, Wallet, ArrowUpRight, Banknote, ChevronLeft, CalendarDays, ChevronRight, Landmark, Target, AlertTriangle, CheckCircle2, Zap, Brain, Sparkles, ChevronDown, Loader2, CalendarRange, CreditCard, Tag, Sliders, Smartphone, Shield, Cpu, LayoutDashboard, PiggyBank, Upload, Plus, Home } from "lucide-react"
+import { Download, TrendingUp, TrendingDown, Wallet, ArrowUpRight, Banknote, ChevronLeft, CalendarDays, ChevronRight, Landmark, Target, AlertTriangle, CheckCircle2, Zap, Brain, Sparkles, ChevronDown, Loader2, CalendarRange, CreditCard, Tag, Sliders, Smartphone, Shield, Cpu, LayoutDashboard, PiggyBank, Upload, Plus, Home, Globe } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { useRouter } from "next/navigation"
 import { NumberTicker } from "@/components/ui/number-ticker"
@@ -365,7 +365,7 @@ export function DashboardView({
   }
 
   const [activeTab, setActiveTab] = useState<'burn' | 'liquidity'>('liquidity')
-  const [viewMode, setViewMode] = useState<'graph' | 'calendar'>('graph')
+  const [viewMode, setViewMode] = useState<'graph' | 'calendar' | 'all-time'>('graph')
   const [showGraphLock, setShowGraphLock] = useState(false)
   const [selectedDate, setSelectedDate] = useState<Date | null>(null)
   const [modalOpen, setModalOpen] = useState(false)
@@ -624,6 +624,96 @@ export function DashboardView({
     }
   }), [totalDaysInCycle, startDate, today, expenses, injectedStartBalance, totalIn, isCurrentCycle, expertProjection])
 
+  // GENERATE ALL-TIME CONTINUOUS HYBRID DATA
+  const allTimeHybridData = useMemo(() => {
+    if (dataset.length === 0) return []
+    
+    // Sort all transactions chronologically ascending
+    const sortedTx = [...dataset].sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime())
+    const firstTxDate = new Date(sortedTx[0].date)
+    
+    // Oldest balance snapshot
+    const sortedBalances = [...balances].sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime())
+    const firstBalanceDate = sortedBalances.length > 0 ? new Date(sortedBalances[0].date) : firstTxDate
+    
+    const globalStartDate = new Date(Math.min(firstTxDate.getTime(), firstBalanceDate.getTime()))
+    globalStartDate.setHours(0, 0, 0, 0)
+    
+    const globalEndDate = new Date(today)
+    globalEndDate.setHours(23, 59, 59, 999)
+    
+    const diffTime = Math.max(0, globalEndDate.getTime() - globalStartDate.getTime())
+    const totalAllTimeDays = Math.max(1, Math.round(diffTime / (1000 * 60 * 60 * 24)))
+    
+    const isMultiYear = globalStartDate.getFullYear() !== globalEndDate.getFullYear()
+    const points = []
+    
+    for (let i = 0; i <= totalAllTimeDays; i++) {
+      const d = new Date(globalStartDate)
+      d.setDate(d.getDate() + i)
+      const dEnd = new Date(d)
+      dEnd.setHours(23, 59, 59, 999)
+      
+      const dateLabel = isMultiYear
+        ? d.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: '2-digit' })
+        : d.toLocaleDateString('en-GB', { day: '2-digit', month: 'short' })
+      
+      // Calculate running balance on this day
+      const snap = sortedBalances
+        .filter(b => new Date(b.date) <= dEnd)
+        .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())[0]
+      
+      let runningBalance = 0
+      if (snap) {
+        const snapDate = new Date(snap.date)
+        const snapAmount = parseFloat(snap.amount) || 0
+        const txSum = sortedTx
+          .filter(tx => {
+            const txD = new Date(tx.date)
+            return txD >= snapDate && txD <= dEnd
+          })
+          .reduce((sum, tx) => sum + (parseFloat(tx.amount) || 0), 0)
+        runningBalance = snapAmount + txSum
+      } else if (sortedBalances.length > 0) {
+        const firstSnap = sortedBalances[0]
+        const firstSnapDate = new Date(firstSnap.date)
+        const firstSnapAmt = parseFloat(firstSnap.amount) || 0
+        const txBetween = sortedTx
+          .filter(tx => {
+            const txD = new Date(tx.date)
+            return txD > dEnd && txD < firstSnapDate
+          })
+          .reduce((sum, tx) => sum + (parseFloat(tx.amount) || 0), 0)
+        runningBalance = firstSnapAmt - txBetween
+      } else {
+        runningBalance = sortedTx
+          .filter(tx => new Date(tx.date) <= dEnd)
+          .reduce((sum, tx) => sum + (parseFloat(tx.amount) || 0), 0)
+      }
+      
+      const totalSpendUpToDay = sortedTx
+        .filter(tx => new Date(tx.date) <= dEnd && parseFloat(tx.amount) < 0)
+        .reduce((sum, tx) => sum + Math.abs(parseFloat(tx.amount)), 0)
+      
+      points.push({
+        day: i,
+        dateLabel,
+        date: d.toISOString(),
+        actualBalance: runningBalance,
+        actualSpend: totalSpendUpToDay,
+        projectionBalance: null,
+        projectionSpend: null,
+        optimisticBalance: null,
+        optimisticSpend: null,
+        pessimisticBalance: null,
+        pessimisticSpend: null,
+        theoretical: 0
+      })
+    }
+    
+    return points
+  }, [dataset, balances, today])
+
   const spendingByCategory = useMemo(() => categories.map(cat => {
     const spent = expenses
       .filter(exp => exp.category_id === cat.id && parseFloat(exp.amount) < 0)
@@ -785,14 +875,16 @@ export function DashboardView({
         <header className="flex items-center justify-between gap-4 pb-3 md:pb-4 relative border-b border-border">
           <div className="space-y-1.5">
             <div className="flex items-center gap-3 text-[9px] md:text-[10px] font-mono font-bold tracking-[0.2em] uppercase text-muted-foreground">
-              <Home className="h-3.5 w-3.5" />
-              <span>Active Paycheck Cycle</span>
+              {viewMode === 'all-time' ? <Globe className="h-3.5 w-3.5" /> : <Home className="h-3.5 w-3.5" />}
+              <span>{viewMode === 'all-time' ? 'Global Financial History' : 'Active Paycheck Cycle'}</span>
             </div>
             <h1 className="text-4xl md:text-5xl font-bold tracking-tighter uppercase leading-none break-words">
               {isPending ? (
                 <Skeleton className="h-10 w-64 rounded-none" />
+              ) : viewMode === 'all-time' ? (
+                'All-Time'
               ) : (
-                currentCycle.label.replace('Cycle: ', '')
+                currentCycle?.label?.replace('Cycle: ', '') || 'Current Cycle'
               )}
             </h1>
           </div>
@@ -837,22 +929,38 @@ export function DashboardView({
                       localStorage.removeItem('leger_pro_graph_dismissed_until')
                     }}
                     className={cn(
-                      "px-4 py-2 transition-all cursor-pointer",
+                      "px-3.5 md:px-4 py-2 transition-all cursor-pointer",
                       viewMode === 'graph' ? "bg-foreground text-background" : "hover:bg-muted"
                     )}
-                    aria-label="Graph view"
+                    aria-label="Cycle Graph view"
+                    title="Cycle Graph View"
                   >
                     <TrendingUp className="h-3.5 w-3.5" />
                   </button>
                   <button 
                     onClick={() => setViewMode('calendar')}
                     className={cn(
-                      "px-4 py-2 transition-all border-l border-border cursor-pointer",
+                      "px-3.5 md:px-4 py-2 transition-all border-l border-border cursor-pointer",
                       viewMode === 'calendar' ? "bg-foreground text-background" : "hover:bg-muted"
                     )}
                     aria-label="Calendar view"
+                    title="Calendar View"
                   >
                     <CalendarDays className="h-3.5 w-3.5" />
+                  </button>
+                  <button 
+                    onClick={() => {
+                      setViewMode('all-time')
+                      localStorage.removeItem('leger_pro_graph_dismissed_until')
+                    }}
+                    className={cn(
+                      "px-3.5 md:px-4 py-2 transition-all border-l border-border cursor-pointer",
+                      viewMode === 'all-time' ? "bg-foreground text-background" : "hover:bg-muted"
+                    )}
+                    aria-label="All-Time global view"
+                    title="All-Time Global History"
+                  >
+                    <Globe className="h-3.5 w-3.5" />
                   </button>
                 </div>
 
@@ -937,10 +1045,10 @@ export function DashboardView({
                     </Button>
                   </div>
                 </div>
-              ) : viewMode === 'graph' ? (
+              ) : viewMode === 'graph' || viewMode === 'all-time' ? (
                 <div className="relative w-full h-full">
                   <DashboardChart 
-                    hybridData={hybridData} 
+                    hybridData={viewMode === 'all-time' ? allTimeHybridData : hybridData} 
                     activeTab={activeTab} 
                     onDayClick={(dateStr) => {
                       setSelectedDate(new Date(dateStr))

@@ -23,6 +23,12 @@ export function DashboardChart({ hybridData, activeTab, onDayClick, isPro }: Das
     return () => window.removeEventListener("resize", handleResize)
   }, [])
 
+  const dynamicInterval = React.useMemo(() => {
+    if (hybridData.length > 180) return isMobile ? Math.floor(hybridData.length / 4) : Math.floor(hybridData.length / 7)
+    if (hybridData.length > 60) return isMobile ? Math.floor(hybridData.length / 5) : Math.floor(hybridData.length / 8)
+    return isMobile ? 10 : 5
+  }, [hybridData.length, isMobile])
+
   return (
     <div className="h-[280px] md:h-[320px] w-full mt-4 md:mt-0 cursor-pointer" data-no-swipe="true">
       <ResponsiveContainer width="100%" height="100%">
@@ -61,7 +67,7 @@ export function DashboardChart({ hybridData, activeTab, onDayClick, isPro }: Das
             dataKey="dateLabel" 
             axisLine={false} 
             tickLine={false} 
-            interval={isMobile ? 10 : 5} 
+            interval={dynamicInterval} 
             style={{ fontSize: '9px', fontFamily: 'var(--font-geist-mono)', fill: '#86868B' }} 
             dy={10} 
           />
