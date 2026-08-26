@@ -1695,23 +1695,41 @@ export function ExpensesView({ initialExpenses, categories: initialCategories, i
                            </div>
                         </div>
 
-                        <div className="space-y-1.5">
-                           <Label htmlFor="manualCategory" className="technical-label">Target Category</Label>
-                           <div className="relative">
-                              <select
-                                 id="manualCategory"
-                                 value={manualCategoryId}
-                                 onChange={(e) => setManualCategoryId(e.target.value)}
-                                 className="w-full h-10 sm:h-9 px-2 pr-8 border border-border bg-secondary/15 rounded-none text-base sm:text-xs uppercase text-foreground outline-none appearance-none"
-                              >
-                                 <option value="">Unclassified</option>
-                                 {categories.map((cat) => (
-                                    <option key={cat.id} value={cat.id}>{cat.name}</option>
-                                 ))}
-                              </select>
-                              <ChevronDown className="absolute right-2.5 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground pointer-events-none" />
-                           </div>
-                        </div>
+                         <div className="space-y-1.5">
+                            <Label htmlFor="manualCategory" className="technical-label">Target Category</Label>
+                            <Select 
+                              value={manualCategoryId || "none"} 
+                              onValueChange={(val) => setManualCategoryId(val === "none" ? "" : (val || ""))}
+                            >
+                              <SelectTrigger className="w-full h-10 sm:h-9 px-2 border border-border bg-secondary/15 rounded-none text-base sm:text-xs uppercase text-foreground">
+                                {manualCategoryId ? (
+                                  (() => {
+                                    const cat = categories.find(c => c.id.toString() === manualCategoryId)
+                                    if (!cat) return <span>Unclassified</span>
+                                    return (
+                                      <div className="flex items-center gap-1.5 overflow-hidden">
+                                        <div className="h-2 w-2 rounded-full shrink-0" style={{ backgroundColor: cat.color }} />
+                                        <span className="truncate uppercase">{cat.name}</span>
+                                      </div>
+                                    )
+                                  })()
+                                ) : (
+                                  <span>Unclassified</span>
+                                )}
+                              </SelectTrigger>
+                              <SelectContent className="bg-[#121215] border border-border font-mono text-xs uppercase">
+                                <SelectItem value="none">Unclassified</SelectItem>
+                                {categories.map((cat) => (
+                                  <SelectItem key={cat.id} value={cat.id.toString()}>
+                                    <div className="flex items-center gap-2">
+                                      <div className="h-2 w-2 rounded-full shrink-0" style={{ backgroundColor: cat.color }} />
+                                      <span>{cat.name}</span>
+                                    </div>
+                                  </SelectItem>
+                                ))}
+                              </SelectContent>
+                            </Select>
+                         </div>
 
                         <Button 
                            type="submit" 
@@ -1974,22 +1992,38 @@ export function ExpensesView({ initialExpenses, categories: initialCategories, i
 
                     {/* Category */}
                     <div className="space-y-1.5">
-                      <label htmlFor="filter-category" className="text-muted-foreground font-bold tracking-wider">Category</label>
-                      <div className="relative">
-                        <select
-                          id="filter-category"
-                          value={filterCategory}
-                          onChange={(e) => setFilterCategory(e.target.value)}
-                          className="w-full h-9 px-3 pr-8 border border-border bg-card rounded-none outline-none focus:border-foreground appearance-none text-[11px] uppercase text-foreground"
-                        >
-                          <option value="ALL" className="bg-[#121215] text-foreground font-mono py-1">All Categories</option>
-                          <option value="UNCATEGORIZED" className="bg-[#121215] text-foreground font-mono py-1">Uncategorized</option>
-                          {categories.map(cat => (
-                            <option key={cat.id} value={cat.id.toString()} className="bg-[#121215] text-foreground font-mono py-1">{cat.name}</option>
+                      <label className="text-muted-foreground font-bold tracking-wider">Category</label>
+                      <Select 
+                        value={filterCategory} 
+                        onValueChange={(val) => setFilterCategory(val || "ALL")}
+                      >
+                        <SelectTrigger className="w-full h-9 px-3 border border-border bg-card rounded-none text-[11px] uppercase text-foreground font-mono">
+                          {(() => {
+                            if (filterCategory === "ALL") return <span>All Categories</span>
+                            if (filterCategory === "UNCATEGORIZED") return <span>Uncategorized</span>
+                            const cat = categories.find(c => c.id.toString() === filterCategory)
+                            if (!cat) return <span>All Categories</span>
+                            return (
+                              <div className="flex items-center gap-2 overflow-hidden">
+                                <div className="h-2 w-2 rounded-full shrink-0" style={{ backgroundColor: cat.color }} />
+                                <span className="truncate uppercase">{cat.name}</span>
+                              </div>
+                            )
+                          })()}
+                        </SelectTrigger>
+                        <SelectContent className="bg-[#121215] border border-border font-mono text-[11px] uppercase">
+                          <SelectItem value="ALL">All Categories</SelectItem>
+                          <SelectItem value="UNCATEGORIZED">Uncategorized</SelectItem>
+                          {categories.map((cat) => (
+                            <SelectItem key={cat.id} value={cat.id.toString()}>
+                              <div className="flex items-center gap-2">
+                                <div className="h-2 w-2 rounded-full shrink-0" style={{ backgroundColor: cat.color }} />
+                                <span>{cat.name}</span>
+                              </div>
+                            </SelectItem>
                           ))}
-                        </select>
-                        <ChevronDown className="absolute right-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground pointer-events-none" />
-                      </div>
+                        </SelectContent>
+                      </Select>
                     </div>
 
                     {/* Record Type */}

@@ -19,6 +19,7 @@ import {
   DialogDescription,
   DialogFooter
 } from "@/components/ui/dialog"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue, SelectGroup, SelectLabel } from "@/components/ui/select"
 
 interface Memory {
   id: string
@@ -776,25 +777,44 @@ export function LegerAIPageView({ cycleData, expenses, categories }: LegerAIPage
               {/* Category Select */}
               <div className="space-y-1.5">
                 <label className="text-[9px] font-mono uppercase tracking-widest text-muted-foreground">Category Class</label>
-                <select
-                  value={editCategory}
-                  onChange={(e) => setEditCategory(e.target.value)}
-                  className="w-full p-2.5 text-xs bg-secondary/30 border border-border/80 focus:outline-none focus:border-foreground/35 rounded-none text-foreground font-mono uppercase"
-                >
-                  {categories && categories.length > 0 && (
-                    <optgroup label="Financial Categories">
-                      {categories.map((cat: any) => (
-                        <option key={cat.id} value={cat.name}>{cat.name}</option>
-                      ))}
-                    </optgroup>
-                  )}
-                  <optgroup label="Context & Lifestyle Tags">
-                    <option value="goal">Goal</option>
-                    <option value="health">Health Condition</option>
-                    <option value="financial">Financial</option>
-                    <option value="other">Other</option>
-                  </optgroup>
-                </select>
+                <Select value={editCategory} onValueChange={(val) => setEditCategory(val || "financial")}>
+                  <SelectTrigger className="w-full h-9 p-2.5 text-xs bg-secondary/30 border border-border/80 rounded-none text-foreground font-mono uppercase">
+                    {(() => {
+                      const matchedFinancial = categories?.find((c: any) => c.name.toLowerCase() === editCategory.toLowerCase())
+                      if (matchedFinancial) {
+                        return (
+                          <div className="flex items-center gap-2 overflow-hidden">
+                            <div className="h-2 w-2 rounded-full shrink-0" style={{ backgroundColor: matchedFinancial.color }} />
+                            <span className="truncate">{matchedFinancial.name}</span>
+                          </div>
+                        )
+                      }
+                      return <span className="truncate">{editCategory}</span>
+                    })()}
+                  </SelectTrigger>
+                  <SelectContent className="bg-[#121215] border border-border font-mono text-xs uppercase">
+                    {categories && categories.length > 0 && (
+                      <SelectGroup>
+                        <SelectLabel className="text-[9px] text-muted-foreground uppercase tracking-widest px-2 py-1">Financial Categories</SelectLabel>
+                        {categories.map((cat: any) => (
+                          <SelectItem key={cat.id} value={cat.name}>
+                            <div className="flex items-center gap-2">
+                              <div className="h-2 w-2 rounded-full shrink-0" style={{ backgroundColor: cat.color }} />
+                              <span>{cat.name}</span>
+                            </div>
+                          </SelectItem>
+                        ))}
+                      </SelectGroup>
+                    )}
+                    <SelectGroup>
+                      <SelectLabel className="text-[9px] text-muted-foreground uppercase tracking-widest px-2 py-1">Context & Lifestyle Tags</SelectLabel>
+                      <SelectItem value="goal">Goal</SelectItem>
+                      <SelectItem value="health">Health Condition</SelectItem>
+                      <SelectItem value="financial">Financial</SelectItem>
+                      <SelectItem value="other">Other</SelectItem>
+                    </SelectGroup>
+                  </SelectContent>
+                </Select>
               </div>
 
               {/* Expiry Selector */}

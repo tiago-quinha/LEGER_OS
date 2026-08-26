@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { useSystem } from "@/lib/SystemContext"
 import { supabase } from "@/lib/supabase"
 import { toast } from "sonner"
@@ -1080,18 +1081,36 @@ export function SystemSettingsModal({ open, onOpenChange }: SystemSettingsModalP
                       onChange={(e) => setNewRuleKw(e.target.value)}
                       className="rounded-none text-xs h-9 bg-background uppercase font-mono w-full sm:flex-1"
                     />
-                    <div className="relative w-full sm:w-48">
-                      <select
-                        value={newRuleCat}
-                        onChange={(e) => setNewRuleCat(e.target.value)}
-                        className="bg-background border border-border rounded-none px-3 pr-8 text-xs font-mono h-9 outline-none w-full font-bold appearance-none"
-                      >
-                        <option value="">SELECT CATEGORY...</option>
-                        {categories.map(c => (
-                          <option key={c.id} value={c.id}>{c.name}</option>
-                        ))}
-                      </select>
-                      <ChevronDown className="absolute right-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground pointer-events-none" />
+                    <div className="w-full sm:w-48">
+                      <Select value={newRuleCat || "none"} onValueChange={(val) => setNewRuleCat(val === "none" ? "" : (val || ""))}>
+                        <SelectTrigger className="bg-background border border-border rounded-none px-3 text-xs font-mono h-9 w-full uppercase">
+                          {newRuleCat ? (
+                            (() => {
+                              const cat = categories.find(c => c.id.toString() === newRuleCat)
+                              if (!cat) return <span>SELECT CATEGORY...</span>
+                              return (
+                                <div className="flex items-center gap-2 overflow-hidden">
+                                  <div className="h-2 w-2 rounded-full shrink-0" style={{ backgroundColor: cat.color }} />
+                                  <span className="truncate uppercase">{cat.name}</span>
+                                </div>
+                              )
+                            })()
+                          ) : (
+                            <span className="text-muted-foreground">SELECT CATEGORY...</span>
+                          )}
+                        </SelectTrigger>
+                        <SelectContent className="bg-[#121215] border border-border font-mono text-xs uppercase">
+                          <SelectItem value="none">SELECT CATEGORY...</SelectItem>
+                          {categories.map((c) => (
+                            <SelectItem key={c.id} value={c.id.toString()}>
+                              <div className="flex items-center gap-2">
+                                <div className="h-2 w-2 rounded-full shrink-0" style={{ backgroundColor: c.color }} />
+                                <span>{c.name}</span>
+                              </div>
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
                     </div>
                     <Button type="submit" className="rounded-none uppercase font-mono text-[9px] font-bold h-9 px-4 w-full sm:w-auto bg-foreground text-background hover:bg-foreground/90 cursor-pointer">
                       <Plus className="h-3.5 w-3.5 mr-1" /> Add Rule

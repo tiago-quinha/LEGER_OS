@@ -20,6 +20,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { 
   Tag, 
   Search, 
@@ -803,19 +804,35 @@ export function CategoriesView({ expenses, categories: initialCategories, cycles
             {/* Category Dropdown (Alternative to clicking Cards) */}
             <div className="space-y-1.5">
               <Label className="technical-label text-[9px] text-muted-foreground uppercase font-bold">Selected Category</Label>
-              <div className="relative">
-                <select
-                  value={selectedCategoryId}
-                  onChange={(e) => setSelectedCategoryId(e.target.value)}
-                  className="w-full h-10 px-3 pr-10 border border-border bg-card rounded-none uppercase text-foreground outline-none focus:border-foreground transition-colors appearance-none"
-                >
-                  <option value="ALL" className="bg-[#121215] text-foreground font-mono py-1">ALL CATEGORIES</option>
+              <Select 
+                value={selectedCategoryId} 
+                onValueChange={(val: string | null) => setSelectedCategoryId(val || "ALL")}
+              >
+                <SelectTrigger className="w-full h-10 px-3 border border-border bg-card rounded-none uppercase text-foreground font-mono text-xs">
+                  {(() => {
+                    if (selectedCategoryId === "ALL") return <span>ALL CATEGORIES</span>
+                    const cat = categories.find(c => c.id.toString() === selectedCategoryId)
+                    if (!cat) return <span>ALL CATEGORIES</span>
+                    return (
+                      <div className="flex items-center gap-2 overflow-hidden">
+                        <div className="h-2 w-2 rounded-full shrink-0" style={{ backgroundColor: cat.color }} />
+                        <span className="truncate uppercase">{cat.name}</span>
+                      </div>
+                    )
+                  })()}
+                </SelectTrigger>
+                <SelectContent className="bg-[#121215] border border-border font-mono text-xs uppercase">
+                  <SelectItem value="ALL">ALL CATEGORIES</SelectItem>
                   {categories.map((cat) => (
-                    <option key={cat.id} value={cat.id} className="bg-[#121215] text-foreground font-mono py-1">{cat.name}</option>
+                    <SelectItem key={cat.id} value={cat.id.toString()}>
+                      <div className="flex items-center gap-2">
+                        <div className="h-2 w-2 rounded-full shrink-0" style={{ backgroundColor: cat.color }} />
+                        <span>{cat.name}</span>
+                      </div>
+                    </SelectItem>
                   ))}
-                </select>
-                <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground pointer-events-none" />
-              </div>
+                </SelectContent>
+              </Select>
             </div>
 
             {/* Date Preset */}
