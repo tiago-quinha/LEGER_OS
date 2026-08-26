@@ -4,7 +4,7 @@ import React, { useState, useEffect, useMemo } from "react"
 import { motion, AnimatePresence } from "framer-motion"
 import { 
   RefreshCcw, History, Calendar, 
-  Clock, Plus, Trash2, Search, Sparkles, Brain
+  Clock, Plus, Trash2, Search, Sparkles, Brain, ArrowUp
 } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
@@ -20,6 +20,7 @@ import {
   DialogFooter
 } from "@/components/ui/dialog"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue, SelectGroup, SelectLabel } from "@/components/ui/select"
+import { Skeleton } from "@/components/ui/skeleton"
 
 interface Memory {
   id: string
@@ -35,20 +36,38 @@ interface LegerAIPageViewProps {
   cycleData: any
   expenses: any[]
   categories: any[]
+  initialMemories?: Memory[]
 }
 
-export function LegerAIPageView({ cycleData, expenses, categories }: LegerAIPageViewProps) {
+export function LegerAIPageView({ cycleData, expenses, categories, initialMemories }: LegerAIPageViewProps) {
   const { profile, user, refreshProfile, isPro, setSettingsOpen, setSettingsActiveTab, setSubscriptionOnly } = useSystem()
   
   // Memories Page States
-  const [memories, setMemories] = useState<Memory[]>([])
+  const [memories, setMemories] = useState<Memory[]>(initialMemories || [])
   const [activeTab, setActiveTab] = useState<string>("all")
   const [newMemoryText, setNewMemoryText] = useState("")
-  const [isLoading, setIsLoading] = useState(false)
+  const [isLoading, setIsLoading] = useState(!initialMemories)
   const [isSubmitting, setIsSubmitting] = useState(false)
 
   // Feature: Text search
   const [searchQuery, setSearchQuery] = useState("")
+
+  // Dynamic Animated Placeholder (matching Leger AI)
+  const PLACEHOLDER_ROTATION = useMemo(() => [
+    "Tell Leger AI: 'Going on vacation for 10 days'...",
+    "Tell Leger AI: 'Working hybrid this week, less fuel spend'...",
+    "Tell Leger AI: 'Strict saving mode, cut dining by 25%'...",
+    "Tell Leger AI: 'Pause gym subscription for 1 month'...",
+  ], [])
+  const [placeholderIdx, setPlaceholderIdx] = useState(0)
+
+  useEffect(() => {
+    if (newMemoryText.trim()) return
+    const timer = setInterval(() => {
+      setPlaceholderIdx(prev => (prev + 1) % PLACEHOLDER_ROTATION.length)
+    }, 3200)
+    return () => clearInterval(timer)
+  }, [newMemoryText, PLACEHOLDER_ROTATION.length])
 
   // Feature: Collapsed expired groups
   const [expandedExpiredGroups, setExpandedExpiredGroups] = useState<Set<string>>(new Set())
@@ -477,13 +496,12 @@ export function LegerAIPageView({ cycleData, expenses, categories }: LegerAIPage
       initial={{ opacity: 0, y: 4 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.45, ease: [0.16, 1, 0.3, 1] }}
-      className="mx-auto max-w-[1500px] p-4 md:p-8 space-y-10 md:space-y-12 pb-36 md:pb-8 w-full"
+      className="mx-auto max-w-[1500px] p-4 md:p-8 space-y-6 md:space-y-8 pb-36 md:pb-8 w-full"
     >
 
-
       {/* 1. Header */}
-      <header className="flex flex-col md:flex-row md:items-center justify-between gap-6 md:gap-8 border-b border-foreground/10 pb-6 md:pb-8 relative">
-        <div className="space-y-3">
+      <header className="flex flex-col md:flex-row md:items-center justify-between gap-4 md:gap-6 border-b border-foreground/10 pb-4 md:pb-6 relative">
+        <div className="space-y-2">
           <div className="flex items-center gap-3 text-[9px] md:text-[10px] font-mono tracking-[0.2em] uppercase text-muted-foreground">
             <Brain className="h-3.5 w-3.5" />
             <span>Neural Context Memory</span>
@@ -494,7 +512,7 @@ export function LegerAIPageView({ cycleData, expenses, categories }: LegerAIPage
 
           {/* Feature 5: Summary stats bar */}
           {memories.length > 0 && (
-            <div className="flex items-center gap-3 text-[9px] md:text-[10px] font-mono tracking-wider text-muted-foreground pt-1 select-none">
+            <div className="flex items-center gap-3 text-[9px] md:text-[10px] font-mono tracking-wider text-muted-foreground pt-0.5 select-none">
               <span className="text-foreground/70 font-bold">{memoryStats.active} active</span>
               {memoryStats.expiringSoon > 0 && (
                 <>
@@ -514,7 +532,7 @@ export function LegerAIPageView({ cycleData, expenses, categories }: LegerAIPage
       </header>
 
       {/* Centered Content Column */}
-      <div className="max-w-[900px] mx-auto w-full space-y-8 pt-4">
+      <div className="max-w-[900px] mx-auto w-full space-y-5 md:space-y-6">
 
       {/* Quick Input Box */}
       {!isPro ? (
@@ -524,32 +542,55 @@ export function LegerAIPageView({ cycleData, expenses, categories }: LegerAIPage
           className="rounded-none shadow-xl border border-emerald-500/30"
         />
       ) : (
-        <div className="p-5 border border-border ledger-border bg-card/60 space-y-3">
-          <h4 className="text-xs font-bold tracking-tight text-foreground">Add memory</h4>
-          <form onSubmit={handleAddMemory} className="space-y-3">
-            <textarea
-              value={newMemoryText}
-              onChange={(e) => setNewMemoryText(e.target.value)}
-              placeholder="e.g. 'Going on vacation for 10 days', 'Hybrid work this week, less fuel spend'..."
-              className="w-full min-h-[72px] p-3 text-xs bg-secondary/20 border border-border/80 rounded-none focus:outline-none focus:border-foreground/40 font-sans resize-none placeholder:text-muted-foreground/40 text-foreground leading-relaxed"
-              disabled={isSubmitting}
-            />
-            <div className="flex items-center justify-end">
-              <Button 
-                type="submit"
-                disabled={!newMemoryText.trim() || isSubmitting}
-                className="h-8 rounded-none bg-foreground text-background hover:bg-muted font-mono text-[9px] uppercase font-bold tracking-wider px-5 disabled:opacity-40 disabled:cursor-not-allowed shrink-0 cursor-pointer"
-              >
-                {isSubmitting ? <RefreshCcw className="h-3 w-3 animate-spin mr-1.5" /> : <Plus className="h-3 w-3 mr-1.5" />}
-                Save
-              </Button>
+        <form onSubmit={handleAddMemory} className="relative flex items-center w-full">
+          {/* Clean Animated Placeholder Overlay matching Leger AI */}
+          {!newMemoryText && (
+            <div className="absolute left-4 right-12 pointer-events-none overflow-hidden select-none flex items-center h-full z-10">
+              <AnimatePresence mode="wait">
+                <motion.span
+                  key={placeholderIdx}
+                  initial={{ opacity: 0, y: 4, filter: "blur(2px)" }}
+                  animate={{ opacity: 1, y: 0, filter: "blur(0px)" }}
+                  exit={{ opacity: 0, y: -4, filter: "blur(2px)" }}
+                  transition={{ duration: 0.28, ease: "easeInOut" }}
+                  className="truncate block text-xs sm:text-[13px] text-muted-foreground/60 font-sans leading-none pointer-events-none"
+                >
+                  {PLACEHOLDER_ROTATION[placeholderIdx]}
+                </motion.span>
+              </AnimatePresence>
             </div>
-          </form>
-        </div>
+          )}
+
+          <input
+            type="text"
+            value={newMemoryText}
+            onChange={(e) => setNewMemoryText(e.target.value)}
+            disabled={isSubmitting}
+            className="w-full pl-4 pr-12 py-2 border border-border bg-secondary/35 outline-none text-xs sm:text-[13px] rounded-full text-foreground placeholder:text-muted-foreground/60 focus:border-foreground/30 focus:bg-secondary/50 transition-all h-11 relative z-0"
+          />
+
+          <button
+            type="submit"
+            disabled={!newMemoryText.trim() || isSubmitting}
+            className={cn(
+              "absolute right-1.5 w-8 h-8 rounded-full flex items-center justify-center transition-all cursor-pointer z-10 shrink-0",
+              newMemoryText.trim() && !isSubmitting
+                ? "bg-foreground text-background shadow-md hover:scale-105 active:scale-95"
+                : "bg-secondary/40 text-muted-foreground/30 cursor-not-allowed"
+            )}
+            title="Ingest Memory"
+          >
+            {isSubmitting ? (
+              <RefreshCcw className="h-3.5 w-3.5 animate-spin" />
+            ) : (
+              <ArrowUp className="h-4 w-4 stroke-[2.5]" />
+            )}
+          </button>
+        </form>
       )}
 
       {/* Feature 6: Search + Dynamic Filter Tabs */}
-      <div className="space-y-3">
+      <div className="space-y-2.5">
         {/* Search input */}
         {memories.length > 0 && (
           <div className="relative">
@@ -565,7 +606,7 @@ export function LegerAIPageView({ cycleData, expenses, categories }: LegerAIPage
         )}
 
         {/* Category tabs */}
-        <div className="flex items-center gap-1.5 overflow-x-auto pb-2 scrollbar-hide border-b border-border/30">
+        <div className="flex items-center gap-1.5 overflow-x-auto pb-1.5 scrollbar-hide border-b border-border/30">
           {availableCategoryTabs.map(tab => {
             const isActive = activeTab.toLowerCase() === tab.toLowerCase()
             return (
@@ -588,9 +629,31 @@ export function LegerAIPageView({ cycleData, expenses, categories }: LegerAIPage
 
       {/* Timeline Feed */}
       {isLoading ? (
-        <div className="flex flex-col items-center justify-center py-16 space-y-3 font-mono text-xs text-muted-foreground">
-          <RefreshCcw className="h-5 w-5 animate-spin text-emerald-500" />
-          <p className="uppercase tracking-widest text-[10px]">Loading memories matrix...</p>
+        <div className="space-y-5 animate-pulse">
+          <div className="space-y-2.5">
+            <div className="flex items-center gap-4">
+              <Skeleton className="h-3 w-16 rounded-none bg-secondary/50" />
+              <div className="h-px bg-border/40 flex-grow" />
+            </div>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+              {Array.from({ length: 4 }).map((_, i) => (
+                <div key={i} className="p-4 border border-border bg-card/40 space-y-3 min-h-[110px] flex flex-col justify-between">
+                  <div className="space-y-2">
+                    <div className="flex items-center justify-between gap-3">
+                      <Skeleton className="h-3.5 w-16 rounded-none bg-secondary/50" />
+                      <Skeleton className="h-3.5 w-12 rounded-none bg-secondary/50" />
+                    </div>
+                    <Skeleton className="h-3.5 w-full rounded-none bg-secondary/40" />
+                    <Skeleton className="h-3.5 w-2/3 rounded-none bg-secondary/40" />
+                  </div>
+                  <div className="flex justify-between items-center pt-2 border-t border-border/20">
+                    <Skeleton className="h-2.5 w-14 rounded-none bg-secondary/50" />
+                    <Skeleton className="h-2.5 w-20 rounded-none bg-secondary/50" />
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
         </div>
       ) : memories.length === 0 ? (
         <div className="p-8 border border-border border-dashed bg-secondary/5 text-center font-mono space-y-2">
@@ -608,7 +671,7 @@ export function LegerAIPageView({ cycleData, expenses, categories }: LegerAIPage
           </p>
         </div>
       ) : (
-        <div className="space-y-8 [content-visibility:auto] [contain-intrinsic-size:1px_400px]">
+        <div className="space-y-6 [content-visibility:auto] [contain-intrinsic-size:1px_400px]">
           {Object.keys(groupedMemories).map(dateKey => {
             const allGroupMemories = groupedMemories[dateKey]
             const activeGroupMemories = allGroupMemories.filter(m => m.status !== "expired")
@@ -616,7 +679,7 @@ export function LegerAIPageView({ cycleData, expenses, categories }: LegerAIPage
             const isExpiredGroupExpanded = expandedExpiredGroups.has(dateKey)
 
             return (
-              <div key={dateKey} className="space-y-4">
+              <div key={dateKey} className="space-y-3">
                 {/* Timeline Date Divider */}
                 <div className="flex items-center gap-4">
                   <span className="text-[10px] font-mono font-bold tracking-widest text-muted-foreground shrink-0 select-none">
@@ -627,7 +690,7 @@ export function LegerAIPageView({ cycleData, expenses, categories }: LegerAIPage
 
                 {/* Active Memories */}
                 {activeGroupMemories.length > 0 && (
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-3.5">
                     {activeGroupMemories.map(mem => {
                       const catDetails = getCategoryDetails(mem.category)
                       const durationStr = getDurationString(mem.expiresAt)

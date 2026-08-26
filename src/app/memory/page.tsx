@@ -1,6 +1,7 @@
 import { createClient } from "@/lib/supabase-server"
 import { LegerAIPageView } from "@/components/LegerAIPageView"
 import { getCycles } from "@/lib/cycles"
+import { normalizeJournal } from "@/lib/journal-utils"
 
 export const dynamic = "force-dynamic"
 
@@ -14,12 +15,17 @@ export default async function MemoryPage({ searchParams }: PageProps) {
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) return null
 
-  const [cycles, categoriesRes] = await Promise.all([
+  const [cycles, categoriesRes, profileRes] = await Promise.all([
     getCycles(supabase, user.id),
     supabase
       .from("categories")
       .select("*")
-      .order("name")
+      .order("name"),
+    supabase
+      .from("profiles")
+      .select("ai_journal")
+      .eq("id", user.id)
+      .single()
   ])
 
   const fallbackCycle = {
@@ -44,11 +50,14 @@ export default async function MemoryPage({ searchParams }: PageProps) {
     .lt("date", endDateStr)
     .order("date", { ascending: false })
 
+  const initialMemories = normalizeJournal(profileRes.data?.ai_journal)
+
   return (
     <LegerAIPageView 
       cycleData={selectedCycle}
       expenses={expenses || []}
       categories={categoriesRes.data || []}
+      initialMemories={initialMemories}
     />
   )
 }
