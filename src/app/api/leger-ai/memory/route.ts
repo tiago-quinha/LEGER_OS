@@ -159,6 +159,7 @@ export async function POST(request: Request) {
         categoryId: catIdStr,
         categoryName: matchedCat?.name || parsed.category,
         reason: parsed.projectionOverride.reason || content,
+        expiresAt: newMemory.expiresAt,
       };
 
       if (parsed.projectionOverride.multiplier !== undefined) {
@@ -219,7 +220,7 @@ export async function DELETE(request: Request) {
     const supabaseAdmin = getAdminClient();
     const { data: profile, error: getErr } = await supabaseAdmin
       .from("profiles")
-      .select("ai_journal")
+      .select("ai_journal, projection_overrides")
       .eq("id", user.id)
       .single();
 
@@ -232,9 +233,15 @@ export async function DELETE(request: Request) {
     const updatedMemories = existingMemories.filter((item: MemoryItem) => item.id !== id);
     const updatedJournal = buildUpdatedJournal(rawJournal, updatedMemories);
 
+    const existingOverrides: any[] = profile?.projection_overrides || [];
+    const updatedOverrides = existingOverrides.filter((o: any) => o.memoryId !== id);
+
     const { error: updateErr } = await supabaseAdmin
       .from("profiles")
-      .update({ ai_journal: updatedJournal })
+      .update({ 
+        ai_journal: updatedJournal,
+        projection_overrides: updatedOverrides
+      })
       .eq("id", user.id);
 
     if (updateErr) {
@@ -267,7 +274,7 @@ export async function PUT(request: Request) {
     const supabaseAdmin = getAdminClient();
     const { data: profile, error: getErr } = await supabaseAdmin
       .from("profiles")
-      .select("ai_journal")
+      .select("ai_journal, projection_overrides")
       .eq("id", user.id)
       .single();
 
@@ -278,9 +285,11 @@ export async function PUT(request: Request) {
     const rawJournal = profile?.ai_journal;
     const existingMemories = normalizeJournal(rawJournal);
 
+    let finalExpiresAt: string | null = null;
     const updatedMemories = existingMemories.map((item: MemoryItem) => {
       if (item.id === id) {
         const newExpiresAt = expiresAt !== undefined ? expiresAt : item.expiresAt;
+        finalExpiresAt = newExpiresAt;
         let newStatus = "active";
         if (newExpiresAt && new Date(newExpiresAt) < new Date()) {
           newStatus = "expired";
@@ -298,9 +307,20 @@ export async function PUT(request: Request) {
 
     const updatedJournal = buildUpdatedJournal(rawJournal, updatedMemories);
 
+    const existingOverrides: any[] = profile?.projection_overrides || [];
+    const updatedOverrides = existingOverrides.map((o: any) => {
+      if (o.memoryId === id) {
+        return { ...o, expiresAt: finalExpiresAt !== null ? finalExpiresAt : o.expiresAt };
+      }
+      return o;
+    });
+
     const { error: updateErr } = await supabaseAdmin
       .from("profiles")
-      .update({ ai_journal: updatedJournal })
+      .update({ 
+        ai_journal: updatedJournal,
+        projection_overrides: updatedOverrides
+      })
       .eq("id", user.id);
 
     if (updateErr) {

@@ -319,7 +319,15 @@ function executeEmpiricalComputation(
   let dailyBurnAdjustment = 0
   let totalFixedDelta = 0
   if (overrides && overrides.length > 0) {
-    overrides.forEach((ov: any) => {
+    const activeOverrides = overrides.filter((ov: any) => {
+      if (!ov) return false
+      if (ov.expiresAt && new Date(ov.expiresAt).getTime() < todayTime) {
+        return false // Ignore expired overrides
+      }
+      return true
+    })
+
+    activeOverrides.forEach((ov: any) => {
       if (ov.fixedDelta) {
         totalFixedDelta += parseFloat(ov.fixedDelta) || 0
       }
