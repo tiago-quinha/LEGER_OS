@@ -935,7 +935,6 @@ export function PortfolioView({
   const metrics = useMemo(() => {
     let totalInvested = 0;
     let totalValuation = 0;
-    let total24hChange = 0;
 
     const breakdown: Record<string, number> = {
       stock_etf: 0,
@@ -944,6 +943,8 @@ export function PortfolioView({
       commodity: 0,
       other: 0,
     };
+
+    let fallback24hChange = 0;
 
     assets.forEach((asset) => {
       const qty = Number(asset.quantity || 0);
@@ -959,16 +960,30 @@ export function PortfolioView({
       const change24hPct = Number(asset.metadata?.change24h || 0);
       if (change24hPct !== 0) {
         const prevPrice = curr / (1 + change24hPct / 100);
-        total24hChange += valuation - qty * prevPrice;
+        fallback24hChange += valuation - qty * prevPrice;
       }
 
       const type = asset.asset_type || "other";
       breakdown[type] = (breakdown[type] || 0) + valuation;
     });
 
+    const yesterdayD = new Date();
+    yesterdayD.setDate(yesterdayD.getDate() - 1);
+    const yesterdayStr = yesterdayD.toISOString().split("T")[0];
+    const yesterdaySnap = (snapshots || []).find((s) => s.snapshot_date?.split("T")[0] === yesterdayStr);
+
+    let total24hChange = 0;
+    if (yesterdaySnap && !isNaN(Number(yesterdaySnap.closing_valuation)) && Number(yesterdaySnap.closing_valuation) > 0) {
+      const yesterdayClose = Number(yesterdaySnap.closing_valuation);
+      total24hChange = parseFloat((totalValuation - yesterdayClose).toFixed(2));
+    } else {
+      total24hChange = parseFloat(fallback24hChange.toFixed(2));
+    }
+
+    const prevBase = totalValuation - total24hChange;
     const total24hChangePct =
-      totalValuation > 0 && totalValuation - total24hChange > 0
-        ? (total24hChange / (totalValuation - total24hChange)) * 100
+      totalValuation > 0 && prevBase > 0
+        ? (total24hChange / prevBase) * 100
         : 0;
 
     const totalPnL = totalValuation - totalInvested;
@@ -992,7 +1007,7 @@ export function PortfolioView({
       isCurrentCycle,
       breakdown,
     };
-  }, [assets, liquidBalance, currentCycle, currentIndex]);
+  }, [assets, liquidBalance, currentCycle, currentIndex, snapshots]);
 
   const [selectedChartMode, setSelectedChartMode] = useState<string>("all");
   const chartSectionRef = useRef<HTMLElement>(null);
@@ -1130,7 +1145,7 @@ export function PortfolioView({
         };
       });
     } else if (selectedChartMode === "all") {
-      return Array.from({ length: cycleDaysCount }).map((_, i) => {
+      const rawPoints = Array.from({ length: cycleDaysCount }).map((_, i) => {
         const d = new Date(startD);
         d.setDate(d.getDate() + i);
         const dateStr = d.toISOString().split("T")[0];
@@ -1174,20 +1189,56 @@ export function PortfolioView({
           }
         }
 
-        const dayReturn = isToday ? metrics.total24hChange : null;
-        const dayReturnPct = isToday ? metrics.total24hChangePct : null;
-
         return {
           date: dateStr,
           dateLabel,
-          valuation: dayCloseVal,
-          actualValuation: isPast || isToday ? dayCloseVal : null,
-          minValuation: isPast || isToday ? dayMinVal : null,
-          maxValuation: isPast || isToday ? dayMaxVal : null,
-          closingValuation: isPast || isToday ? dayCloseVal : null,
-          projectionValuation: isToday || isFuture ? dayCloseVal : null,
-          invested: dayInvested,
-          gainLoss: dayGainLoss,
+          dayCloseVal,
+          dayMinVal,
+          dayMaxVal,
+          dayInvested,
+          dayGainLoss,
+          isPast,
+          isToday,
+          isFuture,
+        };
+      });
+
+      return rawPoints.map((pt, i) => {
+        let dayReturn: number | null = null;
+        let dayReturnPct: number | null = null;
+
+        if (pt.isPast || pt.isToday) {
+          if (i === 0) {
+            const prevD = new Date(startD);
+            prevD.setDate(prevD.getDate() - 1);
+            const prevDateStr = prevD.toISOString().split("T")[0];
+            const prevSnap = snapMap.get(prevDateStr);
+            if (prevSnap && !isNaN(Number(prevSnap.closing_valuation)) && Number(prevSnap.closing_valuation) > 0) {
+              const prevClose = Number(prevSnap.closing_valuation);
+              dayReturn = parseFloat((pt.dayCloseVal - prevClose).toFixed(2));
+              dayReturnPct = prevClose > 0 ? parseFloat((((pt.dayCloseVal - prevClose) / prevClose) * 100).toFixed(2)) : 0;
+            } else {
+              dayReturn = 0;
+              dayReturnPct = 0;
+            }
+          } else {
+            const prevClose = rawPoints[i - 1].dayCloseVal;
+            dayReturn = parseFloat((pt.dayCloseVal - prevClose).toFixed(2));
+            dayReturnPct = prevClose > 0 ? parseFloat((((pt.dayCloseVal - prevClose) / prevClose) * 100).toFixed(2)) : 0;
+          }
+        }
+
+        return {
+          date: pt.date,
+          dateLabel: pt.dateLabel,
+          valuation: pt.dayCloseVal,
+          actualValuation: pt.isPast || pt.isToday ? pt.dayCloseVal : null,
+          minValuation: pt.isPast || pt.isToday ? pt.dayMinVal : null,
+          maxValuation: pt.isPast || pt.isToday ? pt.dayMaxVal : null,
+          closingValuation: pt.isPast || pt.isToday ? pt.dayCloseVal : null,
+          projectionValuation: pt.isToday || pt.isFuture ? pt.dayCloseVal : null,
+          invested: pt.dayInvested,
+          gainLoss: pt.dayGainLoss,
           dayReturn,
           dayReturnPct,
         };
@@ -1204,7 +1255,7 @@ export function PortfolioView({
       );
       const invested = categoryAssets.reduce((sum, a) => sum + (Number(a.quantity) || 0) * (Number(a.buy_price) || 0), 0);
 
-      return Array.from({ length: cycleDaysCount }).map((_, i) => {
+      const rawPoints = Array.from({ length: cycleDaysCount }).map((_, i) => {
         const d = new Date(startD);
         d.setDate(d.getDate() + i);
         const dateStr = d.toISOString().split("T")[0];
@@ -1236,16 +1287,42 @@ export function PortfolioView({
         return {
           date: dateStr,
           dateLabel,
-          valuation: formattedVal,
-          actualValuation: isPast || isToday ? formattedVal : null,
-          minValuation: isPast || isToday ? formattedVal : null,
-          maxValuation: isPast || isToday ? formattedVal : null,
-          closingValuation: isPast || isToday ? formattedVal : null,
-          projectionValuation: null,
-          invested: formattedInvested,
+          formattedVal,
+          formattedInvested,
           gainLoss: parseFloat((val - invested).toFixed(2)),
-          dayReturn: null,
-          dayReturnPct: null,
+          isPast,
+          isToday,
+        };
+      });
+
+      return rawPoints.map((pt, i) => {
+        let dayReturn: number | null = null;
+        let dayReturnPct: number | null = null;
+
+        if (pt.isPast || pt.isToday) {
+          if (i === 0) {
+            dayReturn = 0;
+            dayReturnPct = 0;
+          } else {
+            const prevVal = rawPoints[i - 1].formattedVal;
+            dayReturn = parseFloat((pt.formattedVal - prevVal).toFixed(2));
+            dayReturnPct = prevVal > 0 ? parseFloat((((pt.formattedVal - prevVal) / prevVal) * 100).toFixed(2)) : 0;
+          }
+        }
+
+        return {
+          date: pt.date,
+          dateLabel: pt.dateLabel,
+          valuation: pt.formattedVal,
+          actualValuation: pt.isPast || pt.isToday ? pt.formattedVal : null,
+          minValuation: pt.isPast || pt.isToday ? pt.formattedVal : null,
+          maxValuation: pt.isPast || pt.isToday ? pt.formattedVal : null,
+          closingValuation: pt.isPast || pt.isToday ? pt.formattedVal : null,
+          projectionValuation: null,
+          invested: pt.formattedInvested,
+          gainLoss: pt.gainLoss,
+          dayReturn,
+          dayReturnPct,
         };
       });
     } else {
@@ -1262,10 +1339,6 @@ export function PortfolioView({
 
       const change24hPct = Number(targetAsset?.metadata?.change24h || 0);
       const prevPrice = change24hPct !== 0 ? currPrice / (1 + change24hPct / 100) : buyPrice;
-      const todayDayReturn = change24hPct !== 0 
-        ? parseFloat((assetCurrentVal - qty * prevPrice).toFixed(2)) 
-        : parseFloat((assetCurrentVal - assetInvested).toFixed(2));
-      const todayDayReturnPct = change24hPct !== 0 ? change24hPct : (assetInvested > 0 ? (assetGainLoss / assetInvested) * 100 : 0);
 
       const assetAcquisitionDate = targetAsset?.created_at
         ? targetAsset.created_at.split("T")[0]
@@ -1276,7 +1349,7 @@ export function PortfolioView({
         0
       );
 
-      return Array.from({ length: cycleDaysCount }).map((_, i) => {
+      const rawPoints = Array.from({ length: cycleDaysCount }).map((_, i) => {
         const d = new Date(startD);
         d.setDate(d.getDate() + i);
         const dateStr = d.toISOString().split("T")[0];
@@ -1290,50 +1363,64 @@ export function PortfolioView({
           : 1;
 
         let val: number | null = null;
-        let dayReturn: number | null = null;
-        let dayReturnPct: number | null = null;
 
         if (dateStr < assetAcquisitionDate) {
           val = null;
         } else if (dateStr === assetAcquisitionDate) {
           val = assetInvested;
-          dayReturn = 0;
-          dayReturnPct = 0;
         } else if (isToday) {
           val = assetCurrentVal;
-          dayReturn = todayDayReturn;
-          dayReturnPct = todayDayReturnPct;
         } else if (isPast) {
           if (recordedSnap?.closing_valuation) {
             val = parseFloat((assetCurrentVal * snapRatio).toFixed(2));
-            const prevD = new Date(d);
-            prevD.setDate(prevD.getDate() - 1);
-            const prevDateStr = prevD.toISOString().split("T")[0];
-            const prevSnap = snapMap.get(prevDateStr);
-            const prevRatio = prevSnap?.closing_valuation && totalTodayVal > 0 
-              ? Number(prevSnap.closing_valuation) / totalTodayVal 
-              : (prevDateStr === assetAcquisitionDate ? assetInvested / (assetCurrentVal || 1) : snapRatio);
-            const prevVal = parseFloat((assetCurrentVal * prevRatio).toFixed(2));
-            dayReturn = parseFloat((val - prevVal).toFixed(2));
-            dayReturnPct = prevVal > 0 ? parseFloat((((val - prevVal) / prevVal) * 100).toFixed(2)) : 0;
           } else {
             val = parseFloat((qty * prevPrice).toFixed(2));
-            dayReturn = 0;
-            dayReturnPct = 0;
           }
         }
 
         return {
           date: dateStr,
           dateLabel,
-          valuation: val ?? 0,
-          actualValuation: val,
-          minValuation: val,
-          maxValuation: val,
-          closingValuation: val,
+          val,
+          assetInvested,
+          assetGainLoss,
+          isPast,
+          isToday,
+          assetAcquisitionDate,
+        };
+      });
+
+      return rawPoints.map((pt, i) => {
+        let dayReturn: number | null = null;
+        let dayReturnPct: number | null = null;
+
+        if (pt.val != null) {
+          if (pt.date === pt.assetAcquisitionDate || i === 0) {
+            dayReturn = 0;
+            dayReturnPct = 0;
+          } else {
+            const prevVal = rawPoints[i - 1]?.val;
+            if (prevVal != null) {
+              dayReturn = parseFloat((pt.val - prevVal).toFixed(2));
+              dayReturnPct = prevVal > 0 ? parseFloat((((pt.val - prevVal) / prevVal) * 100).toFixed(2)) : 0;
+            } else {
+              dayReturn = 0;
+              dayReturnPct = 0;
+            }
+          }
+        }
+
+        return {
+          date: pt.date,
+          dateLabel: pt.dateLabel,
+          valuation: pt.val ?? 0,
+          actualValuation: pt.val,
+          minValuation: pt.val,
+          maxValuation: pt.val,
+          closingValuation: pt.val,
           projectionValuation: null,
-          invested: assetInvested,
-          gainLoss: assetGainLoss,
+          invested: pt.assetInvested,
+          gainLoss: pt.assetGainLoss,
           dayReturn,
           dayReturnPct,
         };
