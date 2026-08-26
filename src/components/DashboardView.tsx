@@ -70,7 +70,8 @@ function simulateExpertDailyProjection(
   overrides: any[] = [],
   decayRate: number = 0.12,
   targetMonthlySpend: number = 1500,
-  startingBalance: number = 0
+  startingBalance: number = 0,
+  dismissedMerchants: string[] = []
 ) {
   // Convert decayRate (lambda) to halfLifeDays: halfLifeDays = ln(2) / decayRate
   const halfLifeDays = Math.log(2) / (decayRate || 0.12)
@@ -85,7 +86,8 @@ function simulateExpertDailyProjection(
     overrides,
     halfLifeDays,
     targetMonthlySpend,
-    startingBalance
+    startingBalance,
+    dismissedMerchants
   })
 
   return {
@@ -348,11 +350,41 @@ export function DashboardView({
     return () => window.removeEventListener("leger_overrides_updated", loadOverrides)
   }, [selectedCycleId, profile])
 
+  const [radarDismissed, setRadarDismissed] = useState<string[]>([])
+  useEffect(() => {
+    const loadRadarDismissed = () => {
+      try {
+        if (profile?.subscription_radar_preferences?.dismissed) {
+          setRadarDismissed(profile.subscription_radar_preferences.dismissed)
+        } else if (typeof window !== "undefined") {
+          const stored = localStorage.getItem("leger_dismissed_subscriptions")
+          if (stored) setRadarDismissed(JSON.parse(stored))
+          else setRadarDismissed([])
+        }
+      } catch {}
+    }
+    loadRadarDismissed()
+    window.addEventListener("leger_radar_updated", loadRadarDismissed)
+    return () => window.removeEventListener("leger_radar_updated", loadRadarDismissed)
+  }, [profile?.subscription_radar_preferences])
+
   // Predictive Expert Data Analyst Daily Simulation
   const expertProjection = useMemo(() => {
     const past = allPastExpenses || previousExpenses || []
-    return simulateExpertDailyProjection(past, expenses, currentCycle, today, daysElapsed, totalDaysInCycle, overrides, decayWeight || 0.0462, targetMonthlySpend, injectedStartBalance)
-  }, [allPastExpenses, previousExpenses, expenses, currentCycle, today, daysElapsed, totalDaysInCycle, overrides, decayWeight, targetMonthlySpend, injectedStartBalance])
+    return simulateExpertDailyProjection(
+      past, 
+      expenses, 
+      currentCycle, 
+      today, 
+      daysElapsed, 
+      totalDaysInCycle, 
+      overrides, 
+      decayWeight || 0.0462, 
+      targetMonthlySpend, 
+      injectedStartBalance,
+      radarDismissed
+    )
+  }, [allPastExpenses, previousExpenses, expenses, currentCycle, today, daysElapsed, totalDaysInCycle, overrides, decayWeight, targetMonthlySpend, injectedStartBalance, radarDismissed])
 
   const projectedTotalOut = useMemo(() => {
     if (!isCurrentCycle) return totalOut

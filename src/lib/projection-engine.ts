@@ -78,6 +78,7 @@ export interface ProjectionSimulationParams {
   halfLifeDays?: number // Default 15.0d (lambda = ln(2)/15 ≈ 0.0462)
   targetMonthlySpend?: number
   startingBalance?: number
+  dismissedMerchants?: string[]
 }
 
 // In-Memory Fast Cache Map
@@ -99,12 +100,13 @@ export function generateProjectionCacheKey(params: ProjectionSimulationParams): 
     : 0
     
   const overridesKey = JSON.stringify(params.overrides || [])
+  const dismissedKey = JSON.stringify(params.dismissedMerchants || [])
   const halfLife = Math.round((params.halfLifeDays || 15.0) * 100) / 100
   const startBal = Math.round((params.startingBalance || 0) * 100) / 100
   const cycleKey = `${params.currentCycle?.startDate}_${params.currentCycle?.endDate}`
   const todayStr = params.today?.toISOString().slice(0, 10) || ""
 
-  return `proj_v2_${cycleKey}_${todayStr}_${pastCount}_${currentCount}_${newestCurrentTime}_${newestPastTime}_hl${halfLife}_sb${startBal}_ov${overridesKey.length}`
+  return `proj_v2_${cycleKey}_${todayStr}_${pastCount}_${currentCount}_${newestCurrentTime}_${newestPastTime}_hl${halfLife}_sb${startBal}_ov${overridesKey.length}_dis${dismissedKey}`
 }
 
 /**
@@ -167,14 +169,34 @@ function executeEmpiricalComputation(
     overrides = [],
     halfLifeDays = 15.0, // Default 15 days
     targetMonthlySpend = 1500,
-    startingBalance = 0
+    startingBalance = 0,
+    dismissedMerchants = []
   } = params
 
   // Calculate exponential decay lambda from half-life: lambda = ln(2) / halfLifeDays
   const decayRate = Math.log(2) / Math.max(1.0, halfLifeDays)
   
-  // 1. Isolate Deterministic Recurring Subscriptions & Fixed Commitments
-  const cadenceResult = detectRecurringCadence(pastExpenses, currentCycle?.startDate, currentCycle?.endDate || undefined)
+  // Resolve dismissed merchants list (from params or localStorage)
+  const dismissedList = dismissedMerchants.length > 0 ? dismissedMerchants : (
+    typeof window !== "undefined"
+      ? (() => {
+          try {
+            const stored = localStorage.getItem("leger_dismissed_subscriptions")
+            return stored ? JSON.parse(stored) : []
+          } catch {
+            return []
+          }
+        })()
+      : []
+  )
+
+  // 1. Isolate Deterministic Recurring Subscriptions & Fixed Commitments (excluding dismissed/ignored on Radar)
+  const cadenceResult = detectRecurringCadence(
+    pastExpenses,
+    currentCycle?.startDate,
+    currentCycle?.endDate || undefined,
+    dismissedList
+  )
   const recurringNames = new Set(cadenceResult.subscriptions.map(s => s.normalizedMerchant))
   const recurringMerchants = cadenceResult.subscriptions.map(s => ({
     merchant: s.normalizedMerchant,

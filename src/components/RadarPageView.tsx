@@ -181,6 +181,7 @@ export function RadarPageView({ expenses, categories, cycles, currentCycleId }: 
     setDismissedMerchants(updated)
     try {
       localStorage.setItem("leger_dismissed_subscriptions", JSON.stringify(updated))
+      window.dispatchEvent(new Event("leger_radar_updated"))
       toast.success(`${merchantName.toUpperCase()} EXCLUDED FROM RADAR`)
     } catch (e) {}
     setSelectedSubForDetails(null)
@@ -192,6 +193,7 @@ export function RadarPageView({ expenses, categories, cycles, currentCycleId }: 
     setDismissedMerchants([])
     try {
       localStorage.removeItem("leger_dismissed_subscriptions")
+      window.dispatchEvent(new Event("leger_radar_updated"))
       toast.success("RESTORED ALL EXCLUDED SUBSCRIPTIONS")
     } catch (e) {}
     syncRadarPreferencesToBackend([], cadenceOverrides, pinnedSubscriptions)
