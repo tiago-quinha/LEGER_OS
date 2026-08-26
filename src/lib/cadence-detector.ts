@@ -293,10 +293,10 @@ export function detectRecurringCadence(
   dismissedMerchants: string[] = [],
   cadenceOverrides: Record<string, "monthly" | "annual"> = {}
 ): CadenceAnalysisResult {
-  // STRICT: Only real negative outflows (expenses), strictly exclude any positive inflow/income
+  // STRICT: Only real negative outflows (expenses), strictly exclude positive inflow/income, and exclude transactions flagged as anomalies
   const expenseTransactions = expenses.filter((e) => {
     const amt = parseFloat(e.amount);
-    return !isNaN(amt) && amt < 0 && e.is_income !== true && e.date;
+    return !isNaN(amt) && amt < 0 && e.is_income !== true && !e.is_anomaly && e.date;
   });
 
   const dismissedSet = new Set(dismissedMerchants.map(m => m.trim().toUpperCase()));

@@ -90,6 +90,7 @@ const memoryProjectionCache = new Map<string, ProjectionSimulationResult>()
 export function generateProjectionCacheKey(params: ProjectionSimulationParams): string {
   const pastCount = params.pastExpenses?.length || 0
   const currentCount = params.currentExpenses?.length || 0
+  const anomalyCount = (params.pastExpenses || []).filter((e: any) => e.is_anomaly).length + (params.currentExpenses || []).filter((e: any) => e.is_anomaly).length
   
   const newestCurrentTime = params.currentExpenses?.length
     ? Math.max(...params.currentExpenses.map(e => new Date(e.date).getTime() || 0))
@@ -106,7 +107,7 @@ export function generateProjectionCacheKey(params: ProjectionSimulationParams): 
   const cycleKey = `${params.currentCycle?.startDate}_${params.currentCycle?.endDate}`
   const todayStr = params.today?.toISOString().slice(0, 10) || ""
 
-  return `proj_v2_${cycleKey}_${todayStr}_${pastCount}_${currentCount}_${newestCurrentTime}_${newestPastTime}_hl${halfLife}_sb${startBal}_ov${overridesKey.length}_dis${dismissedKey}`
+  return `proj_v3_${cycleKey}_${todayStr}_${pastCount}_${currentCount}_${newestCurrentTime}_${newestPastTime}_anom${anomalyCount}_hl${halfLife}_sb${startBal}_ov${overridesKey.length}_dis${dismissedKey}`
 }
 
 /**
@@ -123,7 +124,7 @@ export function runEmpiricalProjection(params: ProjectionSimulationParams): Proj
   // 2. Check LocalStorage Cache (Browser Environment)
   if (typeof window !== "undefined") {
     try {
-      const stored = localStorage.getItem("leger_cached_projection_v2")
+      const stored = localStorage.getItem("leger_cached_projection_v3")
       if (stored) {
         const parsed = JSON.parse(stored) as ProjectionSimulationResult
         if (parsed && parsed.cacheKey === cacheKey) {
@@ -143,7 +144,7 @@ export function runEmpiricalProjection(params: ProjectionSimulationParams): Proj
   memoryProjectionCache.set(cacheKey, result)
   if (typeof window !== "undefined") {
     try {
-      localStorage.setItem("leger_cached_projection_v2", JSON.stringify(result))
+      localStorage.setItem("leger_cached_projection_v3", JSON.stringify(result))
     } catch {
       // LocalStorage quota full or private browsing
     }
@@ -190,9 +191,10 @@ function executeEmpiricalComputation(
       : []
   )
 
-  // 1. Isolate Deterministic Recurring Subscriptions & Fixed Commitments (excluding dismissed/ignored on Radar)
+  // 1. Isolate Deterministic Recurring Subscriptions & Fixed Commitments (strictly excluding anomalies & dismissed/ignored on Radar)
+  const nonAnomalyPast = pastExpenses.filter((e: any) => !e.is_anomaly)
   const cadenceResult = detectRecurringCadence(
-    pastExpenses,
+    nonAnomalyPast,
     currentCycle?.startDate,
     currentCycle?.endDate || undefined,
     dismissedList
