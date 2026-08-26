@@ -2658,7 +2658,10 @@ export function ExpensesView({ initialExpenses, categories: initialCategories, i
                         <SelectContent>
                           {categories.map((cat) => (
                             <SelectItem key={cat.id} value={cat.id.toString()}>
-                              {cat.name}
+                              <div className="flex items-center gap-2">
+                                <div className="h-2 w-2 rounded-full shrink-0" style={{ backgroundColor: cat.color }} />
+                                <span>{cat.name}</span>
+                              </div>
                             </SelectItem>
                           ))}
                         </SelectContent>
@@ -2684,17 +2687,29 @@ export function ExpensesView({ initialExpenses, categories: initialCategories, i
                         </TableRow>
                       </TableHeader>
                       <TableBody>
-                        {rules.map((rule) => (
-                          <TableRow key={rule.id}>
-                            <TableCell className="font-mono text-xs">{rule.keyword}</TableCell>
-                            <TableCell>{categories.find(c => c.id === rule.category_id)?.name}</TableCell>
-                            <TableCell className="text-right">
-                              <Button variant="ghost" size="icon" onClick={() => handleDeleteRule(rule.id.toString())} aria-label="Delete rule">
-                                <Trash2 className="h-4 w-4" />
-                              </Button>
-                            </TableCell>
-                          </TableRow>
-                        ))}
+                        {rules.map((rule) => {
+                          const cat = categories.find(c => c.id === rule.category_id)
+                          return (
+                            <TableRow key={rule.id}>
+                              <TableCell className="font-mono text-xs font-bold uppercase">{rule.keyword}</TableCell>
+                              <TableCell>
+                                {cat ? (
+                                  <div className="inline-flex items-center gap-1.5 border border-border px-2 py-0.5 text-[9px] font-mono font-bold uppercase tracking-tight select-none">
+                                    <div className="h-1.5 w-1.5 rounded-full shrink-0" style={{ backgroundColor: cat.color }} />
+                                    <span>{cat.name}</span>
+                                  </div>
+                                ) : (
+                                  <span className="text-[9px] font-mono text-muted-foreground/60 tracking-wider">Unclassified</span>
+                                )}
+                              </TableCell>
+                              <TableCell className="text-right">
+                                <Button variant="ghost" size="icon" onClick={() => handleDeleteRule(rule.id.toString())} aria-label="Delete rule">
+                                  <Trash2 className="h-4 w-4" />
+                                </Button>
+                              </TableCell>
+                            </TableRow>
+                          )
+                        })}
                       </TableBody>
                     </Table>
                   </div>
@@ -2914,7 +2929,10 @@ export function ExpensesView({ initialExpenses, categories: initialCategories, i
                                             <SelectItem value="none">Uncategorized</SelectItem>
                                             {categories.map((cat) => (
                                               <SelectItem key={cat.id} value={cat.id.toString()}>
-                                                {cat.name}
+                                                <div className="flex items-center gap-2">
+                                                  <div className="h-1.5 w-1.5 rounded-full shrink-0" style={{ backgroundColor: cat.color }} />
+                                                  <span>{cat.name}</span>
+                                                </div>
                                               </SelectItem>
                                             ))}
                                           </SelectContent>

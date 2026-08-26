@@ -1412,7 +1412,10 @@ export function DashboardView({
                     >
                       <div className="flex justify-between items-end">
                         <div className="space-y-0.5">
-                          <span className="text-xs font-bold uppercase tracking-tight block">{cat.name}</span>
+                          <div className="flex items-center gap-1.5">
+                            <div className="h-2 w-2 rounded-full shrink-0" style={{ backgroundColor: cat.color || "#888888" }} />
+                            <span className="text-xs font-bold uppercase tracking-tight block">{cat.name}</span>
+                          </div>
                           <span className="text-[9px] font-mono text-muted-foreground uppercase">
                             {isProfitable 
                               ? `+${currencySymbol}${netBalance.toFixed(0)} surplus` 
@@ -1667,6 +1670,9 @@ export function DashboardView({
         <DialogContent className="bg-card border border-border rounded-none p-6 font-mono text-xs w-[95vw] md:max-w-5xl max-h-[85dvh] overflow-y-auto">
           <DialogHeader className="border-b border-border pb-4 mb-4">
             <DialogTitle className="text-xs uppercase tracking-widest font-mono text-foreground flex items-center gap-2">
+              {selectedCategoryForGraph?.color && (
+                <div className="h-2.5 w-2.5 rounded-full shrink-0" style={{ backgroundColor: selectedCategoryForGraph.color }} />
+              )}
               <span>Category Audit: {selectedCategoryForGraph?.name}</span>
             </DialogTitle>
             <DialogDescription className="text-[9px] uppercase font-mono tracking-wider opacity-60 text-muted-foreground">

@@ -163,8 +163,11 @@ export function AuditTracePanel({ expenses, categories }: AuditTracePanelProps) 
                 <div className="space-y-2">
                   <h2 className="text-3xl font-bold tracking-tighter uppercase">{activeTx?.merchant}</h2>
                   <div className="flex items-center gap-4">
-                    <Badge variant="outline" className="rounded-none font-mono text-[10px] uppercase">
-                      {category?.name || "UNCLASSIFIED"}
+                    <Badge variant="outline" className="rounded-none font-mono text-[10px] uppercase inline-flex items-center gap-1.5">
+                      {category && (
+                        <div className="h-1.5 w-1.5 rounded-full shrink-0" style={{ backgroundColor: category.color }} />
+                      )}
+                      <span>{category?.name || "UNCLASSIFIED"}</span>
                     </Badge>
                     <span className={cn("text-xs font-mono font-bold", parseFloat(activeTx?.amount) > 0 ? "text-emerald-600 dark:text-emerald-400" : "")}>
                       {parseFloat(activeTx?.amount) > 0 ? "+" : ""}{currencySymbol}{parseFloat(activeTx?.amount).toFixed(2)}

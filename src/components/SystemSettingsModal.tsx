@@ -1122,8 +1122,11 @@ export function SystemSettingsModal({ open, onOpenChange }: SystemSettingsModalP
                             <div key={rule.id} className="p-2 flex items-center justify-between text-xs hover:bg-secondary/20 transition-colors">
                               <div className="flex items-center gap-2">
                                 <span className="font-bold text-foreground uppercase">{rule.keyword}</span>
-                                <span className="text-[8px] text-muted-foreground px-1.5 py-0.5 bg-secondary border border-border">
-                                  {cat?.name || "Unclassified"}
+                                <span className="text-[8px] text-muted-foreground px-1.5 py-0.5 bg-secondary border border-border inline-flex items-center gap-1.5 font-mono uppercase">
+                                  {cat && (
+                                    <div className="h-1.5 w-1.5 rounded-full shrink-0" style={{ backgroundColor: cat.color }} />
+                                  )}
+                                  <span>{cat?.name || "Unclassified"}</span>
                                 </span>
                               </div>
                               <button

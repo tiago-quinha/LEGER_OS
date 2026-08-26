@@ -464,9 +464,17 @@ export function RadarPageView({ expenses, categories, cycles, currentCycleId }: 
                     <div className="flex items-start justify-between gap-3">
                       <div className="min-w-0 flex-1">
                         <div className="text-base font-bold text-foreground uppercase truncate tracking-tight">{sub.merchant}</div>
-                        <div className="text-[10px] text-muted-foreground uppercase font-mono truncate">
-                          {sub.categoryName || "RECURRING COMMITMENT"}
-                        </div>
+                        {(() => {
+                          const cat = categories.find(c => (sub.categoryId && c.id === sub.categoryId) || (sub.categoryName && c.name.toUpperCase() === sub.categoryName.toUpperCase()))
+                          return (
+                            <div className="flex items-center gap-1.5 text-[10px] text-muted-foreground uppercase font-mono truncate">
+                              {cat && (
+                                <div className="h-1.5 w-1.5 rounded-full shrink-0" style={{ backgroundColor: cat.color }} />
+                              )}
+                              <span className="truncate">{sub.categoryName || "RECURRING COMMITMENT"}</span>
+                            </div>
+                          )
+                        })()}
                       </div>
                       <div className="flex items-center gap-1 shrink-0">
                         {/* Interactive Cadence Toggle Pill */}
