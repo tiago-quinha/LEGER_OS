@@ -437,6 +437,7 @@ export function ExpensesView({ initialExpenses, categories: initialCategories, i
   const [manualCategoryId, setManualCategoryId] = useState("")
   const [manualDate, setManualDate] = useState(new Date().toISOString().split('T')[0])
   const [isIncome, setIsIncome] = useState(false)
+  const [isManualAnomaly, setIsManualAnomaly] = useState(false)
   const [isSavingManual, setIsSavingManual] = useState(false)
 
   useEffect(() => {
@@ -1493,7 +1494,8 @@ export function ExpensesView({ initialExpenses, categories: initialCategories, i
       date: manualDate,
       source: "Manual UI Ingest",
       raw_text: `Manual Entry: ${manualMerchant.toUpperCase()} [${manualDate}]`,
-      category_id: manualCategoryId ? parseInt(manualCategoryId) : null
+      category_id: manualCategoryId ? parseInt(manualCategoryId) : null,
+      is_anomaly: isManualAnomaly
     }
 
     // Optimistically update list state and close overlay drawer instantly
@@ -1504,6 +1506,7 @@ export function ExpensesView({ initialExpenses, categories: initialCategories, i
     setManualCategoryId("")
     setManualDate(new Date().toISOString().split('T')[0])
     setIsIncome(false)
+    setIsManualAnomaly(false)
     toast.success("Transaction committed successfully.")
 
     setIsSavingManual(true)
@@ -1516,7 +1519,8 @@ export function ExpensesView({ initialExpenses, categories: initialCategories, i
           date: manualDate,
           source: "Manual UI Ingest",
           raw_text: `Manual Entry: ${manualMerchant.toUpperCase()} [${manualDate}]`,
-          category_id: manualCategoryId ? parseInt(manualCategoryId) : null
+          category_id: manualCategoryId ? parseInt(manualCategoryId) : null,
+          is_anomaly: isManualAnomaly
         })
         .select()
 
@@ -1729,6 +1733,28 @@ export function ExpensesView({ initialExpenses, categories: initialCategories, i
                                 ))}
                               </SelectContent>
                             </Select>
+                         </div>
+
+                         {/* Flag as Anomaly toggle */}
+                         <div 
+                           className="flex items-start gap-2.5 pt-1 cursor-pointer select-none group" 
+                           onClick={() => setIsManualAnomaly(!isManualAnomaly)}
+                         >
+                           <input
+                             type="checkbox"
+                             id="manualAnomaly"
+                             checked={isManualAnomaly}
+                             onChange={(e) => setIsManualAnomaly(e.target.checked)}
+                             className="rounded-none border-border bg-secondary/40 text-foreground cursor-pointer h-4 w-4 accent-foreground mt-0.5"
+                           />
+                           <div className="space-y-0.5">
+                             <label htmlFor="manualAnomaly" className="text-xs font-mono font-bold uppercase tracking-wider text-foreground cursor-pointer block">
+                               Flag as Anomaly
+                             </label>
+                             <p className="text-[9px] font-mono text-muted-foreground">
+                               Excluded from daily burn rate, recency decay velocity & recurring projection pace
+                             </p>
+                           </div>
                          </div>
 
                         <Button 

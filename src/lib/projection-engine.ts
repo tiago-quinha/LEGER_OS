@@ -325,7 +325,7 @@ function executeEmpiricalComputation(
         let catWeightedSpend = 0
         let catTotalWeight = 0
         currentExpenses.forEach((e: any) => {
-          if (parseFloat(e.amount) < 0 && new Date(e.date) <= today && (!ov.categoryId || e.category_id === ov.categoryId)) {
+          if (parseFloat(e.amount) < 0 && new Date(e.date) <= today && (!ov.categoryId || e.category_id === ov.categoryId) && !e.is_anomaly) {
             const daysAgo = Math.floor(Math.max(0, (todayTime - new Date(e.date).getTime()) / (1000 * 60 * 60 * 24)))
             if (daysAgo <= effectiveElapsed) {
               const w = Math.exp(-decayRate * daysAgo)
