@@ -99,7 +99,8 @@ function simulateExpertDailyProjection(
     currentDailyVariableBurn: result.currentDailyVariableBurn,
     blendedDailyBurn: result.blendedDailyBurn,
     daysRemaining: result.daysRemaining,
-    empiricalMetrics: result.empiricalMetrics
+    empiricalMetrics: result.empiricalMetrics,
+    upcomingBills: result.upcomingBills
   }
 }
 
@@ -664,6 +665,8 @@ export function DashboardView({
         }
     }
 
+    const scheduledBills = expertProjection?.upcomingBills?.filter((b: any) => b.dayIndex === i) || []
+
     return {
       day: i,
       dateLabel,
@@ -676,7 +679,8 @@ export function DashboardView({
       optimisticSpend,
       optimisticBalance,
       pessimisticSpend,
-      pessimisticBalance
+      pessimisticBalance,
+      scheduledBills
     }
   }), [totalDaysInCycle, startDate, today, expenses, injectedStartBalance, totalIn, isCurrentCycle, expertProjection])
 

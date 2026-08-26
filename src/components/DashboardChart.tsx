@@ -107,6 +107,26 @@ export function DashboardChart({ hybridData, activeTab, onDayClick, isPro }: Das
                           </p>
                         </>
                       )}
+                      {data.scheduledBills && data.scheduledBills.length > 0 && (
+                        <div className="border-t border-border/40 pt-1.5 space-y-1">
+                          <div className="flex justify-between gap-4 text-[8px] uppercase tracking-wider text-muted-foreground font-bold">
+                            <span>Scheduled {data.scheduledBills.length === 1 ? "Bill" : "Bills"}:</span>
+                            <span className="text-rose-500 font-semibold">
+                              -{currencySymbol}{data.scheduledBills.reduce((sum: number, b: any) => sum + (Number(b.amount) || 0), 0).toFixed(2)}
+                            </span>
+                          </div>
+                          <div className="space-y-0.5">
+                            {data.scheduledBills.map((bill: any, idx: number) => (
+                              <p key={idx} className="flex justify-between gap-4 opacity-75 uppercase text-[8.5px]">
+                                <span className="truncate max-w-[130px]">{bill.merchant}</span>
+                                <span className="font-semibold text-rose-500 shrink-0">
+                                  -{currencySymbol}{Number(bill.amount).toFixed(2)}
+                                </span>
+                              </p>
+                            ))}
+                          </div>
+                        </div>
+                      )}
                     </div>
                   </div>
                 )
@@ -139,7 +159,7 @@ export function DashboardChart({ hybridData, activeTab, onDayClick, isPro }: Das
             strokeWidth={1.5} 
             strokeDasharray="5 5" 
             fill="url(#projectionGradient)" 
-            fillOpacity={1}
+            fillOpacity={1} 
             name="Projection" 
             connectNulls={true}
             isAnimationActive={true}
