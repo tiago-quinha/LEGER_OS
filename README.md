@@ -8,6 +8,7 @@
 [![Capacitor Native](https://img.shields.io/badge/Capacitor-Android%20Native-3880ff?style=for-the-badge&logo=capacitor)](https://capacitorjs.com/)
 [![Tailwind CSS 4](https://img.shields.io/badge/Tailwind-CSS%204-38bdf8?style=for-the-badge&logo=tailwindcss)](https://tailwindcss.com/)
 [![Supabase](https://img.shields.io/badge/Database-Supabase%20Postgres-3ecf8e?style=for-the-badge&logo=supabase)](https://supabase.com/)
+[![License: Proprietary](https://img.shields.io/badge/License-Proprietary%20%2F%20All%20Rights%20Reserved-red?style=for-the-badge)](./LICENSE)
 
 ---
 
@@ -78,6 +79,13 @@ Integrated neural interface supporting custom API keys and local offline inferen
 
 ---
 
-## License
+## License & Intellectual Property
 
-Distributed under the MIT License. See `LICENSE` for more information.
+Copyright © 2026 LEGER_OS. All Rights Reserved.
+
+LEGER_OS is source-available software provided under a **Strict Proprietary License**.
+
+* **Allowed:** Personal, non-commercial educational review, local evaluation, and security auditing.
+* **Prohibited:** Commercial use, public hosted SaaS/cloud deployments, re-licensing, distribution, mobile app store republishing, or creating unauthorized commercial forks/derivatives.
+
+For full terms and conditions, see the [LICENSE](./LICENSE) file.

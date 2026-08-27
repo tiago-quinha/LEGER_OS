@@ -1,0 +1,31 @@
+PROPRIETARY SOURCE-AVAILABLE LICENSE
+
+Copyright (c) 2026 LEGER_OS. All Rights Reserved.
+
+TERMS AND CONDITIONS FOR USE, REPRODUCTION, AND DISTRIBUTION
+
+1. DEFINITIONS
+"Software" refers to the source code, object code, design systems, algorithms, documentation, and user interfaces comprising the LEGER_OS codebase.
+"Licensor" refers to the copyright owner, LEGER_OS.
+"You" (or "Your") refers to an individual or legal entity exercising permissions granted by this License.
+
+2. GRANT OF LIMITED LICENSE
+Subject to the terms and conditions of this License, the Licensor hereby grants You a personal, non-exclusive, non-transferable, revocable license to:
+  a. View and inspect the Software source code solely for personal educational, analytical, or security verification purposes.
+  b. Run a local, private instance of the Software for non-commercial personal evaluation only.
+
+3. STRICT PROHIBITIONS & RESTRICTIONS
+You may NOT under any circumstances:
+  a. Commercially exploit, sell, rent, lease, sublicense, distribute, assign, or monetize the Software or any portion thereof.
+  b. Host, operate, or deploy the Software (or any derivative work) as a publicly accessible hosted software-as-a-service (SaaS), cloud application, web service, mobile app store listing, or multi-tenant platform.
+  c. Create, publish, or distribute derivative works, clones, forks, or copycat applications based on the Software without explicit prior written authorization from the Licensor.
+  d. Remove, alter, or obscure any copyright notices, trademark indicators, author attributions, or proprietary headers in the Software.
+
+4. INTELLECTUAL PROPERTY & TRADEMARKS
+All rights, title, interest, patents, trademarks, design rights, and trade secrets in and to the Software—including the names "LEGER_OS", "LEGER", and associated branding—remain the sole and exclusive intellectual property of the Licensor. This License does not grant any rights to use trademarks or service marks of the Licensor.
+
+5. TERMINATION
+This License and Your rights under it terminate automatically without notice if You violate any of its terms or conditions. Upon termination, You must immediately cease all use and destroy all copies of the Software in Your possession.
+
+6. DISCLAIMER OF WARRANTY
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE, AND NONINFRINGEMENT. IN NO EVENT SHALL THE LICENSOR OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES, OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT, OR OTHERWISE, ARISING FROM, OUT OF, OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.

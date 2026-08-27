@@ -2104,7 +2104,7 @@ export function PortfolioView({
                           </span>
                         </div>
                         <p className="text-[11px] font-mono text-muted-foreground/80 mt-0.5 truncate">
-                          {formatSmartQuantity(qty)} @ <PrivacyValue>{currencySymbol}{formatSmartPrice(currP)}</PrivacyValue>
+                          {formatSmartQuantity(qty)} @ <PrivacyValue>{currencySymbol}{formatSmartPrice(buyP)}</PrivacyValue>
                         </p>
                       </div>
                     </div>
