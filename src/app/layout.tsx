@@ -62,6 +62,9 @@ export const metadata: Metadata = {
     description: "Real-time Apple Pay & push notification ingestion paired with recency-weighted cash flow modeling.",
     creator: "@leger_os",
   },
+  verification: {
+    google: "wI5Q6JmT6qI670OSc49lBAloDVlhXX3-YVDCEQKQffo",
+  },
   icons: {
     icon: "/icon.svg",
     apple: "/icon.svg",
